@@ -21,7 +21,7 @@ class AppConfig {
         const bool.fromEnvironment('SHOW_DEV_OTP', defaultValue: !kReleaseMode);
 
     return AppConfig(
-      appName: env['APP_NAME'] ?? 'BioHelix',
+      appName: env['APP_NAME'] ?? 'Biohelix',
       apiBaseUrl:
           env['API_BASE_URL'] ??
           const String.fromEnvironment(

@@ -144,27 +144,13 @@ class _SplashScreenState extends State<SplashScreen>
                             scale: _logoScale,
                             child: FadeTransition(
                               opacity: _logoOpacity,
-                              child: Container(
-                                width: 110,
-                                height: 110,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.primary,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withValues(
-                                        alpha: 0.35,
-                                      ),
-                                      blurRadius: 40,
-                                      offset: const Offset(0, 12),
-                                    ),
-                                  ],
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.local_hospital_rounded,
-                                    color: Colors.white,
-                                    size: 54,
+                              child: SizedBox(
+                                width: 160,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Image.asset(
+                                    'assets/images/bhrc-logo.jpg',
+                                    fit: BoxFit.contain,
                                   ),
                                 ),
                               ),
@@ -178,7 +164,7 @@ class _SplashScreenState extends State<SplashScreen>
                               child: Column(
                                 children: [
                                   Text(
-                                    'BioHelix',
+                                    'Biohelix',
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context)
                                         .textTheme
@@ -191,7 +177,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'BHRC Patient Portal',
+                                    'by BHRC',
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context)
                                         .textTheme
@@ -209,21 +195,21 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ),
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FadeTransition(
-                      opacity: _textOpacity,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 32),
-                        child: Text(
-                          'v1.0.0',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: secondaryTextColor,
-                              ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  // Align(
+                  //   alignment: Alignment.bottomCenter,
+                  //   child: FadeTransition(
+                  //     opacity: _textOpacity,
+                  //     child: Padding(
+                  //       padding: const EdgeInsets.only(bottom: 32),
+                  //       child: Text(
+                  //         'v1.0.0',
+                  //         style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  //               color: secondaryTextColor,
+                  //             ),
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             ),
