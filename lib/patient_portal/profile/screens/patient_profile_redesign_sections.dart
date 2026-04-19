@@ -51,28 +51,32 @@ class _ProfileSettingsCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Column(
         children: [
-          const _ProfileInfoTile(
-            icon: Icons.notifications_none_rounded,
-            label: 'Notifications',
-            value: '',
-          ),
+          // const _ProfileInfoTile(
+          //   icon: Icons.notifications_none_rounded,
+          //   label: 'Notifications',
+          //   value: '',
+          // ),
+          // _ProfileInfoTile(
+          //   icon: Icons.science_outlined,
+          //   label: 'Tests Explorer',
+          //   value: 'Open the previous tests screen',
+          //   onTap: onOpenTestsHub,
+          // ),
           _ProfileInfoTile(
-            icon: Icons.science_outlined,
-            label: 'Tests Explorer',
-            value: 'Open the previous tests screen',
-            onTap: onOpenTestsHub,
-          ),
-          const _ProfileInfoTile(
             icon: Icons.verified_user_outlined,
-            label: 'Privacy & Security',
+            label: 'Privacy Policy',
             value: '',
+            onTap: () async {
+              final url = Uri.parse('https://www.bhrchospital.com/privacy-policy');
+              await launchUrl(url, mode: LaunchMode.externalApplication);
+            },
           ),
-          const _ProfileInfoTile(
-            icon: Icons.translate_rounded,
-            label: 'Language',
-            value: '',
-            isLast: true,
-          ),
+          // const _ProfileInfoTile(
+          //   icon: Icons.translate_rounded,
+          //   label: 'Language',
+          //   value: '',
+          //   isLast: true,
+          // ),
         ],
       ),
     );

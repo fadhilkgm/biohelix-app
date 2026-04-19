@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../../core/models/patient_models.dart';
 import 'emergency_call_launcher.dart';
 import 'emergency_support_content.dart';
-import 'widgets/emergency_contact_tile.dart';
-import 'widgets/emergency_header_panel.dart';
-import 'widgets/emergency_location_card.dart';
-import 'widgets/emergency_primary_call_card.dart';
-import 'widgets/emergency_tip_tile.dart';
+import 'emergency_contact_tile.dart';
+import 'emergency_header_panel.dart';
+import 'emergency_location_card.dart';
+import 'emergency_primary_call_card.dart';
+import 'emergency_tip_tile.dart';
 
 class EmergencySupportScreen extends StatelessWidget {
   const EmergencySupportScreen({
