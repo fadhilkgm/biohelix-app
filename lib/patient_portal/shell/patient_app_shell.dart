@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_shadows.dart';
 import '../../core/widgets/custom_bottom_bar.dart';
 import '../../core/widgets/custom_button.dart';
 import '../../features/session/providers/session_provider.dart';
@@ -68,6 +69,7 @@ part 'package:biohelix_app/patient_portal/tests/screens/patient_tests_tab.dart';
 
 abstract class PatientAppShellController {
   void openRecords([String filter = 'all']);
+  void goHome();
 }
 
 class PatientAppShell extends StatefulWidget {
@@ -226,6 +228,11 @@ class _PatientAppShellState extends State<PatientAppShell>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _recordsTabKey.currentState?.setFilter(filter);
     });
+  }
+  
+  @override
+  void goHome() {
+    _setIndex(0);
   }
 
   void _openDoctorsDirectory() {

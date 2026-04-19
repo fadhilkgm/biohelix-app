@@ -58,78 +58,118 @@ class _RecordsTabState extends State<_RecordsTab> {
         final visibleItems = _applyFilter(items);
         final theme = Theme.of(context);
 
-        return Container(
-          color: const Color(0xFFF5F7FB),
-          child: SafeArea(
-            bottom: false,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
-              children: [
-                Text(
-                  'Medical Records',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
-                    height: 1.05,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${items.length} records',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF94A3B8),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  height: 38,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
+        return Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 52, 16, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _RecordsFilterChip(
-                        label: 'All',
-                        icon: Icons.apps_rounded,
-                        selected: _filter == 'all',
-                        onTap: () => setState(() => _filter = 'all'),
+                      // ── Back Button ─────────────────────────────────────
+                      IconButton(
+                        onPressed: () => PatientAppShell.of(context).goHome(),
+                        icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: theme.colorScheme.surface,
+                          foregroundColor: theme.colorScheme.onSurface,
+                          padding: const EdgeInsets.all(12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      _RecordsFilterChip(
-                        label: 'Lab Report',
-                        icon: Icons.science_outlined,
-                        selected: _filter == 'lab',
-                        onTap: () => setState(() => _filter = 'lab'),
+                      const SizedBox(height: 24),
+                      // ── Header ──────────────────────────────────────────
+                      Text(
+                        'Medical Records',
+                        style: GoogleFonts.manrope(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: theme.colorScheme.onSurface,
+                          letterSpacing: -0.5,
+                          height: 1.1,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      _RecordsFilterChip(
-                        label: 'Prescription',
-                        icon: Icons.medication_outlined,
-                        selected: _filter == 'prescription',
-                        onTap: () => setState(() => _filter = 'prescription'),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${items.length} records in your vault',
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      _RecordsFilterChip(
-                        label: 'Discharge Summary',
-                        icon: Icons.description_outlined,
-                        selected: _filter == 'summary',
-                        onTap: () => setState(() => _filter = 'summary'),
+                      const SizedBox(height: 20),
+                      // ── Filter chips ─────────────────────────────────────
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        clipBehavior: Clip.none,
+                        child: Row(
+                          children: [
+                            _RecordsFilterChip(
+                              label: 'All',
+                              icon: Icons.apps_rounded,
+                              selected: _filter == 'all',
+                              onTap: () => setState(() => _filter = 'all'),
+                            ),
+                            const SizedBox(width: 8),
+                            _RecordsFilterChip(
+                              label: 'Lab Reports',
+                              icon: Icons.science_rounded,
+                              selected: _filter == 'lab',
+                              onTap: () => setState(() => _filter = 'lab'),
+                            ),
+                            const SizedBox(width: 8),
+                            _RecordsFilterChip(
+                              label: 'Prescriptions',
+                              icon: Icons.medication_rounded,
+                              selected: _filter == 'prescription',
+                              onTap: () => setState(() => _filter = 'prescription'),
+                            ),
+                            const SizedBox(width: 8),
+                            _RecordsFilterChip(
+                              label: 'Summaries',
+                              icon: Icons.description_rounded,
+                              selected: _filter == 'summary',
+                              onTap: () => setState(() => _filter = 'summary'),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                if (visibleItems.isEmpty)
-                  _RecordsEmptyState(activeFilter: _filter)
-                else
-                  ...visibleItems.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _RecordsListCard(item: item, onTap: item.onTap),
+              ),
+              if (visibleItems.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _RecordsEmptyState(activeFilter: _filter),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = visibleItems[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _RecordsListCard(item: item, onTap: item.onTap),
+                        );
+                      },
+                      childCount: visibleItems.length,
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         );
       },
@@ -293,39 +333,41 @@ class _RecordsFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = selected ? Colors.white : const Color(0xFF475569);
+    final theme = Theme.of(context);
+    const activeColor = AppColors.primary;
 
-    return Material(
-      color: selected ? const Color(0xFF123A87) : const Color(0xFFF8FAFC),
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+         duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? activeColor : theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: selected ? AppShadows.low() : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
               color: selected
-                  ? const Color(0xFF123A87)
-                  : const Color(0xFFE2E8F0),
+                  ? Colors.white
+                  : theme.colorScheme.onSurfaceVariant,
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: foreground),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: foreground,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.manrope(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: selected
+                    ? Colors.white
+                    : theme.colorScheme.onSurfaceVariant,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -342,88 +384,97 @@ class _RecordsListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x110F172A),
-                blurRadius: 18,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: item.backgroundColor,
-                  borderRadius: BorderRadius.circular(14),
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AppShadows.low(
+          dark: theme.brightness == Brightness.dark,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: item.accentColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(item.icon, color: item.accentColor, size: 22),
                 ),
-                child: Icon(item.icon, color: item.accentColor, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF1E293B),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 12,
-                          color: Color(0xFF94A3B8),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: theme.colorScheme.onSurface,
+                          height: 1.2,
                         ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            '${item.meta}   ${item.kindLabel}',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF94A3B8),
-                              fontWeight: FontWeight.w700,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        item.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                                alpha: 0.7,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.calendar_today_rounded,
+                              size: 13,
+                              color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${item.meta}   •   ${item.kindLabel}',
+                              style: GoogleFonts.manrope(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              _RecordsAvailabilityBadge(label: item.statusLabel),
-            ],
+                const SizedBox(width: 12),
+                _RecordsAvailabilityBadge(label: item.statusLabel),
+              ],
+            ),
           ),
         ),
       ),
@@ -439,17 +490,14 @@ class _RecordsAvailabilityBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAvailable = label.toLowerCase() == 'available';
-    final background = isAvailable
-        ? const Color(0xFFDDF9E8)
-        : const Color(0xFFFFF1CC);
-    final foreground = isAvailable
-        ? const Color(0xFF10B981)
-        : const Color(0xFFF59E0B);
+    final accentColor = isAvailable
+        ? AppColors.success
+        : AppColors.warning;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: background,
+        color: accentColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -459,17 +507,17 @@ class _RecordsAvailabilityBadge extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: foreground,
+              color: accentColor,
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(
-              color: foreground,
+            style: GoogleFonts.manrope(
+              color: accentColor,
               fontWeight: FontWeight.w700,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
         ],
@@ -494,40 +542,49 @@ class _RecordsEmptyState extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
+        boxShadow: AppShadows.low(
+          dark: theme.brightness == Brightness.dark,
+        ),
       ),
       child: Column(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F1FF),
+              color: AppColors.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(18),
             ),
             child: const Icon(
               Icons.folder_open_rounded,
-              color: Color(0xFF3B82F6),
+              color: AppColors.primary,
               size: 28,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Text(
             'No $label yet',
-            style: theme.textTheme.titleMedium?.copyWith(
+            textAlign: TextAlign.center,
+            style: GoogleFonts.manrope(
+              fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
+              color: theme.colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
-            'This tab is ready for the records flow. We can add upload and detailed actions next.',
+            'Your medical vault is empty. New reports will appear here automatically after your consultations.',
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF64748B),
+            style: GoogleFonts.manrope(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.5,
             ),
           ),
         ],
@@ -621,7 +678,6 @@ class _PrescriptionDetailSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Text(
                 'No medicine lines were attached to this prescription.',
@@ -654,7 +710,6 @@ class _PrescriptionDetailSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Text(
                 record.summary!.trim(),
@@ -701,7 +756,6 @@ class _SheetInfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,7 +803,6 @@ class _PrescriptionMedicineCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

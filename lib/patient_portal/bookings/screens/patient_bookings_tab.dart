@@ -77,19 +77,34 @@ class _BookingsTabState extends State<_BookingsTab> {
           backgroundColor: Colors.transparent,
           body: DecoratedBox(
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
+              color: theme.scaffoldBackgroundColor,
             ),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
+                    padding: const EdgeInsets.fromLTRB(16, 52, 16, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // ── Back Button ─────────────────────────────────────
+                        IconButton(
+                          onPressed: () => PatientAppShell.of(context).goHome(),
+                          icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                          style: IconButton.styleFrom(
+                            backgroundColor: theme.colorScheme.surface,
+                            foregroundColor: theme.colorScheme.onSurface,
+                            padding: const EdgeInsets.all(12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // ── Header ──────────────────────────────────────────
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Expanded(
                               child: Column(
@@ -98,18 +113,21 @@ class _BookingsTabState extends State<_BookingsTab> {
                                   Text(
                                     'My Bookings',
                                     style: GoogleFonts.manrope(
-                                      textStyle: theme.textTheme.headlineMedium
-                                          ?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -1,
-                                      ),
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w800,
+                                      color: theme.colorScheme.onSurface,
+                                      letterSpacing: -0.5,
+                                      height: 1.1,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Manage consultations & diagnostics',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                    'Consultations & diagnostics',
+                                    style: GoogleFonts.manrope(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
                                       color: theme.colorScheme.onSurfaceVariant,
+                                      height: 1.35,
                                     ),
                                   ),
                                 ],
@@ -123,13 +141,15 @@ class _BookingsTabState extends State<_BookingsTab> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
+                        // ── Filter chips ─────────────────────────────────────
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
+                          clipBehavior: Clip.none,
                           child: Row(
                             children: [
                               _BookingsFilterChip(
-                                label: 'All Activities',
+                                label: 'All',
                                 selected: _selectedView == _BookingsView.all,
                                 icon: Icons.grid_view_rounded,
                                 onTap: () => setState(
@@ -138,21 +158,10 @@ class _BookingsTabState extends State<_BookingsTab> {
                               ),
                               const SizedBox(width: 8),
                               _BookingsFilterChip(
-                                label: 'Book New',
-                                selected: false,
-                                icon: Icons.add_rounded,
-                                color: theme.colorScheme.primary,
-                                onTap: portal.isCreatingBooking
-                                    ? null
-                                    : () =>
-                                        widget._showBookingSheet(context, portal),
-                              ),
-                              const SizedBox(width: 8),
-                              _BookingsFilterChip(
                                 label: 'Consultations',
                                 selected:
                                     _selectedView == _BookingsView.appointments,
-                                icon: Icons.medical_services_outlined,
+                                icon: Icons.medical_services_rounded,
                                 onTap: () => setState(
                                   () =>
                                       _selectedView = _BookingsView.appointments,
@@ -162,15 +171,58 @@ class _BookingsTabState extends State<_BookingsTab> {
                               _BookingsFilterChip(
                                 label: 'Lab Tests',
                                 selected: _selectedView == _BookingsView.tests,
-                                icon: Icons.biotech_outlined,
+                                icon: Icons.biotech_rounded,
                                 onTap: () => setState(
                                   () => _selectedView = _BookingsView.tests,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // ── Book New action chip ─────────────────────
+                              GestureDetector(
+                                onTap: portal.isCreatingBooking
+                                    ? null
+                                    : () => widget._showBookingSheet(
+                                          context,
+                                          portal,
+                                        ),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: AppShadows.low(
+                                      dark: theme.brightness == Brightness.dark,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.add_rounded,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Book New',
+                                        style: GoogleFonts.manrope(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -291,161 +343,185 @@ class _BookingsTabState extends State<_BookingsTab> {
                 : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
-              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isExpanded
-                      ? theme.colorScheme.primary.withValues(alpha: 0.18)
-                      : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                boxShadow: AppShadows.low(
+                  dark: theme.brightness == Brightness.dark,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.shadow.withValues(alpha: 0.05),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(16),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: accentColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(iconData, color: accentColor, size: 22),
                         ),
-                        child: Icon(iconData, color: accentColor),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              booking.doctorName,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                booking.doctorName,
+                                style: GoogleFonts.manrope(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: theme.colorScheme.onSurface,
+                                  height: 1.2,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              booking.doctorSpecialization ??
-                                  'Doctor consultation',
-                              style: theme.textTheme.bodyMedium?.copyWith(
+                              const SizedBox(height: 3),
+                              Text(
+                                booking.doctorSpecialization ??
+                                    'Doctor consultation',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _StatusBadge(label: _formatStatus(booking.status)),
+                            if (canManage) ...[
+                              const SizedBox(height: 6),
+                              Icon(
+                                isExpanded
+                                    ? Icons.keyboard_arrow_up_rounded
+                                    : Icons.keyboard_arrow_down_rounded,
+                                size: 20,
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
-                            ),
+                            ],
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _StatusBadge(label: _formatStatus(booking.status)),
-                          if (canManage) ...[
-                            const SizedBox(height: 8),
-                            Icon(
-                              isExpanded
-                                  ? Icons.keyboard_arrow_up_rounded
-                                  : Icons.keyboard_arrow_down_rounded,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  _MetaLine(
-                    icon: Icons.calendar_today_outlined,
-                    text: _formatDisplayDate(booking.bookingDate),
-                  ),
-                  const SizedBox(height: 6),
-                  _MetaLine(
-                    icon: Icons.schedule_rounded,
-                    text: booking.timeslot.trim().isEmpty
-                        ? 'Time to be confirmed'
-                        : booking.timeslot,
-                  ),
-                  if (canManage) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      isExpanded
-                          ? 'Manage this appointment'
-                          : 'Tap this card to manage your appointment',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _MetaLine(
+                          icon: Icons.calendar_today_rounded,
+                          text: _formatDisplayDate(booking.bookingDate),
+                        ),
+                        const SizedBox(height: 6),
+                        _MetaLine(
+                          icon: Icons.schedule_rounded,
+                          text: booking.timeslot.trim().isEmpty
+                              ? 'Time to be confirmed'
+                              : booking.timeslot,
+                        ),
+                        if (canManage) ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Icon(
+                                isExpanded
+                                    ? Icons.touch_app_rounded
+                                    : Icons.touch_app_rounded,
+                                size: 13,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                isExpanded
+                                    ? 'Managing this appointment'
+                                    : 'Tap to manage',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                   AnimatedCrossFade(
-                    firstChild: const SizedBox.shrink(),
+                    firstChild: const SizedBox(height: 16),
                     secondChild: Column(
                       children: [
                         const SizedBox(height: 14),
-                        const Divider(height: 1),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
                         const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _CompactActionButton(
-                                label: 'Reschedule',
-                                icon: Icons.schedule_rounded,
-                                onTap: portal.isCreatingBooking
-                                    ? null
-                                    : () => widget._showRescheduleBookingSheet(
-                                          context,
-                                          portal,
-                                          booking,
-                                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _CompactActionButton(
+                                  label: 'Reschedule',
+                                  icon: Icons.schedule_rounded,
+                                  onTap: portal.isCreatingBooking
+                                      ? null
+                                      : () =>
+                                          widget._showRescheduleBookingSheet(
+                                            context,
+                                            portal,
+                                            booking,
+                                          ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _CompactActionButton(
-                                label: 'Check in',
-                                icon: Icons.how_to_reg_rounded,
-                                onTap: portal.isCreatingBooking
-                                    ? null
-                                    : () => widget._checkInBooking(
-                                          context,
-                                          portal,
-                                          booking,
-                                        ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _CompactActionButton(
+                                  label: 'Check in',
+                                  icon: Icons.how_to_reg_rounded,
+                                  onTap: portal.isCreatingBooking
+                                      ? null
+                                      : () => widget._checkInBooking(
+                                            context,
+                                            portal,
+                                            booking,
+                                          ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _CompactActionButton(
-                                label: 'Cancel',
-                                icon: Icons.cancel_outlined,
-                                isDestructive: true,
-                                onTap: portal.isCreatingBooking
-                                    ? null
-                                    : () => widget._cancelBooking(
-                                          context,
-                                          portal,
-                                          booking,
-                                        ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _CompactActionButton(
+                                  label: 'Cancel',
+                                  icon: Icons.cancel_rounded,
+                                  isDestructive: true,
+                                  onTap: portal.isCreatingBooking
+                                      ? null
+                                      : () => widget._cancelBooking(
+                                            context,
+                                            portal,
+                                            booking,
+                                          ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
                     crossFadeState: isExpanded
                         ? CrossFadeState.showSecond
                         : CrossFadeState.showFirst,
-                    duration: const Duration(milliseconds: 180),
+                    duration: const Duration(milliseconds: 200),
                     sizeCurve: Curves.easeOutCubic,
                   ),
                 ],
@@ -463,110 +539,130 @@ class _BookingsTabState extends State<_BookingsTab> {
     List<LabOrderItem> orders,
   ) {
     final theme = Theme.of(context);
+    const accentColor = Color(0xFF0EA5E9);
+
     return orders
         .map(
           (order) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Container(
-              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.45,
-                  ),
+                boxShadow: AppShadows.low(
+                  dark: theme.brightness == Brightness.dark,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.shadow.withValues(alpha: 0.05),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            0xFF0EA5E9,
-                          ).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(16),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: accentColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.biotech_rounded,
+                            color: accentColor,
+                            size: 22,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.biotech_outlined,
-                          color: Color(0xFF0EA5E9),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              order.testName,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                order.testName,
+                                style: GoogleFonts.manrope(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: theme.colorScheme.onSurface,
+                                  height: 1.2,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              order.categoryName ?? 'Lab test',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                              const SizedBox(height: 3),
+                              Text(
+                                order.categoryName ?? 'Lab test',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      _StatusBadge(label: _formatStatus(order.status)),
-                    ],
+                        const SizedBox(width: 8),
+                        _StatusBadge(label: _formatStatus(order.status)),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  _MetaLine(
-                    icon: Icons.calendar_today_outlined,
-                    text: _formatDisplayDate(order.date),
-                  ),
-                  if ((order.slot ?? '').trim().isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    _MetaLine(icon: Icons.schedule_rounded, text: order.slot!),
-                  ],
-                  const SizedBox(height: 6),
-                  _MetaLine(
-                    icon: Icons.person_outline_rounded,
-                    text: order.doctorName,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _MetaLine(
+                          icon: Icons.calendar_today_rounded,
+                          text: _formatDisplayDate(order.date),
+                        ),
+                        if ((order.slot ?? '').trim().isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          _MetaLine(
+                            icon: Icons.schedule_rounded,
+                            text: order.slot!,
+                          ),
+                        ],
+                        const SizedBox(height: 6),
+                        _MetaLine(
+                          icon: Icons.person_rounded,
+                          text: order.doctorName,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            widget._showLabOrderDetails(context, order),
-                        icon: const Icon(Icons.visibility_outlined, size: 16),
-                        label: const Text('View details'),
-                      ),
-                      if (_selectedTimeline == _BookingsTimeline.upcoming &&
-                          _canManageLabOrder(order.status))
-                        OutlinedButton.icon(
-                          onPressed: portal.isCreatingLabOrder
-                              ? null
-                              : () => widget._cancelLabOrder(
-                                  context,
-                                  portal,
-                                  order,
-                                ),
-                          icon: const Icon(Icons.cancel_outlined, size: 16),
-                          label: const Text('Cancel booking'),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _CompactActionButton(
+                            label: 'View details',
+                            icon: Icons.visibility_rounded,
+                            onTap: () =>
+                                widget._showLabOrderDetails(context, order),
+                          ),
                         ),
-                    ],
+                        if (_selectedTimeline == _BookingsTimeline.upcoming &&
+                            _canManageLabOrder(order.status)) ...[
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _CompactActionButton(
+                              label: 'Cancel',
+                              icon: Icons.cancel_rounded,
+                              isDestructive: true,
+                              onTap: portal.isCreatingLabOrder
+                                  ? null
+                                  : () => widget._cancelLabOrder(
+                                        context,
+                                        portal,
+                                        order,
+                                      ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -582,110 +678,132 @@ class _BookingsTabState extends State<_BookingsTab> {
     List<LabPackageOrderItem> orders,
   ) {
     final theme = Theme.of(context);
+    const accentColor = Color(0xFF8B5CF6);
+
     return orders
         .map(
           (order) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Container(
-              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.45,
-                  ),
+                boxShadow: AppShadows.low(
+                  dark: theme.brightness == Brightness.dark,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.shadow.withValues(alpha: 0.05),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            0xFF8B5CF6,
-                          ).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(16),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: accentColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.inventory_2_rounded,
+                            color: accentColor,
+                            size: 22,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.inventory_2_outlined,
-                          color: Color(0xFF8B5CF6),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              order.packageName,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                order.packageName,
+                                style: GoogleFonts.manrope(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: theme.colorScheme.onSurface,
+                                  height: 1.2,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              order.packageCategory ?? 'Health package',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                              const SizedBox(height: 3),
+                              Text(
+                                order.packageCategory ?? 'Health package',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      _StatusBadge(label: _formatStatus(order.status)),
-                    ],
+                        const SizedBox(width: 8),
+                        _StatusBadge(label: _formatStatus(order.status)),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  _MetaLine(
-                    icon: Icons.calendar_today_outlined,
-                    text: _formatDisplayDate(order.date),
-                  ),
-                  if ((order.slot ?? '').trim().isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    _MetaLine(icon: Icons.schedule_rounded, text: order.slot!),
-                  ],
-                  const SizedBox(height: 6),
-                  _MetaLine(
-                    icon: Icons.person_outline_rounded,
-                    text: order.doctorName,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _MetaLine(
+                          icon: Icons.calendar_today_rounded,
+                          text: _formatDisplayDate(order.date),
+                        ),
+                        if ((order.slot ?? '').trim().isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          _MetaLine(
+                            icon: Icons.schedule_rounded,
+                            text: order.slot!,
+                          ),
+                        ],
+                        const SizedBox(height: 6),
+                        _MetaLine(
+                          icon: Icons.person_rounded,
+                          text: order.doctorName,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            widget._showLabPackageOrderDetails(context, order),
-                        icon: const Icon(Icons.visibility_outlined, size: 16),
-                        label: const Text('View details'),
-                      ),
-                      if (_selectedTimeline == _BookingsTimeline.upcoming &&
-                          _canManageLabOrder(order.status))
-                        OutlinedButton.icon(
-                          onPressed: portal.isCreatingLabOrder
-                              ? null
-                              : () => widget._cancelLabPackageOrder(
-                                  context,
-                                  portal,
-                                  order,
-                                ),
-                          icon: const Icon(Icons.cancel_outlined, size: 16),
-                          label: const Text('Cancel booking'),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _CompactActionButton(
+                            label: 'View details',
+                            icon: Icons.visibility_rounded,
+                            onTap: () => widget._showLabPackageOrderDetails(
+                              context,
+                              order,
+                            ),
+                          ),
                         ),
-                    ],
+                        if (_selectedTimeline == _BookingsTimeline.upcoming &&
+                            _canManageLabOrder(order.status)) ...[
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _CompactActionButton(
+                              label: 'Cancel',
+                              icon: Icons.cancel_rounded,
+                              isDestructive: true,
+                              onTap: portal.isCreatingLabOrder
+                                  ? null
+                                  : () => widget._cancelLabPackageOrder(
+                                        context,
+                                        portal,
+                                        order,
+                                      ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -901,21 +1019,23 @@ class _TimelineSwitcher extends StatelessWidget {
     final isUpcoming = value == _BookingsTimeline.upcoming;
 
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _SwitcherItem(
             label: 'Upcoming',
+            icon: Icons.upcoming_rounded,
             selected: isUpcoming,
             onTap: () => onChanged(_BookingsTimeline.upcoming),
           ),
           _SwitcherItem(
             label: 'History',
+            icon: Icons.history_rounded,
             selected: !isUpcoming,
             onTap: () => onChanged(_BookingsTimeline.history),
           ),
@@ -928,11 +1048,13 @@ class _TimelineSwitcher extends StatelessWidget {
 class _SwitcherItem extends StatelessWidget {
   const _SwitcherItem({
     required this.label,
+    required this.icon,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
+  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
 
@@ -943,25 +1065,34 @@ class _SwitcherItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        duration: const Duration(milliseconds: 220),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected
-              ? theme.colorScheme.primary.withValues(alpha: 0.12)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: selected
-              ? Border.all(color: theme.colorScheme.primary, width: 1.5)
-              : null,
+          color: selected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(11),
         ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: selected
-                ? theme.colorScheme.primary
-                : theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: selected
+                  ? Colors.white
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.manrope(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: selected
+                    ? Colors.white
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -974,58 +1105,49 @@ class _BookingsFilterChip extends StatelessWidget {
     required this.selected,
     required this.icon,
     required this.onTap,
-    this.color,
   });
 
   final String label;
   final bool selected;
   final IconData icon;
   final VoidCallback? onTap;
-  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final activeColor = color ?? theme.colorScheme.primary;
+    const activeColor = AppColors.primary;
 
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: selected
-              ? activeColor.withValues(alpha: 0.12)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected
-                ? activeColor
-                : color != null
-                    ? color!.withValues(alpha: 0.5)
-                    : theme.colorScheme.outlineVariant,
-            width: selected ? 1.5 : 1.0,
-          ),
+          color: selected ? activeColor : theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: selected
+              ? AppShadows.low(dark: theme.brightness == Brightness.dark)
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 18,
-              color: selected || color != null
-                  ? activeColor
+              size: 16,
+              color: selected
+                  ? Colors.white
                   : theme.colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: selected || color != null
-                    ? activeColor
+              style: GoogleFonts.manrope(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: selected
+                    ? Colors.white
                     : theme.colorScheme.onSurfaceVariant,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
               ),
             ),
           ],
@@ -1051,33 +1173,42 @@ class _TimelineSectionHeader extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 16),
+      padding: const EdgeInsets.only(top: 4, bottom: 14),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 4,
-            height: 18,
+            width: 3,
+            height: 20,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(99),
             ),
           ),
           const SizedBox(width: 10),
           Text(
-            title.toUpperCase(),
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            title,
+            style: GoogleFonts.manrope(
+              fontSize: 13,
               fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-              fontSize: 11,
+              color: theme.colorScheme.onSurface,
+              letterSpacing: 0.1,
             ),
           ),
           const Spacer(),
-          Text(
-            '$count',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '$count',
+              style: GoogleFonts.manrope(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -1101,35 +1232,38 @@ class _CompactActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = isDestructive
-        ? theme.colorScheme.error
-        : theme.colorScheme.primary;
+    final color = isDestructive ? AppColors.error : AppColors.primary;
+    final isDisabled = onTap == null;
 
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: color,
-        side: BorderSide(color: color.withValues(alpha: 0.25)),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-              fontSize: 10,
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 180),
+        opacity: isDisabled ? 0.5 : 1.0,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(height: 5),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.manrope(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                  height: 1.1,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1147,13 +1281,30 @@ class _MetaLine extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: 8),
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.7,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 15,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Text(
             text,
-            style: theme.textTheme.bodyMedium?.copyWith(
+            style: GoogleFonts.manrope(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurfaceVariant,
+              height: 1.35,
             ),
           ),
         ),
@@ -1178,39 +1329,45 @@ class _EmptyBookingsState extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+        boxShadow: AppShadows.low(
+          dark: theme.brightness == Brightness.dark,
         ),
       ),
       child: Column(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.10),
+              color: AppColors.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: Icon(icon, color: theme.colorScheme.primary),
+            child: Icon(icon, color: AppColors.primary, size: 28),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium?.copyWith(
+            style: GoogleFonts.manrope(
+              fontSize: 16,
               fontWeight: FontWeight.w800,
+              color: theme.colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
+            style: GoogleFonts.manrope(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurfaceVariant,
+              height: 1.5,
             ),
           ),
         ],
