@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/widgets/custom_bottom_bar.dart';
-import '../../premium_home/design/app_colors.dart';
-import '../../premium_home/design/app_radius.dart';
-import '../../premium_home/design/app_spacing.dart';
 
 class BottomNavBarWidget extends StatelessWidget {
   const BottomNavBarWidget({
@@ -21,71 +17,36 @@ class BottomNavBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.lg,
-      ),
-      padding: const EdgeInsets.all(AppSpacing.xs),
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 30),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: const [
+        color: const Color(0xFF5A88F1),
+        borderRadius: BorderRadius.circular(40),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.cardShadow,
-            blurRadius: 28,
-            offset: Offset(0, 10),
+            color: const Color(0xFF5A88F1).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(items.length, (index) {
           final selected = selectedIndex == index;
           final item = items[index];
-          return Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.section),
-              onTap: () => onTap(index),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? AppColors.primary.withValues(alpha: 0.16)
-                            : Colors.transparent,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        selected ? item.selectedIcon : item.icon,
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(
-                      item.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.manrope(
-                        fontSize: 10,
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
-                        fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+          return GestureDetector(
+            onTap: () => onTap(index),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: selected ? Colors.white.withOpacity(0.25) : Colors.transparent,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                selected ? item.selectedIcon : item.icon,
+                color: Colors.white,
+                size: 26,
               ),
             ),
           );

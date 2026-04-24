@@ -35,16 +35,17 @@ class AuthHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
+          const SizedBox(height: 12),
           const Text(
-            'PATIENT PORTAL',
+            'LOGIN',
             style: TextStyle(
-              color: Colors.white70,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 3,
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 8,
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
         ] else ...[
           const SizedBox(height: 12),
         ],

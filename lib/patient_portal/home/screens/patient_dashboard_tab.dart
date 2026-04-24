@@ -94,38 +94,32 @@ class _DashboardTab extends StatelessWidget {
           onOpenProfile: () => onNavigate(4),
         );
 
-        return ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
-          children: [
-            _DashboardDiscoverySections(
-              patientName: dashboard.idCard.patientName,
-              registrationNumber: dashboard.idCard.registrationNumber,
-              membershipTier: dashboard.idCard.membershipTier,
-              bloodGroup: dashboard.idCard.bloodGroup,
-              points: dashboard.myClub.points,
-              banners: portal.homeBanners,
-              doctors: homeDoctors,
-              labTests: portal.labTests,
-              labPackages: portal.labPackages,
-              bookings: dashboard.recentBookings,
-              tickerMessages: portal.tickerMessages,
-              homeOffers: portal.homeOffers,
-              onBannerTap: targetHandler.openBanner,
-              onTickerTap: targetHandler.openTickerMessage,
-              onOfferTap: targetHandler.openOffer,
-              onViewAllDoctors: onOpenDoctorsDirectory,
-              onViewAllLabTests: onOpenLabTestsDirectory,
-              onViewAllPackages: () {
-                targetHandler.openPackageLanding();
-              },
-              onPackageTap: (package) {
-                targetHandler.openPackageLanding(package.slug, true);
-              },
-              onSeeAllAppointments: () => onNavigate(2),
-              onQuickActionTap: quickActionHandler.open,
-            ),
-          ],
+        return _DashboardDiscoverySections(
+          patientName: dashboard.idCard.patientName,
+          registrationNumber: dashboard.idCard.registrationNumber,
+          membershipTier: dashboard.idCard.membershipTier,
+          bloodGroup: dashboard.idCard.bloodGroup,
+          points: dashboard.myClub.points,
+          banners: portal.homeBanners,
+          doctors: homeDoctors,
+          labTests: portal.labTests,
+          labPackages: portal.labPackages,
+          bookings: dashboard.recentBookings,
+          tickerMessages: portal.tickerMessages,
+          homeOffers: portal.homeOffers,
+          onBannerTap: targetHandler.openBanner,
+          onTickerTap: targetHandler.openTickerMessage,
+          onOfferTap: targetHandler.openOffer,
+          onViewAllDoctors: onOpenDoctorsDirectory,
+          onViewAllLabTests: onOpenLabTestsDirectory,
+          onViewAllPackages: () {
+            targetHandler.openPackageLanding();
+          },
+          onPackageTap: (package) {
+            targetHandler.openPackageLanding(package.slug, true);
+          },
+          onSeeAllAppointments: () => onNavigate(2),
+          onQuickActionTap: quickActionHandler.open,
         );
       },
     );

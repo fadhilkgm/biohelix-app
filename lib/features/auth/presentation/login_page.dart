@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../session/providers/session_provider.dart';
-import 'widgets/auth_gradient_scaffold.dart';
-import 'widgets/auth_header.dart';
 import 'widgets/auth_form_widgets.dart';
 
 // Login screen: mobile number + MRN → triggers OTP send.
@@ -18,12 +16,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController();
-  final _mrnController = TextEditingController();
 
   @override
   void dispose() {
     _phoneController.dispose();
-    _mrnController.dispose();
     super.dispose();
   }
 
@@ -37,7 +33,6 @@ class _LoginPageState extends State<LoginPage> {
     final session = context.read<SessionProvider>();
     await session.sendOtp(
       phone: _phoneController.text,
-      mrn: _mrnController.text,
     );
     if (!mounted) return;
     if (session.errorMessage == null && session.pendingPhone != null) {
@@ -47,89 +42,146 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AuthGradientScaffold(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
         children: [
-          const AuthHeader(),
-          AuthCard(
+          // Background Gradient
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFFF0F4FF), Colors.white],
+                ),
+              ),
+            ),
+          ),
+
+          // Main Scrollable Content
+          SafeArea(
             child: Consumer<SessionProvider>(
               builder: (context, session, _) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Welcome Back',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(28, 80, 28, 40), // 2rem top space
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center, // Centered header
+                    children: [
+                      // Fixed Logo Styling
+                      SizedBox(
+                        width: 180,
+                        height: 80,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(5),
+                          child: Image.asset(
+                            'assets/images/bhrc-logo.jpg',
+                            fit: BoxFit.contain, // Prevent cropping
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Sign in to access your health records',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF6B7280),
+                      const SizedBox(height: 16),
+                      // Brand Name
+                      const Text(
+                        'Biohelix',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF192233),
+                          letterSpacing: 1.0,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    AuthTextField(
-                      controller: _phoneController,
-                      label: 'Mobile Number',
-                      hint: 'Enter your mobile number',
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 16),
-                    AuthTextField(
-                      controller: _mrnController,
-                      label: 'MRN Number',
-                      hint: 'e.g. BH000001',
-                    ),
-                    if ((session.errorMessage ?? '').isNotEmpty) ...[
-                      AuthErrorText(message: session.errorMessage!),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Health And Research Center\nPonnani, Malappuram',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black45,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 60),
+
+                      // Login Section (Left aligned)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 40,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF192233),
+                                height: 1.1,
+                                letterSpacing: -1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Enter your mobile number to access your health records and book appointments.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: const Color(0xFF192233).withOpacity(0.6),
+                                height: 1.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 40),
+                            AuthTextField(
+                              controller: _phoneController,
+                              label: 'Mobile Number',
+                              hint: 'Enter your mobile number',
+                              keyboardType: TextInputType.phone,
+                              prefixIcon: Icons.phone_android_rounded,
+                            ),
+                            if ((session.errorMessage ?? '').isNotEmpty) ...[
+                              AuthErrorText(message: session.errorMessage!),
+                            ],
+                            const SizedBox(height: 40),
+                            AuthPrimaryButton(
+                              label: 'Continue',
+                              isLoading: session.isSendingOtp,
+                              onPressed: _submit,
+                            ),
+                            const SizedBox(height: 20),
+                            const AuthDemoHint(
+                              text: 'Demo: Enter any mobile number',
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
-                    const SizedBox(height: 24),
-                    AuthPrimaryButton(
-                      label: 'Send OTP',
-                      isLoading: session.isSendingOtp,
-                      onPressed: _submit,
-                    ),
-                    const AuthDemoHint(
-                      text: 'Demo: Any number + MRN BH000001',
-                    ),
-                  ],
+                  ),
                 );
               },
             ),
           ),
-          const SizedBox(height: 32),
-          _BrandFooter(),
-          const SizedBox(height: 24),
+          
+          // Back Button
+          Positioned(
+            top: 50,
+            left: 20,
+            child: GestureDetector(
+              onTap: () => Navigator.maybePop(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.8),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.arrow_back_rounded, size: 20),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _BrandFooter extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        Text(
-          'Biohelix Health & Research Center',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-        SizedBox(height: 2),
-        Text(
-          'Thiruvananthapuram, Kerala',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white54, fontSize: 11),
-        ),
-      ],
-    );
-  }
-}
+

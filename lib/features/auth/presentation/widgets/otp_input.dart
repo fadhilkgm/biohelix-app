@@ -133,15 +133,15 @@ class _DigitBox extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(12)),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: Color(0xFFE5E7EB), width: 1.5),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(12)),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: Color(0xFFE5E7EB), width: 1.5),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(12)),
-              borderSide: BorderSide(color: Color(0xFF0B2867), width: 2),
+              borderSide: BorderSide(color: Color(0xFF537DE8), width: 2),
             ),
           ),
         ),
