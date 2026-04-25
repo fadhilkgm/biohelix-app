@@ -1,6 +1,6 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
-enum _BookingsView { all, appointments, tests }
+enum _BookingsView { all, appointments, tests, packages }
 
 enum _BookingsTimeline { upcoming, history }
 
@@ -9,6 +9,28 @@ class _BookingsTab extends StatefulWidget {
 
   @override
   State<_BookingsTab> createState() => _BookingsTabState();
+}
+
+DateTime? _tryParseDate(String raw) {
+  final normalized = raw.trim();
+  if (normalized.isEmpty) {
+    return null;
+  }
+
+  final direct = DateTime.tryParse(normalized);
+  if (direct != null) {
+    return DateTime(direct.year, direct.month, direct.day);
+  }
+
+  const patterns = ['yyyy-MM-dd', 'dd-MM-yyyy', 'dd/MM/yyyy', 'dd MMM yyyy'];
+  for (final pattern in patterns) {
+    try {
+      final parsed = DateFormat(pattern).parseStrict(normalized);
+      return DateTime(parsed.year, parsed.month, parsed.day);
+    } catch (_) {}
+  }
+
+  return null;
 }
 
 class _BookingsTabState extends State<_BookingsTab> {
@@ -72,6 +94,8 @@ class _BookingsTabState extends State<_BookingsTab> {
             _selectedView == _BookingsView.appointments;
         final showTests = _selectedView == _BookingsView.all ||
             _selectedView == _BookingsView.tests;
+        final showPackages = _selectedView == _BookingsView.all ||
+            _selectedView == _BookingsView.packages;
 
         return Scaffold(
           backgroundColor: Colors.transparent,
@@ -177,46 +201,12 @@ class _BookingsTabState extends State<_BookingsTab> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              // ── Book New action chip ─────────────────────
-                              GestureDetector(
-                                onTap: portal.isCreatingBooking
-                                    ? null
-                                    : () => widget._showBookingSheet(
-                                          context,
-                                          portal,
-                                        ),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: AppShadows.low(
-                                      dark: theme.brightness == Brightness.dark,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.add_rounded,
-                                        size: 16,
-                                        color: Colors.white,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Book New',
-                                        style: GoogleFonts.manrope(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                              _BookingsFilterChip(
+                                label: 'Packages',
+                                selected: _selectedView == _BookingsView.packages,
+                                icon: Icons.inventory_2_rounded,
+                                onTap: () => setState(
+                                  () => _selectedView = _BookingsView.packages,
                                 ),
                               ),
                             ],
@@ -231,13 +221,13 @@ class _BookingsTabState extends State<_BookingsTab> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      ..._buildTimelineContent(
-                        context,
-                        portal,
-                        showAppointments ? currentAppointments : [],
-                        showTests ? currentLabOrders : [],
-                        showTests ? currentPackageOrders : [],
-                      ),
+                        ..._buildTimelineContent(
+                          context,
+                          portal,
+                          showAppointments ? currentAppointments : [],
+                          showTests ? currentLabOrders : [],
+                          showPackages ? currentPackageOrders : [],
+                        ),
                       const SizedBox(height: 40),
                     ]),
                   ),
@@ -331,9 +321,9 @@ class _BookingsTabState extends State<_BookingsTab> {
         padding: const EdgeInsets.only(bottom: 12),
         child: Material(
           color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           child: InkWell(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(16),
             onTap: canManage
                 ? () {
                     setState(() {
@@ -345,7 +335,7 @@ class _BookingsTabState extends State<_BookingsTab> {
               duration: const Duration(milliseconds: 220),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: AppShadows.low(
                   dark: theme.brightness == Brightness.dark,
                 ),
@@ -363,7 +353,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                           height: 48,
                           decoration: BoxDecoration(
                             color: accentColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(iconData, color: accentColor, size: 22),
                         ),
@@ -548,7 +538,7 @@ class _BookingsTabState extends State<_BookingsTab> {
             child: Container(
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: AppShadows.low(
                   dark: theme.brightness == Brightness.dark,
                 ),
@@ -565,7 +555,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                           height: 48,
                           decoration: BoxDecoration(
                             color: accentColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
                             Icons.biotech_rounded,
@@ -635,16 +625,19 @@ class _BookingsTabState extends State<_BookingsTab> {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
                     child: Row(
                       children: [
-                        Expanded(
-                          child: _CompactActionButton(
-                            label: 'View details',
-                            icon: Icons.visibility_rounded,
-                            onTap: () =>
-                                widget._showLabOrderDetails(context, order),
-                          ),
-                        ),
                         if (_selectedTimeline == _BookingsTimeline.upcoming &&
                             _canManageLabOrder(order.status)) ...[
+                          Expanded(
+                            child: _CompactActionButton(
+                              label: 'Reschedule',
+                              icon: Icons.schedule_rounded,
+                              onTap: () => widget._showRescheduleLabOrderSheet(
+                                context,
+                                portal,
+                                order,
+                              ),
+                            ),
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: _CompactActionButton(
@@ -687,7 +680,7 @@ class _BookingsTabState extends State<_BookingsTab> {
             child: Container(
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: AppShadows.low(
                   dark: theme.brightness == Brightness.dark,
                 ),
@@ -704,7 +697,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                           height: 48,
                           decoration: BoxDecoration(
                             color: accentColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
                             Icons.inventory_2_rounded,
@@ -774,18 +767,19 @@ class _BookingsTabState extends State<_BookingsTab> {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
                     child: Row(
                       children: [
-                        Expanded(
-                          child: _CompactActionButton(
-                            label: 'View details',
-                            icon: Icons.visibility_rounded,
-                            onTap: () => widget._showLabPackageOrderDetails(
-                              context,
-                              order,
-                            ),
-                          ),
-                        ),
                         if (_selectedTimeline == _BookingsTimeline.upcoming &&
                             _canManageLabOrder(order.status)) ...[
+                          Expanded(
+                            child: _CompactActionButton(
+                              label: 'Reschedule',
+                              icon: Icons.schedule_rounded,
+                              onTap: () => widget._showRescheduleLabPackageOrderSheet(
+                                context,
+                                portal,
+                                order,
+                              ),
+                            ),
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: _CompactActionButton(
@@ -921,28 +915,6 @@ class _BookingsTabState extends State<_BookingsTab> {
     return ascending ? left.compareTo(right) : right.compareTo(left);
   }
 
-  DateTime? _tryParseDate(String raw) {
-    final normalized = raw.trim();
-    if (normalized.isEmpty) {
-      return null;
-    }
-
-    final direct = DateTime.tryParse(normalized);
-    if (direct != null) {
-      return DateTime(direct.year, direct.month, direct.day);
-    }
-
-    const patterns = ['yyyy-MM-dd', 'dd-MM-yyyy', 'dd/MM/yyyy', 'dd MMM yyyy'];
-    for (final pattern in patterns) {
-      try {
-        final parsed = DateFormat(pattern).parseStrict(normalized);
-        return DateTime(parsed.year, parsed.month, parsed.day);
-      } catch (_) {}
-    }
-
-    return null;
-  }
-
   DateTime _startOfToday() {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
@@ -953,7 +925,7 @@ class _BookingsTabState extends State<_BookingsTab> {
     if (parsed == null) {
       return rawDate;
     }
-    return DateFormat('dd MMM yyyy').format(parsed);
+    return DateFormat('dd MMM, yyyy').format(parsed);
   }
 
   String _formatStatus(String status) {
@@ -1031,12 +1003,14 @@ class _TimelineSwitcher extends StatelessWidget {
             label: 'Upcoming',
             icon: Icons.upcoming_rounded,
             selected: isUpcoming,
+            activeColor: const Color(0xFF5A88F1),
             onTap: () => onChanged(_BookingsTimeline.upcoming),
           ),
           _SwitcherItem(
             label: 'History',
             icon: Icons.history_rounded,
             selected: !isUpcoming,
+            activeColor: const Color.fromARGB(255, 218, 162, 22),
             onTap: () => onChanged(_BookingsTimeline.history),
           ),
         ],
@@ -1050,12 +1024,14 @@ class _SwitcherItem extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.selected,
+    required this.activeColor,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
+  final Color activeColor;
   final VoidCallback onTap;
 
   @override
@@ -1068,7 +1044,7 @@ class _SwitcherItem extends StatelessWidget {
         duration: const Duration(milliseconds: 220),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.transparent,
+          color: selected ? activeColor : Colors.transparent,
           borderRadius: BorderRadius.circular(11),
         ),
         child: Row(
@@ -1115,7 +1091,7 @@ class _BookingsFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const activeColor = AppColors.primary;
+    const activeColor = Color(0xFF5A88F1);
 
     return GestureDetector(
       onTap: onTap,
@@ -1124,9 +1100,15 @@ class _BookingsFilterChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? activeColor : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(14),
           boxShadow: selected
-              ? AppShadows.low(dark: theme.brightness == Brightness.dark)
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
               : null,
         ),
         child: Row(
@@ -1137,17 +1119,17 @@ class _BookingsFilterChip extends StatelessWidget {
               size: 16,
               color: selected
                   ? Colors.white
-                  : theme.colorScheme.onSurfaceVariant,
+                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
             ),
             const SizedBox(width: 6),
             Text(
               label,
               style: GoogleFonts.manrope(
                 fontSize: 13,
-                fontWeight: FontWeight.w700,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 color: selected
                     ? Colors.white
-                    : theme.colorScheme.onSurfaceVariant,
+                    : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -1200,13 +1182,13 @@ class _TimelineSectionHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               '$count',
               style: GoogleFonts.manrope(
                 fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
                 color: color,
               ),
             ),
@@ -1244,7 +1226,7 @@ class _CompactActionButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

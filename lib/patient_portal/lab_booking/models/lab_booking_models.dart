@@ -12,6 +12,7 @@ class BookableLabTest {
     required this.parameters,
     required this.price,
     required this.popular,
+    this.imageUrl,
   });
 
   final int id;
@@ -22,6 +23,7 @@ class BookableLabTest {
   final List<String> parameters;
   final double price;
   final bool popular;
+  final String? imageUrl;
 }
 
 class CartItem {

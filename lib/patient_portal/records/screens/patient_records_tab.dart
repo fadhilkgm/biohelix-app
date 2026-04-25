@@ -231,26 +231,26 @@ class _RecordsTabState extends State<_RecordsTab> {
   Color _buildRecordAccent(MedicalRecordItem record) {
     switch (record.category) {
       case 'prescription':
-        return const Color(0xFF16A34A);
+        return const Color(0xFF0D9488); // Teal
       case 'summary':
-        return const Color(0xFFF97316);
+        return const Color(0xFFEA580C); // Orange/Amber
       default:
         return record.status == 'available'
-            ? const Color(0xFF3B82F6)
-            : const Color(0xFFF59E0B);
+            ? const Color(0xFF2563EB) // Blue
+            : const Color(0xFF8B5CF6); // Violet
     }
   }
 
   Color _buildRecordBackground(MedicalRecordItem record) {
     switch (record.category) {
       case 'prescription':
-        return const Color(0xFFEAF8EF);
+        return const Color(0xFFF0FDFA);
       case 'summary':
-        return const Color(0xFFFFF3E8);
+        return const Color(0xFFFFF7ED);
       default:
         return record.status == 'available'
-            ? const Color(0xFFE8F1FF)
-            : const Color(0xFFFFF4E5);
+            ? const Color(0xFFEFF6FF)
+            : const Color(0xFFF5F3FF);
     }
   }
 
@@ -271,7 +271,7 @@ class _RecordsTabState extends State<_RecordsTab> {
   String _formatDate(String raw) {
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return raw;
-    return DateFormat('yyyy-MM-dd').format(parsed);
+    return DateFormat('dd MMM, yyyy').format(parsed);
   }
 
   String _trimSummary(String value) {
@@ -334,37 +334,45 @@ class _RecordsFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const activeColor = AppColors.primary;
+    const activeColor = Color(0xFF5A88F1);
 
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
         decoration: BoxDecoration(
           color: selected ? activeColor : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: selected ? AppShadows.low() : null,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: selected 
+            ? [
+                BoxShadow(
+                  color: activeColor.withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                )
+              ] 
+            : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 16,
+              size: 17,
               color: selected
                   ? Colors.white
-                  : theme.colorScheme.onSurfaceVariant,
+                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               label,
               style: GoogleFonts.manrope(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 color: selected
                     ? Colors.white
-                    : theme.colorScheme.onSurfaceVariant,
+                    : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
               ),
             ),
           ],
@@ -387,7 +395,7 @@ class _RecordsListCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: AppShadows.low(
           dark: theme.brightness == Brightness.dark,
         ),
@@ -396,91 +404,126 @@ class _RecordsListCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: item.accentColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(item.icon, color: item.accentColor, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: theme.colorScheme.onSurface,
-                          height: 1.2,
-                        ),
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: item.accentColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        item.subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
+                      child: Icon(item.icon, color: item.accentColor, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest.withValues(
-                                alpha: 0.7,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
+                          Text(
+                            item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.manrope(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: theme.colorScheme.onSurface,
+                              height: 1.2,
                             ),
-                            child: Icon(
-                              Icons.calendar_today_rounded,
-                              size: 13,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            item.subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.manrope(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '${item.meta}   •   ${item.kindLabel}',
-                              style: GoogleFonts.manrope(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onSurfaceVariant,
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.event_note_rounded,
+                                size: 14,
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.6),
                               ),
-                            ),
+                              const SizedBox(width: 6),
+                              Text(
+                                item.meta,
+                                style: GoogleFonts.manrope(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    _RecordsAvailabilityBadge(label: item.statusLabel),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                _RecordsAvailabilityBadge(label: item.statusLabel),
-              ],
-            ),
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => item.onTap?.call(),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF5A88F1).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'View Details',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF5A88F1),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 16,
+                                color: Color(0xFF5A88F1),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
+
 
 class _RecordsAvailabilityBadge extends StatelessWidget {
   const _RecordsAvailabilityBadge({required this.label});
@@ -489,26 +532,42 @@ class _RecordsAvailabilityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAvailable = label.toLowerCase() == 'available';
-    final accentColor = isAvailable
-        ? AppColors.success
-        : AppColors.warning;
+    final status = label.toLowerCase();
+    final isAvailable = status == 'available';
+    final isPending = status == 'pending' || status == 'processing';
+    
+    final Color accentColor = isAvailable
+        ? const Color(0xFF10B981)
+        : isPending 
+            ? const Color(0xFF6366F1)
+            : const Color(0xFFF59E0B);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: accentColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
+        color: accentColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.2),
+          width: 0.5,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: 5,
+            height: 5,
             decoration: BoxDecoration(
               color: accentColor,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.4),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 6),
@@ -516,8 +575,9 @@ class _RecordsAvailabilityBadge extends StatelessWidget {
             label,
             style: GoogleFonts.manrope(
               color: accentColor,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               fontSize: 11,
+              letterSpacing: 0.2,
             ),
           ),
         ],

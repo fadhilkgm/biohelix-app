@@ -64,6 +64,7 @@ class LabBookingController extends ChangeNotifier {
   String get selectedAddressId => _selectedAddressId;
   PaymentMethod get paymentMethod => _paymentMethod;
   String get coupon => _coupon;
+  int get cartCount => _cart.fold(0, (sum, e) => sum + e.quantity);
 
   PatientProfile get selectedPatient =>
       _patients.firstWhere((e) => e.id == _selectedPatientId);
@@ -258,6 +259,7 @@ class LabBookingController extends ChangeNotifier {
       id: test.id,
       name: test.testName,
       category: category,
+      imageUrl: test.imageUrl,
       description:
           'Advanced ${test.testName} profile with clinically reviewed parameters and fast turnaround.',
       preparation: (test.instructions ?? '').trim().isNotEmpty

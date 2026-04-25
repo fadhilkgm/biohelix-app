@@ -8,6 +8,7 @@ class CustomButton extends StatelessWidget {
   final bool isLoading;
   final bool isOutlined;
   final Widget? icon;
+  final Color? color;
 
   /// When true (default) the button expands to full available width.
   final bool fullWidth;
@@ -24,6 +25,7 @@ class CustomButton extends StatelessWidget {
     this.icon,
     this.fullWidth = true,
     this.onDark = false,
+    this.color,
   });
 
   @override
@@ -34,9 +36,9 @@ class CustomButton extends StatelessWidget {
     final isEnabled = onPressed != null;
 
     // Resolve colors based on mode
-    final Color bgColor = onDark
+    final Color bgColor = color ?? (onDark
         ? (isOutlined ? Colors.transparent : Colors.white)
-        : (isEnabled ? primary : Colors.grey.shade400);
+        : (isEnabled ? primary : Colors.grey.shade400));
     final Color fgColor = onDark
         ? (isOutlined ? Colors.white : primary)
         : (isEnabled ? Colors.white : Colors.white70);

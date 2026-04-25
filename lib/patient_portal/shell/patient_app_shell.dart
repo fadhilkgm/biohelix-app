@@ -26,6 +26,7 @@ import '../core/providers/patient_portal_provider.dart';
 import '../lab_booking/models/lab_booking_models.dart' show BookableLabTest;
 import '../lab_booking/screens/cart_screen.dart' show CartScreen;
 
+import '../lab_booking/screens/package_booking_screen.dart';
 import '../lab_booking/screens/test_list_screen.dart';
 import '../lab_booking/state/lab_booking_controller.dart'
     show LabBookingController;

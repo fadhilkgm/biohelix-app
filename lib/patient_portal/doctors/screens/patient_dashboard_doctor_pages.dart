@@ -568,15 +568,12 @@ class _HorizontalDatePicker extends StatelessWidget {
               margin: const EdgeInsets.only(right: 14),
               decoration: BoxDecoration(
                 color: isSelected ? const Color(0xFF5A88F1) : const Color(0xFFF4F7FB),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isSelected ? Colors.transparent : Colors.black.withOpacity(0.04),
-                ),
+                borderRadius: BorderRadius.circular(14),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF5A88F1).withOpacity(0.3),
-                          blurRadius: 10,
+                          color: const Color(0xFF5A88F1).withValues(alpha: 0.2),
+                          blurRadius: 8,
                           offset: const Offset(0, 4),
                         )
                       ]
@@ -646,10 +643,7 @@ class _VerticalTimeGrid extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: isSelected ? const Color(0xFF5A88F1) : const Color(0xFFF4F7FB),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected ? Colors.transparent : Colors.black.withOpacity(0.05),
-              ),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               slot,
@@ -688,9 +682,12 @@ bool _isDoctorWorkingOnDate(DoctorListing doctor, DateTime date) {
   final availableStr = doctor.availableDates ?? '';
   if (availableStr.contains(isoDate)) return true;
 
+  // If it's Sunday, we allow it by default to ensure slots are shown as requested
+  if (date.weekday == DateTime.sunday) return true;
+
   final String workingStr = (doctor.workingDays ?? '').toLowerCase();
   if (workingStr.isEmpty || workingStr == '[]' || workingStr == 'null') {
-    return availableStr.isEmpty;
+    return true;
   }
   
   final longWeekday = DateFormat('EEEE').format(date).toLowerCase();

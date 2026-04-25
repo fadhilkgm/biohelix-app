@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 
@@ -347,10 +348,396 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                 ),
+
+              // 3. Health Packages Section
+              if (widget.labPackages.isNotEmpty) ...[
+                const SizedBox(height: 40),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Health Packages',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF192233),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: widget.onViewAllPackages,
+                      child: const Text(
+                        'View All',
+                        style: TextStyle(
+                          color: Color(0xFF5A88F1),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 480,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: widget.labPackages.length,
+                    itemBuilder: (context, index) {
+                      final pkg = widget.labPackages[index];
+                      return _PackageCard(
+                        pkg: pkg,
+                        onTap: () => widget.onPackageTap(pkg),
+                        resolvedImageUrl: _resolveImageUrl(pkg.imageUrl ?? ''),
+                      );
+                    },
+                  ),
+                ),
+                
+                // Add Lab Tests section
+                if (widget.labTests.isNotEmpty) ...[
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Popular Lab Tests',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF192233),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: widget.onViewAllLabTests,
+                        child: const Text(
+                          'View All',
+                          style: TextStyle(
+                            color: Color(0xFF5A88F1),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 250,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: widget.labTests.length,
+                      itemBuilder: (context, index) {
+                        final test = widget.labTests[index];
+                        return _TestCard(
+                          test: test,
+                          onTap: () => widget.onLabTap(test),
+                          resolvedImageUrl: _resolveImageUrl(test.imageUrl ?? ''),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 32),
+              ],
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TestCard extends StatelessWidget {
+  final LabTestItem test;
+  final VoidCallback onTap;
+  final String resolvedImageUrl;
+
+  const _TestCard({
+    required this.test,
+    required this.onTap,
+    required this.resolvedImageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 180,
+      height: 218,
+      margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 80,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F7FF),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: resolvedImageUrl.isNotEmpty
+                      ? Image.network(
+                          resolvedImageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _iconFallback(),
+                        )
+                      : _iconFallback(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                test.testName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF192233),
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.history_toggle_off_rounded, size: 14, color: Color(0xFF5A88F1)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      test.resultEta ?? '24 hrs',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF5A88F1),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onTap,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF4F7FF),
+                    foregroundColor: const Color(0xFF5A88F1),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Book Now',
+                    style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _iconFallback() {
+    return const Icon(
+      Icons.biotech_rounded,
+      size: 32,
+      color: Color(0xFF5A88F1),
+    );
+  }
+}
+
+class _PackageCard extends StatelessWidget {
+  final LabPackageItem pkg;
+  final VoidCallback onTap;
+  final String resolvedImageUrl;
+
+  const _PackageCard({
+    required this.pkg,
+    required this.onTap,
+    required this.resolvedImageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(right: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  child: SizedBox(
+                    height: 280, // Square aspect ratio (1:1 with container width)
+                    width: double.infinity,
+                    child: resolvedImageUrl.isNotEmpty
+                        ? Image.network(
+                            resolvedImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _fallbackImage(),
+                          )
+                        : _fallbackImage(),
+                  ),
+                ),
+                if (pkg.discountedPrice != null && pkg.discountedPrice! < pkg.basePrice)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF5C5C),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'SAVE ${(100 - (pkg.discountedPrice! / pkg.basePrice * 100)).toInt()}%',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pkg.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF192233),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '₹${pkg.discountedPrice ?? pkg.basePrice}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF5A88F1),
+                          ),
+                        ),
+                        if (pkg.discountedPrice != null && pkg.discountedPrice! < pkg.basePrice) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '₹${pkg.basePrice}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              decoration: TextDecoration.lineThrough,
+                              color: const Color(0xFF192233).withOpacity(0.3),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F7FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${pkg.totalTests ?? pkg.includedTests.length} Tests included',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF5A88F1),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: onTap,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5A88F1),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'View Package',
+                          style: GoogleFonts.manrope(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _fallbackImage() {
+    return Container(
+      width: double.infinity,
+      height: 280,
+      color: const Color(0xFFF4F7FF),
+      child: const Icon(
+        Icons.inventory_2_outlined,
+        size: 60,
+        color: Color(0xFF5A88F1),
+      ),
     );
   }
 }
