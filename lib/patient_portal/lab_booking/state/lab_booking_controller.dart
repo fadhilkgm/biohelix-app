@@ -38,7 +38,7 @@ class LabBookingController extends ChangeNotifier {
   String _coupon = '';
   CollectionType _collectionType = CollectionType.home;
   DateTime _date = DateTime.now().add(const Duration(days: 1));
-  String _slot = '07:00 - 08:00 AM';
+  String? _slot = '07:00 - 08:00 AM';
   String _selectedPatientId = 'self';
   String _selectedAddressId = 'home';
   PaymentMethod _paymentMethod = PaymentMethod.online;
@@ -59,7 +59,7 @@ class LabBookingController extends ChangeNotifier {
   double get maxPrice => _maxPrice;
   CollectionType get collectionType => _collectionType;
   DateTime get date => _date;
-  String get slot => _slot;
+  String? get slot => _slot;
   String get selectedPatientId => _selectedPatientId;
   String get selectedAddressId => _selectedAddressId;
   PaymentMethod get paymentMethod => _paymentMethod;
@@ -127,7 +127,11 @@ class LabBookingController extends ChangeNotifier {
   }
 
   void setSlot(String value) {
-    _slot = value;
+    if (_slot == value) {
+      _slot = null;
+    } else {
+      _slot = value;
+    }
     notifyListeners();
   }
 
@@ -203,10 +207,6 @@ class LabBookingController extends ChangeNotifier {
 
   Future<String> placeOrder(PatientPortalProvider portal) async {
     if (_cart.isEmpty) throw StateError('Cart is empty');
-    if (portal.doctors.isEmpty) {
-      throw StateError('No doctors available for booking');
-    }
-    final doctorId = portal.doctors.first.id;
     final dateStr = DateFormat('yyyy-MM-dd').format(_date);
     final bookingRoot = DateTime.now().millisecondsSinceEpoch
         .toString()
@@ -221,9 +221,9 @@ class LabBookingController extends ChangeNotifier {
       for (var i = 0; i < item.quantity; i++) {
         await portal.createLabOrder(
           labTestId: item.test.id,
-          doctorId: doctorId,
+          doctorId: null, // Keep null for direct-to-consumer lab orders
           date: dateStr,
-          slot: _slot,
+          slot: _slot ?? '',
           collectionType: _collectionType.name,
           address: address,
           amount: item.test.price + collectionFee,
@@ -232,7 +232,7 @@ class LabBookingController extends ChangeNotifier {
           patientAgeSnapshot: selected.age,
           patientGenderSnapshot: selected.gender,
           bookingRef: 'LB-$bookingRoot-${item.test.id}-$i',
-          notes: 'Slot $_slot, ${selected.name}',
+          notes: 'Slot ${_slot ?? "Standard"}, ${selected.name}',
         );
       }
     }

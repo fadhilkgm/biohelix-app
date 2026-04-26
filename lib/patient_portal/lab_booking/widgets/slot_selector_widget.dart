@@ -13,7 +13,7 @@ class SlotSelectorWidget extends StatelessWidget {
   });
 
   final List<String> slots;
-  final String selectedSlot;
+  final String? selectedSlot;
   final ValueChanged<String> onSelect;
 
   @override

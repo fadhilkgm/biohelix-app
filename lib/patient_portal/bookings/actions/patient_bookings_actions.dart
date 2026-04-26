@@ -30,24 +30,7 @@ extension _BookingsTabActions on _BookingsTab {
     }
   }
 
-  Future<void> _checkInBooking(
-    BuildContext context,
-    PatientPortalProvider portal,
-    BookingItem booking,
-  ) async {
-    try {
-      await portal.checkInBooking(booking.id);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Checked in successfully.')));
-    } catch (error) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
-    }
-  }
+
 
   Future<void> _cancelLabOrder(
     BuildContext context,

@@ -242,7 +242,11 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                         return InkWell(
                           onTap: () {
                             setModalState(() {
-                              selectedSlot = slot;
+                              if (selectedSlot == slot) {
+                                selectedSlot = null;
+                              } else {
+                                selectedSlot = slot;
+                              }
                             });
                           },
                           borderRadius: BorderRadius.circular(10),
@@ -269,7 +273,11 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     ),
                   const SizedBox(height: 12),
                   CustomButton(
-                    onPressed: () async {
+                    onPressed: (portal.bookings.any((b) => 
+                        b.id != booking.id && 
+                        b.bookingDate == DateFormat('yyyy-MM-dd').format(selectedDate) &&
+                        b.status != 'cancelled'
+                    )) ? null : () async {
                       if (selectedSlot == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Please select a time slot.')),
@@ -524,7 +532,11 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                         return InkWell(
                           onTap: () {
                             setModalState(() {
-                              selectedSlot = slot;
+                              if (selectedSlot == slot) {
+                                selectedSlot = null;
+                              } else {
+                                selectedSlot = slot;
+                              }
                             });
                           },
                           borderRadius: BorderRadius.circular(10),
@@ -806,7 +818,11 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                         return InkWell(
                           onTap: () {
                             setModalState(() {
-                              selectedSlot = slot;
+                              if (selectedSlot == slot) {
+                                selectedSlot = null;
+                              } else {
+                                selectedSlot = slot;
+                              }
                             });
                           },
                           borderRadius: BorderRadius.circular(10),

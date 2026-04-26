@@ -314,8 +314,9 @@ class _BookingsTabState extends State<_BookingsTab> {
           _selectedTimeline == _BookingsTimeline.upcoming &&
           _canManageBooking(booking.status);
       final isExpanded = _expandedBookingId == booking.id;
-      final accentColor = _appointmentColorFor(booking.doctorSpecialization);
-      final iconData = _appointmentIconFor(booking.doctorSpecialization);
+      final statusData = _resolveStatusIconTheme(booking);
+      final accentColor = statusData.color;
+      final iconData = statusData.icon;
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
@@ -474,20 +475,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                                           ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _CompactActionButton(
-                                  label: 'Check in',
-                                  icon: Icons.how_to_reg_rounded,
-                                  onTap: portal.isCreatingBooking
-                                      ? null
-                                      : () => widget._checkInBooking(
-                                            context,
-                                            portal,
-                                            booking,
-                                          ),
-                                ),
-                              ),
+
                               const SizedBox(width: 8),
                               Expanded(
                                 child: _CompactActionButton(
@@ -944,39 +932,47 @@ class _BookingsTabState extends State<_BookingsTab> {
         .join(' ');
   }
 
-  IconData _appointmentIconFor(String? specialization) {
-    final normalized = (specialization ?? '').toLowerCase();
-    if (normalized.contains('cardio')) {
-      return Icons.favorite_rounded;
+  _StatusIconTheme _resolveStatusIconTheme(BookingItem booking) {
+    if (_isPastBooking(booking)) {
+      final status = booking.status.toLowerCase();
+      if (status == 'cancelled' || status == 'canceled') {
+        return const _StatusIconTheme(
+          icon: Icons.cancel_outlined,
+          color: Color(0xFF94A3B8),
+        );
+      }
+      if (status == 'completed' || status == 'done') {
+        return const _StatusIconTheme(
+          icon: Icons.check_circle_outline_rounded,
+          color: Color(0xFF64748B),
+        );
+      }
+      return const _StatusIconTheme(
+        icon: Icons.history_rounded,
+        color: Color(0xFF94A3B8),
+      );
     }
-    if (normalized.contains('radio')) {
-      return Icons.center_focus_strong_rounded;
-    }
-    if (normalized.contains('endo')) {
-      return Icons.science_rounded;
-    }
-    if (normalized.contains('neuro')) {
-      return Icons.psychology_rounded;
-    }
-    return Icons.medical_services_rounded;
-  }
 
-  Color _appointmentColorFor(String? specialization) {
-    final normalized = (specialization ?? '').toLowerCase();
-    if (normalized.contains('cardio')) {
-      return const Color(0xFFEF4444);
+    final status = booking.status.toLowerCase();
+    if (status == 'pending') {
+      return const _StatusIconTheme(
+        icon: Icons.schedule_rounded,
+        color: Color(0xFFF59E0B), // Yellow
+      );
     }
-    if (normalized.contains('radio')) {
-      return const Color(0xFF8B5CF6);
-    }
-    if (normalized.contains('endo')) {
-      return const Color(0xFF0EA5E9);
-    }
-    if (normalized.contains('neuro')) {
-      return const Color(0xFFF59E0B);
-    }
-    return const Color(0xFF1D4ED8);
+
+    // Default for upcoming (confirmed, rescheduled, etc.)
+    return const _StatusIconTheme(
+      icon: Icons.schedule_rounded,
+      color: Color(0xFF10B981), // Green
+    );
   }
+}
+
+class _StatusIconTheme {
+  final IconData icon;
+  final Color color;
+  const _StatusIconTheme({required this.icon, required this.color});
 }
 
 class _TimelineSwitcher extends StatelessWidget {

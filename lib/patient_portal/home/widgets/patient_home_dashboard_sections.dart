@@ -23,6 +23,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
     required this.onPackageTap,
     required this.onSeeAllAppointments,
     required this.onQuickActionTap,
+    this.isLoading = false,
   });
 
   final String patientName;
@@ -46,6 +47,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
   final ValueChanged<LabPackageItem> onPackageTap;
   final VoidCallback onSeeAllAppointments;
   final ValueChanged<String> onQuickActionTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +68,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
       onOfferTap: onOfferTap,
       onActionTap: onQuickActionTap,
       apiBaseUrl: apiBase,
+      isLoading: isLoading,
       onDoctorTap: (doctor) {
         Navigator.of(context).push(
           MaterialPageRoute<void>(

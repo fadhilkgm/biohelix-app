@@ -8,7 +8,7 @@ import '../design/app_text_styles.dart';
 import '../models/lab_booking_models.dart';
 import '../state/lab_booking_controller.dart';
 import '../widgets/price_summary_widget.dart';
-import 'booking_success_screen.dart';
+import '../../core/widgets/booking_success_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -87,7 +87,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => BookingSuccessScreen(bookingId: bookingId),
+          builder: (_) => BookingSuccessScreen(
+            bookingId: bookingId,
+            title: 'Tests Booked!',
+            subtitle: 'Your lab tests have been successfully scheduled. You can track the status in the bookings tab.',
+            imagePath: 'assets/images/lab-test-booking.png',
+          ),
         ),
       );
     } catch (e) {

@@ -30,6 +30,7 @@ import '../lab_booking/screens/package_booking_screen.dart';
 import '../lab_booking/screens/test_list_screen.dart';
 import '../lab_booking/state/lab_booking_controller.dart'
     show LabBookingController;
+import '../core/widgets/booking_success_screen.dart';
 import '../premium_home/screens/home_screen.dart' as premium_home;
 import 'widgets/bottom_nav_bar_widget.dart';
 import '../my_club/screens/patient_loyalty_panel.dart';

@@ -388,14 +388,27 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                               child: Text('No slots available for this date.', style: TextStyle(color: Colors.black45)),
                             ),
                           )
-                        else
+                        else ...[
                           _VerticalTimeGrid(
                             slots: _availableSlots,
                             selectedSlot: _selectedSlot,
+                            myBookedSlots: portal.bookings.where((b) => 
+                              b.doctorId == widget.doctor.id && 
+                              _selectedDate != null &&
+                              b.bookingDate == DateFormat('yyyy-MM-dd').format(_selectedDate!) &&
+                              b.status != 'cancelled'
+                            ).map((b) => b.timeslot).toList(),
                             onSlotSelected: (slot) {
-                              setState(() => _selectedSlot = slot);
+                              setState(() {
+                                if (_selectedSlot == slot) {
+                                  _selectedSlot = null;
+                                } else {
+                                  _selectedSlot = slot;
+                                }
+                              });
                             },
                           ),
+                        ],
                       ],
                     ),
                   ),
@@ -420,7 +433,11 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
               height: 60,
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: (_selectedSlot == null || portal.isCreatingBooking) ? null : () => _bookNow(portal),
+                onPressed: (_selectedSlot == null || portal.isCreatingBooking || portal.bookings.any((b) => 
+                    _selectedDate != null &&
+                    b.bookingDate == DateFormat('yyyy-MM-dd').format(_selectedDate!) &&
+                    b.status != 'cancelled'
+                )) ? null : () => _bookNow(portal),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5A88F1),
                   foregroundColor: Colors.white,
@@ -432,9 +449,16 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                 ),
                 child: portal.isCreatingBooking
                     ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white))
-                    : const Text(
-                        'Book Session',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.calendar_today_rounded, size: 20),
+                          SizedBox(width: 12),
+                          Text(
+                            'Book Session',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
               ),
             ),
@@ -449,6 +473,17 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
     final slot = _selectedSlot;
     if (date == null || slot == null) return;
 
+    final dateStr = DateFormat('yyyy-MM-dd').format(date);
+    if (portal.bookings.any((b) => b.bookingDate == dateStr && b.status != 'cancelled')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You already have a session booked for this day.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     try {
       await portal.createBooking(
         doctorId: widget.doctor.id,
@@ -456,10 +491,16 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
         timeslot: slot,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Appointment booked successfully!'), backgroundColor: Colors.green),
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const BookingSuccessScreen(
+              bookingId: 'DOC-REQ',
+              title: 'Appointment Booked!',
+              subtitle: 'Your session has been successfully scheduled. You can track your upcoming sessions in the bookings tab.',
+              imagePath: 'assets/images/appoiment-success.png',
+            ),
+          ),
         );
-        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -612,11 +653,13 @@ class _HorizontalDatePicker extends StatelessWidget {
 class _VerticalTimeGrid extends StatelessWidget {
   final List<String> slots;
   final String? selectedSlot;
+  final List<String> myBookedSlots;
   final ValueChanged<String> onSlotSelected;
 
   const _VerticalTimeGrid({
     required this.slots,
     required this.selectedSlot,
+    required this.myBookedSlots,
     required this.onSlotSelected,
   });
 
@@ -636,21 +679,25 @@ class _VerticalTimeGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final slot = slots[index];
         final isSelected = selectedSlot == slot;
+        final isMyBooking = myBookedSlots.contains(slot);
 
         return GestureDetector(
           onTap: () => onSlotSelected(slot),
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF5A88F1) : const Color(0xFFF4F7FB),
+              color: isSelected 
+                  ? const Color(0xFF5A88F1) 
+                  : (isMyBooking ? const Color(0xFF1B6A4F) : const Color(0xFFF4F7FB)),
               borderRadius: BorderRadius.circular(12),
+              border: isMyBooking ? Border.all(color: const Color(0xFF1B6A4F), width: 1.5) : null,
             ),
             child: Text(
               slot,
               style: TextStyle(
                 fontWeight: FontWeight.w900,
                 fontSize: 14,
-                color: isSelected ? Colors.white : const Color(0xFF192233),
+                color: (isSelected || isMyBooking) ? Colors.white : const Color(0xFF192233),
               ),
             ),
           ),
@@ -678,12 +725,12 @@ class _DoctorImageFallback extends StatelessWidget {
 }
 
 bool _isDoctorWorkingOnDate(DoctorListing doctor, DateTime date) {
+  // Sunday is explicitly disabled as requested
+  if (date.weekday == DateTime.sunday) return false;
+
   final isoDate = DateFormat('yyyy-MM-dd').format(date);
   final availableStr = doctor.availableDates ?? '';
   if (availableStr.contains(isoDate)) return true;
-
-  // If it's Sunday, we allow it by default to ensure slots are shown as requested
-  if (date.weekday == DateTime.sunday) return true;
 
   final String workingStr = (doctor.workingDays ?? '').toLowerCase();
   if (workingStr.isEmpty || workingStr == '[]' || workingStr == 'null') {

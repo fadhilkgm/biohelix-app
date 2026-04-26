@@ -6,9 +6,10 @@ import 'widgets/auth_form_widgets.dart';
 
 // Login screen: mobile number + MRN → triggers OTP send.
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.onOtpSent});
+  const LoginPage({super.key, required this.onOtpSent, this.onBack});
 
   final void Function(String maskedPhone) onOtpSent;
+  final VoidCallback? onBack;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -167,14 +168,20 @@ class _LoginPageState extends State<LoginPage> {
             top: 50,
             left: 20,
             child: GestureDetector(
-              onTap: () => Navigator.maybePop(context),
+              onTap: () {
+                if (widget.onBack != null) {
+                  widget.onBack!();
+                } else {
+                  Navigator.maybePop(context);
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.8),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.arrow_back_rounded, size: 20),
+                child: const Icon(Icons.chevron_left_rounded, size: 28),
               ),
             ),
           ),

@@ -109,42 +109,77 @@ class _LabHomeContent extends StatelessWidget {
 
   Widget _banner(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(colors: AppColors.bannerGradient),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF5A88F1), Color(0xFF3F6ED1)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Positioned(
+            right: -20,
+            bottom: -10,
+            child: Opacity(
+              opacity: 0.2,
+              child: Image.asset(
+                'assets/images/lab.png',
+                width: 180,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Row(
               children: [
-                Text(
-                  'Book Lab Tests',
-                  style: AppTextStyles.title(
-                    context,
-                  ).copyWith(color: Colors.white),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Book Lab Tests',
+                        style: AppTextStyles.title(context).copyWith(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Same-day slots, verified labs,\nhome sample collection.',
+                        style: AppTextStyles.body(context).copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: () => _push(context, const CartScreen()),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF5A88F1),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('View Cart', style: TextStyle(fontWeight: FontWeight.w800)),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Same-day slots, verified labs, home sample collection.',
-                  style: AppTextStyles.body(
-                    context,
-                  ).copyWith(color: Colors.white.withOpacity(0.9)),
+                Image.asset(
+                  'assets/images/lab.png',
+                  height: 120,
+                  fit: BoxFit.contain,
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          FilledButton(
-            onPressed: () => _push(context, const CartScreen()),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.primary,
-              shape: const StadiumBorder(),
-            ),
-            child: const Text('Cart'),
           ),
         ],
       ),

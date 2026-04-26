@@ -8,7 +8,9 @@ import 'otp_page.dart';
 // Routes between LoginPage and OtpPage based on session state.
 // Shows LoginPage when no OTP is pending; OtpPage after OTP is sent.
 class PatientAuthFlow extends StatefulWidget {
-  const PatientAuthFlow({super.key});
+  const PatientAuthFlow({super.key, this.onBackToOnboarding});
+
+  final VoidCallback? onBackToOnboarding;
 
   @override
   State<PatientAuthFlow> createState() => _PatientAuthFlowState();
@@ -46,6 +48,7 @@ class _PatientAuthFlowState extends State<PatientAuthFlow> {
               : LoginPage(
                   key: const ValueKey('login_page'),
                   onOtpSent: _onOtpSent,
+                  onBack: widget.onBackToOnboarding,
                 ),
         );
       },

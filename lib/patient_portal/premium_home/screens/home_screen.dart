@@ -27,6 +27,7 @@ class HomeScreen extends StatefulWidget {
     required this.onTickerTap,
     required this.onOfferTap,
     required this.onActionTap,
+    this.isLoading = false,
   });
 
   final List<HomeBannerItem> banners;
@@ -50,6 +51,7 @@ class HomeScreen extends StatefulWidget {
   final Future<void> Function(TickerMessageItem item) onTickerTap;
   final Future<void> Function(HomeOfferItem item) onOfferTap;
   final ValueChanged<String> onActionTap;
+  final bool isLoading;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -191,115 +193,11 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Banners Carousel (Replacing Upcoming Consultations)
+              // Banners Carousel
               if (widget.banners.isNotEmpty)
-                SizedBox(
-                  height: MediaQuery.of(context).size.width > 600 ? 320 : 200,
-                  child: PageView.builder(
-                    itemCount: widget.banners.length,
-                    itemBuilder: (context, index) {
-                      final banner = widget.banners[index];
-                      return Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(32),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              // Background Image
-                              Image.network(
-                                _resolveImageUrl(banner.imageUrl),
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    decoration: const BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [Color(0xFF0F5E56), Color(0xFF178E81)],
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.medical_services_outlined,
-                                        color: Colors.white.withOpacity(0.2),
-                                        size: 80,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              // Gradient Overlay
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.black.withOpacity(0.1),
-                                      Colors.black.withOpacity(0.75),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              // Content
-                              Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      banner.title,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    if (banner.subtitle != null) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        banner.subtitle!,
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.8),
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                    if (banner.ctaLabel != null) ...[
-                                      const SizedBox(height: 16),
-                                      ElevatedButton(
-                                        onPressed: () => widget.onBannerTap(banner),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF5A88F1),
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(16),
-                                          ),
-                                          elevation: 0,
-                                        ),
-                                        child: Text(
-                                          banner.ctaLabel!,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                _buildBannerCarousel(context)
+              else if (widget.isLoading)
+                _buildBannerSkeleton(context),
               const SizedBox(height: 32),
               // Find Doctors Section
               const Text(
@@ -429,7 +327,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         return _TestCard(
                           test: test,
                           onTap: () => widget.onLabTap(test),
-                          resolvedImageUrl: _resolveImageUrl(test.imageUrl ?? ''),
                         );
                       },
                     ),
@@ -443,17 +340,155 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
+
+  Widget _buildBannerCarousel(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.of(context).size.width > 600 ? 320 : 200,
+      child: PageView.builder(
+        itemCount: widget.banners.length,
+        itemBuilder: (context, index) {
+          final banner = widget.banners[index];
+          return Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Background Image
+                  Image.network(
+                    _resolveImageUrl(banner.imageUrl),
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const _SkeletonPulse(
+                        width: double.infinity,
+                        height: double.infinity,
+                        borderRadius: 32,
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF0F5E56), Color(0xFF178E81)],
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.medical_services_outlined,
+                            color: Colors.white.withOpacity(0.2),
+                            size: 80,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  // Gradient Overlay
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.1),
+                          Colors.black.withOpacity(0.75),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          banner.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        if (banner.subtitle != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            banner.subtitle!,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                        if (banner.ctaLabel != null) ...[
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => widget.onBannerTap(banner),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF5A88F1),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              banner.ctaLabel!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBannerSkeleton(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.of(context).size.width > 600 ? 320 : 200,
+      child: PageView.builder(
+        itemCount: 2,
+        itemBuilder: (context, index) {
+          return Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: const _SkeletonPulse(
+              width: double.infinity,
+              height: double.infinity,
+              borderRadius: 32,
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 class _TestCard extends StatelessWidget {
   final LabTestItem test;
   final VoidCallback onTap;
-  final String resolvedImageUrl;
 
   const _TestCard({
     required this.test,
     required this.onTap,
-    required this.resolvedImageUrl,
   });
 
   @override
@@ -485,18 +520,13 @@ class _TestCard extends StatelessWidget {
                 height: 80,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF4F7FF),
+                  color: const Color(0xFF5A88F1).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: resolvedImageUrl.isNotEmpty
-                      ? Image.network(
-                          resolvedImageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _iconFallback(),
-                        )
-                      : _iconFallback(),
+                child: const Icon(
+                  Icons.biotech_outlined,
+                  size: 36,
+                  color: Color(0xFF5A88F1),
                 ),
               ),
               const SizedBox(height: 12),
@@ -558,13 +588,7 @@ class _TestCard extends StatelessWidget {
     );
   }
 
-  Widget _iconFallback() {
-    return const Icon(
-      Icons.biotech_rounded,
-      size: 32,
-      color: Color(0xFF5A88F1),
-    );
-  }
+
 }
 
 class _PackageCard extends StatelessWidget {
@@ -605,15 +629,23 @@ class _PackageCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                   child: SizedBox(
-                    height: 280, // Square aspect ratio (1:1 with container width)
+                    height: 280,
                     width: double.infinity,
                     child: resolvedImageUrl.isNotEmpty
                         ? Image.network(
                             resolvedImageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _fallbackImage(),
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const _SkeletonPulse(
+                                width: double.infinity,
+                                height: double.infinity,
+                                borderRadius: 0,
+                              );
+                            },
+                            errorBuilder: (_, __, ___) => _fallbackIcon(),
                           )
-                        : _fallbackImage(),
+                        : _fallbackIcon(),
                   ),
                 ),
                 if (pkg.discountedPrice != null && pkg.discountedPrice! < pkg.basePrice)
@@ -728,12 +760,9 @@ class _PackageCard extends StatelessWidget {
     );
   }
 
-  Widget _fallbackImage() {
-    return Container(
-      width: double.infinity,
-      height: 280,
-      color: const Color(0xFFF4F7FF),
-      child: const Icon(
+  Widget _fallbackIcon() {
+    return const Center(
+      child: Icon(
         Icons.inventory_2_outlined,
         size: 60,
         color: Color(0xFF5A88F1),
@@ -921,6 +950,60 @@ class _CategoryChip extends StatelessWidget {
             fontWeight: FontWeight.w700,
             fontSize: 14,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonPulse extends StatefulWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  const _SkeletonPulse({
+    required this.width,
+    required this.height,
+    this.borderRadius = 16,
+  });
+
+  @override
+  State<_SkeletonPulse> createState() => _SkeletonPulseState();
+}
+
+class _SkeletonPulseState extends State<_SkeletonPulse>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.4, end: 0.8).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE5E9F0),
+          borderRadius: BorderRadius.circular(widget.borderRadius),
         ),
       ),
     );

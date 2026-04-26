@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/models/patient_models.dart';
 import '../../core/providers/patient_portal_provider.dart';
+import '../../core/widgets/booking_success_screen.dart';
 import '../widgets/slot_selector_widget.dart';
 
 class PackageBookingScreen extends StatefulWidget {
@@ -37,9 +38,6 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   }
 
   Future<void> _loadSlots() async {
-    final portal = context.read<PatientPortalProvider>();
-    final doctorId = portal.doctors.isNotEmpty ? portal.doctors.first.id : null;
-    
     final fallbackSlots = [
       '08:00 - 09:00 AM',
       '09:00 - 10:00 AM',
@@ -52,56 +50,19 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
       '04:00 - 05:00 PM',
     ];
 
-    if (doctorId == null) {
-      if (mounted) {
-        setState(() {
-          _slots = fallbackSlots;
-          if (_selectedSlot == null || !_slots.contains(_selectedSlot)) {
-            _selectedSlot = _slots.isNotEmpty ? _slots.first : null;
-          }
-          _isLoadingSlots = false;
-        });
-      }
-      return;
-    }
-
-    setState(() {
-      _isLoadingSlots = true;
-    });
-
-    try {
-      final result = await portal.getDoctorAvailableSlots(
-        doctorId: doctorId,
-        date: DateFormat('yyyy-MM-dd').format(_selectedDate),
-      );
-      if (!mounted) return;
+    if (mounted) {
       setState(() {
-        _slots = result.isNotEmpty ? result : fallbackSlots;
+        _slots = fallbackSlots;
         if (_selectedSlot == null || !_slots.contains(_selectedSlot)) {
           _selectedSlot = _slots.isNotEmpty ? _slots.first : null;
         }
+        _isLoadingSlots = false;
       });
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _slots = fallbackSlots;
-          if (_selectedSlot == null || !_slots.contains(_selectedSlot)) {
-            _selectedSlot = _slots.isNotEmpty ? _slots.first : null;
-          }
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingSlots = false;
-        });
-      }
     }
   }
 
   Future<void> _handleBooking() async {
     final portal = context.read<PatientPortalProvider>();
-    final doctorId = portal.doctors.isNotEmpty ? portal.doctors.first.id : null;
 
     if (_selectedSlot == null) return;
 
@@ -112,7 +73,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
     try {
       await portal.createLabPackageOrder(
         labPackageId: widget.package.id,
-        doctorId: doctorId,
+        doctorId: null,
         date: DateFormat('yyyy-MM-dd').format(_selectedDate),
         slot: _selectedSlot,
         collectionType: _collectionType,
@@ -123,26 +84,15 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
 
       if (!mounted) return;
       
-      // Show success and pop
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  '${widget.package.name} booked successfully.',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFF108E3E),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+      final bookingId = 'PKG-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+      
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => BookingSuccessScreen(
+            bookingId: bookingId,
+            title: 'Package Booked!',
+            subtitle: 'Your health package has been successfully scheduled. Our team will contact you for confirmation.',
+            imagePath: 'assets/images/lab-test-booking.png',
           ),
         ),
       );

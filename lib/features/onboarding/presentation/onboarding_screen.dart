@@ -65,7 +65,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
                 blendMode: BlendMode.dstIn,
                 child: Image.asset(
-                  'assets/images/doctor-vector.png',
+                  'assets/images/doctors-image.png',
                   fit: BoxFit.contain,
                   alignment: Alignment.bottomCenter,
                 ),
@@ -132,26 +132,26 @@ class _SwipeToStartSlider extends StatefulWidget {
 
 class _SwipeToStartSliderState extends State<_SwipeToStartSlider> {
   double _dragValue = 0.0;
-  final double _handleSize = 64.0;
+  final double _handleSize = 72.0;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
-        final maxDrag = totalWidth - _handleSize - 12; // 6px padding on each side
+        final maxDrag = totalWidth - _handleSize - 16; // 8px padding on each side
 
         return Container(
           width: double.infinity,
-          height: 76,
+          height: 88,
           decoration: BoxDecoration(
             color: const Color(0xFF537DE8),
-            borderRadius: BorderRadius.circular(38),
+            borderRadius: BorderRadius.circular(44),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF537DE8).withOpacity(0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 6),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -165,22 +165,22 @@ class _SwipeToStartSliderState extends State<_SwipeToStartSlider> {
                   'Swipe to Start',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
               
               // Animated Indicator Arrows
               Positioned(
-                left: 24,
+                left: 32,
                 child: Opacity(
                   opacity: (1.0 - (_dragValue / (maxDrag * 0.2))).clamp(0.0, 0.4),
                   child: Row(
                     children: const [
-                      Icon(Icons.chevron_right, color: Colors.white, size: 20),
-                      Icon(Icons.chevron_right, color: Colors.white, size: 20),
-                      Icon(Icons.chevron_right, color: Colors.white, size: 20),
+                      Icon(Icons.chevron_right, color: Colors.white, size: 24),
+                      Icon(Icons.chevron_right, color: Colors.white, size: 24),
                     ],
                   ),
                 ),
@@ -188,11 +188,11 @@ class _SwipeToStartSliderState extends State<_SwipeToStartSlider> {
 
               // draggable handle
               AnimatedPositioned(
-                duration: Duration(milliseconds: _dragValue == 0 ? 300 : 0),
-                curve: Curves.easeOut,
-                left: _dragValue + 6,
-                top: 6,
-                bottom: 6,
+                duration: Duration(milliseconds: (_dragValue == 0 || _dragValue == maxDrag) ? 350 : 0),
+                curve: Curves.easeOutCubic,
+                left: _dragValue + 8,
+                top: 8,
+                bottom: 8,
                 child: GestureDetector(
                   onHorizontalDragUpdate: (details) {
                     if (widget.isCompleting) return;
@@ -203,7 +203,7 @@ class _SwipeToStartSliderState extends State<_SwipeToStartSlider> {
                   },
                   onHorizontalDragEnd: (details) {
                     if (widget.isCompleting) return;
-                    if (_dragValue >= maxDrag * 0.75) {
+                    if (_dragValue >= maxDrag * 0.7) {
                       setState(() => _dragValue = maxDrag);
                       widget.onCompleted();
                     } else {
@@ -212,25 +212,32 @@ class _SwipeToStartSliderState extends State<_SwipeToStartSlider> {
                   },
                   child: Container(
                     width: _handleSize,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: widget.isCompleting
                         ? const Center(
                             child: SizedBox(
-                              width: 24,
-                              height: 24,
+                              width: 28,
+                              height: 28,
                               child: CircularProgressIndicator(
-                                strokeWidth: 3,
+                                strokeWidth: 3.5,
                                 valueColor: AlwaysStoppedAnimation(Color(0xFF537DE8)),
                               ),
                             ),
                           )
                         : const Icon(
-                            Icons.keyboard_double_arrow_right_rounded,
+                            Icons.chevron_right_rounded,
                             color: Color(0xFF537DE8),
-                            size: 32,
+                            size: 40,
                           ),
                   ),
                 ),

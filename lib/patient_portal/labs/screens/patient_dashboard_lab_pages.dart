@@ -74,35 +74,62 @@ class _LabTestDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final config = Provider.of<AppConfig>(context, listen: false);
-    final apiBase = config.apiBaseUrl.replaceAll('/api', '');
-
-    String resolveUrl(String? url) {
-      if (url == null || url.isEmpty) return '';
-      if (url.startsWith('http')) return url;
-      final cleanUrl = url.startsWith('/') ? url.substring(1) : url;
-      return '$apiBase/$cleanUrl';
-    }
-
-    final imageUrl = resolveUrl(test.imageUrl);
-
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 280,
+            expandedHeight: 320,
             pinned: true,
+            stretch: true,
+            backgroundColor: const Color(0xFF5A88F1),
+            elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'test_image_${test.id}',
-                child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
+                child: Consumer<AppConfig>(
+                  builder: (context, config, _) {
+                    final apiBase = config.apiBaseUrl.replaceAll('/api', '');
+                    final path = test.imageUrl ?? '';
+                    
+                    String resolvedUrl = '';
+                    if (path.isNotEmpty) {
+                      if (path.startsWith('http')) {
+                        resolvedUrl = path;
+                      } else {
+                        final base = apiBase.endsWith('/') 
+                            ? apiBase.substring(0, apiBase.length - 1) 
+                            : apiBase;
+                        final normalizedPath = path.startsWith('/') ? path : '/$path';
+                        resolvedUrl = '$base$normalizedPath';
+                      }
+                    }
+
+                    if (resolvedUrl.isEmpty) {
+                      return Image.asset(
+                        'assets/images/lab.png',
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _LabTestImagePlaceholder(test: test),
-                      )
-                    : _LabTestImagePlaceholder(test: test),
+                      );
+                    }
+
+                    return Image.network(
+                      resolvedUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: const Color(0xFFF4F7FF),
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        'assets/images/lab.png',
+                        fit: BoxFit.cover,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -155,17 +182,7 @@ class _LabTestDetailPage extends StatelessWidget {
                   _TestDetailTile(
                     icon: Icons.access_time_rounded,
                     title: 'Reporting Time',
-                    value: 'Within 24 hours',
-                  ),
-                  _TestDetailTile(
-                    icon: Icons.science_outlined,
-                    title: 'Sample required',
-                    value: 'Blood / Plasma',
-                  ),
-                  _TestDetailTile(
-                    icon: Icons.no_food_outlined,
-                    title: 'Patient Preparation',
-                    value: 'Fasting may be required (8-10 hours)',
+                    value: test.resultEta ?? 'Within 24 hours',
                   ),
                   _TestDetailTile(
                     icon: Icons.verified_user_outlined,
@@ -193,19 +210,35 @@ class _LabTestDetailPage extends StatelessWidget {
         ),
         child: Consumer<PatientPortalProvider>(
           builder: (context, portal, _) {
-            return CustomButton(
+            return ElevatedButton(
               onPressed: test.status
                   ? () async {
                       await _openNewLabBookingFlow(context, portal);
                     }
                   : null,
-              text: test.status
-                  ? ' Book Now'
-                  : 'Not available now',
-              icon: const Icon(
-                Icons.shopping_cart_outlined,
-                color: Colors.white,
-                size: 18,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A6EAA),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.shopping_cart_outlined, size: 18),
+                  const SizedBox(width: 10),
+                  Text(
+                    test.status ? 'Book Now' : 'Not available now',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
             );
           },

@@ -120,6 +120,7 @@ class _DashboardTab extends StatelessWidget {
           },
           onSeeAllAppointments: () => onNavigate(2),
           onQuickActionTap: quickActionHandler.open,
+          isLoading: portal.isLoading,
         );
       },
     );
@@ -130,12 +131,12 @@ class _BannerPackageLandingPage extends StatelessWidget {
   const _BannerPackageLandingPage({
     required this.packageTarget,
     required this.isSpecific,
+    this.package,
   });
 
   final String? packageTarget;
   final bool isSpecific;
-
-
+  final LabPackageItem? package;
 
   @override
   Widget build(BuildContext context) {
@@ -143,18 +144,36 @@ class _BannerPackageLandingPage extends StatelessWidget {
 
     return Consumer<PatientPortalProvider>(
       builder: (context, portal, _) {
-        final normalizedTarget = target.toLowerCase();
-        final packages = portal.labPackages.where((package) {
-          if (!isSpecific || normalizedTarget.isEmpty) return true;
-          return package.slug.toLowerCase() == normalizedTarget ||
-              package.name.toLowerCase().contains(normalizedTarget);
-        }).toList();
+        final config = Provider.of<AppConfig>(context, listen: false);
+        final apiBase = config.apiBaseUrl.replaceAll('/api', '');
 
-        // If specific package view and found exactly one, show detailed view
-        if (isSpecific && packages.length == 1) {
-          final package = packages.first;
-          final imageUrl = (package.imageUrl ?? '').trim();
-          
+        String resolveImageUrl(String? path) {
+          if (path == null || path.isEmpty) return '';
+          if (path.startsWith('http')) return path;
+          final base = apiBase.endsWith('/')
+              ? apiBase.substring(0, apiBase.length - 1)
+              : apiBase;
+          final normalizedPath = path.startsWith('/') ? path : '/$path';
+          return '$base$normalizedPath';
+        }
+
+        // Use passed package if available, otherwise find it
+        final LabPackageItem? activePackage = package ?? (() {
+          if (!isSpecific || target.isEmpty) return null;
+          final normalizedTarget = target.toLowerCase();
+          try {
+            return portal.labPackages.firstWhere((p) => 
+               p.slug.toLowerCase() == normalizedTarget || 
+               p.name.toLowerCase().contains(normalizedTarget));
+          } catch (_) {
+            return null;
+          }
+        })();
+
+        // If specific package view and found it, show detailed view
+        if (isSpecific && activePackage != null) {
+          final packageImageUrl = resolveImageUrl(activePackage.imageUrl);
+
           return Scaffold(
             backgroundColor: Colors.white,
             body: CustomScrollView(
@@ -186,13 +205,19 @@ class _BannerPackageLandingPage extends StatelessWidget {
                     background: Stack(
                       fit: StackFit.expand,
                       children: [
-                        imageUrl.isNotEmpty
+                        packageImageUrl.isNotEmpty
                             ? Image.network(
-                                imageUrl,
+                                packageImageUrl,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _fallbackHeroImage(),
+                                errorBuilder: (_, __, ___) => Image.asset(
+                                  'assets/images/lab.png',
+                                  fit: BoxFit.cover,
+                                ),
                               )
-                            : _fallbackHeroImage(),
+                            : Image.asset(
+                                'assets/images/lab.png',
+                                fit: BoxFit.cover,
+                              ),
                         DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -225,7 +250,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    package.name,
+                                    activePackage.name,
                                     style: GoogleFonts.manrope(
                                       fontSize: 28,
                                       fontWeight: FontWeight.w900,
@@ -241,7 +266,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      '${package.totalTests ?? package.includedTests.length} Tests Available',
+                                      '${activePackage.totalTests ?? activePackage.includedTests.length} Tests Available',
                                       style: GoogleFonts.manrope(
                                         fontSize: 14,
                                         color: const Color(0xFF5A88F1),
@@ -257,16 +282,16 @@ class _BannerPackageLandingPage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '₹${package.discountedPrice ?? package.basePrice}',
+                                  '₹${activePackage.discountedPrice ?? activePackage.basePrice}',
                                   style: GoogleFonts.manrope(
                                     fontSize: 30,
                                     fontWeight: FontWeight.w900,
                                     color: const Color(0xFF5A88F1),
                                   ),
                                 ),
-                                if (package.discountedPrice != null && package.discountedPrice! < package.basePrice)
+                                if (activePackage.discountedPrice != null && activePackage.discountedPrice! < activePackage.basePrice)
                                   Text(
-                                    '₹${package.basePrice}',
+                                    '₹${activePackage.basePrice}',
                                     style: GoogleFonts.manrope(
                                       fontSize: 16,
                                       decoration: TextDecoration.lineThrough,
@@ -289,7 +314,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          package.description ?? 'This comprehensive health package is designed to provide a complete overview of your health status with multiple diagnostic parameters.',
+                          activePackage.description ?? 'This comprehensive health package is designed to provide a complete overview of your health status with multiple diagnostic parameters.',
                           style: GoogleFonts.manrope(
                             fontSize: 16,
                             color: const Color(0xFF192233).withOpacity(0.6),
@@ -297,9 +322,9 @@ class _BannerPackageLandingPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        if (package.includedTests.isNotEmpty) ...[
+                        if (activePackage.includedTests.isNotEmpty) ...[
                           Text(
-                            'Tests Included (${package.includedTests.length})',
+                            'Tests Included (${activePackage.includedTests.length})',
                             style: GoogleFonts.manrope(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -307,7 +332,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          ...package.includedTests.map((testName) {
+                          ...activePackage.includedTests.map((testName) {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 8),
                               child: Container(
@@ -320,7 +345,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                                 child: Row(
                                   children: [
                                     const Icon(
-                                      Icons.check_circle_outline_rounded,
+                                      Icons.science_rounded,
                                       size: 18,
                                       color: Color(0xFF5A88F1),
                                     ),
@@ -368,7 +393,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                       : () => Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (_) =>
-                                  PackageBookingScreen(package: package),
+                                  PackageBookingScreen(package: activePackage),
                             ),
                           ),
                   style: ElevatedButton.styleFrom(
@@ -393,7 +418,14 @@ class _BannerPackageLandingPage extends StatelessWidget {
           );
         }
 
-        // Fallback for list of packages (the old view but with new colors)
+        // Fallback for list of packages
+        final normalizedTarget = target.toLowerCase();
+        final packages = portal.labPackages.where((p) {
+          if (normalizedTarget.isEmpty) return true;
+          return p.slug.toLowerCase().contains(normalizedTarget) ||
+              p.name.toLowerCase().contains(normalizedTarget);
+        }).toList();
+
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FB),
           appBar: AppBar(
@@ -406,8 +438,8 @@ class _BannerPackageLandingPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             itemCount: packages.length,
             itemBuilder: (context, index) {
-              final package = packages[index];
-              final adminImageUrl = (package.imageUrl ?? '').trim();
+              final pkg = packages[index];
+              final pkgImageUrl = resolveImageUrl(pkg.imageUrl);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 20),
@@ -430,12 +462,13 @@ class _BannerPackageLandingPage extends StatelessWidget {
                       child: SizedBox(
                         height: 200,
                         width: double.infinity,
-                        child: adminImageUrl.isNotEmpty
+                        child: pkgImageUrl.isNotEmpty
                             ? Image.network(
-                                adminImageUrl,
+                                pkgImageUrl,
                                 fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _fallbackPackageImage(),
                               )
-                            : _fallbackHeroImage(),
+                            : _fallbackPackageImage(),
                       ),
                     ),
                     Padding(
@@ -448,7 +481,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  package.name,
+                                  pkg.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.manrope(
@@ -459,7 +492,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                '₹${package.discountedPrice ?? package.basePrice}',
+                                '₹${pkg.discountedPrice ?? pkg.basePrice}',
                                 style: GoogleFonts.manrope(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900,
@@ -470,7 +503,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '${package.totalTests ?? package.includedTests.length} Tests Included',
+                            '${pkg.totalTests ?? pkg.includedTests.length} Tests Included',
                             style: GoogleFonts.manrope(
                               fontSize: 14,
                               color: const Color(0xFF192233).withOpacity(0.5),
@@ -481,16 +514,15 @@ class _BannerPackageLandingPage extends StatelessWidget {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: portal.isCreatingLabOrder
-                                  ? null
-                                  : () => Navigator.of(context).push(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) =>
-                                              PackageBookingScreen(
-                                                package: package,
-                                              ),
-                                        ),
+                              onPressed: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => _BannerPackageLandingPage(
+                                        packageTarget: pkg.slug,
+                                        isSpecific: true,
+                                        package: pkg,
                                       ),
+                                    ),
+                                  ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF5A88F1),
                                 foregroundColor: Colors.white,
@@ -522,7 +554,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _fallbackHeroImage() {
+  Widget _fallbackPackageImage() {
     return Container(
       color: const Color(0xFFF4F7FF),
       child: Center(
