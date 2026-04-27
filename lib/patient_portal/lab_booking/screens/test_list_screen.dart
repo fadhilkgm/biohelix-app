@@ -6,7 +6,7 @@ import '../models/lab_booking_models.dart';
 import '../state/lab_booking_controller.dart';
 import '../widgets/test_card_widget.dart';
 import 'cart_screen.dart';
-import 'test_detail_screen.dart';
+import '../../labs/screens/lab_test_detail_page.dart';
 
 class TestListScreen extends StatelessWidget {
   const TestListScreen({super.key});
@@ -148,15 +148,78 @@ class TestListScreen extends StatelessWidget {
                     return TestCardWidget(
                       test: t,
                       onAdd: () => _handleAddToCart(context, c, t),
-                      onOpen: () => _push(context, TestDetailScreen(test: t)),
+                      onOpen: () {
+                        if (t.originalItem != null) {
+                          _push(context, LabTestDetailPage(test: t.originalItem!));
+                        }
+                      },
                     );
                   },
                   childCount: c.filteredTests.length,
                 ),
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
+        const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
+      ),
+      bottomNavigationBar: _buildCartBottomBar(context, c),
+    );
+  }
+
+  Widget? _buildCartBottomBar(BuildContext context, LabBookingController c) {
+    if (c.cartCount == 0) return null;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: ElevatedButton(
+          onPressed: () => _push(context, const CartScreen()),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF5A88F1),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Confirm Booking',
+                style: GoogleFonts.manrope(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '${c.cartCount}',
+                  style: GoogleFonts.manrope(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

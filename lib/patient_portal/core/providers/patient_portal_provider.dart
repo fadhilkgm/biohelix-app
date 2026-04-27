@@ -37,6 +37,7 @@ class PatientPortalProvider extends ChangeNotifier {
   List<LabOrderItem> _labOrders = const [];
   List<LabPackageItem> _labPackages = const [];
   List<LabPackageOrderItem> _labPackageOrders = const [];
+  List<DepartmentItem> _departments = const [];
   List<ChatThreadSummary> _chatThreads = const [];
   String? _activeChatThreadId;
   final Map<String, List<ChatMessage>> _chatHistories =
@@ -72,6 +73,7 @@ class PatientPortalProvider extends ChangeNotifier {
   List<LabOrderItem> get labOrders => _labOrders;
   List<LabPackageItem> get labPackages => _labPackages;
   List<LabPackageOrderItem> get labPackageOrders => _labPackageOrders;
+  List<DepartmentItem> get departments => _departments;
   List<ChatThreadSummary> get chatThreads => _chatThreads;
   String? get activeChatThreadId => _activeChatThreadId;
   List<ChatMessage> get chatMessages {
@@ -143,6 +145,7 @@ class PatientPortalProvider extends ChangeNotifier {
     _labOrders = const [];
     _labPackages = const [];
     _labPackageOrders = const [];
+    _departments = const [];
     _chatThreads = const [];
     _activeChatThreadId = null;
     _chatHistories.clear();

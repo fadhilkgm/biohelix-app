@@ -23,11 +23,10 @@ import '../core/data/patient_repository.dart';
 import '../core/models/patient_models.dart';
 import '../core/models/home_feed_models.dart';
 import '../core/providers/patient_portal_provider.dart';
-import '../lab_booking/models/lab_booking_models.dart' show BookableLabTest;
-import '../lab_booking/screens/cart_screen.dart' show CartScreen;
 
 import '../lab_booking/screens/package_booking_screen.dart';
 import '../lab_booking/screens/test_list_screen.dart';
+import '../labs/screens/lab_test_detail_page.dart';
 import '../lab_booking/state/lab_booking_controller.dart'
     show LabBookingController;
 import '../core/widgets/booking_success_screen.dart';
@@ -53,7 +52,6 @@ part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_discove
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_discovery_labs.dart';
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_discovery_widgets.dart';
 part 'package:biohelix_app/patient_portal/doctors/screens/patient_dashboard_doctor_pages.dart';
-part 'package:biohelix_app/patient_portal/labs/screens/patient_dashboard_lab_pages.dart';
 part 'package:biohelix_app/patient_portal/home/actions/patient_home_feed_target_handler.dart';
 part 'package:biohelix_app/patient_portal/shared/widgets/patient_dashboard_planner_models.dart';
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_shared_cards.dart';

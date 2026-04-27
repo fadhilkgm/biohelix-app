@@ -101,6 +101,7 @@ class _DashboardTab extends StatelessWidget {
           bloodGroup: dashboard.idCard.bloodGroup,
           points: dashboard.myClub.points,
           banners: portal.homeBanners,
+          departments: portal.departments,
           doctors: homeDoctors,
           labTests: portal.labTests,
           labPackages: portal.labPackages,
@@ -460,19 +461,20 @@ class _BannerPackageLandingPage extends StatelessWidget {
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                       child: SizedBox(
-                        height: 200,
+                        height: 300,
                         width: double.infinity,
                         child: pkgImageUrl.isNotEmpty
                             ? Image.network(
                                 pkgImageUrl,
                                 fit: BoxFit.cover,
+                                alignment: Alignment.centerRight,
                                 errorBuilder: (_, __, ___) => _fallbackPackageImage(),
                               )
                             : _fallbackPackageImage(),
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -485,7 +487,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.manrope(
-                                    fontSize: 20,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.w900,
                                     color: const Color(0xFF192233),
                                   ),
@@ -501,13 +503,20 @@ class _BannerPackageLandingPage extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${pkg.totalTests ?? pkg.includedTests.length} Tests Included',
-                            style: GoogleFonts.manrope(
-                              fontSize: 14,
-                              color: const Color(0xFF192233).withOpacity(0.5),
-                              fontWeight: FontWeight.w700,
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F7FF),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${pkg.totalTests ?? pkg.includedTests.length} Tests included',
+                              style: GoogleFonts.manrope(
+                                fontSize: 12,
+                                color: const Color(0xFF5A88F1),
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 20),

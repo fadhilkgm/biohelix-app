@@ -67,6 +67,7 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
         'ticker messages',
       ),
       safeLoad<List<HomeOfferItem>>(_repository.getHomeOffers, 'home offers'),
+      safeLoad<List<DepartmentItem>>(_repository.getDepartments, 'departments'),
     ]);
 
     _dashboard = dashboardResult ?? _buildFallbackDashboard();
@@ -85,6 +86,7 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
     _chatThreads = results[12] as List<ChatThreadSummary>? ?? const [];
     _tickerMessages = results[13] as List<TickerMessageItem>? ?? const [];
     _homeOffers = results[14] as List<HomeOfferItem>? ?? const [];
+    _departments = results[15] as List<DepartmentItem>? ?? const [];
 
     if (_chatThreads.isNotEmpty) {
       if (_activeChatThreadId == null ||

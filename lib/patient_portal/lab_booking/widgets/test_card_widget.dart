@@ -61,7 +61,7 @@ class TestCardWidget extends StatelessWidget {
                   const Icon(Icons.history_toggle_off_rounded, size: 14, color: Color(0xFF5A88F1)),
                   const SizedBox(width: 4),
                   Text(
-                    '24 hrs',
+                    test.originalItem?.resultEta ?? '24 hrs',
                     style: GoogleFonts.manrope(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -84,15 +84,45 @@ class TestCardWidget extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text(
-                    'Rs ${test.price.toStringAsFixed(0)}',
-                    style: GoogleFonts.manrope(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF5A88F1),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (test.basePrice > test.price)
+                        Text(
+                          '₹${test.basePrice.toStringAsFixed(0)}',
+                          style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      Text(
+                        '₹${test.price.toStringAsFixed(0)}',
+                        style: GoogleFonts.manrope(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF5A88F1),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: onOpen,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF5A88F1),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    child: Text(
+                      'Book Now',
+                      style: GoogleFonts.manrope(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   SizedBox(
                     height: 34,
                     child: ElevatedButton(
