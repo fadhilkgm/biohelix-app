@@ -327,6 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         return _TestCard(
                           test: test,
                           onTap: () => widget.onLabTap(test),
+                          resolvedImageUrl: _resolveImageUrl(test.imageUrl ?? ''),
                         );
                       },
                     ),
@@ -485,10 +486,12 @@ class _HomeScreenState extends State<HomeScreen> {
 class _TestCard extends StatelessWidget {
   final LabTestItem test;
   final VoidCallback onTap;
+  final String resolvedImageUrl;
 
   const _TestCard({
     required this.test,
     required this.onTap,
+    required this.resolvedImageUrl,
   });
 
   @override
@@ -516,17 +519,39 @@ class _TestCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                height: 80,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF5A88F1).withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.biotech_outlined,
-                  size: 36,
-                  color: Color(0xFF5A88F1),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  height: 80,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5A88F1).withOpacity(0.08),
+                  ),
+                  child: resolvedImageUrl.isNotEmpty
+                      ? Image.network(
+                          resolvedImageUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          },
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.biotech_outlined,
+                            size: 36,
+                            color: Color(0xFF5A88F1),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.biotech_outlined,
+                          size: 36,
+                          color: Color(0xFF5A88F1),
+                        ),
                 ),
               ),
               const SizedBox(height: 12),

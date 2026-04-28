@@ -24,24 +24,23 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
   Future<void> _loadSlots() async {
     if (_selectedDate == null) return;
     setState(() => _loadingSlots = true);
-    
+
     final portal = Provider.of<PatientPortalProvider>(context, listen: false);
-    final fallbackSlots = ['09:00 AM', '10:00 AM', '11:30 AM', '02:00 PM', '04:15 PM'];
-    
+
     try {
       final slots = await portal.getDoctorAvailableSlots(
         doctorId: widget.doctor.id,
         date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
       );
       setState(() {
-        _availableSlots = slots.isNotEmpty ? slots : fallbackSlots;
+        _availableSlots = slots;
         if (!_availableSlots.contains(_selectedSlot)) {
           _selectedSlot = null;
         }
       });
     } catch (_) {
       setState(() {
-        _availableSlots = fallbackSlots;
+        _availableSlots = [];
         if (!_availableSlots.contains(_selectedSlot)) {
           _selectedSlot = null;
         }
@@ -725,32 +724,29 @@ class _DoctorImageFallback extends StatelessWidget {
 }
 
 bool _isDoctorWorkingOnDate(DoctorListing doctor, DateTime date) {
-  // Sunday is explicitly disabled as requested
-  if (date.weekday == DateTime.sunday) return false;
-
   final isoDate = DateFormat('yyyy-MM-dd').format(date);
   final availableStr = doctor.availableDates ?? '';
   if (availableStr.contains(isoDate)) return true;
 
-  final String workingStr = (doctor.workingDays ?? '').toLowerCase();
+  final String workingStr = (doctor.workingDays ?? '').trim();
   if (workingStr.isEmpty || workingStr == '[]' || workingStr == 'null') {
-    return true;
+    return false;
   }
-  
-  final longWeekday = DateFormat('EEEE').format(date).toLowerCase();
-  final shortWeekday = DateFormat('E').format(date).toLowerCase();
-  
-  if (workingStr.contains(longWeekday) || workingStr.contains(shortWeekday)) {
-    return true;
-  }
-  
-  final numString = date.weekday.toString();
-  final jsNumString = date.weekday == 7 ? '0' : date.weekday.toString();
 
-  if (RegExp(r'\b' + numString + r'\b').hasMatch(workingStr)) return true;
-  if (RegExp(r'\b' + jsNumString + r'\b').hasMatch(workingStr)) return true;
-  
-  return false;
+  final backendDay = date.weekday == 7 ? 0 : date.weekday;
+
+  try {
+    final workingDays = workingStr
+        .split(',')
+        .map((d) => int.parse(d.trim()))
+        .toList();
+    return workingDays.contains(backendDay);
+  } catch (_) {
+    final longWeekday = DateFormat('EEEE').format(date).toLowerCase();
+    final shortWeekday = DateFormat('E').format(date).toLowerCase();
+    final lowerWorking = workingStr.toLowerCase();
+    return lowerWorking.contains(longWeekday) || lowerWorking.contains(shortWeekday);
+  }
 }
 
 DateTime _nextWorkingDateForDoctor(DoctorListing doctor, DateTime fromDate) {

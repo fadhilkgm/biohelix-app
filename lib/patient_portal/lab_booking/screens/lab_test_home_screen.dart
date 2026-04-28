@@ -10,7 +10,7 @@ import '../../lab_booking/state/lab_booking_controller.dart';
 import '../../lab_booking/widgets/category_chip_widget.dart';
 import '../../lab_booking/widgets/test_card_widget.dart';
 import 'cart_screen.dart';
-import 'test_detail_screen.dart';
+import 'test_booking_screen.dart';
 import 'test_list_screen.dart';
 
 class LabTestHomeScreen extends StatelessWidget {
@@ -97,7 +97,10 @@ class _LabHomeContent extends StatelessWidget {
               (t) => TestCardWidget(
                 test: t,
                 onAdd: () => _handleAddToCart(context, c, t),
-                onOpen: () => _push(context, TestDetailScreen(test: t)),
+                onOpen: () {
+                  c.addToCart(t);
+                  _push(context, const TestBookingScreen());
+                },
               ),
             ),
             const SizedBox(height: AppSpacing.xl),

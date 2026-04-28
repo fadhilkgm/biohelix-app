@@ -150,6 +150,18 @@ class LabBookingController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPrimaryPatient({
+    required String name,
+    required int age,
+    required String gender,
+  }) {
+    _patients = [
+      PatientProfile(id: 'self', name: name, age: age, gender: gender),
+    ];
+    _selectedPatientId = 'self';
+    notifyListeners();
+  }
+
   void addPatient({
     required String name,
     required int age,

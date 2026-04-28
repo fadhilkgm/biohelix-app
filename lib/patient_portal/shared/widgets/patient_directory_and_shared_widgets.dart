@@ -157,7 +157,26 @@ class _LabTestsDirectoryPage extends StatelessWidget {
             patientName: patientName,
             tests: portal.labTests,
           ),
-          child: const TestListScreen(),
+          child: Builder(
+            builder: (context) {
+              return TestListScreen(
+                onTestTap: (bookableTest) {
+                  final labTestItem = portal.labTests.firstWhere(
+                    (lt) => lt.id == bookableTest.id,
+                  );
+                  final controller = context.read<LabBookingController>();
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => _LabTestDetailPage(
+                        test: labTestItem,
+                        controller: controller,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );

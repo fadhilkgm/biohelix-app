@@ -657,6 +657,7 @@ class DoctorListing {
     this.breakStartTime,
     this.breakEndTime,
     this.slotDurationMinutes,
+    this.globalSchedule,
     this.departmentName,
     this.email,
     this.phone,
@@ -676,6 +677,7 @@ class DoctorListing {
   final String? breakStartTime;
   final String? breakEndTime;
   final int? slotDurationMinutes;
+  final String? globalSchedule;
   final String? departmentName;
   final String? email;
   final String? phone;
@@ -696,6 +698,7 @@ class DoctorListing {
       breakStartTime: json['breakStartTime'] as String?,
       breakEndTime: json['breakEndTime'] as String?,
       slotDurationMinutes: (json['slotDurationMinutes'] as num?)?.toInt(),
+      globalSchedule: json['globalSchedule'] as String?,
       departmentName:
           json['departmentName'] as String? ??
           json['department_name'] as String?,

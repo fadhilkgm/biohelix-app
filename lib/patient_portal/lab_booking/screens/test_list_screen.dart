@@ -6,10 +6,12 @@ import '../models/lab_booking_models.dart';
 import '../state/lab_booking_controller.dart';
 import '../widgets/test_card_widget.dart';
 import 'cart_screen.dart';
-import 'test_detail_screen.dart';
+import 'test_booking_screen.dart';
 
 class TestListScreen extends StatelessWidget {
-  const TestListScreen({super.key});
+  const TestListScreen({super.key, this.onTestTap});
+
+  final void Function(BookableLabTest test)? onTestTap;
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +150,14 @@ class TestListScreen extends StatelessWidget {
                     return TestCardWidget(
                       test: t,
                       onAdd: () => _handleAddToCart(context, c, t),
-                      onOpen: () => _push(context, TestDetailScreen(test: t)),
+                      onOpen: () {
+                        if (onTestTap != null) {
+                          onTestTap!(t);
+                        } else {
+                          c.addToCart(t);
+                          _push(context, const TestBookingScreen());
+                        }
+                      },
                     );
                   },
                   childCount: c.filteredTests.length,

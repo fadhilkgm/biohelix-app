@@ -1,8 +1,9 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _LabTestDetailPage extends StatelessWidget {
-  const _LabTestDetailPage({required this.test});
+  const _LabTestDetailPage({required this.test, this.controller});
   final LabTestItem test;
+  final LabBookingController? controller;
 
   BookableLabTest _toBookableTest(LabTestItem item) {
     final lower = item.testName.toLowerCase();
@@ -54,18 +55,20 @@ class _LabTestDetailPage extends StatelessWidget {
       }
     }
 
-    final patientName = portal.dashboard?.patient.name ?? 'Patient';
-    final controller = LabBookingController(
-      patientName: patientName,
-      tests: portal.labTests,
-    );
-    controller.addToCart(_toBookableTest(test));
+    final targetController = controller ?? () {
+      final patientName = portal.dashboard?.patient.name ?? 'Patient';
+      return LabBookingController(
+        patientName: patientName,
+        tests: portal.labTests,
+      );
+    }();
+    targetController.addToCart(_toBookableTest(test));
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ChangeNotifierProvider.value(
-          value: controller,
-          child: const CartScreen(),
+          value: targetController,
+          child: const TestBookingScreen(),
         ),
       ),
     );

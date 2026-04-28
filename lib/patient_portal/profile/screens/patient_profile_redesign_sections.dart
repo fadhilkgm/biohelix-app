@@ -108,11 +108,11 @@ class _ProfileInfoTile extends StatelessWidget {
         decoration: BoxDecoration(
           border: isLast
               ? null
-              : const Border(bottom: BorderSide(color: Color(0xFFE9EDF5))),
+              : const Border(bottom: BorderSide(color: Color(0xFFE5E9F0))),
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF275A9A)),
+            Icon(icon, color: const Color(0xFF5A88F1)),
             const SizedBox(width: 12),
             Expanded(child: _buildContent()),
             const Icon(Icons.chevron_right_rounded, color: Color(0xFF9CA6B8)),
