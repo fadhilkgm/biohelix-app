@@ -75,7 +75,7 @@ class LabBookingController extends ChangeNotifier {
       filteredTests.where((e) => e.popular).take(6).toList();
 
   List<BookableLabTest> get filteredTests {
-    return _tests.where((t) {
+    return _tests.where((BookableLabTest t) {
       final inQuery = t.name.toLowerCase().contains(_query.toLowerCase());
       final inCategory = _category == 'All' || t.category == _category;
       final inPrice = t.price <= _maxPrice;
@@ -84,12 +84,31 @@ class LabBookingController extends ChangeNotifier {
     }).toList();
   }
 
-  double get subtotal =>
-      _cart.fold(0, (sum, e) => sum + (e.test.price * e.quantity));
-  double get discount =>
-      _coupon.trim().toUpperCase() == 'HEALTH10' ? subtotal * 0.10 : 0;
-  double get collectionFee => _collectionType == CollectionType.home ? 99 : 0;
-  double get total => subtotal - discount + collectionFee;
+  double get subtotal {
+    double sum = 0.0;
+    for (final e in _cart) {
+      sum += (e.test.price * e.quantity);
+    }
+    return sum;
+  }
+
+  double get discount {
+    if (_coupon.trim().toUpperCase() == 'HEALTH10') {
+      return subtotal * 0.10;
+    }
+    return 0.0;
+  }
+
+  double get collectionFee {
+    if (_collectionType == CollectionType.home) {
+      return 99.0;
+    }
+    return 0.0;
+  }
+
+  double get total {
+    return subtotal - discount + collectionFee;
+  }
 
   void setQuery(String value) {
     _query = value;
@@ -282,8 +301,10 @@ class LabBookingController extends ChangeNotifier {
       parameters: lower.contains('cbc')
           ? ['Hemoglobin', 'WBC', 'RBC', 'Platelets']
           : ['Primary marker', 'Secondary marker', 'Reference range'],
-      price: 399 + (test.id % 10) * 110,
+      price: (test.discountedPrice ?? test.basePrice).toDouble(),
+      basePrice: test.basePrice.toDouble(),
       popular: test.id % 2 == 0,
+      originalItem: test,
     );
   }
 }

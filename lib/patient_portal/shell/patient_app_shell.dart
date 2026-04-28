@@ -28,11 +28,13 @@ import '../lab_booking/screens/test_booking_screen.dart' show TestBookingScreen;
 
 import '../lab_booking/screens/package_booking_screen.dart';
 import '../lab_booking/screens/test_list_screen.dart';
+import '../labs/screens/lab_test_detail_page.dart';
 import '../lab_booking/state/lab_booking_controller.dart'
     show LabBookingController;
 import '../core/widgets/booking_success_screen.dart';
 import '../premium_home/screens/home_screen.dart' as premium_home;
 import 'widgets/bottom_nav_bar_widget.dart';
+import '../ai_checkup/screens/ai_checkup_tab.dart';
 import '../my_club/screens/patient_loyalty_panel.dart';
 
 part 'package:biohelix_app/patient_portal/assistant/widgets/patient_assistant_attachment_widget.dart';
@@ -53,7 +55,6 @@ part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_discove
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_discovery_labs.dart';
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_discovery_widgets.dart';
 part 'package:biohelix_app/patient_portal/doctors/screens/patient_dashboard_doctor_pages.dart';
-part 'package:biohelix_app/patient_portal/labs/screens/patient_dashboard_lab_pages.dart';
 part 'package:biohelix_app/patient_portal/home/actions/patient_home_feed_target_handler.dart';
 part 'package:biohelix_app/patient_portal/shared/widgets/patient_dashboard_planner_models.dart';
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_shared_cards.dart';
@@ -111,9 +112,9 @@ class _PatientAppShellState extends State<PatientAppShell>
       label: 'Bookings',
     ),
     BottomNavItem(
-      icon: Icons.workspace_premium_outlined,
-      selectedIcon: Icons.workspace_premium_rounded,
-      label: 'My Club',
+      icon: Icons.health_and_safety_outlined,
+      selectedIcon: Icons.health_and_safety_rounded,
+      label: 'AI Health Checkup',
     ),
     BottomNavItem(
       icon: Icons.person_outline_rounded,
@@ -132,7 +133,7 @@ class _PatientAppShellState extends State<PatientAppShell>
       ),
       _RecordsTab(key: _recordsTabKey),
       const _BookingsTab(),
-      const _MyClubTab(),
+      const AiCheckupTab(),
       _ProfileTab(onOpenTestsHub: _openTestsHub),
     ];
 
@@ -327,59 +328,4 @@ class _AssistantPage extends StatelessWidget {
   }
 }
 
-class _MyClubTab extends StatelessWidget {
-  const _MyClubTab();
 
-  @override
-  Widget build(BuildContext context) {
-    return Consumer2<SessionProvider, PatientPortalProvider>(
-      builder: (context, session, portal, _) {
-        final dashboard =
-            portal.dashboard ?? _fallbackDashboard(session.patient);
-
-        return Column(
-          children: [
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'My Club',
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                          Text(
-                            'Rewards, benefits, and redemption history',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: PatientLoyaltyDetailsContent(
-                idCard: dashboard.idCard,
-                myClub: dashboard.myClub,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}

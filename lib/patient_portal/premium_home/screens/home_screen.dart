@@ -28,9 +28,11 @@ class HomeScreen extends StatefulWidget {
     required this.onOfferTap,
     required this.onActionTap,
     this.isLoading = false,
+    this.departments = const [],
   });
 
   final List<HomeBannerItem> banners;
+  final List<DepartmentItem> departments;
   final List<DoctorListing> doctors;
   final List<LabTestItem> labTests;
   final List<LabPackageItem> labPackages;
@@ -61,7 +63,20 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedDepartment = 'All';
 
   List<String> get _departments {
-    final depts = widget.doctors.map((d) => d.specialization).toSet().toList();
+    if (widget.departments.isNotEmpty) {
+      final names = widget.departments
+          .map((d) => d.name)
+          .where((name) => name.toLowerCase() != 'laboratory')
+          .toList();
+      names.sort();
+      return ['All', ...names];
+    }
+    
+    final depts = widget.doctors
+        .map((d) => d.departmentName ?? d.specialization)
+        .where((d) => d.isNotEmpty && d.toLowerCase() != 'laboratory')
+        .toSet()
+        .toList();
     depts.sort();
     return ['All', ...depts];
   }
@@ -69,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<DoctorListing> get _filteredDoctors {
     if (_selectedDepartment == 'All') return widget.doctors;
     return widget.doctors
-        .where((d) => d.specialization == _selectedDepartment)
+        .where((d) => (d.departmentName ?? d.specialization) == _selectedDepartment)
         .toList();
   }
 
@@ -83,6 +98,20 @@ class _HomeScreenState extends State<HomeScreen> {
         : widget.apiBaseUrl;
     final normalizedPath = path.startsWith('/') ? path : '/$path';
     return '$base$normalizedPath';
+  }
+
+  String? _getDepartmentIconUrl(String name) {
+    if (name == 'All') return null;
+    try {
+      final dept = widget.departments.firstWhere(
+        (d) => d.name.toLowerCase() == name.toLowerCase()
+      );
+      final rawPath = dept.imageUrl;
+      if (rawPath == null || rawPath.isEmpty) return null;
+      return _resolveImageUrl(rawPath);
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -217,6 +246,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       label: dept,
                       isActive: _selectedDepartment == dept,
                       onTap: () => setState(() => _selectedDepartment = dept),
+                      icon: _getSpecialtyIcon(dept),
+                      iconUrl: _getDepartmentIconUrl(dept),
                     );
                   }).toList(),
                 ),
@@ -318,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
-                    height: 250,
+                    height: 130,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: widget.labTests.length,
@@ -360,6 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Image.network(
                     _resolveImageUrl(banner.imageUrl),
                     fit: BoxFit.cover,
+                    alignment: Alignment.centerRight,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return const _SkeletonPulse(
@@ -497,25 +529,29 @@ class _TestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 180,
-      height: 218,
-      margin: const EdgeInsets.only(right: 16),
+      width: 150,
+      height: 110,
+      margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(
+          color: const Color(0xFFF4F7FF),
+          width: 1,
+        ),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -557,28 +593,25 @@ class _TestCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 test.testName,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF192233),
-                  height: 1.2,
+                style: GoogleFonts.manrope(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF192233),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.history_toggle_off_rounded, size: 14, color: Color(0xFF5A88F1)),
+                  const Icon(Icons.history_toggle_off_rounded, size: 12, color: Color(0xFF5A88F1)),
                   const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      test.resultEta ?? '24 hrs',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF5A88F1),
-                      ),
+                  Text(
+                    test.resultEta ?? '24 hrs',
+                    style: GoogleFonts.manrope(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF5A88F1),
                     ),
                   ),
                 ],
@@ -589,19 +622,19 @@ class _TestCard extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onTap,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF4F7FF),
-                    foregroundColor: const Color(0xFF5A88F1),
+                    backgroundColor: const Color(0xFF5A88F1),
+                    foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   child: Text(
                     'Book Now',
                     style: GoogleFonts.manrope(
                       fontWeight: FontWeight.w800,
-                      fontSize: 13,
+                      fontSize: 11,
                     ),
                   ),
                 ),
@@ -660,6 +693,7 @@ class _PackageCard extends StatelessWidget {
                         ? Image.network(
                             resolvedImageUrl,
                             fit: BoxFit.cover,
+                            alignment: Alignment.centerRight,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
                               return const _SkeletonPulse(
@@ -807,17 +841,6 @@ class _DoctorCard extends StatelessWidget {
     required this.resolvedImageUrl,
   });
 
-  IconData _getSpecialtyIcon(String spec) {
-    final s = spec.toLowerCase();
-    if (s.contains('cardio')) return Icons.monitor_heart_outlined;
-    if (s.contains('derma')) return Icons.face_outlined;
-    if (s.contains('gyne')) return Icons.supervised_user_circle_outlined;
-    if (s.contains('pedi')) return Icons.child_care_outlined;
-    if (s.contains('dentist')) return Icons.medical_services_outlined;
-    if (s.contains('neuro')) return Icons.psychology_outlined;
-    return Icons.medical_information_outlined;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -950,35 +973,100 @@ class _CategoryChip extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
+  final IconData? icon;
+  final String? iconUrl;
 
   const _CategoryChip({
     required this.label,
     required this.isActive,
     required this.onTap,
+    this.icon,
+    this.iconUrl,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 100,
+        height: 110,
         margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFF5A88F1) : const Color(0xFFF4F7FF),
-          borderRadius: BorderRadius.circular(99),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? Colors.white : const Color(0xFF192233).withOpacity(0.6),
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isActive ? [
+            BoxShadow(
+              color: const Color(0xFF5A88F1).withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ] : null,
+          border: Border.all(
+            color: isActive ? Colors.transparent : const Color(0xFFE5E9F0),
+            width: 1,
           ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (iconUrl != null && iconUrl!.isNotEmpty) ...[
+              Image.network(
+                iconUrl!,
+                width: 38,
+                height: 38,
+                fit: BoxFit.contain,
+                // Removed color filter to allow original image colors
+                errorBuilder: (_, __, ___) => Icon(
+                  icon ?? Icons.health_and_safety_outlined,
+                  size: 30,
+                  color: isActive ? Colors.white : const Color(0xFF5A88F1),
+                ),
+              ),
+            ] else if (icon != null) ...[
+              Icon(
+                icon,
+                size: 34,
+                color: isActive ? Colors.white : const Color(0xFF5A88F1),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isActive ? Colors.white : const Color(0xFF192233).withOpacity(0.8),
+                fontWeight: isActive ? FontWeight.w900 : FontWeight.w700,
+                fontSize: 12,
+                height: 1.1,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+IconData _getSpecialtyIcon(String spec) {
+  final s = spec.toLowerCase();
+  if (s == 'all') return Icons.grid_view_rounded;
+  if (s.contains('cardio')) return Icons.monitor_heart_outlined;
+  if (s.contains('derma')) return Icons.face_outlined;
+  if (s.contains('gyne')) return Icons.supervised_user_circle_outlined;
+  if (s.contains('pedi')) return Icons.child_care_outlined;
+  if (s.contains('dentist') || s.contains('dental')) return Icons.medical_services_outlined;
+  if (s.contains('neuro')) return Icons.psychology_outlined;
+  if (s.contains('ortho')) return Icons.accessibility_new_rounded;
+  if (s.contains('ent')) return Icons.hearing_rounded;
+  if (s.contains('eye') || s.contains('opthal')) return Icons.visibility_outlined;
+  if (s.contains('physio')) return Icons.fitness_center_rounded;
+  if (s.contains('general')) return Icons.medical_information_outlined;
+  return Icons.health_and_safety_outlined;
 }
 
 class _SkeletonPulse extends StatefulWidget {

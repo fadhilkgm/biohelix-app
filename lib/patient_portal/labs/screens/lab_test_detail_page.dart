@@ -1,4 +1,11 @@
-part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/config/app_config.dart';
+import '../../core/models/patient_models.dart';
+import '../../core/providers/patient_portal_provider.dart';
+import '../../lab_booking/models/lab_booking_models.dart';
+import '../../lab_booking/state/lab_booking_controller.dart';
+import '../../lab_booking/screens/cart_screen.dart';
 
 class _LabTestDetailPage extends StatelessWidget {
   const _LabTestDetailPage({required this.test, this.controller});
@@ -33,8 +40,10 @@ class _LabTestDetailPage extends StatelessWidget {
       parameters: lower.contains('cbc')
           ? const ['Hemoglobin', 'WBC', 'RBC', 'Platelets']
           : const ['Primary marker', 'Secondary marker', 'Reference range'],
-      price: 399 + (item.id % 10) * 110,
+      price: (item.discountedPrice ?? item.basePrice).toDouble(),
+      basePrice: item.basePrice.toDouble(),
       popular: item.id % 2 == 0,
+      originalItem: item,
     );
   }
 
@@ -335,4 +344,3 @@ class _InfoSection extends StatelessWidget {
     );
   }
 }
-

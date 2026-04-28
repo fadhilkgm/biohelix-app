@@ -8,6 +8,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
     required this.bloodGroup,
     required this.points,
     required this.banners,
+    required this.departments,
     required this.doctors,
     required this.labTests,
     required this.labPackages,
@@ -32,6 +33,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
   final String? bloodGroup;
   final int points;
   final List<HomeBannerItem> banners;
+  final List<DepartmentItem> departments;
   final List<DoctorListing> doctors;
   final List<LabTestItem> labTests;
   final List<LabPackageItem> labPackages;
@@ -58,6 +60,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
       patientName: patientName,
       registrationNumber: registrationNumber,
       banners: banners,
+      departments: departments,
       doctors: doctors,
       labTests: labTests,
       labPackages: labPackages,
@@ -79,7 +82,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
       onLabTap: (test) {
         Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => _LabTestDetailPage(test: test),
+            builder: (_) => LabTestDetailPage(test: test),
           ),
         );
       },

@@ -84,7 +84,11 @@ class _BannerCarouselWidgetState extends State<BannerCarouselWidget> {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          Image.network(banner.imageUrl, fit: BoxFit.cover),
+                          Image.network(
+                            banner.imageUrl,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.centerRight,
+                          ),
                           const DecoratedBox(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(

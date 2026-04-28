@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../design/app_colors.dart';
-import '../design/app_radius.dart';
-import '../design/app_spacing.dart';
-import '../design/app_text_styles.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class PriceSummaryWidget extends StatelessWidget {
   const PriceSummaryWidget({
@@ -28,18 +24,25 @@ class PriceSummaryWidget extends StatelessWidget {
       Color? color,
     }) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.only(bottom: 12),
         child: Row(
           children: [
-            Text(label, style: AppTextStyles.body(context)),
+            Text(
+              label,
+              style: GoogleFonts.manrope(
+                fontSize: 14,
+                fontWeight: strong ? FontWeight.w800 : FontWeight.w500,
+                color: strong ? const Color(0xFF2D3142) : Colors.grey[600],
+              ),
+            ),
             const Spacer(),
             Text(
               value,
-              style:
-                  (strong
-                          ? AppTextStyles.section(context)
-                          : AppTextStyles.body(context))
-                      .copyWith(color: color),
+              style: GoogleFonts.manrope(
+                fontSize: strong ? 18 : 14,
+                fontWeight: strong ? FontWeight.w800 : FontWeight.w700,
+                color: color ?? (strong ? const Color(0xFF5A88F1) : const Color(0xFF2D3142)),
+              ),
             ),
           ],
         ),
@@ -47,23 +50,37 @@ class PriceSummaryWidget extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          row('Subtotal', 'Rs ${subtotal.toStringAsFixed(0)}'),
-          row(
-            'Discount',
-            '- Rs ${discount.toStringAsFixed(0)}',
-            color: AppColors.success,
+          Text(
+            'Order Summary',
+            style: GoogleFonts.manrope(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              color: const Color(0xFF2D3142),
+            ),
           ),
-          row('Collection Fee', 'Rs ${collectionFee.toStringAsFixed(0)}'),
-          const Divider(),
-          row('Total', 'Rs ${total.toStringAsFixed(0)}', strong: true),
+          const SizedBox(height: 20),
+          row('Subtotal', '₹${subtotal.toStringAsFixed(0)}'),
+          if (discount > 0)
+            row(
+              'Coupon Discount',
+              '- ₹${discount.toStringAsFixed(0)}',
+              color: const Color(0xFF4CAF50),
+            ),
+          row('Collection Fee', '₹${collectionFee.toStringAsFixed(0)}'),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Divider(height: 1),
+          ),
+          row('Order Total', '₹${total.toStringAsFixed(0)}', strong: true),
         ],
       ),
     );

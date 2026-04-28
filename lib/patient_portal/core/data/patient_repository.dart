@@ -254,6 +254,19 @@ class PatientRepository {
       return DoctorListing.fromJson(json);
     }).toList();
   }
+  
+  Future<List<DepartmentItem>> getDepartments() async {
+    final response = await _apiClient.getJson('/departments');
+    final departments = response['departments'] as List<dynamic>? ?? const [];
+    return departments.map((item) {
+      final json = _map(item);
+      final rawImage = json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
+      if (rawImage.trim().isNotEmpty) {
+        json['imageUrl'] = _resolveApiMediaUrl(rawImage, _apiClient.baseUrl);
+      }
+      return DepartmentItem.fromJson(json);
+    }).toList();
+  }
 
   Future<void> createBooking({
     required PatientIdentity patient,

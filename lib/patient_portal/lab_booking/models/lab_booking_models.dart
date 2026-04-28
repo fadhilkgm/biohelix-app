@@ -1,3 +1,5 @@
+import '../../core/models/patient_models.dart';
+
 enum CollectionType { home, lab }
 
 enum PaymentMethod { online, atLab }
@@ -11,8 +13,10 @@ class BookableLabTest {
     required this.preparation,
     required this.parameters,
     required this.price,
+    required this.basePrice,
     required this.popular,
     this.imageUrl,
+    this.originalItem,
   });
 
   final int id;
@@ -22,8 +26,10 @@ class BookableLabTest {
   final String preparation;
   final List<String> parameters;
   final double price;
+  final double basePrice;
   final bool popular;
   final String? imageUrl;
+  final LabTestItem? originalItem;
 }
 
 class CartItem {
