@@ -61,8 +61,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       final config = context.read<AppConfig>();
       final session = context.read<SessionProvider>();
       final service = AiCheckupService(
-        apiBaseUrl: config.apiBaseUrl.replaceAll('/api', ''),
-        authToken: session.patient?.uuid ?? '',
+        apiBaseUrl: config.apiBaseUrl,
+        authToken: session.authToken ?? '',
       );
 
       _answers['name'] = _nameCtrl.text.trim();

@@ -17,10 +17,12 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController();
+  final _mrnController = TextEditingController();
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _mrnController.dispose();
     super.dispose();
   }
 
@@ -34,6 +36,7 @@ class _LoginPageState extends State<LoginPage> {
     final session = context.read<SessionProvider>();
     await session.sendOtp(
       phone: _phoneController.text,
+      mrn: _mrnController.text,
     );
     if (!mounted) return;
     if (session.errorMessage == null && session.pendingPhone != null) {
@@ -139,6 +142,14 @@ class _LoginPageState extends State<LoginPage> {
                               hint: 'Enter your mobile number',
                               keyboardType: TextInputType.phone,
                               prefixIcon: Icons.phone_android_rounded,
+                            ),
+                            const SizedBox(height: 20),
+                            AuthTextField(
+                              controller: _mrnController,
+                              label: 'MRN / Registration Number',
+                              hint: 'Enter your MRN (e.g. BHRC12345)',
+                              keyboardType: TextInputType.text,
+                              prefixIcon: Icons.badge_outlined,
                             ),
                             if ((session.errorMessage ?? '').isNotEmpty) ...[
                               AuthErrorText(message: session.errorMessage!),

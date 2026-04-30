@@ -487,7 +487,7 @@ class PatientRepository {
 
     final data = {
       'labPackageId': labPackageId,
-      if (doctorId != null) 'doctorId': doctorId,
+      'doctorId': ?doctorId,
       'date': date,
       if ((trimmedSlot ?? '').isNotEmpty) 'slot': trimmedSlot,
       'collectionType': collectionType,

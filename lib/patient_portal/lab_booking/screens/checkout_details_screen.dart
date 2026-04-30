@@ -284,7 +284,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: gender,
+              initialValue: gender,
               decoration: const InputDecoration(labelText: 'Gender'),
               items: const [
                 DropdownMenuItem(value: 'Male', child: Text('Male')),

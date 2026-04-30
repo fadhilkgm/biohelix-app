@@ -577,7 +577,7 @@ class _TestCard extends StatelessWidget {
                               ),
                             );
                           },
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorBuilder: (_, _, _) => const Icon(
                             Icons.biotech_outlined,
                             size: 36,
                             color: Color(0xFF5A88F1),
@@ -702,7 +702,7 @@ class _PackageCard extends StatelessWidget {
                                 borderRadius: 0,
                               );
                             },
-                            errorBuilder: (_, __, ___) => _fallbackIcon(),
+                            errorBuilder: (_, _, _) => _fallbackIcon(),
                           )
                         : _fallbackIcon(),
                   ),
@@ -869,7 +869,7 @@ class _DoctorCard extends StatelessWidget {
                     ? Image.network(
                         resolvedImageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _fallbackImage(),
+                        errorBuilder: (_, _, _) => _fallbackImage(),
                       )
                     : _fallbackImage(),
               ),
@@ -1019,7 +1019,7 @@ class _CategoryChip extends StatelessWidget {
                 height: 38,
                 fit: BoxFit.contain,
                 // Removed color filter to allow original image colors
-                errorBuilder: (_, __, ___) => Icon(
+                errorBuilder: (_, _, _) => Icon(
                   icon ?? Icons.health_and_safety_outlined,
                   size: 30,
                   color: isActive ? Colors.white : const Color(0xFF5A88F1),

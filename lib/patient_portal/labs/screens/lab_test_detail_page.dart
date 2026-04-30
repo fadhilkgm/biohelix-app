@@ -6,9 +6,10 @@ import '../../core/providers/patient_portal_provider.dart';
 import '../../lab_booking/models/lab_booking_models.dart';
 import '../../lab_booking/state/lab_booking_controller.dart';
 import '../../lab_booking/screens/cart_screen.dart';
+import '../../lab_booking/screens/test_booking_screen.dart';
 
-class _LabTestDetailPage extends StatelessWidget {
-  const _LabTestDetailPage({required this.test, this.controller});
+class LabTestDetailPage extends StatelessWidget {
+  const LabTestDetailPage({required this.test, this.controller});
   final LabTestItem test;
   final LabBookingController? controller;
 
@@ -135,7 +136,7 @@ class _LabTestDetailPage extends StatelessWidget {
                           ),
                         );
                       },
-                      errorBuilder: (_, __, ___) => Image.asset(
+                      errorBuilder: (_, _, _) => Image.asset(
                         'assets/images/lab.png',
                         fit: BoxFit.cover,
                       ),

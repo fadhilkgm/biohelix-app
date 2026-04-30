@@ -6,7 +6,8 @@ import '../models/lab_booking_models.dart';
 import '../state/lab_booking_controller.dart';
 import '../widgets/test_card_widget.dart';
 import 'cart_screen.dart';
-import '../../labs/screens/lab_test_booking_page.dart';
+import 'test_booking_screen.dart';
+import '../../labs/screens/lab_test_detail_page.dart';
 
 class TestListScreen extends StatelessWidget {
   const TestListScreen({super.key, this.onTestTap});
@@ -153,14 +154,11 @@ class TestListScreen extends StatelessWidget {
                       onOpen: () {
                         if (onTestTap != null) {
                           onTestTap!(t);
+                        } else if (t.originalItem != null) {
+                          _push(context, LabTestDetailPage(test: t.originalItem!));
                         } else {
                           c.addToCart(t);
                           _push(context, const TestBookingScreen());
-                        }
-                      },
-                      onOpen: () {
-                        if (t.originalItem != null) {
-                          _push(context, LabTestDetailPage(test: t.originalItem!));
                         }
                       },
                     );

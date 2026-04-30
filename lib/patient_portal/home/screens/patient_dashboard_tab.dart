@@ -210,7 +210,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                             ? Image.network(
                                 packageImageUrl,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Image.asset(
+                                errorBuilder: (_, _, _) => Image.asset(
                                   'assets/images/lab.png',
                                   fit: BoxFit.cover,
                                 ),
@@ -365,7 +365,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                                 ),
                               ),
                             );
-                          }).toList(),
+                          }),
                         ],
                         const SizedBox(height: 120), // Bottom padding for button
                       ],
@@ -468,7 +468,7 @@ class _BannerPackageLandingPage extends StatelessWidget {
                                 pkgImageUrl,
                                 fit: BoxFit.cover,
                                 alignment: Alignment.centerRight,
-                                errorBuilder: (_, __, ___) => _fallbackPackageImage(),
+                                errorBuilder: (_, _, _) => _fallbackPackageImage(),
                               )
                             : _fallbackPackageImage(),
                       ),

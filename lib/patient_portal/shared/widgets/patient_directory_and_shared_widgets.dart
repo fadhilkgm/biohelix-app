@@ -167,7 +167,7 @@ class _LabTestsDirectoryPage extends StatelessWidget {
                   final controller = context.read<LabBookingController>();
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => _LabTestDetailPage(
+                      builder: (_) => LabTestDetailPage(
                         test: labTestItem,
                         controller: controller,
                       ),

@@ -171,7 +171,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                                 height: double.infinity,
                                 fit: BoxFit.cover,
                                 alignment: Alignment.topCenter,
-                                errorBuilder: (_, __, ___) => _DoctorImageFallback(height: 450),
+                                errorBuilder: (_, _, _) => _DoctorImageFallback(height: 450),
                               )
                             : _DoctorImageFallback(height: 450),
                       ),
