@@ -247,37 +247,72 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                         ),
                         const SizedBox(height: 4),
                         // Department
-                        Text(
-                          (widget.doctor.departmentName ?? "General").toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF5A88F1),
-                            letterSpacing: 1.2,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              (widget.doctor.departmentName ?? "General").toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF5A88F1),
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            if (widget.doctor.consultationFee != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1B6A4F).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '₹${widget.doctor.consultationFee}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF1B6A4F),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
+                        if (widget.doctor.description != null && widget.doctor.description!.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            widget.doctor.description!,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF192233).withOpacity(0.8),
+                              height: 1.6,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         // Professional Credentials Row
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          clipBehavior: Clip.none,
-                          child: Row(
-                            children: [
-                              _DoctorMetricChip(
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _DoctorMetricChip(
                                 icon: Icons.medical_services_outlined,
                                 label: widget.doctor.specialization,
                                 sublabel: 'Specialty',
                                 color: const Color(0xFF5A88F1),
                               ),
-                              _DoctorMetricChip(
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _DoctorMetricChip(
                                 icon: Icons.school_outlined,
                                 label: widget.doctor.qualifications ?? 'MBBS, MD',
                                 sublabel: 'Education',
                                 color: const Color(0xFF1B6A4F),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 20),
                         const SizedBox(height: 20),
                         // Full Width Timing Card
                         Container(
@@ -527,9 +562,8 @@ class _DoctorMetricChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(right: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      constraints: const BoxConstraints(minWidth: 140, maxWidth: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      constraints: const BoxConstraints(minHeight: 110),
       decoration: BoxDecoration(
         color: const Color(0xFFF4F7FB),
         borderRadius: BorderRadius.circular(24),
@@ -549,9 +583,9 @@ class _DoctorMetricChip extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             label,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF192233)),
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF192233), height: 1.1),
           ),
           const SizedBox(height: 2),
           Text(

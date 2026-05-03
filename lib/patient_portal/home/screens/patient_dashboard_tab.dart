@@ -128,7 +128,7 @@ class _DashboardTab extends StatelessWidget {
   }
 }
 
-class _BannerPackageLandingPage extends StatelessWidget {
+class _BannerPackageLandingPage extends StatefulWidget {
   const _BannerPackageLandingPage({
     required this.packageTarget,
     required this.isSpecific,
@@ -140,8 +140,15 @@ class _BannerPackageLandingPage extends StatelessWidget {
   final LabPackageItem? package;
 
   @override
+  State<_BannerPackageLandingPage> createState() => _BannerPackageLandingPageState();
+}
+
+class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
+  bool _showTests = false;
+
+  @override
   Widget build(BuildContext context) {
-    final target = (packageTarget ?? '').trim();
+    final target = (widget.packageTarget ?? '').trim();
 
     return Consumer<PatientPortalProvider>(
       builder: (context, portal, _) {
@@ -159,8 +166,8 @@ class _BannerPackageLandingPage extends StatelessWidget {
         }
 
         // Use passed package if available, otherwise find it
-        final LabPackageItem? activePackage = package ?? (() {
-          if (!isSpecific || target.isEmpty) return null;
+        final LabPackageItem? activePackage = widget.package ?? (() {
+          if (!widget.isSpecific || target.isEmpty) return null;
           final normalizedTarget = target.toLowerCase();
           try {
             return portal.labPackages.firstWhere((p) => 
@@ -172,8 +179,10 @@ class _BannerPackageLandingPage extends StatelessWidget {
         })();
 
         // If specific package view and found it, show detailed view
-        if (isSpecific && activePackage != null) {
+        if (widget.isSpecific && activePackage != null) {
           final packageImageUrl = resolveImageUrl(activePackage.imageUrl);
+          final hasTests = activePackage.includedTests.isNotEmpty;
+          final hasDescription = activePackage.description != null && activePackage.description!.isNotEmpty;
 
           return Scaffold(
             backgroundColor: Colors.white,
@@ -305,67 +314,87 @@ class _BannerPackageLandingPage extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 32),
-                        Text(
-                          'Description',
-                          style: GoogleFonts.manrope(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF192233),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          activePackage.description ?? 'This comprehensive health package is designed to provide a complete overview of your health status with multiple diagnostic parameters.',
-                          style: GoogleFonts.manrope(
-                            fontSize: 16,
-                            color: const Color(0xFF192233).withOpacity(0.6),
-                            height: 1.6,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (activePackage.includedTests.isNotEmpty) ...[
-                          Text(
-                            'Tests Included (${activePackage.includedTests.length})',
-                            style: GoogleFonts.manrope(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF192233),
+                        // Tests Included Collapsible Section
+                        if (hasTests || hasDescription) ...[
+                          InkWell(
+                            onTap: () => setState(() => _showTests = !_showTests),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Tests Included ${hasTests ? "(${activePackage.includedTests.length})" : ""}',
+                                    style: GoogleFonts.manrope(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF192233),
+                                    ),
+                                  ),
+                                  Icon(
+                                    _showTests ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                                    color: const Color(0xFF5A88F1),
+                                    size: 28,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          ...activePackage.includedTests.map((testName) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF8F9FB),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: const Color(0xFFE5E9F0)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.science_rounded,
-                                      size: 18,
-                                      color: Color(0xFF5A88F1),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        testName,
-                                        style: GoogleFonts.manrope(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: const Color(0xFF192233).withOpacity(0.8),
+                          AnimatedCrossFade(
+                            firstChild: const SizedBox(width: double.infinity),
+                            secondChild: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 12),
+                                if (hasTests) ...[
+                                  ...activePackage.includedTests.map((testName) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 10),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF8F9FB),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(color: const Color(0xFFE5E9F0)),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.science_rounded,
+                                              size: 18,
+                                              color: Color(0xFF5A88F1),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                testName,
+                                                style: GoogleFonts.manrope(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF192233).withOpacity(0.8),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
+                                    );
+                                  }),
+                                ] else if (hasDescription) ...[
+                                  Text(
+                                    activePackage.description!,
+                                    style: GoogleFonts.manrope(
+                                      fontSize: 16,
+                                      color: const Color(0xFF192233).withOpacity(0.6),
+                                      height: 1.6,
                                     ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            crossFadeState: _showTests ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                            duration: const Duration(milliseconds: 300),
+                          ),
                         ],
                         const SizedBox(height: 120), // Bottom padding for button
                       ],

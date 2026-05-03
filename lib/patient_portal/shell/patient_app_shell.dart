@@ -23,8 +23,6 @@ import '../core/data/patient_repository.dart';
 import '../core/models/patient_models.dart';
 import '../core/models/home_feed_models.dart';
 import '../core/providers/patient_portal_provider.dart';
-import '../lab_booking/models/lab_booking_models.dart' show BookableLabTest;
-import '../lab_booking/screens/test_booking_screen.dart' show TestBookingScreen;
 
 import '../lab_booking/screens/package_booking_screen.dart';
 import '../lab_booking/screens/test_list_screen.dart';
@@ -46,15 +44,15 @@ part 'package:biohelix_app/patient_portal/assistant/widgets/patient_assistant_he
 part 'package:biohelix_app/patient_portal/assistant/widgets/patient_assistant_message_bubble.dart';
 part 'package:biohelix_app/patient_portal/assistant/screens/patient_assistant_tab.dart';
 part 'package:biohelix_app/patient_portal/assistant/widgets/patient_assistant_typing_indicator.dart';
-part 'package:biohelix_app/patient_portal/bookings/actions/patient_bookings_actions.dart';
-part 'package:biohelix_app/patient_portal/bookings/actions/patient_bookings_actions_reschedule.dart';
-part 'package:biohelix_app/patient_portal/bookings/widgets/patient_bookings_actions_sheets.dart';
-part 'package:biohelix_app/patient_portal/bookings/screens/patient_bookings_tab.dart';
+part 'package:biohelix_app/patient_portal/bookings/actions/bookings_actions.dart';
+part 'package:biohelix_app/patient_portal/bookings/actions/bookings_actions_reschedule.dart';
+part 'package:biohelix_app/patient_portal/bookings/widgets/bookings_actions_sheets.dart';
+part 'package:biohelix_app/patient_portal/bookings/screens/bookings_tab.dart';
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_discovery_banner.dart';
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_discovery_doctors.dart';
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_discovery_labs.dart';
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_discovery_widgets.dart';
-part 'package:biohelix_app/patient_portal/doctors/screens/patient_dashboard_doctor_pages.dart';
+part 'package:biohelix_app/patient_portal/doctors/screens/doctor_details_page.dart';
 part 'package:biohelix_app/patient_portal/home/actions/patient_home_feed_target_handler.dart';
 part 'package:biohelix_app/patient_portal/shared/widgets/patient_dashboard_planner_models.dart';
 part 'package:biohelix_app/patient_portal/home/widgets/patient_dashboard_shared_cards.dart';
@@ -73,6 +71,7 @@ part 'package:biohelix_app/patient_portal/tests/screens/patient_tests_tab.dart';
 abstract class PatientAppShellController {
   void openRecords([String filter = 'all']);
   void goHome();
+  void openAiCheckup();
 }
 
 class PatientAppShell extends StatefulWidget {
@@ -236,6 +235,11 @@ class _PatientAppShellState extends State<PatientAppShell>
   @override
   void goHome() {
     _setIndex(0);
+  }
+
+  @override
+  void openAiCheckup() {
+    _setIndex(3);
   }
 
   void _openDoctorsDirectory() {

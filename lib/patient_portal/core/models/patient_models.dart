@@ -663,6 +663,8 @@ class DoctorListing {
     this.phone,
     this.registrationNumber,
     this.imageUrl,
+    this.description,
+    this.consultationFee,
   });
 
   final int id;
@@ -683,6 +685,8 @@ class DoctorListing {
   final String? phone;
   final String? registrationNumber;
   final String? imageUrl;
+  final String? description;
+  final int? consultationFee;
 
   factory DoctorListing.fromJson(Map<String, dynamic> json) {
     return DoctorListing(
@@ -708,6 +712,8 @@ class DoctorListing {
           json['registrationNumber'] as String? ??
           json['registration_number'] as String?,
       imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
+      description: json['description'] as String?,
+      consultationFee: (json['consultationFee'] as num?)?.toInt() ?? (json['consultation_fee'] as num?)?.toInt(),
     );
   }
 }

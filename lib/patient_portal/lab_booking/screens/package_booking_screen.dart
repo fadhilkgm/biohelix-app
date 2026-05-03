@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../core/models/patient_models.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../core/widgets/booking_success_screen.dart';
+import '../../../features/session/providers/session_provider.dart';
+import '../models/lab_booking_models.dart';
 import '../widgets/slot_selector_widget.dart';
 
 class PackageBookingScreen extends StatefulWidget {
@@ -21,6 +23,7 @@ class PackageBookingScreen extends StatefulWidget {
 }
 
 class _PackageBookingScreenState extends State<PackageBookingScreen> {
+  PatientProfile? _selectedPatient;
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   String? _selectedSlot;
   String _collectionType = 'home';
@@ -28,6 +31,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   List<String> _slots = [];
   bool _isLoadingSlots = false;
   bool _isSubmitting = false;
+  bool _showTests = false;
 
   @override
   void initState() {
@@ -35,6 +39,341 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
     _loadSlots();
     final portal = context.read<PatientPortalProvider>();
     _address = portal.dashboard?.patient.address ?? '';
+    
+    final session = context.read<SessionProvider>();
+    if (session.patient != null) {
+      _selectedPatient = PatientProfile(
+        id: session.patient!.uuid,
+        name: session.patient!.name,
+        age: session.patient!.age ?? 29,
+        gender: session.patient!.gender ?? 'Male',
+      );
+    }
+  }
+
+  void _showAddPatientDialog() {
+    final name = TextEditingController();
+    final age = TextEditingController();
+    String gender = 'Male';
+
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Add Patient',
+          style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              decoration: InputDecoration(
+                labelText: 'Name',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: age,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Age',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: gender,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'Male', child: Text('Male')),
+                DropdownMenuItem(value: 'Female', child: Text('Female')),
+                DropdownMenuItem(value: 'Other', child: Text('Other')),
+              ],
+              onChanged: (v) => gender = v ?? 'Male',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final parsed = int.tryParse(age.text) ?? 0;
+              if (name.text.trim().isNotEmpty && parsed > 0) {
+                setState(() {
+                  _selectedPatient = PatientProfile(
+                    id: 'new-${DateTime.now().millisecondsSinceEpoch}',
+                    name: name.text.trim(),
+                    age: parsed,
+                    gender: gender,
+                  );
+                });
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showSwitchUserSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Consumer<SessionProvider>(
+          builder: (sheetContext, session, _) {
+            final profiles = session.familyProfiles;
+            final activePatientId = _selectedPatient?.id;
+            final theme = Theme.of(sheetContext);
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4F7F8),
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 28,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(32),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Switch User',
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Select a family member to book this package for.',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.white.withOpacity(0.82),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(sheetContext).pop(),
+                              style: IconButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.white.withOpacity(0.14),
+                              ),
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (profiles.isEmpty)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                                child: Text(
+                                  'No saved family members yet.',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              )
+                            else
+                              ...profiles.map((profile) {
+                                final isActive = profile.patient.uuid == activePatientId;
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(22),
+                                      onTap: isActive
+                                          ? null
+                                          : () {
+                                              Navigator.of(sheetContext).pop();
+                                              setState(() {
+                                                _selectedPatient = PatientProfile(
+                                                  id: profile.patient.uuid,
+                                                  name: profile.patient.name,
+                                                  age: profile.patient.age ?? 29,
+                                                  gender: profile.patient.gender ?? 'Male',
+                                                );
+                                              });
+                                            },
+                                      child: Ink(
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(22),
+                                          border: Border.all(
+                                            color: isActive
+                                                ? const Color(0xFF5A88F1)
+                                                : const Color(0xFFE5E9F0),
+                                            width: isActive ? 1.6 : 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 48,
+                                              height: 48,
+                                              decoration: const BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    Color(0xFF5A88F1),
+                                                    Color(0xFF759BF1),
+                                                  ],
+                                                ),
+                                                borderRadius: BorderRadius.all(Radius.circular(16)),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                profile.patient.name.isEmpty
+                                                    ? 'P'
+                                                    : profile.patient.name.characters.first.toUpperCase(),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    profile.patient.name,
+                                                    style: theme.textTheme.titleSmall?.copyWith(
+                                                      fontWeight: FontWeight.w800,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    profile.patient.registrationNumber,
+                                                    style: theme.textTheme.bodySmall?.copyWith(
+                                                      color: const Color(0xFF5A88F1),
+                                                      fontWeight: FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    profile.patient.phone,
+                                                    style: theme.textTheme.bodySmall?.copyWith(
+                                                      color: const Color(0xFF7E8BA0),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if (isActive)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 8,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFF4F7FF),
+                                                  borderRadius: BorderRadius.circular(999),
+                                                ),
+                                                child: const Text(
+                                                  'Active',
+                                                  style: TextStyle(
+                                                    color: Color(0xFF5A88F1),
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                              )
+                                            else
+                                              const Icon(
+                                                Icons.chevron_right_rounded,
+                                                color: Color(0xFF8DA0BA),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: () {
+                                  Navigator.of(sheetContext).pop();
+                                  _showAddPatientDialog();
+                                },
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF5A88F1),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.person_add_alt_1_rounded),
+                                label: const Text(
+                                  'Add New Patient',
+                                  style: TextStyle(fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _loadSlots() async {
@@ -80,6 +419,9 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
         address: _collectionType == 'home' ? (_address.isEmpty ? null : _address) : null,
         amount: (widget.package.discountedPrice ?? widget.package.basePrice).toDouble(),
         paymentStatus: 'pending',
+        patientNameSnapshot: _selectedPatient?.name,
+        patientAgeSnapshot: _selectedPatient?.age,
+        patientGenderSnapshot: _selectedPatient?.gender,
       );
 
       if (!mounted) return;
@@ -113,6 +455,9 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasTests = widget.package.includedTests.isNotEmpty;
+    final hasDescription = widget.package.description != null && widget.package.description!.isNotEmpty;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
@@ -177,6 +522,86 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       ),
                     ],
                   ),
+                  // Tests Included Collapsible Section
+                  if (hasTests || hasDescription) ...[
+                    const Divider(height: 32),
+                    InkWell(
+                      onTap: () => setState(() => _showTests = !_showTests),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Tests Included ${hasTests ? "(${widget.package.includedTests.length})" : ""}',
+                              style: GoogleFonts.manrope(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF192233),
+                              ),
+                            ),
+                            Icon(
+                              _showTests ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                              color: const Color(0xFF5A88F1),
+                              size: 28,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    AnimatedCrossFade(
+                      firstChild: const SizedBox(width: double.infinity),
+                      secondChild: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 16),
+                          if (hasTests) ...[
+                            ...widget.package.includedTests.map((test) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF5A88F1).withOpacity(0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.check,
+                                          size: 12,
+                                          color: Color(0xFF5A88F1),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          test,
+                                          style: GoogleFonts.manrope(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF192233).withOpacity(0.7),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )),
+                          ] else if (hasDescription) ...[
+                            Text(
+                              widget.package.description!,
+                              style: GoogleFonts.manrope(
+                                fontSize: 14,
+                                color: const Color(0xFF192233).withOpacity(0.6),
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      crossFadeState: _showTests ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                      duration: const Duration(milliseconds: 300),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -247,6 +672,84 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 ),
               ),
             ],
+            
+            const SizedBox(height: 32),
+
+            // Patient
+            Text(
+              'Patient Details',
+              style: GoogleFonts.manrope(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF192233),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4F7FF),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.person_outline,
+                      color: Color(0xFF5A88F1),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedPatient?.name ?? 'Select Patient',
+                          style: GoogleFonts.manrope(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF192233),
+                          ),
+                        ),
+                        if (_selectedPatient != null)
+                          Text(
+                            '${_selectedPatient!.age} yrs \u2022 ${_selectedPatient!.gender}',
+                            style: GoogleFonts.manrope(
+                              fontSize: 13,
+                              color: const Color(0xFF192233).withOpacity(0.5),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: _showSwitchUserSheet,
+                    icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                    label: Text(
+                      'Switch User',
+                      style: GoogleFonts.manrope(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF5A88F1),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             
             const SizedBox(height: 32),
             

@@ -30,7 +30,11 @@ class AiHealthAssessmentResponse {
 
   static List<Map<String, dynamic>> _toList(dynamic raw) {
     if (raw is! List) return [];
-    return raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    return raw.map((e) {
+      if (e is Map) return Map<String, dynamic>.from(e);
+      if (e is String) return {'name': e, 'reason': e};
+      return <String, dynamic>{};
+    }).toList();
   }
 }
 
@@ -39,6 +43,35 @@ class AiCheckupService {
   final String authToken;
 
   const AiCheckupService({required this.apiBaseUrl, required this.authToken});
+
+  Future<Map<String, dynamic>> getNextQuestion({
+    required List<Map<String, dynamic>> messages,
+    String? step,
+    Map<String, dynamic>? patientInfo,
+  }) async {
+    final dio = Dio(BaseOptions(
+      baseUrl: apiBaseUrl,
+      headers: {
+        'Authorization': 'Bearer $authToken',
+        'Content-Type': 'application/json',
+      },
+    ));
+
+    final response = await dio.post<Map<String, dynamic>>(
+      '/patient/ai-checkup',
+      data: {
+        'messages': messages,
+        'step': step ?? 'questions',
+        'patientInfo': patientInfo,
+      },
+    );
+
+    if (response.statusCode != 200 || response.data == null) {
+      throw Exception('AI checkup error: ${response.statusCode}');
+    }
+
+    return response.data!;
+  }
 
   Future<AiHealthAssessmentResponse> analyzeHealth({
     required Map<String, dynamic> answers,

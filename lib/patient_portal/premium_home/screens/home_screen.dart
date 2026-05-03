@@ -228,6 +228,32 @@ class _HomeScreenState extends State<HomeScreen> {
               else if (widget.isLoading)
                 _buildBannerSkeleton(context),
               const SizedBox(height: 32),
+              // Quick Links Section
+              Row(
+                children: [
+                  _QuickLink(
+                    label: 'Book Doctors',
+                    icon: Icons.person_add_alt_1_rounded,
+                    onTap: widget.onViewAllDoctors,
+                    color: const Color(0xFF5A88F1),
+                  ),
+                  const SizedBox(width: 12),
+                  _QuickLink(
+                    label: 'Book Test',
+                    icon: Icons.biotech_rounded,
+                    onTap: widget.onViewAllLabTests,
+                    color: const Color(0xFF1F9A6D),
+                  ),
+                  const SizedBox(width: 12),
+                  _QuickLink(
+                    label: 'AI Checkup',
+                    icon: Icons.auto_awesome_rounded,
+                    onTap: () => widget.onActionTap('ai_checkup'),
+                    color: const Color(0xFF915AF1),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
               // Find Doctors Section
               const Text(
                 'Find Doctors',
@@ -349,7 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
-                    height: 130,
+                    height: 100,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: widget.labTests.length,
@@ -529,124 +555,51 @@ class _TestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 150,
-      height: 110,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(
-          color: const Color(0xFFF4F7FF),
-          width: 1,
-        ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  height: 80,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF5A88F1).withOpacity(0.08),
-                  ),
-                  child: resolvedImageUrl.isNotEmpty
-                      ? Image.network(
-                          resolvedImageUrl,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const Center(
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            );
-                          },
-                          errorBuilder: (_, _, _) => const Icon(
-                            Icons.biotech_outlined,
-                            size: 36,
-                            color: Color(0xFF5A88F1),
-                          ),
-                        )
-                      : const Icon(
-                          Icons.biotech_outlined,
-                          size: 36,
-                          color: Color(0xFF5A88F1),
-                        ),
-                ),
+      margin: const EdgeInsets.only(right: 12, bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F7FF),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFF5A88F1).withOpacity(0.15),
+                width: 1.2,
               ),
-              const SizedBox(height: 12),
-              Text(
-                test.testName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.manrope(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF192233),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.history_toggle_off_rounded, size: 12, color: Color(0xFF5A88F1)),
-                  const SizedBox(width: 4),
-                  Text(
-                    test.resultEta ?? '24 hrs',
-                    style: GoogleFonts.manrope(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF5A88F1),
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: onTap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5A88F1),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Book Now',
-                    style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
-                    ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  test.testName,
+                  style: GoogleFonts.manrope(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF192233),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  "${test.resultEta?.replaceAll(' hrs', '') ?? '24'} hrs",
+                  style: GoogleFonts.manrope(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF5A88F1),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-
-
 }
 
 class _PackageCard extends StatelessWidget {
@@ -1067,6 +1020,79 @@ IconData _getSpecialtyIcon(String spec) {
   if (s.contains('physio')) return Icons.fitness_center_rounded;
   if (s.contains('general')) return Icons.medical_information_outlined;
   return Icons.health_and_safety_outlined;
+}
+
+class _QuickLink extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color color;
+
+  const _QuickLink({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: color.withOpacity(0.12),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.manrope(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF192233),
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SkeletonPulse extends StatefulWidget {

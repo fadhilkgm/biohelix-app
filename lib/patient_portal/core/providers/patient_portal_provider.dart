@@ -5,7 +5,7 @@ import '../data/patient_repository.dart';
 import '../models/home_feed_models.dart';
 import '../models/patient_models.dart';
 
-part '../../bookings/utils/patient_portal_provider_booking.dart';
+part '../../bookings/utils/portal_provider_booking.dart';
 part '../../assistant/utils/patient_portal_provider_chat.dart';
 part '../../records/utils/patient_portal_provider_documents.dart';
 part 'patient_portal_provider_load.dart';

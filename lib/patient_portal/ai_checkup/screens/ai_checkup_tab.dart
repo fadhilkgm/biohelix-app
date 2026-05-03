@@ -8,6 +8,7 @@ import '../../core/providers/patient_portal_provider.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../../lab_booking/screens/package_booking_screen.dart';
 import '../services/ai_checkup_service.dart';
+import '../../shell/patient_app_shell.dart';
 
 class AiCheckupTab extends StatefulWidget {
   const AiCheckupTab({super.key});
@@ -17,11 +18,13 @@ class AiCheckupTab extends StatefulWidget {
 }
 
 class _AiCheckupTabState extends State<AiCheckupTab> {
-  String _step = 'welcome';
+  String _step = 'language';
+  String _language = 'en';
   bool _loading = false;
   AiHealthAssessmentResponse? _result;
 
   final _answers = <String, dynamic>{};
+  final List<Map<String, dynamic>> _messages = [];
 
   // Controllers for basic details
   final _nameCtrl = TextEditingController();
@@ -37,6 +40,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     if (p != null) {
       _nameCtrl.text = p.name;
       _ageCtrl.text = p.age?.toString() ?? '';
+      _answers['gender'] = p.gender ?? 'unknown';
     }
   }
 
@@ -50,6 +54,22 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   }
 
   void _next(String nextStep) => setState(() => _step = nextStep);
+
+  void _startAiChat() {
+    _answers['name'] = _nameCtrl.text.trim();
+    _answers['age'] = int.tryParse(_ageCtrl.text.trim()) ?? 30;
+    _answers['weight'] = _weightCtrl.text.trim();
+    _answers['height'] = _heightCtrl.text.trim();
+    
+    // Initial message to AI to start questioning
+    _messages.clear();
+    _messages.add({
+      'role': 'user',
+      'content': 'I am starting my health checkup. My details: ${_answers.toString()}. Please ask me some questions to assess my health risks.'
+    });
+    
+    setState(() => _step = 'ai_chat');
+  }
 
   Future<void> _analyze() async {
     setState(() {
@@ -65,11 +85,6 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
         authToken: session.authToken ?? '',
       );
 
-      _answers['name'] = _nameCtrl.text.trim();
-      _answers['age'] = int.tryParse(_ageCtrl.text.trim()) ?? 30;
-      _answers['weight'] = _weightCtrl.text.trim();
-      _answers['height'] = _heightCtrl.text.trim();
-
       final response = await service.analyzeHealth(answers: _answers);
       if (!mounted) return;
 
@@ -81,7 +96,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _step = 'lifestyle';
+        _step = 'ai_chat';
         _loading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,25 +116,50 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
         centerTitle: true,
       ),
       body: switch (_step) {
-        'welcome' => _WelcomeScreen(onStart: () => _next('basic')),
+        'language' => _LanguageSelectionScreen(
+          onSelect: (lang) {
+            setState(() {
+              _language = lang;
+              _step = 'welcome';
+            });
+          },
+        ),
+        'welcome' => _WelcomeScreen(
+          language: _language,
+          onStart: () => _next('basic'),
+        ),
         'basic' => _BasicDetailsScreen(
+          language: _language,
           nameCtrl: _nameCtrl,
           ageCtrl: _ageCtrl,
           weightCtrl: _weightCtrl,
           heightCtrl: _heightCtrl,
-          onNext: () => _next('lifestyle'),
+          onNext: _startAiChat,
         ),
-        'lifestyle' => _LifestyleQuestionnaire(
-          answers: _answers,
-          onNext: () => _next('health'),
+        'ai_chat' => _AiChatScreen(
+          language: _language,
+          messages: _messages,
+          patientInfo: {
+            'age': int.tryParse(_ageCtrl.text) ?? 30,
+            'gender': _answers['gender'] ?? 'unknown',
+          },
+          onComplete: (allAnswers) {
+            _answers.addAll(allAnswers);
+            _analyze();
+          },
         ),
-        'health' => _HealthHistoryQuestionnaire(
-          answers: _answers,
-          onAnalyze: _analyze,
-        ),
-        'analyzing' => const _AnalyzingScreen(),
+        'analyzing' => _AnalyzingScreen(language: _language),
         'results' => _result != null
-            ? _ResultsScreen(result: _result!, onRetake: () => setState(() { _step = 'basic'; _result = null; _answers.clear(); }))
+            ? _ResultsScreen(
+                language: _language,
+                result: _result!,
+                onRetake: () => setState(() {
+                  _step = 'language';
+                  _result = null;
+                  _answers.clear();
+                  _messages.clear();
+                }),
+              )
             : const SizedBox.shrink(),
         _ => const SizedBox.shrink(),
       },
@@ -127,12 +167,50 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   }
 }
 
-class _WelcomeScreen extends StatelessWidget {
-  final VoidCallback onStart;
-  const _WelcomeScreen({required this.onStart});
+class _LanguageSelectionScreen extends StatelessWidget {
+  final ValueChanged<String> onSelect;
+  const _LanguageSelectionScreen({required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Choose Language',
+            style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w900, color: const Color(0xFF192233)),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Select your preferred language for the health assessment.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.manrope(fontSize: 15, color: const Color(0xFF192233).withOpacity(0.6)),
+          ),
+          const SizedBox(height: 40),
+          _OptionCard(
+            label: 'English',
+            onTap: () => onSelect('en'),
+          ),
+          _OptionCard(
+            label: 'മലയാളം (Malayalam)',
+            onTap: () => onSelect('ml'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WelcomeScreen extends StatelessWidget {
+  final String language;
+  final VoidCallback onStart;
+  const _WelcomeScreen({required this.language, required this.onStart});
+
+  @override
+  Widget build(BuildContext context) {
+    final isMl = language == 'ml';
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -148,15 +226,17 @@ class _WelcomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            'AI Health Checkup',
+            isMl ? 'എഐ ഹെൽത്ത് ചെക്കപ്പ്' : 'AI Health Checkup',
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF192233)),
           ),
           const SizedBox(height: 12),
           Text(
-            'Answer a few questions about your lifestyle and health. Our AI will analyze your responses and suggest preventive lab tests tailored for you.',
+            isMl
+                ? 'നിങ്ങളുടെ ജീവിതശൈലിയെയും ആരോഗ്യത്തെയും കുറിച്ചുള്ള ഏതാനും ചോദ്യങ്ങൾക്ക് മറുപടി നൽകുക. ഞങ്ങളുടെ എഐ (AI) നിങ്ങളുടെ ഉത്തരങ്ങൾ വിശകലനം ചെയ്യുകയും നിങ്ങൾക്ക് അനുയോജ്യമായ പരിശോധനകൾ നിർദ്ദേശിക്കുകയും ചെയ്യും.'
+                : 'Answer a few questions about your lifestyle and health. Our AI will analyze your responses and suggest preventive lab tests tailored for you.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(fontSize: 15, color: const Color(0xFF192233).withValues(alpha: 0.6), height: 1.5),
+            style: GoogleFonts.manrope(fontSize: 15, color: const Color(0xFF192233).withOpacity(0.6), height: 1.5),
           ),
           const Spacer(),
           SizedBox(
@@ -170,7 +250,10 @@ class _WelcomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              child: Text('Start Assessment', style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18)),
+              child: Text(
+                isMl ? 'പരിശോധന ആരംഭിക്കുക' : 'Start Assessment',
+                style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18),
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -181,28 +264,40 @@ class _WelcomeScreen extends StatelessWidget {
 }
 
 class _BasicDetailsScreen extends StatelessWidget {
+  final String language;
   final TextEditingController nameCtrl, ageCtrl, weightCtrl, heightCtrl;
   final VoidCallback onNext;
-  const _BasicDetailsScreen({required this.nameCtrl, required this.ageCtrl, required this.weightCtrl, required this.heightCtrl, required this.onNext});
+  const _BasicDetailsScreen({
+    required this.language,
+    required this.nameCtrl,
+    required this.ageCtrl,
+    required this.weightCtrl,
+    required this.heightCtrl,
+    required this.onNext,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isMl = language == 'ml';
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        Text('Please Enter Your Details', style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF192233))),
+        Text(
+          isMl ? 'വിവരങ്ങൾ നൽകുക' : 'Please Enter Your Details',
+          style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF192233)),
+        ),
         const SizedBox(height: 4),
         Container(width: 60, height: 4, decoration: BoxDecoration(color: const Color(0xFF5A88F1), borderRadius: BorderRadius.circular(2))),
         const SizedBox(height: 32),
-        _TextField(label: 'Full Name', controller: nameCtrl),
+        _TextField(label: isMl ? 'പൂർണ്ണനാമം' : 'Full Name', controller: nameCtrl),
         const SizedBox(height: 16),
-        _TextField(label: 'Age', controller: ageCtrl, keyboardType: TextInputType.number),
+        _TextField(label: isMl ? 'പ്രായം' : 'Age', controller: ageCtrl, keyboardType: TextInputType.number),
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _TextField(label: 'Weight (kg)', controller: weightCtrl, keyboardType: TextInputType.number)),
+            Expanded(child: _TextField(label: isMl ? 'ഭാരം (kg)' : 'Weight (kg)', controller: weightCtrl, keyboardType: TextInputType.number)),
             const SizedBox(width: 12),
-            Expanded(child: _TextField(label: 'Height (ft/inch)', controller: heightCtrl)),
+            Expanded(child: _TextField(label: isMl ? 'ഉയരം (ft/inch)' : 'Height (ft/inch)', controller: heightCtrl)),
           ],
         ),
         const SizedBox(height: 40),
@@ -220,7 +315,10 @@ class _BasicDetailsScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Continue', style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18)),
+                Text(
+                  isMl ? 'തുടരുക' : 'Continue',
+                  style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18),
+                ),
                 const SizedBox(width: 8),
                 const Icon(Icons.arrow_forward_rounded),
               ],
@@ -262,71 +360,125 @@ class _TextField extends StatelessWidget {
   }
 }
 
-class _LifestyleQuestionnaire extends StatefulWidget {
-  final Map<String, dynamic> answers;
-  final VoidCallback onNext;
-  const _LifestyleQuestionnaire({required this.answers, required this.onNext});
+class _AiChatScreen extends StatefulWidget {
+  final String language;
+  final List<Map<String, dynamic>> messages;
+  final Map<String, dynamic> patientInfo;
+  final Function(Map<String, dynamic> answers) onComplete;
+
+  const _AiChatScreen({
+    required this.language,
+    required this.messages,
+    required this.patientInfo,
+    required this.onComplete,
+  });
 
   @override
-  State<_LifestyleQuestionnaire> createState() => _LifestyleQuestionnaireState();
+  State<_AiChatScreen> createState() => _AiChatScreenState();
 }
 
-class _LifestyleQuestionnaireState extends State<_LifestyleQuestionnaire> {
-  int _qIndex = 0;
+class _AiChatScreenState extends State<_AiChatScreen> {
+  bool _loading = true;
+  String? _question;
+  List<String> _options = [];
+  final Map<String, dynamic> _chatAnswers = {};
+  int _questionCount = 0;
+  final int _maxQuestions = 5;
 
-  final _questions = [
-    {
-      'key': 'diet',
-      'title': 'Tell Us About Your Lifestyle',
-      'question': 'What best describes your diet?',
-      'options': ['Non-Veg (4-6 times a week)', 'Occasional Non-Veg (1-3 times)', 'Vegetarian', 'Vegan / No dairy', 'Gluten Free'],
-    },
-    {
-      'key': 'exercise',
-      'title': 'Physical Activity',
-      'question': 'How often do you exercise?',
-      'options': ['Daily (30+ min)', '3-5 times a week', '1-2 times a week', 'Rarely', 'Never'],
-    },
-    {
-      'key': 'sleep',
-      'title': 'Sleep Patterns',
-      'question': 'How many hours do you sleep on average?',
-      'options': ['Less than 5 hours', '5-6 hours', '7-8 hours', 'More than 8 hours'],
-    },
-    {
-      'key': 'smoking',
-      'title': 'Smoking Habits',
-      'question': 'Do you smoke?',
-      'options': ['No, never', 'Occasionally', 'Yes, regularly', 'Used to, but quit'],
-    },
-    {
-      'key': 'alcohol',
-      'title': 'Alcohol Consumption',
-      'question': 'How often do you consume alcohol?',
-      'options': ['Never', 'Occasionally (social)', 'Weekly', 'Daily'],
-    },
-    {
-      'key': 'stress',
-      'title': 'Stress Level',
-      'question': 'How would you rate your daily stress?',
-      'options': ['Low', 'Moderate', 'High', 'Very High'],
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchNextQuestion();
+  }
 
-  void _select(String value) {
-    final q = _questions[_qIndex];
-    widget.answers[q['key'] as String] = value;
-    if (_qIndex < _questions.length - 1) {
-      setState(() => _qIndex++);
+  Future<void> _fetchNextQuestion() async {
+    setState(() => _loading = true);
+    try {
+      final config = context.read<AppConfig>();
+      final session = context.read<SessionProvider>();
+      final service = AiCheckupService(
+        apiBaseUrl: config.apiBaseUrl,
+        authToken: session.authToken ?? '',
+      );
+
+      final result = await service.getNextQuestion(
+        messages: widget.messages,
+        patientInfo: widget.patientInfo,
+        step: 'questions',
+      );
+
+      final reply = result['reply'];
+      if (reply is Map && (reply.containsKey('question') || reply.containsKey('options'))) {
+        setState(() {
+          _question = reply['question'] as String?;
+          _options = List<String>.from(reply['options'] ?? []);
+          _loading = false;
+        });
+        
+        // Add AI response to message history
+        widget.messages.add({
+          'role': 'assistant',
+          'content': _question ?? '',
+        });
+      } else if (reply is Map && reply['finished'] == true) {
+        widget.onComplete(_chatAnswers);
+      } else {
+        // AI returned something unexpected but we'll try to treat it as a final summary or fallback
+        if (reply is String && reply.length > 50) {
+           widget.onComplete(_chatAnswers);
+        } else {
+          setState(() => _loading = false);
+          throw Exception('AI returned an invalid response format.');
+        }
+      }
+    } catch (e) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get next question: $e')),
+      );
+    }
+  }
+
+  void _onAnswer(String answer) {
+    _chatAnswers['q${_questionCount + 1}'] = {
+      'question': _question,
+      'answer': answer,
+    };
+    
+    widget.messages.add({
+      'role': 'user',
+      'content': answer,
+    });
+
+    _questionCount++;
+    if (_questionCount >= _maxQuestions) {
+      widget.onComplete(_chatAnswers);
     } else {
-      widget.onNext();
+      _fetchNextQuestion();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final q = _questions[_qIndex];
-    final progress = (_qIndex + 1) / _questions.length;
+    final isMl = widget.language == 'ml';
+    final progress = (_questionCount + 1) / _maxQuestions;
+
+    if (_loading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: Color(0xFF5A88F1)),
+            const SizedBox(height: 24),
+            Text(
+              isMl ? 'എഐ ചിന്തിക്കുന്നു...' : 'AI is thinking...',
+              style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -334,19 +486,41 @@ class _LifestyleQuestionnaireState extends State<_LifestyleQuestionnaire> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(value: progress, minHeight: 8, backgroundColor: const Color(0xFFEBEDF2), color: const Color(0xFF5A88F1)),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: const Color(0xFFEBEDF2),
+              color: const Color(0xFF5A88F1),
+            ),
           ),
           const SizedBox(height: 32),
-          Text(q['title'] as String, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF5A88F1))),
+          Text(
+            isMl ? 'ചോദ്യം ${_questionCount + 1}' : 'Question ${_questionCount + 1}',
+            style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF5A88F1)),
+          ),
           const SizedBox(height: 12),
-          Text(q['question'] as String, style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF192233))),
+          Text(
+            _question ?? '',
+            style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF192233)),
+          ),
           const SizedBox(height: 24),
           Expanded(
             child: ListView(
-              children: (q['options'] as List<String>).map((opt) => _OptionCard(
+              children: _options.map((opt) => _OptionCard(
                 label: opt,
-                onTap: () => _select(opt),
+                onTap: () => _onAnswer(opt),
               )).toList(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => widget.onComplete(_chatAnswers),
+              child: Text(
+                isMl ? 'വിശകലനം ചെയ്യുക' : 'Skip & Analyze Now',
+                style: GoogleFonts.manrope(color: const Color(0xFF8DA0BA), fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ],
@@ -394,125 +568,30 @@ class _OptionCard extends StatelessWidget {
   }
 }
 
-class _HealthHistoryQuestionnaire extends StatefulWidget {
-  final Map<String, dynamic> answers;
-  final VoidCallback onAnalyze;
-  const _HealthHistoryQuestionnaire({required this.answers, required this.onAnalyze});
-
-  @override
-  State<_HealthHistoryQuestionnaire> createState() => _HealthHistoryQuestionnaireState();
-}
-
-class _HealthHistoryQuestionnaireState extends State<_HealthHistoryQuestionnaire> {
-  final List<String> _selectedConditions = [];
-  final List<String> _selectedSymptoms = [];
-
-  final _conditions = ['Diabetes', 'Hypertension', 'Heart Disease', 'Thyroid Disorder', 'Liver Disease', 'Kidney Disease', 'Cancer', 'None'];
-  final _symptoms = ['Fatigue', 'Weight changes', 'Frequent infections', 'Chest pain', 'Shortness of breath', 'Digestive issues', 'Skin problems', 'None'];
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text('Health History', style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF192233))),
-        const SizedBox(height: 24),
-        Text('Any family history of these conditions?', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: _conditions.map((c) => _Chip(
-            label: c,
-            selected: _selectedConditions.contains(c),
-            onTap: () => setState(() {
-              _selectedConditions.contains(c) ? _selectedConditions.remove(c) : _selectedConditions.add(c);
-            }),
-          )).toList(),
-        ),
-        const SizedBox(height: 32),
-        Text('Are you experiencing any of these symptoms?', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: _symptoms.map((s) => _Chip(
-            label: s,
-            selected: _selectedSymptoms.contains(s),
-            onTap: () => setState(() {
-              _selectedSymptoms.contains(s) ? _selectedSymptoms.remove(s) : _selectedSymptoms.add(s);
-            }),
-          )).toList(),
-        ),
-        const SizedBox(height: 40),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () {
-              widget.answers['familyHistory'] = _selectedConditions;
-              widget.answers['symptoms'] = _selectedSymptoms;
-              widget.onAnalyze();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5A88F1),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            child: Text('Analyze My Health', style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18)),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _Chip({required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF5A88F1) : Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: selected ? const Color(0xFF5A88F1) : const Color(0xFFE5E9F0)),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.manrope(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : const Color(0xFF192233),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _AnalyzingScreen extends StatelessWidget {
-  const _AnalyzingScreen();
+  final String language;
+  const _AnalyzingScreen({required this.language});
 
   @override
   Widget build(BuildContext context) {
+    final isMl = language == 'ml';
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(width: 60, height: 60, child: CircularProgressIndicator(strokeWidth: 4, color: Color(0xFF5A88F1))),
           const SizedBox(height: 24),
-          Text('Analyzing your health...', style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          Text(
+            isMl ? 'ആരോഗ്യം വിശകലനം ചെയ്യുന്നു...' : 'Analyzing your health...',
+            style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF192233)),
+          ),
           const SizedBox(height: 8),
-          Text('Our AI is reviewing your lifestyle and health history.', style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF192233).withValues(alpha: 0.5))),
+          Text(
+            isMl
+                ? 'ഞങ്ങളുടെ എഐ (AI) വിവരങ്ങൾ പരിശോധിച്ചു വരികയാണ്.'
+                : 'Our AI is reviewing your lifestyle and health history.',
+            style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF192233).withOpacity(0.5)),
+          ),
         ],
       ),
     );
@@ -520,9 +599,10 @@ class _AnalyzingScreen extends StatelessWidget {
 }
 
 class _ResultsScreen extends StatefulWidget {
+  final String language;
   final AiHealthAssessmentResponse result;
   final VoidCallback onRetake;
-  const _ResultsScreen({required this.result, required this.onRetake});
+  const _ResultsScreen({required this.language, required this.result, required this.onRetake});
 
   @override
   State<_ResultsScreen> createState() => _ResultsScreenState();
@@ -540,13 +620,14 @@ class _ResultsScreenState extends State<_ResultsScreen> {
     final score = widget.result.healthScore;
     final scoreColor = score >= 70 ? const Color(0xFF1F9A6D) : score >= 40 ? const Color(0xFFF5A623) : const Color(0xFFFF5C5C);
 
+    final isMl = widget.language == 'ml';
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
         _buildScoreCard(score, scoreColor),
         if (widget.result.risks.isNotEmpty) ...[
           const SizedBox(height: 32),
-          Text('Suggested Issues', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          Text(isMl ? 'കണ്ടെത്തിയ ആരോഗ്യ പ്രശ്നങ്ങൾ' : 'Suggested Issues', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
           const SizedBox(height: 16),
           _buildRisksCard(),
         ],
@@ -565,7 +646,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Next: View Packages', style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18)),
+                Text(isMl ? 'അടുത്തത്: പാക്കേജുകൾ കാണുക' : 'Next: View Packages', style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18)),
                 const SizedBox(width: 8),
                 const Icon(Icons.arrow_forward_rounded),
               ],
@@ -578,6 +659,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
   }
 
   Widget _buildPackagesPage(BuildContext context) {
+    final isMl = widget.language == 'ml';
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
@@ -588,7 +670,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
               icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF5A88F1)),
             ),
             Expanded(
-              child: Text('Suggested Packages', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+              child: Text(isMl ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Suggested Packages', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
             ),
           ],
         ),
@@ -597,13 +679,13 @@ class _ResultsScreenState extends State<_ResultsScreen> {
           ...widget.result.matchedPackages.map((pkg) => _PackageResultCard(pkg: pkg, isAvailable: true, onBook: () => _bookPackage(context, pkg))),
         if (widget.result.unmatchedPackages.isNotEmpty) ...[
           const SizedBox(height: 24),
-          Text('Also Recommended', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          Text(isMl ? 'മറ്റു നിർദ്ദേശങ്ങൾ' : 'Also Recommended', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
           const SizedBox(height: 16),
           ...widget.result.unmatchedPackages.map((pkg) => _PackageResultCard(pkg: pkg, isAvailable: false)),
         ],
         if (widget.result.testRecommendations.isNotEmpty) ...[
           const SizedBox(height: 24),
-          Text('Suggested Individual Tests', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          Text(isMl ? 'നിർദ്ദേശിച്ച പരിശോധനകൾ' : 'Suggested Individual Tests', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
           const SizedBox(height: 16),
           _buildTestsCard(),
         ],
@@ -613,10 +695,30 @@ class _ResultsScreenState extends State<_ResultsScreen> {
           child: OutlinedButton.icon(
             onPressed: widget.onRetake,
             icon: const Icon(Icons.replay_rounded),
-            label: Text('Retake Assessment', style: GoogleFonts.manrope(fontWeight: FontWeight.w800)),
+            label: Text(isMl ? 'വീണ്ടും പരിശോധിക്കുക' : 'Retake Assessment', style: GoogleFonts.manrope(fontWeight: FontWeight.w800)),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF5A88F1),
               side: const BorderSide(color: Color(0xFF5A88F1)),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => PatientAppShell.of(context).goHome(),
+            icon: Icon(Icons.home_rounded, size: 20, color: const Color(0xFF192233).withOpacity(0.6)),
+            label: Text(
+              isMl ? 'തിരികെ ഹോമിലേക്ക്' : 'Back to Home',
+              style: GoogleFonts.manrope(
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF192233).withOpacity(0.6),
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: const Color(0xFF192233).withOpacity(0.12)),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
@@ -628,6 +730,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
   }
 
   Widget _buildScoreCard(int score, Color scoreColor) {
+    final isMl = widget.language == 'ml';
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -637,7 +740,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
       ),
       child: Column(
         children: [
-          Text('Your Health Score', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          Text(isMl ? 'നിങ്ങളുടെ ആരോഗ്യ സ്കോർ' : 'Your Health Score', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
           const SizedBox(height: 20),
           SizedBox(
             width: 140, height: 140,
