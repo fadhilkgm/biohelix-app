@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
@@ -18,10 +20,12 @@ class AiCheckupTab extends StatefulWidget {
 }
 
 class _AiCheckupTabState extends State<AiCheckupTab> {
-  String _step = 'language';
+  String _step = 'history';
   String _language = 'en';
   bool _loading = false;
+  bool _loadingHistory = true;
   AiHealthAssessmentResponse? _result;
+  List<Map<String, dynamic>> _history = [];
 
   final _answers = <String, dynamic>{};
   final List<Map<String, dynamic>> _messages = [];
@@ -41,6 +45,40 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       _nameCtrl.text = p.name;
       _ageCtrl.text = p.age?.toString() ?? '';
       _answers['gender'] = p.gender ?? 'unknown';
+    }
+    _fetchHistory();
+  }
+
+  void _reset() {
+    setState(() {
+      _step = 'history';
+      _result = null;
+      _answers.clear();
+      _messages.clear();
+      _language = 'en';
+      _loading = false;
+    });
+    _fetchHistory();
+  }
+
+  Future<void> _fetchHistory() async {
+    setState(() => _loadingHistory = true);
+    try {
+      final config = context.read<AppConfig>();
+      final session = context.read<SessionProvider>();
+      final service = AiCheckupService(
+        apiBaseUrl: config.apiBaseUrl,
+        authToken: session.authToken ?? '',
+      );
+      final history = await service.getHistory();
+      if (!mounted) return;
+      setState(() {
+        _history = history;
+        _loadingHistory = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingHistory = false);
     }
   }
 
@@ -85,7 +123,10 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
         authToken: session.authToken ?? '',
       );
 
-      final response = await service.analyzeHealth(answers: _answers);
+      final response = await service.analyzeHealth(
+        answers: _answers,
+        language: _language,
+      );
       if (!mounted) return;
 
       setState(() {
@@ -114,8 +155,48 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        leading: _step != 'history'
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF192233)),
+                onPressed: () {
+                  if (_step == 'results' || _step == 'analyzing') {
+                    _reset();
+                    return;
+                  }
+                  setState(() {
+                    _step = switch (_step) {
+                      'language' => 'history',
+                      'welcome' => 'language',
+                      'basic' => 'welcome',
+                      'ai_chat' => 'basic',
+                      _ => 'history',
+                    };
+                  });
+                },
+              )
+            : null,
       ),
       body: switch (_step) {
+        'history' => _HistoryScreen(
+          loading: _loadingHistory,
+          history: _history,
+          onStartNew: () => setState(() => _step = 'language'),
+          onSelect: (item) {
+            try {
+              final assessment = Map<String, dynamic>.from(
+                jsonDecode(item['assessmentJson'] as String)
+              );
+              setState(() {
+                _result = AiHealthAssessmentResponse.fromJson(assessment);
+                _step = 'results';
+              });
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Failed to load assessment result')),
+              );
+            }
+          },
+        ),
         'language' => _LanguageSelectionScreen(
           onSelect: (lang) {
             setState(() {
@@ -123,6 +204,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
               _step = 'welcome';
             });
           },
+          onReset: _reset,
         ),
         'welcome' => _WelcomeScreen(
           language: _language,
@@ -153,12 +235,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
             ? _ResultsScreen(
                 language: _language,
                 result: _result!,
-                onRetake: () => setState(() {
-                  _step = 'language';
-                  _result = null;
-                  _answers.clear();
-                  _messages.clear();
-                }),
+                onRetake: _reset,
+                onReset: _reset,
               )
             : const SizedBox.shrink(),
         _ => const SizedBox.shrink(),
@@ -169,7 +247,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
 
 class _LanguageSelectionScreen extends StatelessWidget {
   final ValueChanged<String> onSelect;
-  const _LanguageSelectionScreen({required this.onSelect});
+  final VoidCallback onReset;
+  const _LanguageSelectionScreen({required this.onSelect, required this.onReset});
 
   @override
   Widget build(BuildContext context) {
@@ -197,6 +276,124 @@ class _LanguageSelectionScreen extends StatelessWidget {
             label: 'മലയാളം (Malayalam)',
             onTap: () => onSelect('ml'),
           ),
+          const SizedBox(height: 20),
+          TextButton(
+            onPressed: onReset,
+            child: const Text('Back to History'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryScreen extends StatelessWidget {
+  final bool loading;
+  final List<Map<String, dynamic>> history;
+  final VoidCallback onStartNew;
+  final Function(Map<String, dynamic> item) onSelect;
+
+  const _HistoryScreen({
+    required this.loading,
+    required this.history,
+    required this.onStartNew,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Health Checkup History',
+            style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w900, color: const Color(0xFF192233)),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'View your previous AI health assessments or start a new one.',
+            style: GoogleFonts.manrope(fontSize: 15, color: const Color(0xFF192233).withOpacity(0.6)),
+          ),
+          const SizedBox(height: 32),
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF5A88F1)))
+                : history.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.history_rounded, size: 64, color: const Color(0xFF192233).withOpacity(0.1)),
+                            const SizedBox(height: 16),
+                            Text('No previous assessments found', style: GoogleFonts.manrope(color: const Color(0xFF192233).withOpacity(0.4))),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: history.length,
+                        itemBuilder: (context, index) {
+                          final item = history[index];
+                          final dateStr = item['createdAt'] as String;
+                          final score = item['healthScore'] as int;
+                          
+                          String displayDate = dateStr;
+                          try {
+                            // SQLite datetime('now') returns UTC. 
+                            // We replace space with T and append Z to make it a valid UTC ISO string
+                            final isoStr = dateStr.contains('T') ? dateStr : dateStr.replaceFirst(' ', 'T') + 'Z';
+                            final dt = DateTime.parse(isoStr).toLocal();
+                            displayDate = DateFormat('dd MMM yyyy, hh:mm a').format(dt);
+                          } catch (e) {
+                            displayDate = dateStr;
+                          }
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFE5E9F0)),
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              onTap: () => onSelect(item),
+                              title: Text(
+                                displayDate,
+                                style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 15),
+                              ),
+                              subtitle: Text('Health Score: $score%'),
+                              trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF5A88F1)),
+                              leading: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(color: const Color(0xFFF4F7FF), borderRadius: BorderRadius.circular(12)),
+                                child: const Icon(Icons.analytics_rounded, color: Color(0xFF5A88F1)),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onStartNew,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5A88F1),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: Text(
+                'Start New Assessment',
+                style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -383,7 +580,8 @@ class _AiChatScreenState extends State<_AiChatScreen> {
   List<String> _options = [];
   final Map<String, dynamic> _chatAnswers = {};
   int _questionCount = 0;
-  final int _maxQuestions = 5;
+  final int _maxQuestions = 10;
+  final List<({String? question, List<String> options})> _history = [];
 
   @override
   void initState() {
@@ -405,13 +603,18 @@ class _AiChatScreenState extends State<_AiChatScreen> {
         messages: widget.messages,
         patientInfo: widget.patientInfo,
         step: 'questions',
+        language: widget.language,
       );
 
       final reply = result['reply'];
       if (reply is Map && (reply.containsKey('question') || reply.containsKey('options'))) {
+        final newQuestion = reply['question'] as String?;
+        final newOptions = List<String>.from(reply['options'] ?? []);
+        
         setState(() {
-          _question = reply['question'] as String?;
-          _options = List<String>.from(reply['options'] ?? []);
+          _question = newQuestion;
+          _options = newOptions;
+          _history.add((question: newQuestion, options: newOptions));
           _loading = false;
         });
         
@@ -458,6 +661,27 @@ class _AiChatScreenState extends State<_AiChatScreen> {
     }
   }
 
+  void _goBack() {
+    if (_questionCount > 0 && widget.messages.length >= 2 && _history.length >= 2) {
+      setState(() {
+        // Remove current question from history
+        _history.removeLast();
+        
+        // Restore previous question
+        final previous = _history.last;
+        _question = previous.question;
+        _options = previous.options;
+        
+        // Remove last user answer and last AI question from message history
+        widget.messages.removeLast(); // AI Q(current)
+        widget.messages.removeLast(); // User A(previous)
+        
+        _questionCount--;
+        // We keep the answer in _chatAnswers so it can be shown as selected
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMl = widget.language == 'ml';
@@ -471,13 +695,15 @@ class _AiChatScreenState extends State<_AiChatScreen> {
             const CircularProgressIndicator(color: Color(0xFF5A88F1)),
             const SizedBox(height: 24),
             Text(
-              isMl ? 'എഐ ചിന്തിക്കുന്നു...' : 'AI is thinking...',
+              isMl ? 'എഐ ആലോചിക്കുന്നു...' : 'AI is thinking...',
               style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ],
         ),
       );
     }
+
+    final currentAnswer = _chatAnswers['q${_questionCount + 1}']?['answer'];
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -494,9 +720,29 @@ class _AiChatScreenState extends State<_AiChatScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          Text(
-            isMl ? 'ചോദ്യം ${_questionCount + 1}' : 'Question ${_questionCount + 1}',
-            style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF5A88F1)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isMl ? 'ചോദ്യം ${_questionCount + 1}' : 'Question ${_questionCount + 1}',
+                style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF5A88F1)),
+              ),
+              if (_questionCount > 0)
+                TextButton.icon(
+                  onPressed: _goBack,
+                  icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                  label: Text(
+                    isMl ? 'തിരികെ' : 'Back',
+                    style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF8DA0BA),
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           Text(
@@ -506,10 +752,40 @@ class _AiChatScreenState extends State<_AiChatScreen> {
           const SizedBox(height: 24),
           Expanded(
             child: ListView(
-              children: _options.map((opt) => _OptionCard(
-                label: opt,
-                onTap: () => _onAnswer(opt),
-              )).toList(),
+              children: [
+                ..._options.map((opt) => _OptionCard(
+                  label: opt,
+                  isSelected: currentAnswer == opt,
+                  onTap: () => _onAnswer(opt),
+                )).toList(),
+                if (currentAnswer != null) ...[
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _onAnswer(currentAnswer),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5A88F1),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            isMl ? 'തുടരുക' : 'Continue',
+                            style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_rounded, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -531,8 +807,9 @@ class _AiChatScreenState extends State<_AiChatScreen> {
 
 class _OptionCard extends StatelessWidget {
   final String label;
+  final bool isSelected;
   final VoidCallback onTap;
-  const _OptionCard({required this.label, required this.onTap});
+  const _OptionCard({required this.label, this.isSelected = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -546,19 +823,24 @@ class _OptionCard extends StatelessWidget {
           child: Ink(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isSelected ? const Color(0xFFF4F7FF) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5E9F0)),
+              border: Border.all(color: isSelected ? const Color(0xFF5A88F1) : const Color(0xFFE5E9F0), width: isSelected ? 2 : 1),
             ),
             child: Row(
               children: [
                 Container(
                   width: 22, height: 22,
-                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF5A88F1), width: 2)),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle, 
+                    color: isSelected ? const Color(0xFF5A88F1) : Colors.transparent,
+                    border: Border.all(color: const Color(0xFF5A88F1), width: 2),
+                  ),
+                  child: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
                 ),
                 const SizedBox(width: 14),
-                Expanded(child: Text(label, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF192233)))),
-                const Icon(Icons.chevron_right_rounded, color: Color(0xFF8DA0BA)),
+                Expanded(child: Text(label, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w700, color: isSelected ? const Color(0xFF5A88F1) : const Color(0xFF192233)))),
+                Icon(Icons.chevron_right_rounded, color: isSelected ? const Color(0xFF5A88F1) : const Color(0xFF8DA0BA)),
               ],
             ),
           ),
@@ -602,7 +884,8 @@ class _ResultsScreen extends StatefulWidget {
   final String language;
   final AiHealthAssessmentResponse result;
   final VoidCallback onRetake;
-  const _ResultsScreen({required this.language, required this.result, required this.onRetake});
+  final VoidCallback onReset;
+  const _ResultsScreen({required this.language, required this.result, required this.onRetake, required this.onReset});
 
   @override
   State<_ResultsScreen> createState() => _ResultsScreenState();
@@ -630,6 +913,21 @@ class _ResultsScreenState extends State<_ResultsScreen> {
           Text(isMl ? 'കണ്ടെത്തിയ ആരോഗ്യ പ്രശ്നങ്ങൾ' : 'Suggested Issues', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
           const SizedBox(height: 16),
           _buildRisksCard(),
+        ],
+        if (widget.result.matchedPackages.isNotEmpty) ...[
+          const SizedBox(height: 32),
+          Text(isMl ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Recommended Packages', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          const SizedBox(height: 16),
+          ...widget.result.matchedPackages.map((pkg) => _PackageResultCard(
+            pkg: pkg, 
+            isAvailable: true,
+            onBook: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => PackageBookingScreen(package: LabPackageItem.fromJson(pkg))),
+              );
+            },
+          )),
         ],
         const SizedBox(height: 32),
         SizedBox(
@@ -708,7 +1006,10 @@ class _ResultsScreenState extends State<_ResultsScreen> {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () => PatientAppShell.of(context).goHome(),
+            onPressed: () {
+              widget.onReset();
+              PatientAppShell.of(context).goHome();
+            },
             icon: Icon(Icons.home_rounded, size: 20, color: const Color(0xFF192233).withOpacity(0.6)),
             label: Text(
               isMl ? 'തിരികെ ഹോമിലേക്ക്' : 'Back to Home',
@@ -773,6 +1074,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
   }
 
   Widget _buildRisksCard() {
+    final isMl = widget.language == 'ml';
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -781,16 +1083,66 @@ class _ResultsScreenState extends State<_ResultsScreen> {
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
-        children: widget.result.risks.map((r) {
-          final name = r['name'] as String? ?? '';
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
+        children: widget.result.risks.map((risk) {
+          final name = risk['name'] ?? '';
+          final reason = risk['reason'] ?? '';
+          final precaution = risk['precaution'] ?? '';
+          return Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Color(0xFFF5A623), size: 20),
-                const SizedBox(width: 12),
-                Expanded(child: Text(name, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF192233)))),
-                Text('Risk', style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w800, color: const Color(0xFFFF5C5C))),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: const Color(0xFFFFF4F4), borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFFFF5C5C)),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+                          const SizedBox(height: 4),
+                          if (reason.isNotEmpty) 
+                            Text(reason, style: GoogleFonts.manrope(fontSize: 13, height: 1.5, color: const Color(0xFF192233).withOpacity(0.7))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (precaution.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4F7FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF5A88F1).withOpacity(0.1)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.lightbulb_outline_rounded, size: 16, color: Color(0xFF5A88F1)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "${isMl ? 'മുൻകരുതൽ' : 'Precaution'}: $precaution",
+                            style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF5A88F1)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (widget.result.risks.indexOf(risk) < widget.result.risks.length - 1) ...[
+                  const SizedBox(height: 20),
+                  Divider(color: const Color(0xFFE5E9F0).withOpacity(0.5)),
+                ],
               ],
             ),
           );

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 
 class AiHealthAssessmentResponse {
@@ -48,6 +49,7 @@ class AiCheckupService {
     required List<Map<String, dynamic>> messages,
     String? step,
     Map<String, dynamic>? patientInfo,
+    String? language,
   }) async {
     final dio = Dio(BaseOptions(
       baseUrl: apiBaseUrl,
@@ -63,11 +65,23 @@ class AiCheckupService {
         'messages': messages,
         'step': step ?? 'questions',
         'patientInfo': patientInfo,
+        'language': language ?? 'en',
       },
     );
 
-    if (response.statusCode != 200 || response.data == null) {
-      throw Exception('AI checkup error: ${response.statusCode}');
+    final reply = response.data!['reply'];
+    
+    // Client-side cleaning/parsing fallback
+    if (reply is String && reply.contains('{') && reply.contains('}')) {
+      try {
+        final start = reply.indexOf('{');
+        final end = reply.lastIndexOf('}');
+        final cleaned = reply.substring(start, end + 1).replaceAll('\\{', '{').replaceAll('\\}', '}');
+        final parsed = Map<String, dynamic>.from(jsonDecode(cleaned));
+        if (parsed.containsKey('question')) {
+          response.data!['reply'] = parsed;
+        }
+      } catch (_) {}
     }
 
     return response.data!;
@@ -75,6 +89,7 @@ class AiCheckupService {
 
   Future<AiHealthAssessmentResponse> analyzeHealth({
     required Map<String, dynamic> answers,
+    String? language,
   }) async {
     final dio = Dio(BaseOptions(
       baseUrl: apiBaseUrl,
@@ -88,7 +103,10 @@ class AiCheckupService {
 
     final response = await dio.post<Map<String, dynamic>>(
       '/patient/ai-health-assessment',
-      data: {'answers': answers},
+      data: {
+        'answers': answers,
+        'language': language ?? 'en',
+      },
     );
 
     if (response.statusCode != 200 || response.data == null) {
@@ -96,5 +114,23 @@ class AiCheckupService {
     }
 
     return AiHealthAssessmentResponse.fromJson(response.data!);
+  }
+
+  Future<List<Map<String, dynamic>>> getHistory() async {
+    final dio = Dio(BaseOptions(
+      baseUrl: apiBaseUrl,
+      headers: {
+        'Authorization': 'Bearer $authToken',
+        'Content-Type': 'application/json',
+      },
+    ));
+
+    final response = await dio.get<List>('/patient/ai-history');
+
+    if (response.statusCode != 200 || response.data == null) {
+      throw Exception('Failed to fetch AI history: ${response.statusCode}');
+    }
+
+    return response.data!.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 }
