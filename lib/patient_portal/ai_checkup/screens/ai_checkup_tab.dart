@@ -342,7 +342,7 @@ class _HistoryScreen extends StatelessWidget {
                           try {
                             // SQLite datetime('now') returns UTC. 
                             // We replace space with T and append Z to make it a valid UTC ISO string
-                            final isoStr = dateStr.contains('T') ? dateStr : dateStr.replaceFirst(' ', 'T') + 'Z';
+                            final isoStr = dateStr.contains('T') ? dateStr : '${dateStr.replaceFirst(' ', 'T')}Z';
                             final dt = DateTime.parse(isoStr).toLocal();
                             displayDate = DateFormat('dd MMM yyyy, hh:mm a').format(dt);
                           } catch (e) {
@@ -757,7 +757,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
                   label: opt,
                   isSelected: currentAnswer == opt,
                   onTap: () => _onAnswer(opt),
-                )).toList(),
+                )),
                 if (currentAnswer != null) ...[
                   const SizedBox(height: 24),
                   SizedBox(

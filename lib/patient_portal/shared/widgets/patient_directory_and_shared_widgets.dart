@@ -225,7 +225,7 @@ class _DoctorShortCard extends StatelessWidget {
                         ? Image.network(
                             imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _fallbackImage(),
+                            errorBuilder: (_, _, _) => _fallbackImage(),
                           )
                         : _fallbackImage(),
                   ),

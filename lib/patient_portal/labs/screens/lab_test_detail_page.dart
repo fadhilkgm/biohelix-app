@@ -9,7 +9,7 @@ import '../../lab_booking/screens/cart_screen.dart';
 import '../../lab_booking/screens/test_booking_screen.dart';
 
 class LabTestDetailPage extends StatelessWidget {
-  const LabTestDetailPage({required this.test, this.controller});
+  const LabTestDetailPage({super.key, required this.test, this.controller});
   final LabTestItem test;
   final LabBookingController? controller;
 

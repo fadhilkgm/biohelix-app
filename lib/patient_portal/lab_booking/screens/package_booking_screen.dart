@@ -85,7 +85,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: gender,
+              initialValue: gender,
               decoration: InputDecoration(
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
