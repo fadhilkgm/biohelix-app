@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
@@ -87,7 +87,7 @@ class _OtpPageState extends State<OtpPage> {
                             text: TextSpan(
                               style: TextStyle(
                                 fontSize: 16,
-                                color: const Color(0xFF192233).withOpacity(0.6),
+                                color: const Color(0xFF192233).withValues(alpha: 0.6),
                                 height: 1.5,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -183,7 +183,7 @@ class _OtpPageState extends State<OtpPage> {
                                 "Didn't receive? ",
                                 style: TextStyle(
                                   fontSize: 15,
-                                  color: const Color(0xFF192233).withOpacity(0.5),
+                                  color: const Color(0xFF192233).withValues(alpha: 0.5),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -222,7 +222,7 @@ class _OtpPageState extends State<OtpPage> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                     ),
                   ],
@@ -236,3 +236,4 @@ class _OtpPageState extends State<OtpPage> {
     );
   }
 }
+

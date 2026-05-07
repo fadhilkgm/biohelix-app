@@ -17,17 +17,17 @@ class AppConfig {
   factory AppConfig.fromEnvironment() {
     final env = _readDotEnv();
     final showDevOtp =
-        _readBool(env['SHOW_DEV_OTP']) ??
-        const bool.fromEnvironment('SHOW_DEV_OTP', defaultValue: !kReleaseMode);
+        const bool.hasEnvironment('SHOW_DEV_OTP')
+            ? const bool.fromEnvironment('SHOW_DEV_OTP')
+            : (_readBool(env['SHOW_DEV_OTP']) ?? !kReleaseMode);
+    const definedApiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
     return AppConfig(
       appName: env['APP_NAME'] ?? 'Biohelix',
       apiBaseUrl:
-          env['API_BASE_URL'] ??
-          const String.fromEnvironment(
-            'API_BASE_URL',
-            defaultValue: 'http://192.168.1.13/api',
-          ),
+          definedApiBaseUrl.isNotEmpty
+              ? definedApiBaseUrl
+              : (env['API_BASE_URL'] ?? 'https://www.bhrchospital.com/api'),
       healthEndpoint: env['HEALTH_ENDPOINT'] ?? '/health',
       showDevOtp: showDevOtp,
     );

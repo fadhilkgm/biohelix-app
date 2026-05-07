@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../session/providers/session_provider.dart';
 import 'widgets/auth_form_widgets.dart';
 
-// Login screen: mobile number + MRN → triggers OTP send.
+// Login screen: mobile number + MRN â†’ triggers OTP send.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.onOtpSent, this.onBack});
 
@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                               'Enter your mobile number to access your health records and book appointments.',
                               style: TextStyle(
                                 fontSize: 16,
-                                color: const Color(0xFF192233).withOpacity(0.6),
+                                color: const Color(0xFF192233).withValues(alpha: 0.6),
                                 height: 1.5,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -189,7 +189,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.chevron_left_rounded, size: 28),
@@ -201,5 +201,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+
 
 

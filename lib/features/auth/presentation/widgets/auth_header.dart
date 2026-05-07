@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 // BHRC branding header shown at the top of auth screens.
 // Use compact=true on the OTP screen for a smaller logo without taglines.
@@ -69,7 +69,7 @@ class _LogoBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(size * 0.22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -85,3 +85,4 @@ class _LogoBox extends StatelessWidget {
     );
   }
 }
+

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class BookingSuccessScreen extends StatelessWidget {
@@ -48,7 +48,7 @@ class BookingSuccessScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.manrope(
                   fontSize: 16,
-                  color: const Color(0xFF192233).withOpacity(0.6),
+                  color: const Color(0xFF192233).withValues(alpha: 0.6),
                   height: 1.5,
                   fontWeight: FontWeight.w600,
                 ),
@@ -103,3 +103,4 @@ class BookingSuccessScreen extends StatelessWidget {
     );
   }
 }
+

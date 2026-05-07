@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/providers/language_provider.dart';
@@ -66,8 +66,8 @@ class HomeTopHeroWidget extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      const Color(0xFF114784).withOpacity(0.85),
-                      const Color(0xFF12A0C7).withOpacity(0.65),
+                      const Color(0xFF114784).withValues(alpha: 0.85),
+                      const Color(0xFF12A0C7).withValues(alpha: 0.65),
                     ],
                   ),
                 ),
@@ -113,3 +113,4 @@ class HomeTopHeroWidget extends StatelessWidget {
     );
   }
 }
+

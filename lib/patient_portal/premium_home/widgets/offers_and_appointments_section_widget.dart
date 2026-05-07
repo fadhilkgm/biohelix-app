@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 
 
@@ -230,7 +230,7 @@ class _OfferCard extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: item.colors.first.withOpacity(0.3),
+                  color: item.colors.first.withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -254,7 +254,7 @@ class _OfferCard extends StatelessWidget {
                 Text(
                   item.subtitle,
                   style: GoogleFonts.manrope(
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -270,10 +270,10 @@ class _OfferCard extends StatelessWidget {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -325,3 +325,4 @@ class _OfferItem {
   final String? target;
   final HomeOfferItem source;
 }
+

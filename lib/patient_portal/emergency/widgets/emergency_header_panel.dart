@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class EmergencyHeaderPanel extends StatelessWidget {
   const EmergencyHeaderPanel({
@@ -29,7 +29,7 @@ class EmergencyHeaderPanel extends StatelessWidget {
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
@@ -52,7 +52,7 @@ class EmergencyHeaderPanel extends StatelessWidget {
           Text(
             'Patient: $patientName',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -72,3 +72,4 @@ class EmergencyHeaderPanel extends StatelessWidget {
     );
   }
 }
+

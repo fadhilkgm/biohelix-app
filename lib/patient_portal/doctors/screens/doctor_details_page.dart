@@ -1,4 +1,4 @@
-part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
+﻿part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _DoctorDetailPage extends StatefulWidget {
   const _DoctorDetailPage({required this.doctor});
@@ -192,7 +192,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
+                                      color: Colors.black.withValues(alpha: 0.1),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -218,7 +218,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(50)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 20,
                           offset: const Offset(0, -5),
                         ),
@@ -263,11 +263,11 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1B6A4F).withOpacity(0.1),
+                                  color: const Color(0xFF1B6A4F).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  '₹${widget.doctor.consultationFee}',
+                                  'â‚¹${widget.doctor.consultationFee}',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
@@ -284,7 +284,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFF192233).withOpacity(0.8),
+                              color: const Color(0xFF192233).withValues(alpha: 0.8),
                               height: 1.6,
                             ),
                           ),
@@ -326,7 +326,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFB703).withOpacity(0.12),
+                                  color: const Color(0xFFFFB703).withValues(alpha: 0.12),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(Icons.access_time_filled_rounded, color: Color(0xFFFFB703), size: 24),
@@ -350,7 +350,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
-                                        color: Colors.black.withOpacity(0.4),
+                                        color: Colors.black.withValues(alpha: 0.4),
                                       ),
                                     ),
                                   ],
@@ -457,7 +457,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),
@@ -475,7 +475,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5A88F1),
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: const Color(0xFF5A88F1).withOpacity(0.5),
+                  disabledBackgroundColor: const Color(0xFF5A88F1).withValues(alpha: 0.5),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
@@ -575,7 +575,7 @@ class _DoctorMetricChip extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 20),
@@ -590,7 +590,7 @@ class _DoctorMetricChip extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             sublabel,
-            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black.withOpacity(0.4)),
+            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black.withValues(alpha: 0.4)),
           ),
         ],
       ),
@@ -670,7 +670,7 @@ class _HorizontalDatePicker extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? Colors.white.withOpacity(0.85) : Colors.black38,
+                      color: isSelected ? Colors.white.withValues(alpha: 0.85) : Colors.black38,
                     ),
                   ),
                 ],
@@ -792,4 +792,5 @@ DateTime _nextWorkingDateForDoctor(DoctorListing doctor, DateTime fromDate) {
   }
   return fromDate;
 }
+
 

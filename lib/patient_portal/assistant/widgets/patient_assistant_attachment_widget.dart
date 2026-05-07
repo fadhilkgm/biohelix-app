@@ -1,10 +1,9 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
-class ChatAttachmentWidget extends StatelessWidget {
-  const ChatAttachmentWidget({
+class _ChatAttachmentWidget extends StatelessWidget {
+  const _ChatAttachmentWidget({
     required this.attachment,
     required this.onTap,
-    super.key,
   });
 
   final _ChatAttachment attachment;

@@ -1,7 +1,7 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
-class MessageBubbleWidget extends StatelessWidget {
-  const MessageBubbleWidget({
+class _MessageBubbleWidget extends StatelessWidget {
+  const _MessageBubbleWidget({
     required this.message,
     required this.timeLabel,
     required this.attachments,
@@ -9,7 +9,6 @@ class MessageBubbleWidget extends StatelessWidget {
     required this.onSpeakTap,
     required this.onStopTap,
     required this.onAttachmentTap,
-    super.key,
   });
 
   final ChatMessage message;
@@ -114,7 +113,7 @@ class MessageBubbleWidget extends StatelessWidget {
                       },
                     ),
                   for (final attachment in attachments)
-                    ChatAttachmentWidget(
+                    _ChatAttachmentWidget(
                       attachment: attachment,
                       onTap: () => onAttachmentTap(attachment),
                     ),

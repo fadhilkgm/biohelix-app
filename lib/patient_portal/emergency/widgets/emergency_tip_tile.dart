@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import 'emergency_support_content.dart';
 
@@ -18,7 +18,7 @@ class EmergencyTipTile extends StatelessWidget {
         color: const Color(0xFFFFF9E6),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFF59E0B).withOpacity(0.3),
+          color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -46,3 +46,4 @@ class EmergencyTipTile extends StatelessWidget {
     );
   }
 }
+

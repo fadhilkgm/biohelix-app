@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -87,7 +87,7 @@ class TestListScreen extends StatelessWidget {
                       prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF5A88F1)),
                       hintText: 'Search tests or biomarkers',
                       hintStyle: GoogleFonts.manrope(
-                        color: const Color(0xFF192233).withOpacity(0.4),
+                        color: const Color(0xFF192233).withValues(alpha: 0.4),
                         fontWeight: FontWeight.w600,
                       ),
                       filled: true,
@@ -123,7 +123,7 @@ class TestListScreen extends StatelessWidget {
                               style: GoogleFonts.manrope(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: isSelected ? Colors.white : const Color(0xFF192233).withOpacity(0.6),
+                                color: isSelected ? Colors.white : const Color(0xFF192233).withValues(alpha: 0.6),
                               ),
                             ),
                           ),
@@ -182,7 +182,7 @@ class TestListScreen extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -214,7 +214,7 @@ class TestListScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -263,3 +263,4 @@ class TestListScreen extends StatelessWidget {
     );
   }
 }
+

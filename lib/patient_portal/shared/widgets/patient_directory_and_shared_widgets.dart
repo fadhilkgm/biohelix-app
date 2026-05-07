@@ -1,4 +1,4 @@
-part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
+﻿part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _DoctorsDirectoryPage extends StatelessWidget {
   const _DoctorsDirectoryPage();
@@ -60,7 +60,7 @@ class _DoctorsDirectoryPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF5A88F1).withOpacity(0.3),
+                          color: const Color(0xFF5A88F1).withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -76,7 +76,7 @@ class _DoctorsDirectoryPage extends StatelessWidget {
                             Text(
                               'Search for doctors...',
                               style: GoogleFonts.manrope(
-                                color: Colors.white.withOpacity(0.7),
+                                color: Colors.white.withValues(alpha: 0.7),
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -186,7 +186,7 @@ class _DoctorShortCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -225,7 +225,8 @@ class _DoctorShortCard extends StatelessWidget {
                         ? Image.network(
                             imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _fallbackImage(),
+                            errorBuilder: (context, error, stackTrace) =>
+                                _fallbackImage(),
                           )
                         : _fallbackImage(),
                   ),
@@ -259,7 +260,7 @@ class _DoctorShortCard extends StatelessWidget {
                           Icon(
                             Icons.calendar_month_outlined,
                             size: 14,
-                            color: const Color(0xFF192233).withOpacity(0.4),
+                            color: const Color(0xFF192233).withValues(alpha: 0.4),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -267,7 +268,7 @@ class _DoctorShortCard extends StatelessWidget {
                             style: GoogleFonts.manrope(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF192233).withOpacity(0.5),
+                              color: const Color(0xFF192233).withValues(alpha: 0.5),
                             ),
                           ),
                         ],
@@ -351,5 +352,6 @@ class _LabTestsDirectoryPage extends StatelessWidget {
     );
   }
 }
+
 
 
