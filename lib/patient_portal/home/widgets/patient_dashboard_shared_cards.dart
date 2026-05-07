@@ -255,36 +255,59 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final normalized = label.toLowerCase();
-    final color = switch (normalized) {
+    final accentColor = switch (normalized) {
       'confirmed' => const Color(0xFF10B981),
       'rescheduled' => const Color(0xFF2563EB),
       'scheduled' => const Color(0xFF2563EB),
-      'analyzed' => const Color(0xFF15803D),
-      'completed' => const Color(0xFF15803D),
-      'processing' => const Color(0xFFC2410C),
+      'analyzed' => const Color(0xFF10B981),
+      'completed' => const Color(0xFF10B981),
+      'processing' => const Color(0xFF6366F1),
       'pending' => const Color(0xFFF59E0B),
-      'cancelled' => const Color(0xFFEF4444),
-      'canceled' => const Color(0xFFEF4444),
+      'cancelled' || 'canceled' => const Color(0xFFEF4444),
       'active' => const Color(0xFF7C3AED),
-      'follow-up' => const Color(0xFF0F766E),
-      'summary' => const Color(0xFF0F766E),
-      _ => const Color(0xFF475569),
+      'follow-up' || 'summary' => const Color(0xFF0D9488),
+      _ => const Color(0xFF64748B),
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.16)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.1,
+        color: accentColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.2),
+          width: 0.5,
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              color: accentColor,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.4),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GoogleFonts.manrope(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: accentColor,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
       ),
     );
   }

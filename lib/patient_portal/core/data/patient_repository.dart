@@ -87,7 +87,7 @@ class PatientRepository {
 
   Future<String?> sendOtp({
     required String phone,
-    required String mrn,
+    String? mrn,
   }) async {
     final response = await _apiClient.postJson(
       '/auth/otp/send',
@@ -158,9 +158,11 @@ class PatientRepository {
   Future<List<HomeOfferItem>> getHomeOffers() async {
     final response = await _apiClient.getJson('/home-offers');
     final offers = response['offers'] as List<dynamic>? ?? const [];
-    return offers
-        .map((item) => HomeOfferItem.fromJson(_map(item)))
-        .toList();
+    return offers.map((item) {
+      final json = _map(item);
+      // Offers don't have images in current schema but if they did we'd resolve here
+      return HomeOfferItem.fromJson(json);
+    }).toList();
   }
 
   Future<List<BookingItem>> getBookings() async {
@@ -243,7 +245,27 @@ class PatientRepository {
   Future<List<DoctorListing>> getDoctors() async {
     final response = await _apiClient.getJson('/doctors');
     final doctors = response['doctors'] as List<dynamic>? ?? const [];
-    return doctors.map((item) => DoctorListing.fromJson(_map(item))).toList();
+    return doctors.map((item) {
+      final json = _map(item);
+      final rawImage = json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
+      if (rawImage.trim().isNotEmpty) {
+        json['imageUrl'] = _resolveApiMediaUrl(rawImage, _apiClient.baseUrl);
+      }
+      return DoctorListing.fromJson(json);
+    }).toList();
+  }
+  
+  Future<List<DepartmentItem>> getDepartments() async {
+    final response = await _apiClient.getJson('/departments');
+    final departments = response['departments'] as List<dynamic>? ?? const [];
+    return departments.map((item) {
+      final json = _map(item);
+      final rawImage = json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
+      if (rawImage.trim().isNotEmpty) {
+        json['imageUrl'] = _resolveApiMediaUrl(rawImage, _apiClient.baseUrl);
+      }
+      return DepartmentItem.fromJson(json);
+    }).toList();
   }
 
   Future<void> createBooking({
@@ -338,7 +360,14 @@ class PatientRepository {
   Future<List<LabOrderItem>> getLabOrders() async {
     final response = await _apiClient.getJson('/patient/lab-orders');
     final orders = response['orders'] as List<dynamic>? ?? const [];
-    return orders.map((item) => LabOrderItem.fromJson(_map(item))).toList();
+    return orders.map((item) {
+      final json = _map(item);
+      final rawImage = json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
+      if (rawImage.trim().isNotEmpty) {
+        json['imageUrl'] = _resolveApiMediaUrl(rawImage, _apiClient.baseUrl);
+      }
+      return LabOrderItem.fromJson(json);
+    }).toList();
   }
 
   Future<List<LabPackageItem>> getLabPackages() async {
@@ -365,7 +394,7 @@ class PatientRepository {
 
   Future<void> createLabOrder({
     required int labTestId,
-    required int doctorId,
+    int? doctorId,
     required String date,
     String? slot,
     String collectionType = 'home',
@@ -419,15 +448,29 @@ class PatientRepository {
     );
   }
 
-  Future<void> createLabPackageOrder({
-    required int labPackageId,
-    required int doctorId,
+  Future<void> rescheduleLabOrder({
+    required int orderId,
     required String date,
     String? slot,
-    String collectionType = 'home',
+  }) async {
+    await _apiClient.patchJson(
+      '/patient/lab-orders/$orderId',
+      data: {
+        'date': date,
+        if (slot != null && slot.trim().isNotEmpty) 'slot': slot.trim(),
+      },
+    );
+  }
+
+  Future<void> createLabPackageOrder({
+    required int labPackageId,
+    int? doctorId,
+    required String date,
+    String? slot,
+    String? collectionType = 'home',
     String? address,
     double? amount,
-    String paymentStatus = 'pending',
+    String? paymentStatus = 'pending',
     String? patientNameSnapshot,
     int? patientAgeSnapshot,
     String? patientGenderSnapshot,
@@ -442,36 +485,59 @@ class PatientRepository {
     final trimmedBookingRef = bookingRef?.trim();
     final trimmedNotes = notes?.trim();
 
-    await _apiClient.postJson(
-      '/patient/lab-package-orders',
-      data: {
-        'labPackageId': labPackageId,
-        'doctorId': doctorId,
-        'date': date,
-        if ((trimmedSlot ?? '').isNotEmpty) 'slot': trimmedSlot,
-        'collectionType': collectionType,
-        if ((trimmedAddress ?? '').isNotEmpty) 'address': trimmedAddress,
-        if (amount != null) 'amount': amount.round(),
-        'paymentStatus': paymentStatus,
-        if ((trimmedPatientName ?? '').isNotEmpty)
-          'patientNameSnapshot': trimmedPatientName,
-        ...?patientAgeSnapshot == null
-            ? null
-            : {'patientAgeSnapshot': patientAgeSnapshot},
-        if ((trimmedPatientGender ?? '').isNotEmpty)
-          'patientGenderSnapshot': trimmedPatientGender,
-        if ((trimmedBookingRef ?? '').isNotEmpty)
-          'bookingRef': trimmedBookingRef,
-        'urgency': urgency,
-        if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
-      },
-    );
+    final data = {
+      'labPackageId': labPackageId,
+      'doctorId': ?doctorId,
+      'date': date,
+      if ((trimmedSlot ?? '').isNotEmpty) 'slot': trimmedSlot,
+      'collectionType': collectionType,
+      if ((trimmedAddress ?? '').isNotEmpty) 'address': trimmedAddress,
+      if (amount != null) 'amount': amount.round(),
+      'paymentStatus': paymentStatus,
+      if ((trimmedPatientName ?? '').isNotEmpty)
+        'patientNameSnapshot': trimmedPatientName,
+      ...?patientAgeSnapshot == null
+          ? null
+          : {'patientAgeSnapshot': patientAgeSnapshot},
+      if ((trimmedPatientGender ?? '').isNotEmpty)
+        'patientGenderSnapshot': trimmedPatientGender,
+      if ((trimmedBookingRef ?? '').isNotEmpty)
+        'bookingRef': trimmedBookingRef,
+      'urgency': urgency,
+      if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
+    };
+
+    print('[PatientRepository] Creating lab package order with data: $data');
+    try {
+      final response = await _apiClient.postJson(
+        '/patient/lab-package-orders',
+        data: data,
+      );
+      print('[PatientRepository] Lab package order response: $response');
+    } catch (e) {
+      print('[PatientRepository] Error creating lab package order: $e');
+      rethrow;
+    }
   }
 
   Future<void> cancelLabPackageOrder(int orderId) async {
     await _apiClient.patchJson(
       '/patient/lab-package-orders/$orderId',
       data: {'status': 'cancelled'},
+    );
+  }
+
+  Future<void> rescheduleLabPackageOrder({
+    required int orderId,
+    required String date,
+    String? slot,
+  }) async {
+    await _apiClient.patchJson(
+      '/patient/lab-package-orders/$orderId',
+      data: {
+        'date': date,
+        if (slot != null && slot.trim().isNotEmpty) 'slot': slot.trim(),
+      },
     );
   }
 

@@ -131,7 +131,7 @@ class _AiPackageDesignPage extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _RecommendedPackageCard(
                       package: package,
-                      onTap: () => _openPackageLanding(context, package.slug),
+                      onTap: () => _openPackageLanding(context, package),
                     ),
                   ),
                 ),
@@ -142,12 +142,13 @@ class _AiPackageDesignPage extends StatelessWidget {
     );
   }
 
-  void _openPackageLanding(BuildContext context, [String? slug]) {
+  void _openPackageLanding(BuildContext context, [LabPackageItem? package]) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _BannerPackageLandingPage(
-          packageTarget: slug,
-          isSpecific: slug != null,
+          packageTarget: package?.slug,
+          isSpecific: package != null,
+          package: package,
         ),
       ),
     );

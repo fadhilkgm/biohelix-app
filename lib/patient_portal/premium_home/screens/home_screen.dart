@@ -1,20 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import 'package:biohelix_app/core/l10n/app_strings.dart';
-import 'package:biohelix_app/core/providers/language_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
-import 'package:biohelix_app/patient_portal/premium_home/design/app_spacing.dart';
-import 'package:biohelix_app/patient_portal/premium_home/widgets/banner_carousel_widget.dart';
-import 'package:biohelix_app/patient_portal/premium_home/widgets/doctor_card_widget.dart';
-import 'package:biohelix_app/patient_portal/premium_home/widgets/home_top_hero_widget.dart';
-import 'package:biohelix_app/patient_portal/premium_home/widgets/lab_card_widget.dart';
-import 'package:biohelix_app/patient_portal/premium_home/widgets/offers_and_appointments_section_widget.dart';
-import 'package:biohelix_app/patient_portal/premium_home/widgets/quick_actions_grid_widget.dart';
-import 'package:biohelix_app/patient_portal/premium_home/widgets/section_header_widget.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     required this.banners,
@@ -38,9 +27,12 @@ class HomeScreen extends StatelessWidget {
     required this.onTickerTap,
     required this.onOfferTap,
     required this.onActionTap,
+    this.isLoading = false,
+    this.departments = const [],
   });
 
   final List<HomeBannerItem> banners;
+  final List<DepartmentItem> departments;
   final List<DoctorListing> doctors;
   final List<LabTestItem> labTests;
   final List<LabPackageItem> labPackages;
@@ -61,124 +53,345 @@ class HomeScreen extends StatelessWidget {
   final Future<void> Function(TickerMessageItem item) onTickerTap;
   final Future<void> Function(HomeOfferItem item) onOfferTap;
   final ValueChanged<String> onActionTap;
+  final bool isLoading;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _selectedDepartment = 'All';
+
+  List<String> get _departments {
+    if (widget.departments.isNotEmpty) {
+      final names = widget.departments
+          .map((d) => d.name)
+          .where((name) => name.toLowerCase() != 'laboratory')
+          .toList();
+      names.sort();
+      return ['All', ...names];
+    }
+    
+    final depts = widget.doctors
+        .map((d) => d.departmentName ?? d.specialization)
+        .where((d) => d.isNotEmpty && d.toLowerCase() != 'laboratory')
+        .toSet()
+        .toList();
+    depts.sort();
+    return ['All', ...depts];
+  }
+
+  List<DoctorListing> get _filteredDoctors {
+    if (_selectedDepartment == 'All') return widget.doctors;
+    return widget.doctors
+        .where((d) => (d.departmentName ?? d.specialization) == _selectedDepartment)
+        .toList();
+  }
+
+  String _resolveImageUrl(String path) {
+    if (path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    
+    // Fallback for relative paths
+    final base = widget.apiBaseUrl.endsWith('/') 
+        ? widget.apiBaseUrl.substring(0, widget.apiBaseUrl.length - 1) 
+        : widget.apiBaseUrl;
+    final normalizedPath = path.startsWith('/') ? path : '/$path';
+    return '$base$normalizedPath';
+  }
+
+  String? _getDepartmentIconUrl(String name) {
+    if (name == 'All') return null;
+    try {
+      final dept = widget.departments.firstWhere(
+        (d) => d.name.toLowerCase() == name.toLowerCase()
+      );
+      final rawPath = dept.imageUrl;
+      if (rawPath == null || rawPath.isEmpty) return null;
+      return _resolveImageUrl(rawPath);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
-
-    return Column(
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       children: [
-        HomeTopHeroWidget(
-          patientName: patientName,
-          registrationNumber: registrationNumber,
-          banners: banners,
-          onViewProfile: () => onActionTap('profile'),
-          tickerMessages: tickerMessages,
-          onTickerTap: onTickerTap,
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, AppSpacing.sectionGap, 16, 0),
-          child: QuickActionsGridWidget(
-            title: strings.quickActions,
-            onActionTap: onActionTap,
+        // 1. Header (Greeting + Ticker)
+        Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
+            ),
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(40),
+            ),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 10, bottom: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'How are you today?',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          widget.patientName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Ticker Messages (Replacing Banners/Search)
+                  if (widget.tickerMessages.isNotEmpty)
+                    SizedBox(
+                      height: 48,
+                      child: PageView.builder(
+                        itemCount: widget.tickerMessages.length,
+                        itemBuilder: (context, index) {
+                          final ticker = widget.tickerMessages[index];
+                          return InkWell(
+                            onTap: () => widget.onTickerTap(ticker),
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.tips_and_updates_outlined,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Flexible(
+                                    child: Text(
+                                      '"${ticker.message}"',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.normal,
+                                        letterSpacing: 0.2,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
+        // 2. Main Content Sections
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, AppSpacing.sectionGap, 16, 0),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BannerCarouselWidget(
-                banners: banners,
-                onFallbackTap: onViewAllDoctors,
-                onBannerTap: onBannerTap,
+              // Banners Carousel
+              if (widget.banners.isNotEmpty)
+                _buildBannerCarousel(context)
+              else if (widget.isLoading)
+                _buildBannerSkeleton(context),
+              const SizedBox(height: 32),
+              // Quick Links Section
+              Row(
+                children: [
+                  _QuickLink(
+                    label: 'Book Doctors',
+                    icon: Icons.person_add_alt_1_rounded,
+                    onTap: widget.onViewAllDoctors,
+                    color: const Color(0xFF5A88F1),
+                  ),
+                  const SizedBox(width: 12),
+                  _QuickLink(
+                    label: 'Book Test',
+                    icon: Icons.biotech_rounded,
+                    onTap: widget.onViewAllLabTests,
+                    color: const Color(0xFF1F9A6D),
+                  ),
+                  const SizedBox(width: 12),
+                  _QuickLink(
+                    label: 'AI Checkup',
+                    icon: Icons.auto_awesome_rounded,
+                    onTap: () => widget.onActionTap('ai_checkup'),
+                    color: const Color(0xFF915AF1),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.sectionGap),
-              SectionHeaderWidget(
-                title: strings.featuredDoctors,
-                subtitle: strings.bookAppointments,
-                onViewAll: onViewAllDoctors,
-                viewAllLabel: strings.viewAll,
+              const SizedBox(height: 32),
+              // Find Doctors Section
+              const Text(
+                'Find Doctors',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF192233),
+                ),
               ),
-              const SizedBox(height: AppSpacing.xs),
-              SizedBox(
-                height: 340,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: doctors.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: AppSpacing.listItemGap),
-                  itemBuilder: (context, index) {
-                    final doctor = doctors[index];
-                    return SizedBox(
-                      width: 216,
-                      child: DoctorCardWidget(
-                        doctor: doctor,
-                        imageUrl: _resolveUrl(doctor.imageUrl),
-                        onTap: () => onDoctorTap(doctor),
+              const SizedBox(height: 16),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _departments.map((dept) {
+                    return _CategoryChip(
+                      label: dept,
+                      isActive: _selectedDepartment == dept,
+                      onTap: () => setState(() => _selectedDepartment = dept),
+                      icon: _getSpecialtyIcon(dept),
+                      iconUrl: _getDepartmentIconUrl(dept),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Doctors Carousel
+              if (_filteredDoctors.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Text('No doctors found in this department.'),
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 380,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _filteredDoctors.length,
+                    itemBuilder: (context, index) {
+                      final doc = _filteredDoctors[index];
+                      return _DoctorCard(
+                        doc: doc,
+                        onTap: () => widget.onDoctorTap(doc),
+                        resolvedImageUrl: _resolveImageUrl(doc.imageUrl ?? ''),
+                      );
+                    },
+                  ),
+                ),
+
+              // 3. Health Packages Section
+              if (widget.labPackages.isNotEmpty) ...[
+                const SizedBox(height: 40),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Health Packages',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF192233),
                       ),
-                    );
-                  },
+                    ),
+                    TextButton(
+                      onPressed: widget.onViewAllPackages,
+                      child: const Text(
+                        'View All',
+                        style: TextStyle(
+                          color: Color(0xFF5A88F1),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sectionGap),
-              SectionHeaderWidget(
-                title: strings.popularLabTests,
-                subtitle: strings.accurateResults,
-                onViewAll: onViewAllLabTests,
-                viewAllLabel: strings.viewAll,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              SizedBox(
-                height: 140,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: labTests.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: AppSpacing.listItemGap),
-                  itemBuilder: (context, index) {
-                    final test = labTests[index];
-                    return LabCardWidget(
-                      title: test.testName,
-                      category: test.categoryName,
-                      imageUrl: _resolveUrl(test.imageUrl),
-                      onTap: () => onLabTap(test),
-                    );
-                  },
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 480,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: widget.labPackages.length,
+                    itemBuilder: (context, index) {
+                      final pkg = widget.labPackages[index];
+                      return _PackageCard(
+                        pkg: pkg,
+                        onTap: () => widget.onPackageTap(pkg),
+                        resolvedImageUrl: _resolveImageUrl(pkg.imageUrl ?? ''),
+                      );
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sectionGap),
-              SectionHeaderWidget(
-                title: strings.popularPackages,
-                subtitle: strings.curatedBundles,
-                onViewAll: onViewAllPackages,
-                viewAllLabel: strings.viewAll,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              SizedBox(
-                height: 140,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: labPackages.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: AppSpacing.listItemGap),
-                  itemBuilder: (context, index) {
-                    final package = labPackages[index];
-                    return LabCardWidget(
-                      title: package.name,
-                      category: package.category ?? 'Package',
-                      imageUrl: _resolveUrl(package.imageUrl),
-                      onTap: () => onPackageTap(package),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sectionGap),
-              OffersAndAppointmentsSectionWidget(
-                bookings: bookings,
-                homeOffers: homeOffers,
-                onOfferTap: onOfferTap,
-                onSeeAllAppointments: onSeeAllAppointments,
-              ),
+                
+                // Add Lab Tests section
+                if (widget.labTests.isNotEmpty) ...[
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Popular Lab Tests',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF192233),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: widget.onViewAllLabTests,
+                        child: const Text(
+                          'View All',
+                          style: TextStyle(
+                            color: Color(0xFF5A88F1),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 100,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: widget.labTests.length,
+                      itemBuilder: (context, index) {
+                        final test = widget.labTests[index];
+                        return _TestCard(
+                          test: test,
+                          onTap: () => widget.onLabTap(test),
+                          resolvedImageUrl: _resolveImageUrl(test.imageUrl ?? ''),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 32),
+              ],
             ],
           ),
         ),
@@ -186,10 +399,752 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  String _resolveUrl(String? url) {
-    if (url == null || url.isEmpty) return '';
-    if (url.startsWith('http')) return url;
-    final normalized = url.startsWith('/') ? url.substring(1) : url;
-    return '$apiBaseUrl/$normalized';
+  Widget _buildBannerCarousel(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.of(context).size.width > 600 ? 320 : 200,
+      child: PageView.builder(
+        itemCount: widget.banners.length,
+        itemBuilder: (context, index) {
+          final banner = widget.banners[index];
+          return Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Background Image
+                  Image.network(
+                    _resolveImageUrl(banner.imageUrl),
+                    fit: BoxFit.cover,
+                    alignment: Alignment.centerRight,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const _SkeletonPulse(
+                        width: double.infinity,
+                        height: double.infinity,
+                        borderRadius: 32,
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF0F5E56), Color(0xFF178E81)],
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.medical_services_outlined,
+                            color: Colors.white.withOpacity(0.2),
+                            size: 80,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  // Gradient Overlay
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.1),
+                          Colors.black.withOpacity(0.75),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          banner.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        if (banner.subtitle != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            banner.subtitle!,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                        if (banner.ctaLabel != null) ...[
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => widget.onBannerTap(banner),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF5A88F1),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              banner.ctaLabel!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBannerSkeleton(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.of(context).size.width > 600 ? 320 : 200,
+      child: PageView.builder(
+        itemCount: 2,
+        itemBuilder: (context, index) {
+          return Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: const _SkeletonPulse(
+              width: double.infinity,
+              height: double.infinity,
+              borderRadius: 32,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TestCard extends StatelessWidget {
+  final LabTestItem test;
+  final VoidCallback onTap;
+  final String resolvedImageUrl;
+
+  const _TestCard({
+    required this.test,
+    required this.onTap,
+    required this.resolvedImageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(right: 12, bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F7FF),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFF5A88F1).withOpacity(0.15),
+                width: 1.2,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  test.testName,
+                  style: GoogleFonts.manrope(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF192233),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "${test.resultEta?.replaceAll(' hrs', '') ?? '24'} hrs",
+                  style: GoogleFonts.manrope(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF5A88F1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PackageCard extends StatelessWidget {
+  final LabPackageItem pkg;
+  final VoidCallback onTap;
+  final String resolvedImageUrl;
+
+  const _PackageCard({
+    required this.pkg,
+    required this.onTap,
+    required this.resolvedImageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(right: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  child: SizedBox(
+                    height: 280,
+                    width: double.infinity,
+                    child: resolvedImageUrl.isNotEmpty
+                        ? Image.network(
+                            resolvedImageUrl,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.centerRight,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const _SkeletonPulse(
+                                width: double.infinity,
+                                height: double.infinity,
+                                borderRadius: 0,
+                              );
+                            },
+                            errorBuilder: (_, _, _) => _fallbackIcon(),
+                          )
+                        : _fallbackIcon(),
+                  ),
+                ),
+                if (pkg.discountedPrice != null && pkg.discountedPrice! < pkg.basePrice)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF5C5C),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'SAVE ${(100 - (pkg.discountedPrice! / pkg.basePrice * 100)).toInt()}%',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pkg.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF192233),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '₹${pkg.discountedPrice ?? pkg.basePrice}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF5A88F1),
+                          ),
+                        ),
+                        if (pkg.discountedPrice != null && pkg.discountedPrice! < pkg.basePrice) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '₹${pkg.basePrice}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              decoration: TextDecoration.lineThrough,
+                              color: const Color(0xFF192233).withOpacity(0.3),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F7FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${pkg.totalTests ?? pkg.includedTests.length} Tests included',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF5A88F1),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: onTap,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5A88F1),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'View Package',
+                          style: GoogleFonts.manrope(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _fallbackIcon() {
+    return const Center(
+      child: Icon(
+        Icons.inventory_2_outlined,
+        size: 60,
+        color: Color(0xFF5A88F1),
+      ),
+    );
+  }
+}
+
+class _DoctorCard extends StatelessWidget {
+  final DoctorListing doc;
+  final VoidCallback onTap;
+  final String resolvedImageUrl;
+
+  const _DoctorCard({
+    required this.doc, 
+    required this.onTap,
+    required this.resolvedImageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 260,
+      margin: const EdgeInsets.only(right: 18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FB),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: const Color(0xFFE5E9F0),
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(31)),
+              child: SizedBox(
+                height: 240, // Increased room for text below
+                width: double.infinity,
+                child: resolvedImageUrl.isNotEmpty
+                    ? Image.network(
+                        resolvedImageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => _fallbackImage(),
+                      )
+                    : _fallbackImage(),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Info Section
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          doc.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF192233),
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              _getSpecialtyIcon(doc.specialization),
+                              size: 13,
+                              color: const Color(0xFF192233).withOpacity(0.4),
+                            ),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                doc.specialization,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: const Color(0xFF192233).withOpacity(0.5),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    // Button Section
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: onTap,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5A88F1),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: const Icon(Icons.calendar_month_outlined, size: 16),
+                        label: const Text(
+                          'Book Now',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _fallbackImage() {
+    return Container(
+      width: double.infinity,
+      height: 240,
+      color: Colors.white,
+      child: Image.asset(
+        'assets/images/doctor-vector.png',
+        fit: BoxFit.contain,
+        alignment: Alignment.bottomCenter,
+      ),
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final String? iconUrl;
+
+  const _CategoryChip({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+    this.icon,
+    this.iconUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 100,
+        height: 110,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF5A88F1) : const Color(0xFFF4F7FF),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isActive ? [
+            BoxShadow(
+              color: const Color(0xFF5A88F1).withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ] : null,
+          border: Border.all(
+            color: isActive ? Colors.transparent : const Color(0xFFE5E9F0),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (iconUrl != null && iconUrl!.isNotEmpty) ...[
+              Image.network(
+                iconUrl!,
+                width: 38,
+                height: 38,
+                fit: BoxFit.contain,
+                // Removed color filter to allow original image colors
+                errorBuilder: (_, _, _) => Icon(
+                  icon ?? Icons.health_and_safety_outlined,
+                  size: 30,
+                  color: isActive ? Colors.white : const Color(0xFF5A88F1),
+                ),
+              ),
+            ] else if (icon != null) ...[
+              Icon(
+                icon,
+                size: 34,
+                color: isActive ? Colors.white : const Color(0xFF5A88F1),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isActive ? Colors.white : const Color(0xFF192233).withOpacity(0.8),
+                fontWeight: isActive ? FontWeight.w900 : FontWeight.w700,
+                fontSize: 12,
+                height: 1.1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+IconData _getSpecialtyIcon(String spec) {
+  final s = spec.toLowerCase();
+  if (s == 'all') return Icons.grid_view_rounded;
+  if (s.contains('cardio')) return Icons.monitor_heart_outlined;
+  if (s.contains('derma')) return Icons.face_outlined;
+  if (s.contains('gyne')) return Icons.supervised_user_circle_outlined;
+  if (s.contains('pedi')) return Icons.child_care_outlined;
+  if (s.contains('dentist') || s.contains('dental')) return Icons.medical_services_outlined;
+  if (s.contains('neuro')) return Icons.psychology_outlined;
+  if (s.contains('ortho')) return Icons.accessibility_new_rounded;
+  if (s.contains('ent')) return Icons.hearing_rounded;
+  if (s.contains('eye') || s.contains('opthal')) return Icons.visibility_outlined;
+  if (s.contains('physio')) return Icons.fitness_center_rounded;
+  if (s.contains('general')) return Icons.medical_information_outlined;
+  return Icons.health_and_safety_outlined;
+}
+
+class _QuickLink extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color color;
+
+  const _QuickLink({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: color.withOpacity(0.12),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.manrope(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF192233),
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonPulse extends StatefulWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  const _SkeletonPulse({
+    required this.width,
+    required this.height,
+    this.borderRadius = 16,
+  });
+
+  @override
+  State<_SkeletonPulse> createState() => _SkeletonPulseState();
+}
+
+class _SkeletonPulseState extends State<_SkeletonPulse>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.4, end: 0.8).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE5E9F0),
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+        ),
+      ),
+    );
   }
 }

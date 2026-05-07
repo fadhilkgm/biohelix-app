@@ -1,8 +1,17 @@
-part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/config/app_config.dart';
+import '../../core/models/patient_models.dart';
+import '../../core/providers/patient_portal_provider.dart';
+import '../../lab_booking/models/lab_booking_models.dart';
+import '../../lab_booking/state/lab_booking_controller.dart';
+import '../../lab_booking/screens/cart_screen.dart';
+import '../../lab_booking/screens/test_booking_screen.dart';
 
-class _LabTestDetailPage extends StatelessWidget {
-  const _LabTestDetailPage({required this.test});
+class LabTestDetailPage extends StatelessWidget {
+  const LabTestDetailPage({required this.test, this.controller});
   final LabTestItem test;
+  final LabBookingController? controller;
 
   BookableLabTest _toBookableTest(LabTestItem item) {
     final lower = item.testName.toLowerCase();
@@ -32,8 +41,10 @@ class _LabTestDetailPage extends StatelessWidget {
       parameters: lower.contains('cbc')
           ? const ['Hemoglobin', 'WBC', 'RBC', 'Platelets']
           : const ['Primary marker', 'Secondary marker', 'Reference range'],
-      price: 399 + (item.id % 10) * 110,
+      price: (item.discountedPrice ?? item.basePrice).toDouble(),
+      basePrice: item.basePrice.toDouble(),
       popular: item.id % 2 == 0,
+      originalItem: item,
     );
   }
 
@@ -54,18 +65,20 @@ class _LabTestDetailPage extends StatelessWidget {
       }
     }
 
-    final patientName = portal.dashboard?.patient.name ?? 'Patient';
-    final controller = LabBookingController(
-      patientName: patientName,
-      tests: portal.labTests,
-    );
-    controller.addToCart(_toBookableTest(test));
+    final targetController = controller ?? () {
+      final patientName = portal.dashboard?.patient.name ?? 'Patient';
+      return LabBookingController(
+        patientName: patientName,
+        tests: portal.labTests,
+      );
+    }();
+    targetController.addToCart(_toBookableTest(test));
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ChangeNotifierProvider.value(
-          value: controller,
-          child: const CartScreen(),
+          value: targetController,
+          child: const TestBookingScreen(),
         ),
       ),
     );
@@ -74,35 +87,62 @@ class _LabTestDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final config = Provider.of<AppConfig>(context, listen: false);
-    final apiBase = config.apiBaseUrl.replaceAll('/api', '');
-
-    String resolveUrl(String? url) {
-      if (url == null || url.isEmpty) return '';
-      if (url.startsWith('http')) return url;
-      final cleanUrl = url.startsWith('/') ? url.substring(1) : url;
-      return '$apiBase/$cleanUrl';
-    }
-
-    final imageUrl = resolveUrl(test.imageUrl);
-
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 280,
+            expandedHeight: 320,
             pinned: true,
+            stretch: true,
+            backgroundColor: const Color(0xFF5A88F1),
+            elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'test_image_${test.id}',
-                child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
+                child: Consumer<AppConfig>(
+                  builder: (context, config, _) {
+                    final apiBase = config.apiBaseUrl.replaceAll('/api', '');
+                    final path = test.imageUrl ?? '';
+                    
+                    String resolvedUrl = '';
+                    if (path.isNotEmpty) {
+                      if (path.startsWith('http')) {
+                        resolvedUrl = path;
+                      } else {
+                        final base = apiBase.endsWith('/') 
+                            ? apiBase.substring(0, apiBase.length - 1) 
+                            : apiBase;
+                        final normalizedPath = path.startsWith('/') ? path : '/$path';
+                        resolvedUrl = '$base$normalizedPath';
+                      }
+                    }
+
+                    if (resolvedUrl.isEmpty) {
+                      return Image.asset(
+                        'assets/images/lab.png',
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _LabTestImagePlaceholder(test: test),
-                      )
-                    : _LabTestImagePlaceholder(test: test),
+                      );
+                    }
+
+                    return Image.network(
+                      resolvedUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: const Color(0xFFF4F7FF),
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      },
+                      errorBuilder: (_, _, _) => Image.asset(
+                        'assets/images/lab.png',
+                        fit: BoxFit.cover,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -155,17 +195,7 @@ class _LabTestDetailPage extends StatelessWidget {
                   _TestDetailTile(
                     icon: Icons.access_time_rounded,
                     title: 'Reporting Time',
-                    value: 'Within 24 hours',
-                  ),
-                  _TestDetailTile(
-                    icon: Icons.science_outlined,
-                    title: 'Sample required',
-                    value: 'Blood / Plasma',
-                  ),
-                  _TestDetailTile(
-                    icon: Icons.no_food_outlined,
-                    title: 'Patient Preparation',
-                    value: 'Fasting may be required (8-10 hours)',
+                    value: test.resultEta ?? 'Within 24 hours',
                   ),
                   _TestDetailTile(
                     icon: Icons.verified_user_outlined,
@@ -193,19 +223,35 @@ class _LabTestDetailPage extends StatelessWidget {
         ),
         child: Consumer<PatientPortalProvider>(
           builder: (context, portal, _) {
-            return CustomButton(
+            return ElevatedButton(
               onPressed: test.status
                   ? () async {
                       await _openNewLabBookingFlow(context, portal);
                     }
                   : null,
-              text: test.status
-                  ? ' Book Now'
-                  : 'Not available now',
-              icon: const Icon(
-                Icons.shopping_cart_outlined,
-                color: Colors.white,
-                size: 18,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A6EAA),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.shopping_cart_outlined, size: 18),
+                  const SizedBox(width: 10),
+                  Text(
+                    test.status ? 'Book Now' : 'Not available now',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
             );
           },
@@ -266,6 +312,36 @@ class _TestDetailTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _InfoSection extends StatelessWidget {
+  const _InfoSection({required this.title, required this.content});
+  final String title;
+  final String content;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          content,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
+          ),
+        ),
+      ],
     );
   }
 }

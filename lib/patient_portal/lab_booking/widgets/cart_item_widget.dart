@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../design/app_colors.dart';
-import '../design/app_radius.dart';
-import '../design/app_spacing.dart';
-import '../design/app_text_styles.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/lab_booking_models.dart';
 
 class CartItemWidget extends StatelessWidget {
@@ -15,35 +11,55 @@ class CartItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: const [
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x120D2A3C),
-            blurRadius: 16,
-            offset: Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F7FF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.science_outlined,
+              color: Color(0xFF5A88F1),
+            ),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.test.name,
-                  style: AppTextStyles.cardTitle(context),
+                  style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: const Color(0xFF2D3142),
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Rs ${item.test.price.toStringAsFixed(0)}',
-                  style: AppTextStyles.body(context),
+                  '₹${item.test.price.toStringAsFixed(0)}',
+                  style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: const Color(0xFF5A88F1),
+                  ),
                 ),
               ],
             ),
@@ -52,7 +68,8 @@ class CartItemWidget extends StatelessWidget {
             onPressed: onRemove,
             icon: const Icon(
               Icons.delete_outline_rounded,
-              color: AppColors.danger,
+              color: Color(0xFFFF5252),
+              size: 20,
             ),
           ),
         ],

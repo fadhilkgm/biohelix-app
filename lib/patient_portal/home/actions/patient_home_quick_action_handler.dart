@@ -47,6 +47,9 @@ class _HomeQuickActionHandler {
       case 'ai_package_design':
         _push(const _AiPackageDesignPage());
         return;
+      case 'ai_checkup':
+        PatientAppShell.of(context).openAiCheckup();
+        return;
 
       case 'health_trends':
         _push(const _HealthTrendsPage(showAiInsights: false));

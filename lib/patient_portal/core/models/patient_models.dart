@@ -657,11 +657,14 @@ class DoctorListing {
     this.breakStartTime,
     this.breakEndTime,
     this.slotDurationMinutes,
+    this.globalSchedule,
     this.departmentName,
     this.email,
     this.phone,
     this.registrationNumber,
     this.imageUrl,
+    this.description,
+    this.consultationFee,
   });
 
   final int id;
@@ -676,11 +679,14 @@ class DoctorListing {
   final String? breakStartTime;
   final String? breakEndTime;
   final int? slotDurationMinutes;
+  final String? globalSchedule;
   final String? departmentName;
   final String? email;
   final String? phone;
   final String? registrationNumber;
   final String? imageUrl;
+  final String? description;
+  final int? consultationFee;
 
   factory DoctorListing.fromJson(Map<String, dynamic> json) {
     return DoctorListing(
@@ -696,6 +702,7 @@ class DoctorListing {
       breakStartTime: json['breakStartTime'] as String?,
       breakEndTime: json['breakEndTime'] as String?,
       slotDurationMinutes: (json['slotDurationMinutes'] as num?)?.toInt(),
+      globalSchedule: json['globalSchedule'] as String?,
       departmentName:
           json['departmentName'] as String? ??
           json['department_name'] as String?,
@@ -704,6 +711,28 @@ class DoctorListing {
       registrationNumber:
           json['registrationNumber'] as String? ??
           json['registration_number'] as String?,
+      imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
+      description: json['description'] as String?,
+      consultationFee: (json['consultationFee'] as num?)?.toInt() ?? (json['consultation_fee'] as num?)?.toInt(),
+    );
+  }
+}
+
+class DepartmentItem {
+  const DepartmentItem({
+    required this.id,
+    required this.name,
+    this.imageUrl,
+  });
+
+  final int id;
+  final String name;
+  final String? imageUrl;
+
+  factory DepartmentItem.fromJson(Map<String, dynamic> json) {
+    return DepartmentItem(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      name: json['name'] as String? ?? '',
       imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
     );
   }
@@ -876,6 +905,8 @@ class LabTestItem {
     required this.categoryId,
     required this.categoryName,
     required this.status,
+    required this.basePrice,
+    this.discountedPrice,
     this.uuid,
     this.imageUrl,
     this.instructions,
@@ -887,18 +918,31 @@ class LabTestItem {
   final int categoryId;
   final String categoryName;
   final bool status;
+  final double basePrice;
+  final double? discountedPrice;
   final String? uuid;
   final String? imageUrl;
   final String? instructions;
   final String? resultEta;
 
   factory LabTestItem.fromJson(Map<String, dynamic> json) {
+    double parseDbl(dynamic v) {
+      if (v == null) return 0.0;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? 0.0;
+      return 0.0;
+    }
+
     return LabTestItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
       testName: json['testName'] as String? ?? 'Lab test',
       categoryId: (json['categoryId'] as num?)?.toInt() ?? 0,
       categoryName: json['categoryName'] as String? ?? 'General',
       status: json['status'] as bool? ?? true,
+      basePrice: parseDbl(json['basePrice'] ?? json['base_price']),
+      discountedPrice: json['discountedPrice'] != null || json['discounted_price'] != null
+          ? parseDbl(json['discountedPrice'] ?? json['discounted_price'])
+          : null,
       uuid: json['uuid'] as String?,
       imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
       instructions: json['instructions'] as String?,
@@ -1034,20 +1078,29 @@ class LabPackageItem {
   final List<String> includedTests;
 
   factory LabPackageItem.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? 0;
+      return 0;
+    }
+
     final includedRaw = json['includedTests'] as List<dynamic>? ?? const [];
     return LabPackageItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name'] as String? ?? 'Health package',
       slug: json['slug'] as String? ?? '',
       status: json['status'] as bool? ?? true,
-      basePrice: (json['basePrice'] as num?)?.toInt() ?? 0,
+      basePrice: parseInt(json['basePrice'] ?? json['base_price']),
       description: json['description'] as String?,
       category: json['category'] as String?,
       imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
       instructions: json['instructions'] as String?,
       resultEta: json['resultEta'] as String? ?? json['result_eta'] as String?,
       totalTests: (json['totalTests'] as num?)?.toInt(),
-      discountedPrice: (json['discountedPrice'] as num?)?.toInt(),
+      discountedPrice: json['discountedPrice'] != null || json['discounted_price'] != null
+          ? parseInt(json['discountedPrice'] ?? json['discounted_price'])
+          : null,
       includedTests: includedRaw
           .map((item) {
             if (item is Map<String, dynamic>) {

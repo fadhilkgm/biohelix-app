@@ -164,27 +164,28 @@ class _SplashScreenState extends State<SplashScreen>
                               child: Column(
                                 children: [
                                   Text(
-                                    'Biohelix',
+                                    'BioHelix',
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context)
                                         .textTheme
                                         .displayMedium
                                         ?.copyWith(
-                                          fontWeight: FontWeight.w800,
+                                          fontWeight: FontWeight.w900,
                                           color: primaryTextColor,
-                                          letterSpacing: -0.5,
+                                          letterSpacing: -1.0,
                                         ),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'by BHRC',
+                                    'Health and Research Center',
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyLarge
                                         ?.copyWith(
                                           color: secondaryTextColor,
-                                          letterSpacing: 1.2,
+                                          letterSpacing: 0.5,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                   ),
                                 ],

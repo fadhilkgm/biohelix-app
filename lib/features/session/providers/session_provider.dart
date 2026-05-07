@@ -87,20 +87,16 @@ class SessionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendOtp({required String phone, required String mrn}) async {
+  Future<void> sendOtp({required String phone, String? mrn}) async {
     final wasAuthenticated = isAuthenticated;
     final normalizedPhone = phone.trim();
-    final normalizedMrn = mrn.trim();
+    final normalizedMrn = (mrn ?? '').trim();
     if (normalizedPhone.isEmpty) {
       _errorMessage = 'Enter a valid mobile number.';
       notifyListeners();
       return;
     }
-    if (normalizedMrn.isEmpty) {
-      _errorMessage = 'Enter your MRN number.';
-      notifyListeners();
-      return;
-    }
+    // MRN is now optional, so no mandatory check here
 
     _state = SessionState.sendingOtp;
     _errorMessage = null;

@@ -419,7 +419,7 @@ class _TestsTabState extends State<_TestsTab> {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) => _LabTestDetailPage(test: test),
+                          builder: (_) => LabTestDetailPage(test: test),
                         ),
                       );
                     },

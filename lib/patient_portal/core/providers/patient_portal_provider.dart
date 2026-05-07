@@ -5,7 +5,7 @@ import '../data/patient_repository.dart';
 import '../models/home_feed_models.dart';
 import '../models/patient_models.dart';
 
-part '../../bookings/utils/patient_portal_provider_booking.dart';
+part '../../bookings/utils/portal_provider_booking.dart';
 part '../../assistant/utils/patient_portal_provider_chat.dart';
 part '../../records/utils/patient_portal_provider_documents.dart';
 part 'patient_portal_provider_load.dart';
@@ -37,6 +37,7 @@ class PatientPortalProvider extends ChangeNotifier {
   List<LabOrderItem> _labOrders = const [];
   List<LabPackageItem> _labPackages = const [];
   List<LabPackageOrderItem> _labPackageOrders = const [];
+  List<DepartmentItem> _departments = const [];
   List<ChatThreadSummary> _chatThreads = const [];
   String? _activeChatThreadId;
   final Map<String, List<ChatMessage>> _chatHistories =
@@ -72,6 +73,7 @@ class PatientPortalProvider extends ChangeNotifier {
   List<LabOrderItem> get labOrders => _labOrders;
   List<LabPackageItem> get labPackages => _labPackages;
   List<LabPackageOrderItem> get labPackageOrders => _labPackageOrders;
+  List<DepartmentItem> get departments => _departments;
   List<ChatThreadSummary> get chatThreads => _chatThreads;
   String? get activeChatThreadId => _activeChatThreadId;
   List<ChatMessage> get chatMessages {
@@ -143,6 +145,7 @@ class PatientPortalProvider extends ChangeNotifier {
     _labOrders = const [];
     _labPackages = const [];
     _labPackageOrders = const [];
+    _departments = const [];
     _chatThreads = const [];
     _activeChatThreadId = null;
     _chatHistories.clear();

@@ -34,7 +34,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
 
   Future<void> createLabOrder({
     required int labTestId,
-    required int doctorId,
+    int? doctorId,
     required String date,
     String? slot,
     String collectionType = 'home',
@@ -55,7 +55,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     try {
       await _repository.createLabOrder(
         labTestId: labTestId,
-        doctorId: doctorId,
+        doctorId: null, // Keep null as requested
         date: date,
         slot: slot,
         collectionType: collectionType,
@@ -98,7 +98,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
 
   Future<void> createLabPackageOrder({
     required int labPackageId,
-    required int doctorId,
+    int? doctorId,
     required String date,
     String? slot,
     String collectionType = 'home',
@@ -119,7 +119,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     try {
       await _repository.createLabPackageOrder(
         labPackageId: labPackageId,
-        doctorId: doctorId,
+        doctorId: null, // Keep null as requested
         date: date,
         slot: slot,
         collectionType: collectionType,
@@ -222,6 +222,56 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
       rethrow;
     } finally {
       _isCreatingBooking = false;
+      _notify();
+    }
+  }
+
+  Future<void> rescheduleLabOrder({
+    required int orderId,
+    required String date,
+    String? slot,
+  }) async {
+    _isCreatingLabOrder = true;
+    _errorMessage = null;
+    _notify();
+
+    try {
+      await _repository.rescheduleLabOrder(
+        orderId: orderId,
+        date: date,
+        slot: slot,
+      );
+      await loadPortal();
+    } catch (error) {
+      _errorMessage = error.toString();
+      rethrow;
+    } finally {
+      _isCreatingLabOrder = false;
+      _notify();
+    }
+  }
+
+  Future<void> rescheduleLabPackageOrder({
+    required int orderId,
+    required String date,
+    String? slot,
+  }) async {
+    _isCreatingLabOrder = true;
+    _errorMessage = null;
+    _notify();
+
+    try {
+      await _repository.rescheduleLabPackageOrder(
+        orderId: orderId,
+        date: date,
+        slot: slot,
+      );
+      await loadPortal();
+    } catch (error) {
+      _errorMessage = error.toString();
+      rethrow;
+    } finally {
+      _isCreatingLabOrder = false;
       _notify();
     }
   }

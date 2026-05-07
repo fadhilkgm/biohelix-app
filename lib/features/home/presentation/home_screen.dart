@@ -30,6 +30,12 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _resetOnboarding() {
+    setState(() {
+      _hasFinishedOnboardingThisLaunch = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer2<SessionProvider, PatientPortalProvider>(
@@ -63,7 +69,9 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         if (!session.isAuthenticated) {
-          return const PatientAuthFlow();
+          return PatientAuthFlow(
+            onBackToOnboarding: _resetOnboarding,
+          );
         }
 
         return PatientAppShell(key: ValueKey(session.patient?.id));

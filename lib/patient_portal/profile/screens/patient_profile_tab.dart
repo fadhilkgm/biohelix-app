@@ -414,7 +414,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                 padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF6F8FF),
+                    color: const Color(0xFFF4F7F8),
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
@@ -433,7 +433,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                         padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Color(0xFF0C5B97), Color(0xFF0EA0CF)],
+                            colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -525,8 +525,8 @@ class _ProfileTabState extends State<_ProfileTab> {
                                           borderRadius: BorderRadius.circular(22),
                                           border: Border.all(
                                             color: isActive
-                                                ? const Color(0xFF0EA0CF)
-                                                : const Color(0xFFE3EAF5),
+                                                ? const Color(0xFF5A88F1)
+                                                : const Color(0xFFE5E9F0),
                                             width: isActive ? 1.6 : 1,
                                           ),
                                         ),
@@ -538,8 +538,8 @@ class _ProfileTabState extends State<_ProfileTab> {
                                               decoration: BoxDecoration(
                                                 gradient: const LinearGradient(
                                                   colors: [
-                                                    Color(0xFF0C5B97),
-                                                    Color(0xFF0EA0CF),
+                                                    Color(0xFF5A88F1),
+                                                    Color(0xFF759BF1),
                                                   ],
                                                 ),
                                                 borderRadius:
@@ -584,7 +584,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                                                         .bodySmall
                                                         ?.copyWith(
                                                           color: const Color(
-                                                            0xFF275A9A,
+                                                            0xFF5A88F1,
                                                           ),
                                                           fontWeight:
                                                               FontWeight.w700,
@@ -613,7 +613,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                                                     ),
                                                 decoration: BoxDecoration(
                                                   color: const Color(
-                                                    0xFFDDF6FF,
+                                                     0xFFF4F7FF,
                                                   ),
                                                   borderRadius:
                                                       BorderRadius.circular(999),
@@ -621,7 +621,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                                                 child: const Text(
                                                   'Active',
                                                   style: TextStyle(
-                                                    color: Color(0xFF0C5B97),
+                                                     color: Color(0xFF5A88F1),
                                                     fontWeight: FontWeight.w800,
                                                   ),
                                                 ),
@@ -650,7 +650,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                                   );
                                 },
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0C5B97),
+                                  backgroundColor: const Color(0xFF5A88F1),
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 16,

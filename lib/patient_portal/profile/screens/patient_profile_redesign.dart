@@ -21,14 +21,14 @@ class _RedesignedProfileSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF0C5B97),
+        statusBarColor: Color(0xFF5A88F1),
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
       child: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF6F8FF), Color(0xFFEFF2FB)],
+            colors: [Color(0xFFF4F7F8), Color(0xFFE8EEF8)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -125,7 +125,7 @@ class _ProfileHeroHeader extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(16, topInset + 20, 16, 22),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF0C5B97), Color(0xFF0EA0CF)],
+          colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -208,7 +208,7 @@ class _ProfileHeroHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF39B9E6).withValues(alpha: 0.8),
+              color: const Color(0xFF759BF1).withValues(alpha: 0.8),
               borderRadius: BorderRadius.circular(999),
             ),
             child: const Text(

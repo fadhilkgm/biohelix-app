@@ -16,14 +16,12 @@ class PatientAuthScreen extends StatefulWidget {
 
 class _PatientAuthScreenState extends State<PatientAuthScreen> {
   final _phoneController = TextEditingController();
-  final _mrnController = TextEditingController();
   final _otpController = TextEditingController();
   bool _showLoginForm = false;
 
   @override
   void dispose() {
     _phoneController.dispose();
-    _mrnController.dispose();
     _otpController.dispose();
     super.dispose();
   }
@@ -170,17 +168,6 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                         keyboardType: TextInputType.phone,
                                         readOnly: otpRequested,
                                       ),
-                                      const SizedBox(height: 16),
-                                      if (!otpRequested) ...[
-                                        CustomTextField(
-                                          controller: _mrnController,
-                                          label: 'MRN',
-                                          hintText: 'Enter your MRN number',
-                                          prefixIcon: const Icon(Icons.badge_outlined),
-                                          keyboardType: TextInputType.text,
-                                        ),
-                                        const SizedBox(height: 16),
-                                      ],
                                       if (otpRequested) ...[
                                         CustomTextField(
                                           controller: _otpController,
@@ -233,7 +220,6 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                                     .read<SessionProvider>()
                                                     .sendOtp(
                                                       phone: _phoneController.text,
-                                                      mrn: _mrnController.text,
                                                     );
                                                 if (context.mounted) {
                                                   messenger.showSnackBar(
@@ -271,7 +257,6 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                                 : () {
                                                     _otpController.clear();
                                                     _phoneController.clear();
-                                                    _mrnController.clear();
                                                     context.read<SessionProvider>().cancelPendingOtp();
                                                   },
                                             icon: Icon(

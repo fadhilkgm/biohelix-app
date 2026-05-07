@@ -174,6 +174,7 @@ class _HomeBannerCarouselState extends State<_HomeBannerCarousel> {
                       Image.network(
                         banner.imageUrl,
                         fit: BoxFit.cover,
+                        alignment: Alignment.centerRight,
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: AppColors.primary.withValues(alpha: 0.15),
                           alignment: Alignment.center,

@@ -26,7 +26,7 @@ class AppConfig {
           env['API_BASE_URL'] ??
           const String.fromEnvironment(
             'API_BASE_URL',
-            defaultValue: 'http://192.168.1.20:8787/api',
+            defaultValue: 'http://192.168.1.13/api',
           ),
       healthEndpoint: env['HEALTH_ENDPOINT'] ?? '/health',
       showDevOtp: showDevOtp,

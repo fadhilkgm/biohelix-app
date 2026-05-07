@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-import '../design/app_colors.dart';
-import '../models/lab_booking_models.dart';
-import '../design/app_spacing.dart';
 import '../state/lab_booking_controller.dart';
 import '../widgets/slot_selector_widget.dart';
-import 'address_screen.dart';
 import 'payment_screen.dart';
 
 class SlotSelectionScreen extends StatelessWidget {
@@ -16,143 +13,184 @@ class SlotSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<LabBookingController>();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose Slot')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border.all(color: AppColors.primary.withOpacity(0.5)),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => c.setCollectionType(CollectionType.home),
-                      child: Container(
-                        height: double.infinity,
-                        decoration: BoxDecoration(
-                          color: c.collectionType == CollectionType.home
-                              ? AppColors.primary
-                              : Colors.transparent,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (c.collectionType == CollectionType.home) ...[
-                              const Icon(
-                                Icons.check,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                            Text(
-                              'Home Collection',
-                              style: TextStyle(
-                                fontSize: 13,
-                                letterSpacing: 0.1,
-                                fontWeight: FontWeight.bold,
-                                color: c.collectionType == CollectionType.home
-                                    ? Colors.white
-                                    : AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => c.setCollectionType(CollectionType.lab),
-                      child: Container(
-                        height: double.infinity,
-                        decoration: BoxDecoration(
-                          color: c.collectionType == CollectionType.lab
-                              ? AppColors.primary
-                              : Colors.transparent,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (c.collectionType == CollectionType.lab) ...[
-                              const Icon(
-                                Icons.check,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                            Text(
-                              'Visit Lab',
-                              style: TextStyle(
-                                fontSize: 13,
-                                letterSpacing: 0.1,
-                                fontWeight: FontWeight.bold,
-                                color: c.collectionType == CollectionType.lab
-                                    ? Colors.white
-                                    : AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+      backgroundColor: const Color(0xFFF8F9FB),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: false,
+        title: Text(
+          'Select Slot',
+          style: GoogleFonts.manrope(
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF2D3142),
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'When should we arrive?',
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  color: const Color(0xFF2D3142),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ListTile(
-            title: const Text('Preferred Date'),
-            subtitle: Text(DateFormat('EEE, dd MMM yyyy').format(c.date)),
-            trailing: const Icon(Icons.calendar_month_rounded),
-            onTap: () async {
-              final d = await showDatePicker(
-                context: context,
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 90)),
-                initialDate: c.date,
-              );
-              if (d != null) c.setDate(d);
-            },
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SlotSelectorWidget(
-            slots: c.slots,
-            selectedSlot: c.slot,
-            onSelect: c.setSlot,
-          ),
-        ],
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.md,
-          8,
-          AppSpacing.md,
-          AppSpacing.md,
+            const SizedBox(height: 24),
+            
+            // Date Selection Card
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: InkWell(
+                onTap: () async {
+                  final d = await showDatePicker(
+                    context: context,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 90)),
+                    initialDate: c.date,
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.light(
+                            primary: Color(0xFF5A88F1),
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (d != null) c.setDate(d);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4F7FF),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.calendar_today_rounded,
+                          color: Color(0xFF5A88F1),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Appointment Date',
+                              style: GoogleFonts.manrope(
+                                fontSize: 13,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('EEEE, dd MMM yyyy').format(c.date),
+                              style: GoogleFonts.manrope(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF2D3142),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Slot Selector
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Available Time Slots',
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: const Color(0xFF2D3142),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SlotSelectorWidget(
+              slots: c.slots,
+              selectedSlot: c.slot,
+              onSelect: c.setSlot,
+            ),
+            
+            const SizedBox(height: 100),
+          ],
         ),
-        child: FilledButton(
-          onPressed: () => _push(
-            context,
-            c.collectionType == CollectionType.home
-                ? const AddressScreen()
-                : const PaymentScreen(),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: c.slot != null
+              ? () => _push(context, const PaymentScreen())
+              : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF5A88F1),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0,
           ),
-          style: FilledButton.styleFrom(
-            shape: const StadiumBorder(),
-            backgroundColor: AppColors.primary,
-            minimumSize: const Size.fromHeight(52),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Proceed to Payment',
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.payment_rounded, size: 20),
+            ],
           ),
-          child: const Text('Continue'),
         ),
       ),
     );

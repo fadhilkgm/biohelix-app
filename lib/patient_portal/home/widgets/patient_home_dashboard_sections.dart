@@ -8,6 +8,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
     required this.bloodGroup,
     required this.points,
     required this.banners,
+    required this.departments,
     required this.doctors,
     required this.labTests,
     required this.labPackages,
@@ -23,6 +24,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
     required this.onPackageTap,
     required this.onSeeAllAppointments,
     required this.onQuickActionTap,
+    this.isLoading = false,
   });
 
   final String patientName;
@@ -31,6 +33,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
   final String? bloodGroup;
   final int points;
   final List<HomeBannerItem> banners;
+  final List<DepartmentItem> departments;
   final List<DoctorListing> doctors;
   final List<LabTestItem> labTests;
   final List<LabPackageItem> labPackages;
@@ -46,6 +49,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
   final ValueChanged<LabPackageItem> onPackageTap;
   final VoidCallback onSeeAllAppointments;
   final ValueChanged<String> onQuickActionTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +60,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
       patientName: patientName,
       registrationNumber: registrationNumber,
       banners: banners,
+      departments: departments,
       doctors: doctors,
       labTests: labTests,
       labPackages: labPackages,
@@ -66,6 +71,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
       onOfferTap: onOfferTap,
       onActionTap: onQuickActionTap,
       apiBaseUrl: apiBase,
+      isLoading: isLoading,
       onDoctorTap: (doctor) {
         Navigator.of(context).push(
           MaterialPageRoute<void>(
@@ -76,7 +82,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
       onLabTap: (test) {
         Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => _LabTestDetailPage(test: test),
+            builder: (_) => LabTestDetailPage(test: test),
           ),
         );
       },

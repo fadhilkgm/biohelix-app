@@ -137,7 +137,7 @@ class _HomeFeedTargetHandler {
     }
 
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => _LabTestDetailPage(test: test)),
+      MaterialPageRoute<void>(builder: (_) => LabTestDetailPage(test: test)),
     );
     return true;
   }
