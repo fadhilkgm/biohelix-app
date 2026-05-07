@@ -1,4 +1,4 @@
-part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
+﻿part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _DashboardTab extends StatelessWidget {
   const _DashboardTab({
@@ -200,7 +200,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                       onTap: () => Navigator.of(context).pop(),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -234,9 +234,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.black.withOpacity(0.3),
+                                Colors.black.withValues(alpha: 0.3),
                                 Colors.transparent,
-                                Colors.black.withOpacity(0.6),
+                                Colors.black.withValues(alpha: 0.6),
                               ],
                             ),
                           ),
@@ -292,7 +292,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '₹${activePackage.discountedPrice ?? activePackage.basePrice}',
+                                  'â‚¹${activePackage.discountedPrice ?? activePackage.basePrice}',
                                   style: GoogleFonts.manrope(
                                     fontSize: 30,
                                     fontWeight: FontWeight.w900,
@@ -301,11 +301,11 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                 ),
                                 if (activePackage.discountedPrice != null && activePackage.discountedPrice! < activePackage.basePrice)
                                   Text(
-                                    '₹${activePackage.basePrice}',
+                                    'â‚¹${activePackage.basePrice}',
                                     style: GoogleFonts.manrope(
                                       fontSize: 16,
                                       decoration: TextDecoration.lineThrough,
-                                      color: const Color(0xFF192233).withOpacity(0.3),
+                                      color: const Color(0xFF192233).withValues(alpha: 0.3),
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -371,7 +371,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                                 style: GoogleFonts.manrope(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w700,
-                                                  color: const Color(0xFF192233).withOpacity(0.8),
+                                                  color: const Color(0xFF192233).withValues(alpha: 0.8),
                                                 ),
                                               ),
                                             ),
@@ -385,7 +385,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                     activePackage.description!,
                                     style: GoogleFonts.manrope(
                                       fontSize: 16,
-                                      color: const Color(0xFF192233).withOpacity(0.6),
+                                      color: const Color(0xFF192233).withValues(alpha: 0.6),
                                       height: 1.6,
                                     ),
                                   ),
@@ -409,7 +409,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 20,
                     offset: const Offset(0, -5),
                   ),
@@ -478,7 +478,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                   borderRadius: BorderRadius.circular(32),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -523,7 +523,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                 ),
                               ),
                               Text(
-                                '₹${pkg.discountedPrice ?? pkg.basePrice}',
+                                'â‚¹${pkg.discountedPrice ?? pkg.basePrice}',
                                 style: GoogleFonts.manrope(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900,
@@ -599,9 +599,10 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
         child: Icon(
           Icons.health_and_safety_outlined,
           size: 80,
-          color: const Color(0xFF5A88F1).withOpacity(0.2),
+          color: const Color(0xFF5A88F1).withValues(alpha: 0.2),
         ),
       ),
     );
   }
 }
+

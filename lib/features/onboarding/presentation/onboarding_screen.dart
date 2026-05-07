@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, required this.onCompleted});
@@ -97,7 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     'Connect instantly with trusted doctors, book visits online, and manage your health anytime.',
                     style: TextStyle(
                       fontSize: 16,
-                      color: const Color(0xFF192233).withOpacity(0.7),
+                      color: const Color(0xFF192233).withValues(alpha: 0.7),
                       height: 1.5,
                       fontWeight: FontWeight.w500,
                     ),
@@ -149,7 +149,7 @@ class _SwipeToStartSliderState extends State<_SwipeToStartSlider> {
             borderRadius: BorderRadius.circular(44),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF537DE8).withOpacity(0.3),
+                color: const Color(0xFF537DE8).withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -217,7 +217,7 @@ class _SwipeToStartSliderState extends State<_SwipeToStartSlider> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha: 0.15),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -249,4 +249,5 @@ class _SwipeToStartSliderState extends State<_SwipeToStartSlider> {
     );
   }
 }
+
 

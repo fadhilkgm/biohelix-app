@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -145,7 +145,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
+                        color: Colors.black.withValues(alpha: 0.12),
                         blurRadius: 28,
                         offset: const Offset(0, 12),
                       ),
@@ -185,7 +185,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                   Text(
                                     'Select a family member to book this package for.',
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: Colors.white.withOpacity(0.82),
+                                      color: Colors.white.withValues(alpha: 0.82),
                                     ),
                                   ),
                                 ],
@@ -195,7 +195,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                               onPressed: () => Navigator.of(sheetContext).pop(),
                               style: IconButton.styleFrom(
                                 foregroundColor: Colors.white,
-                                backgroundColor: Colors.white.withOpacity(0.14),
+                                backgroundColor: Colors.white.withValues(alpha: 0.14),
                               ),
                               icon: const Icon(Icons.close_rounded),
                             ),
@@ -509,11 +509,11 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF192233).withOpacity(0.5),
+                          color: const Color(0xFF192233).withValues(alpha: 0.5),
                         ),
                       ),
                       Text(
-                        '₹${widget.package.discountedPrice ?? widget.package.basePrice}',
+                        'â‚¹${widget.package.discountedPrice ?? widget.package.basePrice}',
                         style: GoogleFonts.manrope(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
@@ -563,7 +563,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(4),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF5A88F1).withOpacity(0.1),
+                                          color: const Color(0xFF5A88F1).withValues(alpha: 0.1),
                                           shape: BoxShape.circle,
                                         ),
                                         child: const Icon(
@@ -579,7 +579,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                           style: GoogleFonts.manrope(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF192233).withOpacity(0.7),
+                                            color: const Color(0xFF192233).withValues(alpha: 0.7),
                                           ),
                                         ),
                                       ),
@@ -591,7 +591,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                               widget.package.description!,
                               style: GoogleFonts.manrope(
                                 fontSize: 14,
-                                color: const Color(0xFF192233).withOpacity(0.6),
+                                color: const Color(0xFF192233).withValues(alpha: 0.6),
                                 height: 1.5,
                               ),
                             ),
@@ -692,7 +692,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: Colors.black.withValues(alpha: 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -730,7 +730,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                             '${_selectedPatient!.age} yrs \u2022 ${_selectedPatient!.gender}',
                             style: GoogleFonts.manrope(
                               fontSize: 13,
-                              color: const Color(0xFF192233).withOpacity(0.5),
+                              color: const Color(0xFF192233).withValues(alpha: 0.5),
                             ),
                           ),
                       ],
@@ -817,7 +817,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       'No slots available for this date. Please choose another date.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.manrope(
-                        color: const Color(0xFF192233).withOpacity(0.5),
+                        color: const Color(0xFF192233).withValues(alpha: 0.5),
                       ),
                     ),
                   );
@@ -841,7 +841,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -923,7 +923,7 @@ class _CollectionTab extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color: selected ? const Color(0xFF5A88F1) : const Color(0xFF192233).withOpacity(0.4),
+                color: selected ? const Color(0xFF5A88F1) : const Color(0xFF192233).withValues(alpha: 0.4),
               ),
               const SizedBox(width: 8),
               Text(
@@ -931,7 +931,7 @@ class _CollectionTab extends StatelessWidget {
                 style: GoogleFonts.manrope(
                   fontSize: 14,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: selected ? const Color(0xFF5A88F1) : const Color(0xFF192233).withOpacity(0.4),
+                  color: selected ? const Color(0xFF5A88F1) : const Color(0xFF192233).withValues(alpha: 0.4),
                 ),
               ),
             ],
@@ -983,7 +983,7 @@ class _HorizontalDatePicker extends StatelessWidget {
                     style: GoogleFonts.manrope(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: isSelected ? Colors.white.withOpacity(0.7) : const Color(0xFF192233).withOpacity(0.4),
+                      color: isSelected ? Colors.white.withValues(alpha: 0.7) : const Color(0xFF192233).withValues(alpha: 0.4),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1004,3 +1004,4 @@ class _HorizontalDatePicker extends StatelessWidget {
     );
   }
 }
+

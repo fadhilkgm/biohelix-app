@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../core/network/api_client.dart';
 import '../models/home_feed_models.dart';
@@ -33,6 +35,37 @@ String _resolveApiMediaUrl(String raw, String apiBaseUrl) {
   }
 
   return base.resolve(value).toString();
+}
+
+String _resolveDocumentMediaUrl(
+  String raw,
+  String apiBaseUrl,
+  ApiClient apiClient,
+) {
+  String resolveOne(String value) {
+    final resolved = _resolveApiMediaUrl(value, apiBaseUrl);
+    return apiClient.authenticatedMediaUrl(resolved);
+  }
+
+  final trimmed = raw.trim();
+  if (trimmed.startsWith('[')) {
+    try {
+      final parsed = jsonDecode(trimmed);
+      if (parsed is List) {
+        return jsonEncode(
+          parsed
+              .whereType<String>()
+              .map(resolveOne)
+              .where((value) => value.isNotEmpty)
+              .toList(),
+        );
+      }
+    } catch (_) {
+      // Fall through to resolving the raw value.
+    }
+  }
+
+  return resolveOne(raw);
 }
 
 class OtpSession {
@@ -187,7 +220,11 @@ class PatientRepository {
       final json = _map(item);
       final rawPath = json['documentPath'] as String? ?? '';
       if (rawPath.trim().isNotEmpty) {
-        json['documentPath'] = _resolveApiMediaUrl(rawPath, _apiClient.baseUrl);
+        json['documentPath'] = _resolveDocumentMediaUrl(
+          rawPath,
+          _apiClient.baseUrl,
+          _apiClient,
+        );
       }
       return MedicalRecordItem.fromJson(json);
     }).toList();
@@ -210,7 +247,11 @@ class PatientRepository {
 
       final rawPath = json['documentPath'] as String? ?? '';
       if (rawPath.trim().isNotEmpty) {
-        json['documentPath'] = _resolveApiMediaUrl(rawPath, _apiClient.baseUrl);
+        json['documentPath'] = _resolveDocumentMediaUrl(
+          rawPath,
+          _apiClient.baseUrl,
+          _apiClient,
+        );
       }
 
       return DocumentRecord.fromJson(json);
@@ -507,15 +548,15 @@ class PatientRepository {
       if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
     };
 
-    print('[PatientRepository] Creating lab package order with data: $data');
+    debugPrint('[PatientRepository] Creating lab package order with data: $data');
     try {
       final response = await _apiClient.postJson(
         '/patient/lab-package-orders',
         data: data,
       );
-      print('[PatientRepository] Lab package order response: $response');
+      debugPrint('[PatientRepository] Lab package order response: $response');
     } catch (e) {
-      print('[PatientRepository] Error creating lab package order: $e');
+      debugPrint('[PatientRepository] Error creating lab package order: $e');
       rethrow;
     }
   }
@@ -558,7 +599,11 @@ class PatientRepository {
     final json = _map(response['document']);
     final rawPath = json['documentPath'] as String? ?? '';
     if (rawPath.trim().isNotEmpty) {
-      json['documentPath'] = _resolveApiMediaUrl(rawPath, _apiClient.baseUrl);
+      json['documentPath'] = _resolveDocumentMediaUrl(
+        rawPath,
+        _apiClient.baseUrl,
+        _apiClient,
+      );
     }
     return DocumentRecord.fromJson(json);
   }

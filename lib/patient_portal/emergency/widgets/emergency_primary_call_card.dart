@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class EmergencyPrimaryCallCard extends StatelessWidget {
   const EmergencyPrimaryCallCard({
@@ -20,7 +20,7 @@ class EmergencyPrimaryCallCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -39,7 +39,7 @@ class EmergencyPrimaryCallCard extends StatelessWidget {
                   height: 56,
                   width: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE53935).withOpacity(0.1),
+                    color: const Color(0xFFE53935).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -96,3 +96,4 @@ class EmergencyPrimaryCallCard extends StatelessWidget {
     );
   }
 }
+

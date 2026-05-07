@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _HomeLabTestsPreviewSection extends StatelessWidget {
@@ -26,7 +28,7 @@ class _HomeLabTestsPreviewSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Center(
@@ -96,13 +98,13 @@ class _LabTestCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
           border: Border.all(
-            color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
         child: Row(
@@ -134,7 +136,7 @@ class _LabTestCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -164,7 +166,7 @@ class _LabTestCard extends StatelessWidget {
                       Icon(
                         Icons.access_time_rounded,
                         size: 14,
-                        color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                       ),
                       const SizedBox(width: 4),
                       Expanded(
@@ -182,7 +184,7 @@ class _LabTestCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.secondary.withOpacity(0.1),
+                          color: theme.colorScheme.secondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -219,8 +221,8 @@ class _LabTestImagePlaceholder extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            theme.colorScheme.secondaryContainer.withOpacity(0.6),
-            theme.colorScheme.tertiaryContainer.withOpacity(0.4),
+            theme.colorScheme.secondaryContainer.withValues(alpha: 0.6),
+            theme.colorScheme.tertiaryContainer.withValues(alpha: 0.4),
           ],
         ),
       ),
@@ -231,7 +233,7 @@ class _LabTestImagePlaceholder extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -245,7 +247,7 @@ class _LabTestImagePlaceholder extends StatelessWidget {
             'TEST',
             style: theme.textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w900,
-              color: theme.colorScheme.onSecondaryContainer.withOpacity(0.5),
+              color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -253,3 +255,4 @@ class _LabTestImagePlaceholder extends StatelessWidget {
     );
   }
 }
+

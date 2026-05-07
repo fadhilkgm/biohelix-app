@@ -1,4 +1,4 @@
-part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
+﻿part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _TestsTab extends StatefulWidget {
   const _TestsTab();
@@ -41,7 +41,7 @@ class _TestsTabState extends State<_TestsTab> {
             height: 52,
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -262,11 +262,11 @@ class _TestsTabState extends State<_TestsTab> {
                         height: 400,
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerHighest
-                              .withOpacity(0.3),
+                              .withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: theme.colorScheme.outlineVariant.withOpacity(
-                              0.5,
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.5,
                             ),
                           ),
                         ),
@@ -299,7 +299,7 @@ class _TestsTabState extends State<_TestsTab> {
                                       shape: BoxShape.circle,
                                       color: isActive
                                           ? Colors.green
-                                          : Colors.redAccent.withOpacity(0.8),
+                                          : Colors.redAccent.withValues(alpha: 0.8),
                                       border: Border.all(
                                         color: Colors.white,
                                         width: 2,
@@ -307,8 +307,8 @@ class _TestsTabState extends State<_TestsTab> {
                                       boxShadow: [
                                         if (isActive)
                                           BoxShadow(
-                                            color: Colors.green.withOpacity(
-                                              0.4,
+                                            color: Colors.green.withValues(
+                                              alpha: 0.4,
                                             ),
                                             blurRadius: 10,
                                             spreadRadius: 4,
@@ -348,8 +348,8 @@ class _TestsTabState extends State<_TestsTab> {
                     Icon(
                       Icons.science_outlined,
                       size: 48,
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                        0.3,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.3,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -462,7 +462,7 @@ class _TestsTabState extends State<_TestsTab> {
                 icon: Icons.medication_outlined,
                 title: prescription.diagnosis ?? 'Prescription',
                 subtitle:
-                    '${prescription.doctorName} • ${prescription.medicines.length} medicines',
+                    '${prescription.doctorName} â€¢ ${prescription.medicines.length} medicines',
                 meta: prescription.date,
                 badge: prescription.followUpDate == null
                     ? 'Active'
@@ -660,3 +660,4 @@ class _TestsTabState extends State<_TestsTab> {
     );
   }
 }
+

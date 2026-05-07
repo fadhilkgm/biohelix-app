@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../design/app_spacing.dart';
@@ -142,12 +142,12 @@ class _QuickActionCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: item.iconColor.withOpacity(0.08),
+          color: item.iconColor.withValues(alpha: 0.08),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: item.iconColor.withOpacity(0.04),
+            color: item.iconColor.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -177,13 +177,13 @@ class _QuickActionCard extends StatelessWidget {
                               gradient: LinearGradient(
                                 colors: [
                                   item.iconColor,
-                                  item.iconColor.withOpacity(0.8),
+                                  item.iconColor.withValues(alpha: 0.8),
                                 ],
                               ),
                               borderRadius: BorderRadius.circular(6),
                               boxShadow: [
                                 BoxShadow(
-                                  color: item.iconColor.withOpacity(0.3),
+                                  color: item.iconColor.withValues(alpha: 0.3),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -207,10 +207,10 @@ class _QuickActionCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: item.iconBackground.withOpacity(0.5),
+                    color: item.iconBackground.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: item.iconColor.withOpacity(0.1),
+                      color: item.iconColor.withValues(alpha: 0.1),
                     ),
                   ),
                   child: Icon(item.icon, color: item.iconColor, size: 24),
@@ -253,3 +253,4 @@ class _QuickActionItem {
   final Color iconBackground;
   final bool hasAiBadge;
 }
+

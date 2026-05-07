@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
@@ -148,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           'How are you today?',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
+                            color: Colors.white.withValues(alpha: 0.85),
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             letterSpacing: 0.5,
@@ -438,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Center(
                           child: Icon(
                             Icons.medical_services_outlined,
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             size: 80,
                           ),
                         ),
@@ -452,8 +452,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withOpacity(0.1),
-                          Colors.black.withOpacity(0.75),
+                          Colors.black.withValues(alpha: 0.1),
+                          Colors.black.withValues(alpha: 0.75),
                         ],
                       ),
                     ),
@@ -478,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                             banner.subtitle!,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -567,7 +567,7 @@ class _TestCard extends StatelessWidget {
               color: const Color(0xFFF4F7FF),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: const Color(0xFF5A88F1).withOpacity(0.15),
+                color: const Color(0xFF5A88F1).withValues(alpha: 0.15),
                 width: 1.2,
               ),
             ),
@@ -623,7 +623,7 @@ class _PackageCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -702,7 +702,7 @@ class _PackageCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          '₹${pkg.discountedPrice ?? pkg.basePrice}',
+                          'â‚¹${pkg.discountedPrice ?? pkg.basePrice}',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
@@ -712,11 +712,11 @@ class _PackageCard extends StatelessWidget {
                         if (pkg.discountedPrice != null && pkg.discountedPrice! < pkg.basePrice) ...[
                           const SizedBox(width: 8),
                           Text(
-                            '₹${pkg.basePrice}',
+                            'â‚¹${pkg.basePrice}',
                             style: TextStyle(
                               fontSize: 14,
                               decoration: TextDecoration.lineThrough,
-                              color: const Color(0xFF192233).withOpacity(0.3),
+                              color: const Color(0xFF192233).withValues(alpha: 0.3),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -855,7 +855,7 @@ class _DoctorCard extends StatelessWidget {
                             Icon(
                               _getSpecialtyIcon(doc.specialization),
                               size: 13,
-                              color: const Color(0xFF192233).withOpacity(0.4),
+                              color: const Color(0xFF192233).withValues(alpha: 0.4),
                             ),
                             const SizedBox(width: 5),
                             Expanded(
@@ -865,7 +865,7 @@ class _DoctorCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: const Color(0xFF192233).withOpacity(0.5),
+                                  color: const Color(0xFF192233).withValues(alpha: 0.5),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -952,7 +952,7 @@ class _CategoryChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: isActive ? [
             BoxShadow(
-              color: const Color(0xFF5A88F1).withOpacity(0.2),
+              color: const Color(0xFF5A88F1).withValues(alpha: 0.2),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -992,7 +992,7 @@ class _CategoryChip extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: isActive ? Colors.white : const Color(0xFF192233).withOpacity(0.8),
+                color: isActive ? Colors.white : const Color(0xFF192233).withValues(alpha: 0.8),
                 fontWeight: isActive ? FontWeight.w900 : FontWeight.w700,
                 fontSize: 12,
                 height: 1.1,
@@ -1046,10 +1046,10 @@ class _QuickLink extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 20),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 width: 1.5,
               ),
             ),
@@ -1063,7 +1063,7 @@ class _QuickLink extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: color.withOpacity(0.3),
+                        color: color.withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -1148,3 +1148,4 @@ class _SkeletonPulseState extends State<_SkeletonPulse>
     );
   }
 }
+

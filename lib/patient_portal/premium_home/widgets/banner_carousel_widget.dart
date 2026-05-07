@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter/material.dart';
@@ -165,7 +165,7 @@ class _BannerCarouselWidgetState extends State<BannerCarouselWidget> {
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Colors.black.withOpacity(0.85),
+                        Colors.black.withValues(alpha: 0.85),
                         Colors.transparent,
                       ],
                     ),
@@ -183,7 +183,7 @@ class _BannerCarouselWidgetState extends State<BannerCarouselWidget> {
                         fontWeight: FontWeight.w900,
                         shadows: [
                           Shadow(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withValues(alpha: 0.5),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),
@@ -200,3 +200,4 @@ class _BannerCarouselWidgetState extends State<BannerCarouselWidget> {
     );
   }
 }
+

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class HomeHealthAlertWidget extends StatelessWidget {
   const HomeHealthAlertWidget({
@@ -19,8 +19,8 @@ class HomeHealthAlertWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          color: Colors.white.withOpacity(0.12),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          color: Colors.white.withValues(alpha: 0.12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,7 +32,7 @@ class HomeHealthAlertWidget extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
               ),
               child: const Icon(
                 Icons.wb_sunny_rounded,
@@ -48,7 +48,7 @@ class HomeHealthAlertWidget extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
@@ -74,3 +74,4 @@ class HomeHealthAlertWidget extends StatelessWidget {
     );
 }
 }
+

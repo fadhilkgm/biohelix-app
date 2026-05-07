@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../core/widgets/custom_bottom_bar.dart';
 
@@ -24,7 +24,7 @@ class BottomNavBarWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF5A88F1).withOpacity(0.3),
+            color: const Color(0xFF5A88F1).withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -40,7 +40,7 @@ class BottomNavBarWidget extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: selected ? Colors.white.withOpacity(0.25) : Colors.transparent,
+                color: selected ? Colors.white.withValues(alpha: 0.25) : Colors.transparent,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -55,3 +55,4 @@ class BottomNavBarWidget extends StatelessWidget {
     );
   }
 }
+

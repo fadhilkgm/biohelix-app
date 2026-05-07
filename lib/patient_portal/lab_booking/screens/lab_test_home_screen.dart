@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/providers/patient_portal_provider.dart';
@@ -155,7 +155,7 @@ class _LabHomeContent extends StatelessWidget {
                       Text(
                         'Same-day slots, verified labs,\nhome sample collection.',
                         style: AppTextStyles.body(context).copyWith(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           height: 1.4,
                           fontWeight: FontWeight.w600,
                         ),
@@ -212,3 +212,4 @@ class _LabHomeContent extends StatelessWidget {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
+

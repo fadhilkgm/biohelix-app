@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _HomeDoctorsPreviewSection extends StatelessWidget {
@@ -26,7 +28,7 @@ class _HomeDoctorsPreviewSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Center(
@@ -95,13 +97,13 @@ class _DoctorCompactCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.07),
+              color: Colors.black.withValues(alpha: 0.07),
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),
           ],
           border: Border.all(
-            color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
         child: Column(
@@ -139,7 +141,7 @@ class _DoctorCompactCard extends StatelessWidget {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              Colors.black.withOpacity(0.45),
+                              Colors.black.withValues(alpha: 0.45),
                             ],
                           ),
                         ),
@@ -187,7 +189,7 @@ class _DoctorCompactCard extends StatelessWidget {
                         vertical: 7,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -228,3 +230,4 @@ class _DoctorCompactCard extends StatelessWidget {
     );
   }
 }
+

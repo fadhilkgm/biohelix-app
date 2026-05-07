@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_getters_setters
+
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _AssistantTab extends StatefulWidget {
@@ -182,7 +184,7 @@ class _AssistantTabState extends State<_AssistantTab> {
                                 ),
                                 child: _DateSeparator(label: _dateLabel(date)),
                               ),
-                            MessageBubbleWidget(
+                            _MessageBubbleWidget(
                               message: message,
                               timeLabel: _messageTimeLabel(message, index),
                               attachments: attachments,

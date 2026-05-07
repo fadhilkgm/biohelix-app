@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/lab_booking_models.dart';
 
@@ -24,7 +24,7 @@ class TestCardWidget extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE5E9F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -89,7 +89,7 @@ class TestCardWidget extends StatelessWidget {
                     children: [
                       if (test.basePrice > test.price)
                         Text(
-                          '₹${test.basePrice.toStringAsFixed(0)}',
+                          'â‚¹${test.basePrice.toStringAsFixed(0)}',
                           style: GoogleFonts.manrope(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -98,7 +98,7 @@ class TestCardWidget extends StatelessWidget {
                           ),
                         ),
                       Text(
-                        '₹${test.price.toStringAsFixed(0)}',
+                        'â‚¹${test.price.toStringAsFixed(0)}',
                         style: GoogleFonts.manrope(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
@@ -154,3 +154,4 @@ class TestCardWidget extends StatelessWidget {
     );
   }
 }
+

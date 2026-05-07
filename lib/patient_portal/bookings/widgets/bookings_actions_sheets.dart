@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 extension _BookingsTabSheetActions on _BookingsTab {

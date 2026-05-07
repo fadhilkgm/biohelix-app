@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import 'emergency_support_content.dart';
 
@@ -28,7 +28,7 @@ class EmergencyLocationCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF1D4ED8).withOpacity(0.1),
+              color: const Color(0xFF1D4ED8).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -77,3 +77,4 @@ class EmergencyLocationCard extends StatelessWidget {
     );
   }
 }
+

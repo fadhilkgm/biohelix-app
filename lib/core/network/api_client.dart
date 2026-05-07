@@ -58,6 +58,11 @@ class ApiClient {
     _dio.options.headers['Authorization'] = 'Bearer $token';
   }
 
+  String authenticatedMediaUrl(String url) {
+    // Private R2 media URLs are signed by the API before reaching the app.
+    return url;
+  }
+
   Future<Map<String, dynamic>> getJson(
     String path, {
     Map<String, dynamic>? queryParameters,

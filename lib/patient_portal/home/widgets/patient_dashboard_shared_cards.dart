@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _MetricCard extends StatelessWidget {
@@ -421,7 +423,7 @@ class _RecordsOverviewPill extends StatelessWidget {
             height: 36,
             width: 36,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.08),
+              color: AppColors.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, size: 18, color: AppColors.primary),
@@ -495,7 +497,7 @@ class _DocumentRecordCard extends StatelessWidget {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.12),
+                    color: accentColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(
@@ -540,8 +542,8 @@ class _DocumentRecordCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
-                  0.42,
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.42,
                 ),
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -614,3 +616,4 @@ String _formatDate(String raw) {
     return raw;
   }
 }
+
