@@ -24,6 +24,7 @@ class ChatInputWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -57,7 +58,11 @@ class ChatInputWidget extends StatelessWidget {
                                   : Icons.graphic_eq_rounded,
                               size: 14,
                             ),
-                      label: Text(isLiveMode ? 'Stop' : 'Live'),
+                      label: Text(
+                        isLiveMode
+                            ? strings.assistantStop
+                            : strings.assistantLive,
+                      ),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         textStyle: AppTextStyles.subtitle(
@@ -80,7 +85,9 @@ class ChatInputWidget extends StatelessWidget {
               ),
               IconButton(
                 onPressed: isBusy ? null : onVoiceTap,
-                tooltip: isListening ? 'Stop voice input' : 'Start voice input',
+                tooltip: isListening
+                    ? strings.assistantStopVoiceInput
+                    : strings.assistantStartVoiceInput,
                 iconSize: isListening ? 30 : 24,
                 icon: Stack(
                   clipBehavior: Clip.none,
@@ -139,7 +146,7 @@ class ChatInputWidget extends StatelessWidget {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            'REC',
+                            strings.assistantRecording,
                             style: AppTextStyles.subtitle(context).copyWith(
                               color: Colors.white,
                               fontSize: 9,
@@ -160,7 +167,7 @@ class ChatInputWidget extends StatelessWidget {
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => onSend(),
                   decoration: InputDecoration(
-                    hintText: 'Ask anything about your health report',
+                    hintText: strings.assistantInputHint,
                     hintStyle: AppTextStyles.inputHint(context),
                     border: InputBorder.none,
                   ),
@@ -195,10 +202,10 @@ class ChatInputWidget extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'AI can make mistakes. Always consult a doctor for medical advice before taking action.',
+        Text(
+          strings.assistantDisclaimer,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 10,
             color: Colors.grey,
             fontWeight: FontWeight.w500,

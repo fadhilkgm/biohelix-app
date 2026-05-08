@@ -22,6 +22,7 @@ class _AssistantTabState extends State<_AssistantTab> {
   bool _isLiveVoiceMode = false;
   bool _isLiveTurnInFlight = false;
   String? _lastLiveSpokenReply;
+  String? _configuredTtsLanguage;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
   bool _isAttachmentUploadInFlight = false;
   String? _uploadingAttachmentName;
@@ -42,6 +43,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   set isLiveTurnInFlight(bool value) => _isLiveTurnInFlight = value;
   String? get lastLiveSpokenReply => _lastLiveSpokenReply;
   set lastLiveSpokenReply(String? value) => _lastLiveSpokenReply = value;
+  String? get configuredTtsLanguage => _configuredTtsLanguage;
+  set configuredTtsLanguage(String? value) => _configuredTtsLanguage = value;
 
   void _updateAssistantState(VoidCallback update) {
     if (!mounted) return;
@@ -80,6 +83,13 @@ class _AssistantTabState extends State<_AssistantTab> {
 
   @override
   Widget build(BuildContext context) {
+    final activeLanguage = context.watch<LanguageProvider>().language;
+    final strings = AppStrings.of(activeLanguage);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _configureTtsLanguage();
+    });
+
     return Consumer<PatientPortalProvider>(
       builder: (context, portal, _) {
         final messages = portal.chatMessages;
@@ -149,60 +159,81 @@ class _AssistantTabState extends State<_AssistantTab> {
                     ),
                   ),
                   Expanded(
-                    child: ListView.separated(
-                      controller: _messagesController,
-                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 18),
-                      itemCount:
-                          messages.length + (portal.isSendingMessage ? 1 : 0),
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: AppSpacing.s14),
-                      itemBuilder: (context, index) {
-                        if (index >= messages.length) {
-                          return const TypingIndicatorWidget();
-                        }
+                    child: messages.isEmpty && !portal.isSendingMessage
+                        ? _AssistantEmptyState(
+                            prompts: strings.assistantStarterPrompts,
+                            onPromptTap: (prompt) {
+                              _inputController.text = prompt;
+                              _sendMessage(portal);
+                            },
+                          )
+                        : ListView.separated(
+                            controller: _messagesController,
+                            padding: const EdgeInsets.fromLTRB(14, 8, 14, 18),
+                            itemCount:
+                                messages.length +
+                                (portal.isSendingMessage ? 1 : 0),
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: AppSpacing.s14),
+                            itemBuilder: (context, index) {
+                              if (index >= messages.length) {
+                                return const TypingIndicatorWidget();
+                              }
 
-                        final message = messages[index];
-                        final date = _messageDate(message, index);
-                        final showDate =
-                            index == 0 ||
-                            _dateLabel(date) !=
-                                _dateLabel(
-                                  _messageDate(messages[index - 1], index - 1),
-                                );
-                        final attachments = _attachmentsFromMessage(
-                          context,
-                          message,
-                        );
+                              final message = messages[index];
+                              final date = _messageDate(message, index);
+                              final showDate =
+                                  index == 0 ||
+                                  _dateLabel(date) !=
+                                      _dateLabel(
+                                        _messageDate(
+                                          messages[index - 1],
+                                          index - 1,
+                                        ),
+                                      );
+                              final attachments = _attachmentsFromMessage(
+                                context,
+                                message,
+                              );
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (showDate)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: AppSpacing.s12,
-                                ),
-                                child: _DateSeparator(label: _dateLabel(date)),
-                              ),
-                            _MessageBubbleWidget(
-                              message: message,
-                              timeLabel: _messageTimeLabel(message, index),
-                              attachments: attachments,
-                              onSpeakTap: () => _toggleSpeechPlayback(message),
-                              isSpeaking:
-                                  _isSpeaking &&
-                                  message.role != 'user' &&
-                                  index == messages.length - 1,
-                              onStopTap: () =>
-                                  _interruptAiSpeechAndListen(portal),
-                              onAttachmentTap: (attachment) {
-                                _openAttachmentPreview(context, attachment);
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (showDate)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: AppSpacing.s12,
+                                      ),
+                                      child: _DateSeparator(
+                                        label: _dateLabel(date),
+                                      ),
+                                    ),
+                                  _MessageBubbleWidget(
+                                    message: message,
+                                    timeLabel: _messageTimeLabel(
+                                      message,
+                                      index,
+                                    ),
+                                    attachments: attachments,
+                                    onSpeakTap: () =>
+                                        _toggleSpeechPlayback(message),
+                                    isSpeaking:
+                                        _isSpeaking &&
+                                        message.role != 'user' &&
+                                        index == messages.length - 1,
+                                    onStopTap: () =>
+                                        _interruptAiSpeechAndListen(portal),
+                                    onAttachmentTap: (attachment) {
+                                      _openAttachmentPreview(
+                                        context,
+                                        attachment,
+                                      );
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
                   ),
                   if (pendingAttachments.isNotEmpty)
                     Padding(
@@ -281,8 +312,10 @@ class _AssistantTabState extends State<_AssistantTab> {
                               child: Text(
                                 uploadingLabel == null ||
                                         uploadingLabel.trim().isEmpty
-                                    ? 'Uploading attachment...'
-                                    : 'Uploading $uploadingLabel...',
+                                    ? strings.assistantUploadingAttachment
+                                    : strings.assistantUploadingNamedAttachment(
+                                        uploadingLabel,
+                                      ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppTextStyles.subtitle(context),
@@ -383,6 +416,95 @@ class _AssistantTabState extends State<_AssistantTab> {
           },
         );
       },
+    );
+  }
+}
+
+class _AssistantEmptyState extends StatelessWidget {
+  const _AssistantEmptyState({
+    required this.prompts,
+    required this.onPromptTap,
+  });
+
+  final List<String> prompts;
+  final ValueChanged<String> onPromptTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 24, 18, 18),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AiChatColors.bubbleAi,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            boxShadow: AiChatColors.softShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: const BoxDecoration(
+                  gradient: AiChatColors.userBubbleGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.health_and_safety_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.assistantTitle,
+                      style: AppTextStyles.title(context),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      strings.assistantDisclaimer,
+                      style: AppTextStyles.subtitle(context),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s20),
+        for (final prompt in prompts)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s10),
+            child: OutlinedButton.icon(
+              onPressed: () => onPromptTap(prompt),
+              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+              label: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(prompt, textAlign: TextAlign.left),
+              ),
+              style: OutlinedButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                foregroundColor: AiChatColors.textPrimary,
+                side: BorderSide(
+                  color: AiChatColors.gradientStart.withValues(alpha: 0.16),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

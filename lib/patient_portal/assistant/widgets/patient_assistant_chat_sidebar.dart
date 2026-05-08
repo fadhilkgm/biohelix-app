@@ -20,6 +20,7 @@ class ChatSidebarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     return Container(
       decoration: BoxDecoration(
         color: AiChatColors.inputSurface,
@@ -34,14 +35,14 @@ class ChatSidebarWidget extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Previous Chats',
+                    strings.assistantPreviousChats,
                     style: AppTextStyles.title(context).copyWith(fontSize: 17),
                   ),
                 ),
                 IconButton.filledTonal(
                   onPressed: onNewChat,
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  tooltip: 'New chat',
+                  tooltip: strings.assistantNewChat,
                 ),
               ],
             ),
@@ -102,14 +103,17 @@ class ChatSidebarWidget extends StatelessWidget {
                               onDeleteThread(thread.id);
                             }
                           },
-                          itemBuilder: (context) => const [
+                          itemBuilder: (context) => [
                             PopupMenuItem<String>(
                               value: 'rename',
                               child: Row(
                                 children: [
-                                  Icon(Icons.drive_file_rename_outline_rounded, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Rename chat'),
+                                  const Icon(
+                                    Icons.drive_file_rename_outline_rounded,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(strings.assistantRenameChat),
                                 ],
                               ),
                             ),
@@ -117,9 +121,12 @@ class ChatSidebarWidget extends StatelessWidget {
                               value: 'delete',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete_outline_rounded, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Delete chat'),
+                                  const Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(strings.assistantDeleteChat),
                                 ],
                               ),
                             ),

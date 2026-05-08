@@ -79,6 +79,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
+    - .env
     - assets/images/body-organ-map.png
     - assets/images/
     - assets/images/doctor-looking-clipboard/

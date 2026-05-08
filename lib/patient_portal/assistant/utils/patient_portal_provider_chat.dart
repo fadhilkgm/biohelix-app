@@ -123,6 +123,8 @@ extension PatientPortalChatMixin on PatientPortalProvider {
   Future<void> sendChatMessage(
     String message, {
     List<ChatAttachment> attachments = const [],
+    String? language,
+    String? mode,
   }) async {
     final trimmed = message.trim();
     if (trimmed.isEmpty && attachments.isEmpty) return;
@@ -146,10 +148,10 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     _chatHistories[currentThreadId] = [...existing, userMessage];
 
     final preview = trimmed.isNotEmpty
-      ? trimmed
-      : attachments.isNotEmpty
-      ? 'Sent ${attachments.first.isImage ? 'an image' : 'an attachment'}'
-      : '';
+        ? trimmed
+        : attachments.isNotEmpty
+        ? 'Sent ${attachments.first.isImage ? 'an image' : 'an attachment'}'
+        : '';
 
     _isSendingMessage = true;
     _errorMessage = null;
@@ -161,6 +163,8 @@ extension PatientPortalChatMixin on PatientPortalProvider {
       final reply = await _repository.sendGlobalChatMessage(
         threadId: currentThreadId,
         message: wireMessage,
+        language: language,
+        mode: mode,
       );
       final updated = _chatHistories[currentThreadId] ?? const <ChatMessage>[];
       _chatHistories[currentThreadId] = [...updated, reply];

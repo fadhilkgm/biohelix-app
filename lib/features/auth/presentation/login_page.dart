@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../session/providers/session_provider.dart';
 import 'widgets/auth_form_widgets.dart';
 
@@ -46,6 +47,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final showDevOtp = context.read<AppConfig>().showDevOtp;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -68,9 +71,15 @@ class _LoginPageState extends State<LoginPage> {
             child: Consumer<SessionProvider>(
               builder: (context, session, _) {
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(28, 80, 28, 40), // 2rem top space
+                  padding: const EdgeInsets.fromLTRB(
+                    28,
+                    80,
+                    28,
+                    40,
+                  ), // 2rem top space
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center, // Centered header
+                    crossAxisAlignment:
+                        CrossAxisAlignment.center, // Centered header
                     children: [
                       // Fixed Logo Styling
                       SizedBox(
@@ -130,7 +139,9 @@ class _LoginPageState extends State<LoginPage> {
                               'Enter your mobile number to access your health records and book appointments.',
                               style: TextStyle(
                                 fontSize: 16,
-                                color: const Color(0xFF192233).withValues(alpha: 0.6),
+                                color: const Color(
+                                  0xFF192233,
+                                ).withValues(alpha: 0.6),
                                 height: 1.5,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -161,8 +172,10 @@ class _LoginPageState extends State<LoginPage> {
                               onPressed: _submit,
                             ),
                             const SizedBox(height: 20),
-                            const AuthDemoHint(
-                              text: 'Demo: Enter any mobile number',
+                            AuthDemoHint(
+                              text: showDevOtp
+                                  ? 'Demo: enter any mobile number with MRN BH000001'
+                                  : 'Use the mobile number and MRN registered at the hospital.',
                             ),
                           ],
                         ),
@@ -173,7 +186,7 @@ class _LoginPageState extends State<LoginPage> {
               },
             ),
           ),
-          
+
           // Back Button
           Positioned(
             top: 50,
@@ -201,6 +214,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-
-
-

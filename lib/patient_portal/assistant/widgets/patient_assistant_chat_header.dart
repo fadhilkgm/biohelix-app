@@ -22,13 +22,14 @@ class ChatHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     final subtitle = isSpeaking
-        ? 'AI is talking'
+        ? strings.assistantSpeaking
         : isListening
-        ? 'Listening to you'
+        ? strings.assistantListening
         : isLiveMode
-        ? 'Live mode active'
-        : 'Ready';
+        ? strings.assistantLiveModeActive
+        : strings.assistantReady;
 
     return Row(
       children: [
@@ -37,7 +38,7 @@ class ChatHeaderWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Health AI Assistant', style: AppTextStyles.title(context)),
+              Text(strings.assistantTitle, style: AppTextStyles.title(context)),
               Row(
                 children: [
                   Container(
@@ -59,20 +60,20 @@ class ChatHeaderWidget extends StatelessWidget {
           IconButton.filledTonal(
             onPressed: onInterruptAi,
             icon: const Icon(Icons.stop_circle_outlined, size: 18),
-            tooltip: 'Interrupt AI and talk',
+            tooltip: strings.assistantInterruptAi,
           ),
         if (isSpeaking) const SizedBox(width: AppSpacing.s8),
         if (showToggleThreads)
           IconButton.filledTonal(
             onPressed: onToggleThreads,
             icon: const Icon(Icons.history_rounded, size: 18),
-            tooltip: 'Previous chats',
+            tooltip: strings.assistantPreviousChats,
           ),
         const SizedBox(width: AppSpacing.s8),
         IconButton.filledTonal(
           onPressed: onNewChat,
           icon: const Icon(Icons.add_comment_rounded, size: 18),
-          tooltip: 'New chat',
+          tooltip: strings.assistantNewChat,
         ),
       ],
     );

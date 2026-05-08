@@ -94,6 +94,29 @@ String _formatBytes(int? bytes) {
 }
 
 extension _AssistantActions on _AssistantTabState {
+  AppLanguage get _assistantLanguage =>
+      context.read<LanguageProvider>().language;
+
+  LocalizedStrings get _strings => AppStrings.of(_assistantLanguage);
+
+  String get _assistantLanguageCode =>
+      _assistantLanguage == AppLanguage.ml ? 'ml' : 'en';
+
+  String get _speechLocaleId =>
+      _assistantLanguage == AppLanguage.ml ? 'ml_IN' : 'en_IN';
+
+  String get _ttsLanguageCode =>
+      _assistantLanguage == AppLanguage.ml ? 'ml-IN' : 'en-IN';
+
+  Future<void> _configureTtsLanguage() async {
+    final target = _ttsLanguageCode;
+    if (configuredTtsLanguage == target) return;
+    await tts.setLanguage(target);
+    await tts.setSpeechRate(_assistantLanguage == AppLanguage.ml ? 0.42 : 0.45);
+    await tts.setPitch(1.0);
+    configuredTtsLanguage = target;
+  }
+
   Future<bool> _ensureVoiceReady() async {
     if (speechReady) return true;
     await _initializeVoiceFeatures();
@@ -110,7 +133,12 @@ extension _AssistantActions on _AssistantTabState {
       _pendingAttachments.clear();
     });
 
-    await portal.sendChatMessage(message, attachments: attachments);
+    await portal.sendChatMessage(
+      message,
+      attachments: attachments,
+      language: _assistantLanguageCode,
+      mode: 'text',
+    );
   }
 
   Future<void> _attachFile(PatientPortalProvider portal) async {
@@ -150,27 +178,19 @@ extension _AssistantActions on _AssistantTabState {
           await portal.analyzeDocument(uploaded.id);
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Summary ready for $fileName in Reports.')),
+            SnackBar(content: Text(_strings.assistantSummaryReady(fileName))),
           );
         } catch (_) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Uploaded $fileName, but summary generation is still pending.',
-              ),
-            ),
+            SnackBar(content: Text(_strings.assistantUploadPending(fileName))),
           );
         }
       }());
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Uploaded $fileName. You can tap it to preview, then send your message.',
-          ),
-        ),
+        SnackBar(content: Text(_strings.assistantUploadedReady(fileName))),
       );
     } catch (error) {
       updateAssistantState(() {
@@ -278,9 +298,7 @@ extension _AssistantActions on _AssistantTabState {
       },
     );
 
-    await tts.setLanguage('en-US');
-    await tts.setSpeechRate(0.45);
-    await tts.setPitch(1.0);
+    await _configureTtsLanguage();
     await tts.awaitSpeakCompletion(true);
     tts.setStartHandler(() {
       if (!mounted) return;
@@ -317,11 +335,7 @@ extension _AssistantActions on _AssistantTabState {
     if (!await _ensureVoiceReady()) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Voice input unavailable. Please allow microphone permission and enable a speech recognition service (Google app / Voice Typing).',
-          ),
-        ),
+        SnackBar(content: Text(_strings.assistantVoiceUnavailable)),
       );
       return;
     }
@@ -342,11 +356,7 @@ extension _AssistantActions on _AssistantTabState {
     if (!await _ensureVoiceReady()) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Live voice unavailable. Please allow microphone permission and enable a speech recognition service (Google app / Voice Typing).',
-          ),
-        ),
+        SnackBar(content: Text(_strings.assistantLiveVoiceUnavailable)),
       );
       return;
     }
@@ -388,8 +398,10 @@ extension _AssistantActions on _AssistantTabState {
       updateAssistantState(() {
         isListening = true;
       });
+      await _configureTtsLanguage();
 
       final started = await speechToText.listen(
+        localeId: _speechLocaleId,
         listenFor: const Duration(seconds: 60),
         pauseFor: const Duration(seconds: 3),
         listenOptions: SpeechListenOptions(partialResults: true),
@@ -418,7 +430,7 @@ extension _AssistantActions on _AssistantTabState {
         isLiveVoiceMode = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to start voice listening: $error')),
+        SnackBar(content: Text('${_strings.assistantUnableToListen}: $error')),
       );
     }
   }
@@ -438,7 +450,11 @@ extension _AssistantActions on _AssistantTabState {
     });
 
     inputController.clear();
-    await portal.sendChatMessage(message);
+    await portal.sendChatMessage(
+      message,
+      language: _assistantLanguageCode,
+      mode: 'voice',
+    );
 
     if (!mounted) return;
     updateAssistantState(() {
@@ -455,6 +471,7 @@ extension _AssistantActions on _AssistantTabState {
     final toSpeak = _sanitizeSpeechText(message.content);
     if (toSpeak.isEmpty) return;
 
+    await _configureTtsLanguage();
     updateAssistantState(() {
       isSpeaking = true;
     });
@@ -493,6 +510,7 @@ extension _AssistantActions on _AssistantTabState {
     final toSpeak = _sanitizeSpeechText(message.content);
     if (toSpeak.isEmpty) return;
 
+    await _configureTtsLanguage();
     final status = await tts.speak(toSpeak);
     if (!mounted) return;
     if (status != 1) {

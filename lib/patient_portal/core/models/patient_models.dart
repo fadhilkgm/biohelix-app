@@ -713,17 +713,15 @@ class DoctorListing {
           json['registration_number'] as String?,
       imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
       description: json['description'] as String?,
-      consultationFee: (json['consultationFee'] as num?)?.toInt() ?? (json['consultation_fee'] as num?)?.toInt(),
+      consultationFee:
+          (json['consultationFee'] as num?)?.toInt() ??
+          (json['consultation_fee'] as num?)?.toInt(),
     );
   }
 }
 
 class DepartmentItem {
-  const DepartmentItem({
-    required this.id,
-    required this.name,
-    this.imageUrl,
-  });
+  const DepartmentItem({required this.id, required this.name, this.imageUrl});
 
   final int id;
   final String name;
@@ -940,7 +938,8 @@ class LabTestItem {
       categoryName: json['categoryName'] as String? ?? 'General',
       status: json['status'] as bool? ?? true,
       basePrice: parseDbl(json['basePrice'] ?? json['base_price']),
-      discountedPrice: json['discountedPrice'] != null || json['discounted_price'] != null
+      discountedPrice:
+          json['discountedPrice'] != null || json['discounted_price'] != null
           ? parseDbl(json['discountedPrice'] ?? json['discounted_price'])
           : null,
       uuid: json['uuid'] as String?,
@@ -1086,11 +1085,16 @@ class LabPackageItem {
     }
 
     final includedRaw = json['includedTests'] as List<dynamic>? ?? const [];
+    final rawStatus = json['status'];
     return LabPackageItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name'] as String? ?? 'Health package',
       slug: json['slug'] as String? ?? '',
-      status: json['status'] as bool? ?? true,
+      status: rawStatus is bool
+          ? rawStatus
+          : rawStatus is num
+          ? rawStatus != 0
+          : true,
       basePrice: parseInt(json['basePrice'] ?? json['base_price']),
       description: json['description'] as String?,
       category: json['category'] as String?,
@@ -1098,7 +1102,8 @@ class LabPackageItem {
       instructions: json['instructions'] as String?,
       resultEta: json['resultEta'] as String? ?? json['result_eta'] as String?,
       totalTests: (json['totalTests'] as num?)?.toInt(),
-      discountedPrice: json['discountedPrice'] != null || json['discounted_price'] != null
+      discountedPrice:
+          json['discountedPrice'] != null || json['discounted_price'] != null
           ? parseInt(json['discountedPrice'] ?? json['discounted_price'])
           : null,
       includedTests: includedRaw
@@ -1109,7 +1114,7 @@ class LabPackageItem {
             if (item is Map) {
               return item['testName']?.toString() ?? '';
             }
-            return '';
+            return item.toString();
           })
           .where((name) => name.trim().isNotEmpty)
           .toList(),

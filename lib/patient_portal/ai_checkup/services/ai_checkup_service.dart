@@ -19,13 +19,31 @@ class AiHealthAssessmentResponse {
   });
 
   factory AiHealthAssessmentResponse.fromJson(Map<String, dynamic> json) {
+    final source = json['rawAnalysis'] is Map
+        ? <String, dynamic>{
+            ...Map<String, dynamic>.from(json['rawAnalysis'] as Map),
+            ...json,
+          }
+        : json;
     return AiHealthAssessmentResponse(
-      healthScore: (json['healthScore'] as num?)?.toInt() ?? 50,
-      peerComparison: json['peerComparison'] as String? ?? '',
-      risks: _toList(json['risks']),
-      matchedPackages: _toList(json['matchedPackages']),
-      unmatchedPackages: _toList(json['unmatchedPackages']),
-      testRecommendations: _toList(json['testRecommendations']),
+      healthScore:
+          (source['healthScore'] as num?)?.toInt() ??
+          (source['health_score'] as num?)?.toInt() ??
+          50,
+      peerComparison:
+          source['peerComparison'] as String? ??
+          source['peer_comparison'] as String? ??
+          '',
+      risks: _toList(source['risks'] ?? source['health_risks']),
+      matchedPackages: _toList(
+        source['matchedPackages'] ?? source['matched_packages'],
+      ),
+      unmatchedPackages: _toList(
+        source['unmatchedPackages'] ?? source['unmatched_packages'],
+      ),
+      testRecommendations: _toList(
+        source['testRecommendations'] ?? source['test_recommendations'],
+      ),
     );
   }
 
@@ -51,13 +69,15 @@ class AiCheckupService {
     Map<String, dynamic>? patientInfo,
     String? language,
   }) async {
-    final dio = Dio(BaseOptions(
-      baseUrl: apiBaseUrl,
-      headers: {
-        'Authorization': 'Bearer $authToken',
-        'Content-Type': 'application/json',
-      },
-    ));
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: apiBaseUrl,
+        headers: {
+          'Authorization': 'Bearer $authToken',
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
 
     final response = await dio.post<Map<String, dynamic>>(
       '/patient/ai-checkup',
@@ -70,13 +90,16 @@ class AiCheckupService {
     );
 
     final reply = response.data!['reply'];
-    
+
     // Client-side cleaning/parsing fallback
     if (reply is String && reply.contains('{') && reply.contains('}')) {
       try {
         final start = reply.indexOf('{');
         final end = reply.lastIndexOf('}');
-        final cleaned = reply.substring(start, end + 1).replaceAll('\\{', '{').replaceAll('\\}', '}');
+        final cleaned = reply
+            .substring(start, end + 1)
+            .replaceAll('\\{', '{')
+            .replaceAll('\\}', '}');
         final parsed = Map<String, dynamic>.from(jsonDecode(cleaned));
         if (parsed.containsKey('question')) {
           response.data!['reply'] = parsed;
@@ -91,22 +114,21 @@ class AiCheckupService {
     required Map<String, dynamic> answers,
     String? language,
   }) async {
-    final dio = Dio(BaseOptions(
-      baseUrl: apiBaseUrl,
-      headers: {
-        'Authorization': 'Bearer $authToken',
-        'Content-Type': 'application/json',
-      },
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 60),
-    ));
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: apiBaseUrl,
+        headers: {
+          'Authorization': 'Bearer $authToken',
+          'Content-Type': 'application/json',
+        },
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 60),
+      ),
+    );
 
     final response = await dio.post<Map<String, dynamic>>(
       '/patient/ai-health-assessment',
-      data: {
-        'answers': answers,
-        'language': language ?? 'en',
-      },
+      data: {'answers': answers, 'language': language ?? 'en'},
     );
 
     if (response.statusCode != 200 || response.data == null) {
@@ -117,13 +139,15 @@ class AiCheckupService {
   }
 
   Future<List<Map<String, dynamic>>> getHistory() async {
-    final dio = Dio(BaseOptions(
-      baseUrl: apiBaseUrl,
-      headers: {
-        'Authorization': 'Bearer $authToken',
-        'Content-Type': 'application/json',
-      },
-    ));
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: apiBaseUrl,
+        headers: {
+          'Authorization': 'Bearer $authToken',
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
 
     final response = await dio.get<List>('/patient/ai-history');
 
@@ -131,6 +155,8 @@ class AiCheckupService {
       throw Exception('Failed to fetch AI history: ${response.statusCode}');
     }
 
-    return response.data!.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    return response.data!
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
   }
 }

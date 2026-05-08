@@ -14,6 +14,8 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/l10n/app_strings.dart';
+import '../../core/providers/language_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/widgets/custom_bottom_bar.dart';
@@ -138,7 +140,6 @@ class _PatientAppShellState extends State<PatientAppShell>
 
     return Consumer2<SessionProvider, PatientPortalProvider>(
       builder: (context, session, portal, _) {
-
         final statusStyle = _selectedIndex == 0
             ? SystemUiOverlayStyle.light
             : SystemUiOverlayStyle.dark;
@@ -170,6 +171,9 @@ class _PatientAppShellState extends State<PatientAppShell>
                 onTap: _setIndex,
                 items: _navItems,
               ),
+              floatingActionButton: _selectedIndex == 0
+                  ? _AssistantFab(onTap: _openAssistant)
+                  : null,
             ),
           ),
         );
@@ -231,7 +235,7 @@ class _PatientAppShellState extends State<PatientAppShell>
       _recordsTabKey.currentState?.setFilter(filter);
     });
   }
-  
+
   @override
   void goHome() {
     _setIndex(0);
@@ -240,6 +244,12 @@ class _PatientAppShellState extends State<PatientAppShell>
   @override
   void openAiCheckup() {
     _setIndex(3);
+  }
+
+  void _openAssistant() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const _AssistantPage()));
   }
 
   void _openDoctorsDirectory() {
@@ -258,6 +268,41 @@ class _PatientAppShellState extends State<PatientAppShell>
     Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const _TestsHubPage()));
+  }
+}
+
+class _AssistantFab extends StatelessWidget {
+  const _AssistantFab({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
+    final compact = MediaQuery.sizeOf(context).width < 390;
+
+    if (compact) {
+      return FloatingActionButton(
+        heroTag: 'patient-health-ai-fab',
+        onPressed: onTap,
+        backgroundColor: const Color(0xFF16B5A4),
+        foregroundColor: Colors.white,
+        tooltip: strings.assistantTitle,
+        child: const Icon(Icons.mic_rounded),
+      );
+    }
+
+    return FloatingActionButton.extended(
+      heroTag: 'patient-health-ai-fab',
+      onPressed: onTap,
+      backgroundColor: const Color(0xFF16B5A4),
+      foregroundColor: Colors.white,
+      icon: const Icon(Icons.mic_rounded),
+      label: Text(
+        strings.assistantFabLabel,
+        style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+      ),
+    );
   }
 }
 
@@ -331,5 +376,3 @@ class _AssistantPage extends StatelessWidget {
     );
   }
 }
-
-

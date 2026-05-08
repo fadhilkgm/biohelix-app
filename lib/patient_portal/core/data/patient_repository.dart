@@ -295,7 +295,7 @@ class PatientRepository {
       return DoctorListing.fromJson(json);
     }).toList();
   }
-  
+
   Future<List<DepartmentItem>> getDepartments() async {
     final response = await _apiClient.getJson('/departments');
     final departments = response['departments'] as List<dynamic>? ?? const [];
@@ -644,10 +644,20 @@ class PatientRepository {
   Future<ChatMessage> sendGlobalChatMessage({
     required String threadId,
     required String message,
+    String? language,
+    String? mode,
   }) async {
+    final normalizedLanguage = (language ?? '').trim().toLowerCase();
+    final normalizedMode = (mode ?? '').trim().toLowerCase();
     final response = await _apiClient.postJson(
       '/patients/chat/global/threads/$threadId/messages',
-      data: {'message': message},
+      data: {
+        'message': message,
+        if (normalizedLanguage == 'en' || normalizedLanguage == 'ml')
+          'language': normalizedLanguage,
+        if (normalizedMode == 'voice' || normalizedMode == 'text')
+          'mode': normalizedMode,
+      },
     );
     return ChatMessage(
       role: 'ai',

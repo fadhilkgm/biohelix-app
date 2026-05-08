@@ -21,6 +21,7 @@ class _MessageBubbleWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     final isUser = message.role == 'user';
     final radius = BorderRadius.only(
       topLeft: Radius.circular(
@@ -69,7 +70,9 @@ class _MessageBubbleWidget extends StatelessWidget {
                       alignment: Alignment.centerRight,
                       child: IconButton(
                         onPressed: onSpeakTap,
-                        tooltip: isSpeaking ? 'Stop voice' : 'Play voice',
+                        tooltip: isSpeaking
+                            ? strings.assistantStopVoice
+                            : strings.assistantPlayVoice,
                         iconSize: 18,
                         constraints: const BoxConstraints(
                           minWidth: 30,
@@ -125,7 +128,7 @@ class _MessageBubbleWidget extends StatelessWidget {
                         child: FilledButton.icon(
                           onPressed: onStopTap,
                           icon: const Icon(Icons.volume_off_rounded),
-                          label: const Text('Stop AI voice'),
+                          label: Text(strings.assistantStopAiVoice),
                         ),
                       ),
                     ),
