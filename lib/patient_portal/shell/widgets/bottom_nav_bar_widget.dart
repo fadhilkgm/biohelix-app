@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../core/widgets/custom_bottom_bar.dart';
 
@@ -17,11 +17,11 @@ class BottomNavBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(24, 0, 24, 30),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF5A88F1),
-        borderRadius: BorderRadius.circular(40),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF5A88F1).withValues(alpha: 0.3),
@@ -35,18 +35,54 @@ class BottomNavBarWidget extends StatelessWidget {
         children: List.generate(items.length, (index) {
           final selected = selectedIndex == index;
           final item = items[index];
-          return GestureDetector(
-            onTap: () => onTap(index),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: selected ? Colors.white.withValues(alpha: 0.25) : Colors.transparent,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                selected ? item.selectedIcon : item.icon,
-                color: Colors.white,
-                size: 26,
+          return Expanded(
+            child: Semantics(
+              button: true,
+              selected: selected,
+              label: item.label,
+              child: GestureDetector(
+                onTap: () => onTap(index),
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeInOut,
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? Colors.white.withValues(alpha: 0.25)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        selected ? item.selectedIcon : item.icon,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: selected ? 11 : 10.5,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          height: 1.05,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           );
@@ -55,4 +91,3 @@ class BottomNavBarWidget extends StatelessWidget {
     );
   }
 }
-

@@ -122,6 +122,48 @@ class SessionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> signUp({
+    required String phone,
+    required String name,
+    required String dob,
+    required String place,
+  }) async {
+    final normalizedPhone = phone.trim();
+    final normalizedName = name.trim();
+    final normalizedDob = dob.trim();
+    final normalizedPlace = place.trim();
+
+    if (normalizedPhone.isEmpty ||
+        normalizedName.isEmpty ||
+        normalizedDob.isEmpty ||
+        normalizedPlace.isEmpty) {
+      _errorMessage = 'Enter your phone, name, date of birth, and place.';
+      notifyListeners();
+      return;
+    }
+
+    _state = SessionState.sendingOtp;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _devOtp = await _patientRepository.signUp(
+        phone: normalizedPhone,
+        name: normalizedName,
+        dob: normalizedDob,
+        place: normalizedPlace,
+      );
+      _pendingPhone = normalizedPhone;
+      _pendingMrn = null;
+      _state = SessionState.signedOut;
+    } catch (error) {
+      _errorMessage = error.toString();
+      _state = SessionState.signedOut;
+    }
+
+    notifyListeners();
+  }
+
   void cancelPendingOtp() {
     _pendingPhone = null;
     _pendingMrn = null;
@@ -150,7 +192,7 @@ class SessionProvider extends ChangeNotifier {
       _authToken = session.token;
       await _authStorage.writeToken(session.token);
       _apiClient.updateAuthToken(session.token);
-      _patient = await _patientRepository.getCurrentPatient();
+      _patient = session.patient;
       await _saveFamilyProfile(token: session.token, patient: _patient!);
       _state = SessionState.signedIn;
       _devOtp = null;

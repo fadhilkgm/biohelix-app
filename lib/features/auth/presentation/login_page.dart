@@ -5,7 +5,6 @@ import '../../../core/config/app_config.dart';
 import '../../session/providers/session_provider.dart';
 import 'widgets/auth_form_widgets.dart';
 
-// Login screen: mobile number + MRN â†’ triggers OTP send.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.onOtpSent, this.onBack});
 
@@ -18,12 +17,30 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController();
-  final _mrnController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _dobController = TextEditingController();
+  final _placeController = TextEditingController();
+  bool _isSignup = false;
+  bool _didPrefillDevLogin = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didPrefillDevLogin) return;
+
+    final showDevOtp = context.read<AppConfig>().showDevOtp;
+    if (showDevOtp) {
+      _phoneController.text = '7034598461';
+    }
+    _didPrefillDevLogin = true;
+  }
 
   @override
   void dispose() {
     _phoneController.dispose();
-    _mrnController.dispose();
+    _nameController.dispose();
+    _dobController.dispose();
+    _placeController.dispose();
     super.dispose();
   }
 
@@ -35,11 +52,26 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _submit() async {
     final session = context.read<SessionProvider>();
-    await session.sendOtp(
-      phone: _phoneController.text,
-      mrn: _mrnController.text,
-    );
+
+    if (_isSignup) {
+      await session.signUp(
+        phone: _phoneController.text,
+        name: _nameController.text,
+        dob: _dobController.text,
+        place: _placeController.text,
+      );
+    } else {
+      await session.sendOtp(phone: _phoneController.text);
+    }
+
     if (!mounted) return;
+
+    if (_isSignup &&
+        (session.errorMessage ?? '').toLowerCase().contains('already')) {
+      setState(() => _isSignup = false);
+      return;
+    }
+
     if (session.errorMessage == null && session.pendingPhone != null) {
       widget.onOtpSent(_maskPhone(_phoneController.text));
     }
@@ -53,7 +85,6 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Gradient
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -65,23 +96,14 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
-
-          // Main Scrollable Content
           SafeArea(
             child: Consumer<SessionProvider>(
               builder: (context, session, _) {
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(
-                    28,
-                    80,
-                    28,
-                    40,
-                  ), // 2rem top space
+                  padding: const EdgeInsets.fromLTRB(28, 80, 28, 40),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.center, // Centered header
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Fixed Logo Styling
                       SizedBox(
                         width: 180,
                         height: 80,
@@ -89,12 +111,11 @@ class _LoginPageState extends State<LoginPage> {
                           borderRadius: BorderRadius.circular(5),
                           child: Image.asset(
                             'assets/images/bhrc-logo.jpg',
-                            fit: BoxFit.contain, // Prevent cropping
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      // Brand Name
                       const Text(
                         'Biohelix',
                         textAlign: TextAlign.center,
@@ -117,31 +138,29 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 60),
-
-                      // Login Section (Left aligned)
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Login',
-                              style: TextStyle(
+                            Text(
+                              _isSignup ? 'Sign up' : 'Login',
+                              style: const TextStyle(
                                 fontSize: 40,
                                 fontWeight: FontWeight.w900,
                                 color: Color(0xFF192233),
                                 height: 1.1,
-                                letterSpacing: -1.5,
                               ),
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'Enter your mobile number to access your health records and book appointments.',
+                              _isSignup
+                                  ? 'Create your patient account to access appointments and health records.'
+                                  : 'Enter your mobile number to access your health records and book appointments.',
                               style: TextStyle(
                                 fontSize: 16,
-                                color: const Color(
-                                  0xFF192233,
-                                ).withValues(alpha: 0.6),
+                                color: const Color(0xFF192233)
+                                    .withValues(alpha: 0.6),
                                 height: 1.5,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -154,28 +173,69 @@ class _LoginPageState extends State<LoginPage> {
                               keyboardType: TextInputType.phone,
                               prefixIcon: Icons.phone_android_rounded,
                             ),
-                            const SizedBox(height: 20),
-                            AuthTextField(
-                              controller: _mrnController,
-                              label: 'MRN / Registration Number',
-                              hint: 'Enter your MRN (e.g. BHRC12345)',
-                              keyboardType: TextInputType.text,
-                              prefixIcon: Icons.badge_outlined,
-                            ),
+                            if (_isSignup) ...[
+                              const SizedBox(height: 20),
+                              AuthTextField(
+                                controller: _nameController,
+                                label: 'Name',
+                                hint: 'Enter your full name',
+                                keyboardType: TextInputType.name,
+                                prefixIcon: Icons.person_outline_rounded,
+                              ),
+                              const SizedBox(height: 20),
+                              AuthTextField(
+                                controller: _dobController,
+                                label: 'Date of Birth',
+                                hint: 'YYYY-MM-DD',
+                                keyboardType: TextInputType.datetime,
+                                prefixIcon: Icons.calendar_today_rounded,
+                              ),
+                              const SizedBox(height: 20),
+                              AuthTextField(
+                                controller: _placeController,
+                                label: 'Place',
+                                hint: 'Enter your place',
+                                keyboardType: TextInputType.streetAddress,
+                                prefixIcon: Icons.location_on_outlined,
+                              ),
+                            ],
                             if ((session.errorMessage ?? '').isNotEmpty) ...[
                               AuthErrorText(message: session.errorMessage!),
                             ],
                             const SizedBox(height: 40),
                             AuthPrimaryButton(
-                              label: 'Continue',
+                              label: _isSignup
+                                  ? 'Sign up and send OTP'
+                                  : 'Continue',
                               isLoading: session.isSendingOtp,
                               onPressed: _submit,
                             ),
                             const SizedBox(height: 20),
+                            Center(
+                              child: TextButton(
+                                onPressed: session.isSendingOtp
+                                    ? null
+                                    : () {
+                                        context
+                                            .read<SessionProvider>()
+                                            .cancelPendingOtp();
+                                        setState(() => _isSignup = !_isSignup);
+                                      },
+                                child: Text(
+                                  _isSignup
+                                      ? 'Already registered? Login'
+                                      : 'New patient? Sign up',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF537DE8),
+                                  ),
+                                ),
+                              ),
+                            ),
                             AuthDemoHint(
                               text: showDevOtp
-                                  ? 'Demo: enter any mobile number with MRN BH000001'
-                                  : 'Use the mobile number and MRN registered at the hospital.',
+                                  ? 'Demo login is prefilled for local testing.'
+                                  : 'Use the mobile number registered at the hospital.',
                             ),
                           ],
                         ),
@@ -186,8 +246,6 @@ class _LoginPageState extends State<LoginPage> {
               },
             ),
           ),
-
-          // Back Button
           Positioned(
             top: 50,
             left: 20,

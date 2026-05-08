@@ -129,6 +129,24 @@ class PatientRepository {
     return response['dev_otp']?.toString();
   }
 
+  Future<String?> signUp({
+    required String phone,
+    required String name,
+    required String dob,
+    required String place,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/auth/signup',
+      data: {
+        'phone': phone,
+        'name': name,
+        'dob': dob,
+        'place': place,
+      },
+    );
+    return response['dev_otp']?.toString();
+  }
+
   Future<OtpSession> verifyOtp({
     required String phone,
     required String otp,

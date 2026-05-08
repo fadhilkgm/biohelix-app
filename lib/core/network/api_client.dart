@@ -24,12 +24,21 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           _logger.i('REQ ${options.method} ${options.uri}');
+          if (options.queryParameters.isNotEmpty) {
+            _logger.i('REQ QUERY ${_stringify(options.queryParameters)}');
+          }
+          if (options.data != null) {
+            _logger.i('REQ BODY ${_stringify(options.data)}');
+          }
           handler.next(options);
         },
         onResponse: (response, handler) {
           _logger.i(
             'RES ${response.statusCode} ${response.requestOptions.uri}',
           );
+          if (response.data != null) {
+            _logger.i('RES BODY ${_stringify(response.data)}');
+          }
           handler.next(response);
         },
         onError: (error, handler) {
@@ -37,6 +46,12 @@ class ApiClient {
             'ERR ${error.response?.statusCode} ${error.requestOptions.uri}',
             error: error.message,
           );
+          if (error.requestOptions.data != null) {
+            _logger.e('ERR REQ BODY ${_stringify(error.requestOptions.data)}');
+          }
+          if (error.response?.data != null) {
+            _logger.e('ERR RES BODY ${_stringify(error.response?.data)}');
+          }
           handler.next(error);
         },
       ),
@@ -46,6 +61,24 @@ class ApiClient {
   final AppConfig _config;
   final Dio _dio;
   final Logger _logger;
+  static const int _maxLogLength = 1200;
+
+  static String _stringify(Object? data) {
+    final raw = data?.toString() ?? 'null';
+    if (raw.length <= _maxLogLength) return raw;
+    return '${raw.substring(0, _maxLogLength)}... [truncated ${raw.length - _maxLogLength} chars]';
+  }
+
+  static String _errorMessage(DioException error) {
+    final data = error.response?.data;
+    if (data is Map) {
+      return data['error']?.toString() ??
+          data['message']?.toString() ??
+          error.message ??
+          'Request failed';
+    }
+    return data?.toString() ?? error.message ?? 'Request failed';
+  }
 
   String get baseUrl => _config.apiBaseUrl;
 
@@ -75,7 +108,7 @@ class ApiClient {
       return response.data ?? <String, dynamic>{};
     } on DioException catch (error) {
       throw ApiException(
-        error.response?.data?.toString() ?? error.message ?? 'Request failed',
+        _errorMessage(error),
         statusCode: error.response?.statusCode,
       );
     }
@@ -95,7 +128,7 @@ class ApiClient {
       return response.data ?? <String, dynamic>{};
     } on DioException catch (error) {
       throw ApiException(
-        error.response?.data?.toString() ?? error.message ?? 'Request failed',
+        _errorMessage(error),
         statusCode: error.response?.statusCode,
       );
     }
@@ -107,7 +140,7 @@ class ApiClient {
       return response.data ?? <String, dynamic>{};
     } on DioException catch (error) {
       throw ApiException(
-        error.response?.data?.toString() ?? error.message ?? 'Request failed',
+        _errorMessage(error),
         statusCode: error.response?.statusCode,
       );
     }
@@ -119,7 +152,7 @@ class ApiClient {
       return response.data ?? <String, dynamic>{};
     } on DioException catch (error) {
       throw ApiException(
-        error.response?.data?.toString() ?? error.message ?? 'Request failed',
+        _errorMessage(error),
         statusCode: error.response?.statusCode,
       );
     }
@@ -134,7 +167,7 @@ class ApiClient {
       return response.data ?? <String, dynamic>{};
     } on DioException catch (error) {
       throw ApiException(
-        error.response?.data?.toString() ?? error.message ?? 'Request failed',
+        _errorMessage(error),
         statusCode: error.response?.statusCode,
       );
     }
@@ -148,7 +181,7 @@ class ApiClient {
       return response.data;
     } on DioException catch (error) {
       throw ApiException(
-        error.response?.data?.toString() ?? error.message ?? 'Request failed',
+        _errorMessage(error),
         statusCode: error.response?.statusCode,
       );
     }

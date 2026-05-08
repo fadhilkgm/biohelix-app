@@ -105,7 +105,7 @@ class _PatientAppShellState extends State<PatientAppShell>
     BottomNavItem(
       icon: Icons.folder_outlined,
       selectedIcon: Icons.folder_rounded,
-      label: 'Records',
+      label: 'Reports',
     ),
     BottomNavItem(
       icon: Icons.calendar_month_outlined,
@@ -115,7 +115,7 @@ class _PatientAppShellState extends State<PatientAppShell>
     BottomNavItem(
       icon: Icons.health_and_safety_outlined,
       selectedIcon: Icons.health_and_safety_rounded,
-      label: 'AI Health Checkup',
+      label: 'Checkup',
     ),
     BottomNavItem(
       icon: Icons.person_outline_rounded,

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -12,8 +12,22 @@ import '../../lab_booking/screens/package_booking_screen.dart';
 import '../services/ai_checkup_service.dart';
 import '../../shell/patient_app_shell.dart';
 
+typedef AiCheckupServiceFactory =
+    AiCheckupService Function(BuildContext context);
+
+AiCheckupService _defaultAiCheckupServiceFactory(BuildContext context) {
+  final config = context.read<AppConfig>();
+  final session = context.read<SessionProvider>();
+  return AiCheckupService(
+    apiBaseUrl: config.apiBaseUrl,
+    authToken: session.authToken ?? '',
+  );
+}
+
 class AiCheckupTab extends StatefulWidget {
-  const AiCheckupTab({super.key});
+  const AiCheckupTab({super.key, this.serviceFactory});
+
+  final AiCheckupServiceFactory? serviceFactory;
 
   @override
   State<AiCheckupTab> createState() => _AiCheckupTabState();
@@ -62,12 +76,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   Future<void> _fetchHistory() async {
     setState(() => _loadingHistory = true);
     try {
-      final config = context.read<AppConfig>();
-      final session = context.read<SessionProvider>();
-      final service = AiCheckupService(
-        apiBaseUrl: config.apiBaseUrl,
-        authToken: session.authToken ?? '',
-      );
+      final service =
+          (widget.serviceFactory ?? _defaultAiCheckupServiceFactory)(context);
       final history = await service.getHistory();
       if (!mounted) return;
       setState(() {
@@ -96,14 +106,15 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     _answers['age'] = int.tryParse(_ageCtrl.text.trim()) ?? 30;
     _answers['weight'] = _weightCtrl.text.trim();
     _answers['height'] = _heightCtrl.text.trim();
-    
+
     // Initial message to AI to start questioning
     _messages.clear();
     _messages.add({
       'role': 'user',
-      'content': 'I am starting my health checkup. My details: ${_answers.toString()}. Please ask me some questions to assess my health risks.'
+      'content':
+          'I am starting my health checkup. My details: ${_answers.toString()}. Please ask me some questions to assess my health risks.',
     });
-    
+
     setState(() => _step = 'ai_chat');
   }
 
@@ -113,12 +124,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     });
 
     try {
-      final config = context.read<AppConfig>();
-      final session = context.read<SessionProvider>();
-      final service = AiCheckupService(
-        apiBaseUrl: config.apiBaseUrl,
-        authToken: session.authToken ?? '',
-      );
+      final service =
+          (widget.serviceFactory ?? _defaultAiCheckupServiceFactory)(context);
 
       final response = await service.analyzeHealth(
         answers: _answers,
@@ -135,9 +142,9 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       setState(() {
         _step = 'ai_chat';
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Analysis failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Analysis failed: $e')));
     }
   }
 
@@ -146,13 +153,19 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
-        title: Text('AI Health Checkup', style: GoogleFonts.manrope(fontWeight: FontWeight.w800)),
+        title: Text(
+          'AI Health Checkup',
+          style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: _step != 'history'
             ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF192233)),
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: Color(0xFF192233),
+                ),
                 onPressed: () {
                   if (_step == 'results' || _step == 'analyzing') {
                     _reset();
@@ -179,7 +192,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
           onSelect: (item) {
             try {
               final assessment = Map<String, dynamic>.from(
-                jsonDecode(item['assessmentJson'] as String)
+                jsonDecode(item['assessmentJson'] as String),
               );
               setState(() {
                 _result = AiHealthAssessmentResponse.fromJson(assessment);
@@ -187,7 +200,9 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
               });
             } catch (e) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Failed to load assessment result')),
+                const SnackBar(
+                  content: Text('Failed to load assessment result'),
+                ),
               );
             }
           },
@@ -224,16 +239,19 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
             _answers.addAll(allAnswers);
             _analyze();
           },
+          serviceFactory:
+              widget.serviceFactory ?? _defaultAiCheckupServiceFactory,
         ),
         'analyzing' => _AnalyzingScreen(language: _language),
-        'results' => _result != null
-            ? _ResultsScreen(
-                language: _language,
-                result: _result!,
-                onRetake: _reset,
-                onReset: _reset,
-              )
-            : const SizedBox.shrink(),
+        'results' =>
+          _result != null
+              ? _ResultsScreen(
+                  language: _language,
+                  result: _result!,
+                  onRetake: _reset,
+                  onReset: _reset,
+                )
+              : const SizedBox.shrink(),
         _ => const SizedBox.shrink(),
       },
     );
@@ -243,7 +261,10 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
 class _LanguageSelectionScreen extends StatelessWidget {
   final ValueChanged<String> onSelect;
   final VoidCallback onReset;
-  const _LanguageSelectionScreen({required this.onSelect, required this.onReset});
+  const _LanguageSelectionScreen({
+    required this.onSelect,
+    required this.onReset,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -254,28 +275,29 @@ class _LanguageSelectionScreen extends StatelessWidget {
         children: [
           Text(
             'Choose Language',
-            style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w900, color: const Color(0xFF192233)),
+            style: GoogleFonts.manrope(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF192233),
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             'Select your preferred language for the health assessment.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(fontSize: 15, color: const Color(0xFF192233).withValues(alpha: 0.6)),
+            style: GoogleFonts.manrope(
+              fontSize: 15,
+              color: const Color(0xFF192233).withValues(alpha: 0.6),
+            ),
           ),
           const SizedBox(height: 40),
-          _OptionCard(
-            label: 'English',
-            onTap: () => onSelect('en'),
-          ),
+          _OptionCard(label: 'English', onTap: () => onSelect('en')),
           _OptionCard(
             label: 'à´®à´²à´¯à´¾à´³à´‚ (Malayalam)',
             onTap: () => onSelect('ml'),
           ),
           const SizedBox(height: 20),
-          TextButton(
-            onPressed: onReset,
-            child: const Text('Back to History'),
-          ),
+          TextButton(onPressed: onReset, child: const Text('Back to History')),
         ],
       ),
     );
@@ -304,71 +326,110 @@ class _HistoryScreen extends StatelessWidget {
         children: [
           Text(
             'Health Checkup History',
-            style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w900, color: const Color(0xFF192233)),
+            style: GoogleFonts.manrope(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF192233),
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'View your previous AI health assessments or start a new one.',
-            style: GoogleFonts.manrope(fontSize: 15, color: const Color(0xFF192233).withValues(alpha: 0.6)),
+            style: GoogleFonts.manrope(
+              fontSize: 15,
+              color: const Color(0xFF192233).withValues(alpha: 0.6),
+            ),
           ),
           const SizedBox(height: 32),
           Expanded(
             child: loading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF5A88F1)))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF5A88F1)),
+                  )
                 : history.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.history_rounded, size: 64, color: const Color(0xFF192233).withValues(alpha: 0.1)),
-                            const SizedBox(height: 16),
-                            Text('No previous assessments found', style: GoogleFonts.manrope(color: const Color(0xFF192233).withValues(alpha: 0.4))),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.history_rounded,
+                          size: 64,
+                          color: const Color(0xFF192233).withValues(alpha: 0.1),
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: history.length,
-                        itemBuilder: (context, index) {
-                          final item = history[index];
-                          final dateStr = item['createdAt'] as String;
-                          final score = item['healthScore'] as int;
-                          
-                          String displayDate = dateStr;
-                          try {
-                            // SQLite datetime('now') returns UTC. 
-                            // We replace space with T and append Z to make it a valid UTC ISO string
-                            final isoStr = dateStr.contains('T') ? dateStr : '${dateStr.replaceFirst(' ', 'T')}Z';
-                            final dt = DateTime.parse(isoStr).toLocal();
-                            displayDate = DateFormat('dd MMM yyyy, hh:mm a').format(dt);
-                          } catch (e) {
-                            displayDate = dateStr;
-                          }
+                        const SizedBox(height: 16),
+                        Text(
+                          'No previous assessments found',
+                          style: GoogleFonts.manrope(
+                            color: const Color(
+                              0xFF192233,
+                            ).withValues(alpha: 0.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: history.length,
+                    itemBuilder: (context, index) {
+                      final item = history[index];
+                      final dateStr = item['createdAt'] as String;
+                      final score = item['healthScore'] as int;
 
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
+                      String displayDate = dateStr;
+                      try {
+                        // SQLite datetime('now') returns UTC.
+                        // We replace space with T and append Z to make it a valid UTC ISO string
+                        final isoStr = dateStr.contains('T')
+                            ? dateStr
+                            : '${dateStr.replaceFirst(' ', 'T')}Z';
+                        final dt = DateTime.parse(isoStr).toLocal();
+                        displayDate = DateFormat(
+                          'dd MMM yyyy, hh:mm a',
+                        ).format(dt);
+                      } catch (e) {
+                        displayDate = dateStr;
+                      }
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE5E9F0)),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          onTap: () => onSelect(item),
+                          title: Text(
+                            displayDate,
+                            style: GoogleFonts.manrope(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                          subtitle: Text('Health Score: $score%'),
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Color(0xFF5A88F1),
+                          ),
+                          leading: Container(
+                            padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFE5E9F0)),
+                              color: const Color(0xFFF4F7FF),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              onTap: () => onSelect(item),
-                              title: Text(
-                                displayDate,
-                                style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 15),
-                              ),
-                              subtitle: Text('Health Score: $score%'),
-                              trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF5A88F1)),
-                              leading: Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(color: const Color(0xFFF4F7FF), borderRadius: BorderRadius.circular(12)),
-                                child: const Icon(Icons.analytics_rounded, color: Color(0xFF5A88F1)),
-                              ),
+                            child: const Icon(
+                              Icons.analytics_rounded,
+                              color: Color(0xFF5A88F1),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -380,11 +441,16 @@ class _HistoryScreen extends StatelessWidget {
                 foregroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: Text(
                 'Start New Assessment',
-                style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18),
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
               ),
             ),
           ),
@@ -409,18 +475,29 @@ class _WelcomeScreen extends StatelessWidget {
         children: [
           const Spacer(),
           Container(
-            width: 120, height: 120,
+            width: 120,
+            height: 120,
             decoration: BoxDecoration(
               color: const Color(0xFFF4F7FF),
               borderRadius: BorderRadius.circular(32),
             ),
-            child: const Icon(Icons.health_and_safety_rounded, size: 56, color: Color(0xFF5A88F1)),
+            child: const Icon(
+              Icons.health_and_safety_rounded,
+              size: 56,
+              color: Color(0xFF5A88F1),
+            ),
           ),
           const SizedBox(height: 32),
           Text(
-            isMl ? 'à´Žà´ à´¹àµ†àµ½à´¤àµà´¤àµ à´šàµ†à´•àµà´•à´ªàµà´ªàµ' : 'AI Health Checkup',
+            isMl
+                ? 'à´Žà´ à´¹àµ†àµ½à´¤àµà´¤àµ à´šàµ†à´•àµà´•à´ªàµà´ªàµ'
+                : 'AI Health Checkup',
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF192233)),
+            style: GoogleFonts.manrope(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF192233),
+            ),
           ),
           const SizedBox(height: 12),
           Text(
@@ -428,7 +505,11 @@ class _WelcomeScreen extends StatelessWidget {
                 ? 'à´¨à´¿à´™àµà´™à´³àµà´Ÿàµ† à´œàµ€à´µà´¿à´¤à´¶àµˆà´²à´¿à´¯àµ†à´¯àµà´‚ à´†à´°àµ‹à´—àµà´¯à´¤àµà´¤àµ†à´¯àµà´‚ à´•àµà´±à´¿à´šàµà´šàµà´³àµà´³ à´à´¤à´¾à´¨àµà´‚ à´šàµ‹à´¦àµà´¯à´™àµà´™àµ¾à´•àµà´•àµ à´®à´±àµà´ªà´Ÿà´¿ à´¨àµ½à´•àµà´•. à´žà´™àµà´™à´³àµà´Ÿàµ† à´Žà´ (AI) à´¨à´¿à´™àµà´™à´³àµà´Ÿàµ† à´‰à´¤àµà´¤à´°à´™àµà´™àµ¾ à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´•à´¯àµà´‚ à´¨à´¿à´™àµà´™àµ¾à´•àµà´•àµ à´…à´¨àµà´¯àµ‹à´œàµà´¯à´®à´¾à´¯ à´ªà´°à´¿à´¶àµ‹à´§à´¨à´•àµ¾ à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´•àµà´•àµà´•à´¯àµà´‚ à´šàµ†à´¯àµà´¯àµà´‚.'
                 : 'Answer a few questions about your lifestyle and health. Our AI will analyze your responses and suggest preventive lab tests tailored for you.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(fontSize: 15, color: const Color(0xFF192233).withValues(alpha: 0.6), height: 1.5),
+            style: GoogleFonts.manrope(
+              fontSize: 15,
+              color: const Color(0xFF192233).withValues(alpha: 0.6),
+              height: 1.5,
+            ),
           ),
           const Spacer(),
           SizedBox(
@@ -440,11 +521,18 @@ class _WelcomeScreen extends StatelessWidget {
                 foregroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: Text(
-                isMl ? 'à´ªà´°à´¿à´¶àµ‹à´§à´¨ à´†à´°à´‚à´­à´¿à´•àµà´•àµà´•' : 'Start Assessment',
-                style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18),
+                isMl
+                    ? 'à´ªà´°à´¿à´¶àµ‹à´§à´¨ à´†à´°à´‚à´­à´¿à´•àµà´•àµà´•'
+                    : 'Start Assessment',
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
               ),
             ),
           ),
@@ -475,21 +563,52 @@ class _BasicDetailsScreen extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       children: [
         Text(
-          isMl ? 'à´µà´¿à´µà´°à´™àµà´™àµ¾ à´¨àµ½à´•àµà´•' : 'Please Enter Your Details',
-          style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF192233)),
+          isMl
+              ? 'à´µà´¿à´µà´°à´™àµà´™àµ¾ à´¨àµ½à´•àµà´•'
+              : 'Please Enter Your Details',
+          style: GoogleFonts.manrope(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: const Color(0xFF192233),
+          ),
         ),
         const SizedBox(height: 4),
-        Container(width: 60, height: 4, decoration: BoxDecoration(color: const Color(0xFF5A88F1), borderRadius: BorderRadius.circular(2))),
+        Container(
+          width: 60,
+          height: 4,
+          decoration: BoxDecoration(
+            color: const Color(0xFF5A88F1),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
         const SizedBox(height: 32),
-        _TextField(label: isMl ? 'à´ªàµ‚àµ¼à´£àµà´£à´¨à´¾à´®à´‚' : 'Full Name', controller: nameCtrl),
+        _TextField(
+          label: isMl ? 'à´ªàµ‚àµ¼à´£àµà´£à´¨à´¾à´®à´‚' : 'Full Name',
+          controller: nameCtrl,
+        ),
         const SizedBox(height: 16),
-        _TextField(label: isMl ? 'à´ªàµà´°à´¾à´¯à´‚' : 'Age', controller: ageCtrl, keyboardType: TextInputType.number),
+        _TextField(
+          label: isMl ? 'à´ªàµà´°à´¾à´¯à´‚' : 'Age',
+          controller: ageCtrl,
+          keyboardType: TextInputType.number,
+        ),
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _TextField(label: isMl ? 'à´­à´¾à´°à´‚ (kg)' : 'Weight (kg)', controller: weightCtrl, keyboardType: TextInputType.number)),
+            Expanded(
+              child: _TextField(
+                label: isMl ? 'à´­à´¾à´°à´‚ (kg)' : 'Weight (kg)',
+                controller: weightCtrl,
+                keyboardType: TextInputType.number,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _TextField(label: isMl ? 'à´‰à´¯à´°à´‚ (ft/inch)' : 'Height (ft/inch)', controller: heightCtrl)),
+            Expanded(
+              child: _TextField(
+                label: isMl ? 'à´‰à´¯à´°à´‚ (ft/inch)' : 'Height (ft/inch)',
+                controller: heightCtrl,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 40),
@@ -502,14 +621,19 @@ class _BasicDetailsScreen extends StatelessWidget {
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   isMl ? 'à´¤àµà´Ÿà´°àµà´•' : 'Continue',
-                  style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18),
+                  style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 const Icon(Icons.arrow_forward_rounded),
@@ -526,14 +650,25 @@ class _TextField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
   final TextInputType? keyboardType;
-  const _TextField({required this.label, required this.controller, this.keyboardType});
+  const _TextField({
+    required this.label,
+    required this.controller,
+    this.keyboardType,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF192233))),
+        Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF192233),
+          ),
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -541,9 +676,18 @@ class _TextField extends StatelessWidget {
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
           style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w700),
         ),
@@ -557,12 +701,14 @@ class _AiChatScreen extends StatefulWidget {
   final List<Map<String, dynamic>> messages;
   final Map<String, dynamic> patientInfo;
   final Function(Map<String, dynamic> answers) onComplete;
+  final AiCheckupServiceFactory serviceFactory;
 
   const _AiChatScreen({
     required this.language,
     required this.messages,
     required this.patientInfo,
     required this.onComplete,
+    required this.serviceFactory,
   });
 
   @override
@@ -587,12 +733,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
   Future<void> _fetchNextQuestion() async {
     setState(() => _loading = true);
     try {
-      final config = context.read<AppConfig>();
-      final session = context.read<SessionProvider>();
-      final service = AiCheckupService(
-        apiBaseUrl: config.apiBaseUrl,
-        authToken: session.authToken ?? '',
-      );
+      final service = widget.serviceFactory(context);
 
       final result = await service.getNextQuestion(
         messages: widget.messages,
@@ -603,28 +744,26 @@ class _AiChatScreenState extends State<_AiChatScreen> {
       if (!mounted) return;
 
       final reply = result['reply'];
-      if (reply is Map && (reply.containsKey('question') || reply.containsKey('options'))) {
+      if (reply is Map &&
+          (reply.containsKey('question') || reply.containsKey('options'))) {
         final newQuestion = reply['question'] as String?;
         final newOptions = List<String>.from(reply['options'] ?? []);
-        
+
         setState(() {
           _question = newQuestion;
           _options = newOptions;
           _history.add((question: newQuestion, options: newOptions));
           _loading = false;
         });
-        
+
         // Add AI response to message history
-        widget.messages.add({
-          'role': 'assistant',
-          'content': _question ?? '',
-        });
+        widget.messages.add({'role': 'assistant', 'content': _question ?? ''});
       } else if (reply is Map && reply['finished'] == true) {
         widget.onComplete(_chatAnswers);
       } else {
         // AI returned something unexpected but we'll try to treat it as a final summary or fallback
         if (reply is String && reply.length > 50) {
-           widget.onComplete(_chatAnswers);
+          widget.onComplete(_chatAnswers);
         } else {
           setState(() => _loading = false);
           throw Exception('AI returned an invalid response format.');
@@ -644,11 +783,8 @@ class _AiChatScreenState extends State<_AiChatScreen> {
       'question': _question,
       'answer': answer,
     };
-    
-    widget.messages.add({
-      'role': 'user',
-      'content': answer,
-    });
+
+    widget.messages.add({'role': 'user', 'content': answer});
 
     _questionCount++;
     if (_questionCount >= _maxQuestions) {
@@ -659,20 +795,22 @@ class _AiChatScreenState extends State<_AiChatScreen> {
   }
 
   void _goBack() {
-    if (_questionCount > 0 && widget.messages.length >= 2 && _history.length >= 2) {
+    if (_questionCount > 0 &&
+        widget.messages.length >= 2 &&
+        _history.length >= 2) {
       setState(() {
         // Remove current question from history
         _history.removeLast();
-        
+
         // Restore previous question
         final previous = _history.last;
         _question = previous.question;
         _options = previous.options;
-        
+
         // Remove last user answer and last AI question from message history
         widget.messages.removeLast(); // AI Q(current)
         widget.messages.removeLast(); // User A(previous)
-        
+
         _questionCount--;
         // We keep the answer in _chatAnswers so it can be shown as selected
       });
@@ -692,8 +830,13 @@ class _AiChatScreenState extends State<_AiChatScreen> {
             const CircularProgressIndicator(color: Color(0xFF5A88F1)),
             const SizedBox(height: 24),
             Text(
-              isMl ? 'à´Žà´ à´†à´²àµ‹à´šà´¿à´•àµà´•àµà´¨àµà´¨àµ...' : 'AI is thinking...',
-              style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700),
+              isMl
+                  ? 'à´Žà´ à´†à´²àµ‹à´šà´¿à´•àµà´•àµà´¨àµà´¨àµ...'
+                  : 'AI is thinking...',
+              style: GoogleFonts.manrope(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -721,8 +864,14 @@ class _AiChatScreenState extends State<_AiChatScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isMl ? 'à´šàµ‹à´¦àµà´¯à´‚ ${_questionCount + 1}' : 'Question ${_questionCount + 1}',
-                style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF5A88F1)),
+                isMl
+                    ? 'à´šàµ‹à´¦àµà´¯à´‚ ${_questionCount + 1}'
+                    : 'Question ${_questionCount + 1}',
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF5A88F1),
+                ),
               ),
               if (_questionCount > 0)
                 TextButton.icon(
@@ -730,7 +879,10 @@ class _AiChatScreenState extends State<_AiChatScreen> {
                   icon: const Icon(Icons.arrow_back_rounded, size: 16),
                   label: Text(
                     isMl ? 'à´¤à´¿à´°à´¿à´•àµ†' : 'Back',
-                    style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700),
+                    style: GoogleFonts.manrope(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF8DA0BA),
@@ -744,17 +896,23 @@ class _AiChatScreenState extends State<_AiChatScreen> {
           const SizedBox(height: 12),
           Text(
             _question ?? '',
-            style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF192233)),
+            style: GoogleFonts.manrope(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF192233),
+            ),
           ),
           const SizedBox(height: 24),
           Expanded(
             child: ListView(
               children: [
-                ..._options.map((opt) => _OptionCard(
-                  label: opt,
-                  isSelected: currentAnswer == opt,
-                  onTap: () => _onAnswer(opt),
-                )),
+                ..._options.map(
+                  (opt) => _OptionCard(
+                    label: opt,
+                    isSelected: currentAnswer == opt,
+                    onTap: () => _onAnswer(opt),
+                  ),
+                ),
                 if (currentAnswer != null) ...[
                   const SizedBox(height: 24),
                   SizedBox(
@@ -766,14 +924,19 @@ class _AiChatScreenState extends State<_AiChatScreen> {
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             isMl ? 'à´¤àµà´Ÿà´°àµà´•' : 'Continue',
-                            style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18),
+                            style: GoogleFonts.manrope(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           const Icon(Icons.arrow_forward_rounded, size: 20),
@@ -791,8 +954,13 @@ class _AiChatScreenState extends State<_AiChatScreen> {
             child: TextButton(
               onPressed: () => widget.onComplete(_chatAnswers),
               child: Text(
-                isMl ? 'à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´•' : 'Skip & Analyze Now',
-                style: GoogleFonts.manrope(color: const Color(0xFF8DA0BA), fontWeight: FontWeight.w700),
+                isMl
+                    ? 'à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´•'
+                    : 'Skip & Analyze Now',
+                style: GoogleFonts.manrope(
+                  color: const Color(0xFF8DA0BA),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -806,7 +974,11 @@ class _OptionCard extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
-  const _OptionCard({required this.label, this.isSelected = false, required this.onTap});
+  const _OptionCard({
+    required this.label,
+    this.isSelected = false,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -822,22 +994,51 @@ class _OptionCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: isSelected ? const Color(0xFFF4F7FF) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isSelected ? const Color(0xFF5A88F1) : const Color(0xFFE5E9F0), width: isSelected ? 2 : 1),
+              border: Border.all(
+                color: isSelected
+                    ? const Color(0xFF5A88F1)
+                    : const Color(0xFFE5E9F0),
+                width: isSelected ? 2 : 1,
+              ),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 22, height: 22,
+                  width: 22,
+                  height: 22,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle, 
-                    color: isSelected ? const Color(0xFF5A88F1) : Colors.transparent,
-                    border: Border.all(color: const Color(0xFF5A88F1), width: 2),
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? const Color(0xFF5A88F1)
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: const Color(0xFF5A88F1),
+                      width: 2,
+                    ),
                   ),
-                  child: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                      : null,
                 ),
                 const SizedBox(width: 14),
-                Expanded(child: Text(label, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w700, color: isSelected ? const Color(0xFF5A88F1) : const Color(0xFF192233)))),
-                Icon(Icons.chevron_right_rounded, color: isSelected ? const Color(0xFF5A88F1) : const Color(0xFF8DA0BA)),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: GoogleFonts.manrope(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: isSelected
+                          ? const Color(0xFF5A88F1)
+                          : const Color(0xFF192233),
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isSelected
+                      ? const Color(0xFF5A88F1)
+                      : const Color(0xFF8DA0BA),
+                ),
               ],
             ),
           ),
@@ -858,18 +1059,34 @@ class _AnalyzingScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(width: 60, height: 60, child: CircularProgressIndicator(strokeWidth: 4, color: Color(0xFF5A88F1))),
+          const SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(
+              strokeWidth: 4,
+              color: Color(0xFF5A88F1),
+            ),
+          ),
           const SizedBox(height: 24),
           Text(
-            isMl ? 'à´†à´°àµ‹à´—àµà´¯à´‚ à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´¨àµà´¨àµ...' : 'Analyzing your health...',
-            style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF192233)),
+            isMl
+                ? 'à´†à´°àµ‹à´—àµà´¯à´‚ à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´¨àµà´¨àµ...'
+                : 'Analyzing your health...',
+            style: GoogleFonts.manrope(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF192233),
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             isMl
                 ? 'à´žà´™àµà´™à´³àµà´Ÿàµ† à´Žà´ (AI) à´µà´¿à´µà´°à´™àµà´™àµ¾ à´ªà´°à´¿à´¶àµ‹à´§à´¿à´šàµà´šàµ à´µà´°à´¿à´•à´¯à´¾à´£àµ.'
                 : 'Our AI is reviewing your lifestyle and health history.',
-            style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF192233).withValues(alpha: 0.5)),
+            style: GoogleFonts.manrope(
+              fontSize: 14,
+              color: const Color(0xFF192233).withValues(alpha: 0.5),
+            ),
           ),
         ],
       ),
@@ -882,7 +1099,12 @@ class _ResultsScreen extends StatefulWidget {
   final AiHealthAssessmentResponse result;
   final VoidCallback onRetake;
   final VoidCallback onReset;
-  const _ResultsScreen({required this.language, required this.result, required this.onRetake, required this.onReset});
+  const _ResultsScreen({
+    required this.language,
+    required this.result,
+    required this.onRetake,
+    required this.onReset,
+  });
 
   @override
   State<_ResultsScreen> createState() => _ResultsScreenState();
@@ -898,7 +1120,11 @@ class _ResultsScreenState extends State<_ResultsScreen> {
 
   Widget _buildIssuesPage(BuildContext context) {
     final score = widget.result.healthScore;
-    final scoreColor = score >= 70 ? const Color(0xFF1F9A6D) : score >= 40 ? const Color(0xFFF5A623) : const Color(0xFFFF5C5C);
+    final scoreColor = score >= 70
+        ? const Color(0xFF1F9A6D)
+        : score >= 40
+        ? const Color(0xFFF5A623)
+        : const Color(0xFFFF5C5C);
 
     final isMl = widget.language == 'ml';
     return ListView(
@@ -907,24 +1133,48 @@ class _ResultsScreenState extends State<_ResultsScreen> {
         _buildScoreCard(score, scoreColor),
         if (widget.result.risks.isNotEmpty) ...[
           const SizedBox(height: 32),
-          Text(isMl ? 'à´•à´£àµà´Ÿàµ†à´¤àµà´¤à´¿à´¯ à´†à´°àµ‹à´—àµà´¯ à´ªàµà´°à´¶àµà´¨à´™àµà´™àµ¾' : 'Suggested Issues', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          Text(
+            isMl
+                ? 'à´•à´£àµà´Ÿàµ†à´¤àµà´¤à´¿à´¯ à´†à´°àµ‹à´—àµà´¯ à´ªàµà´°à´¶àµà´¨à´™àµà´™àµ¾'
+                : 'Suggested Issues',
+            style: GoogleFonts.manrope(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF192233),
+            ),
+          ),
           const SizedBox(height: 16),
           _buildRisksCard(),
         ],
         if (widget.result.matchedPackages.isNotEmpty) ...[
           const SizedBox(height: 32),
-          Text(isMl ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾' : 'Recommended Packages', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          Text(
+            isMl
+                ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾'
+                : 'Recommended Packages',
+            style: GoogleFonts.manrope(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF192233),
+            ),
+          ),
           const SizedBox(height: 16),
-          ...widget.result.matchedPackages.map((pkg) => _PackageResultCard(
-            pkg: pkg, 
-            isAvailable: true,
-            onBook: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => PackageBookingScreen(package: LabPackageItem.fromJson(pkg))),
-              );
-            },
-          )),
+          ...widget.result.matchedPackages.map(
+            (pkg) => _PackageResultCard(
+              pkg: pkg,
+              isAvailable: true,
+              onBook: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PackageBookingScreen(
+                      package: LabPackageItem.fromJson(pkg),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ],
         const SizedBox(height: 32),
         SizedBox(
@@ -936,12 +1186,22 @@ class _ResultsScreenState extends State<_ResultsScreen> {
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(isMl ? 'à´…à´Ÿàµà´¤àµà´¤à´¤àµ: à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾ à´•à´¾à´£àµà´•' : 'Next: View Packages', style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18)),
+                Text(
+                  isMl
+                      ? 'à´…à´Ÿàµà´¤àµà´¤à´¤àµ: à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾ à´•à´¾à´£àµà´•'
+                      : 'Next: View Packages',
+                  style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 const Icon(Icons.arrow_forward_rounded),
               ],
@@ -962,25 +1222,63 @@ class _ResultsScreenState extends State<_ResultsScreen> {
           children: [
             IconButton(
               onPressed: () => setState(() => _page = 0),
-              icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF5A88F1)),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                color: Color(0xFF5A88F1),
+              ),
             ),
             Expanded(
-              child: Text(isMl ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾' : 'Suggested Packages', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+              child: Text(
+                isMl
+                    ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾'
+                    : 'Suggested Packages',
+                style: GoogleFonts.manrope(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF192233),
+                ),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 16),
         if (widget.result.matchedPackages.isNotEmpty)
-          ...widget.result.matchedPackages.map((pkg) => _PackageResultCard(pkg: pkg, isAvailable: true, onBook: () => _bookPackage(context, pkg))),
+          ...widget.result.matchedPackages.map(
+            (pkg) => _PackageResultCard(
+              pkg: pkg,
+              isAvailable: true,
+              onBook: () => _bookPackage(context, pkg),
+            ),
+          ),
         if (widget.result.unmatchedPackages.isNotEmpty) ...[
           const SizedBox(height: 24),
-          Text(isMl ? 'à´®à´±àµà´±àµ à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´™àµà´™àµ¾' : 'Also Recommended', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          Text(
+            isMl
+                ? 'à´®à´±àµà´±àµ à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´™àµà´™àµ¾'
+                : 'Also Recommended',
+            style: GoogleFonts.manrope(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF192233),
+            ),
+          ),
           const SizedBox(height: 16),
-          ...widget.result.unmatchedPackages.map((pkg) => _PackageResultCard(pkg: pkg, isAvailable: false)),
+          ...widget.result.unmatchedPackages.map(
+            (pkg) => _PackageResultCard(pkg: pkg, isAvailable: false),
+          ),
         ],
         if (widget.result.testRecommendations.isNotEmpty) ...[
           const SizedBox(height: 24),
-          Text(isMl ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´°à´¿à´¶àµ‹à´§à´¨à´•àµ¾' : 'Suggested Individual Tests', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          Text(
+            isMl
+                ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´°à´¿à´¶àµ‹à´§à´¨à´•àµ¾'
+                : 'Suggested Individual Tests',
+            style: GoogleFonts.manrope(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF192233),
+            ),
+          ),
           const SizedBox(height: 16),
           _buildTestsCard(),
         ],
@@ -990,12 +1288,19 @@ class _ResultsScreenState extends State<_ResultsScreen> {
           child: OutlinedButton.icon(
             onPressed: widget.onRetake,
             icon: const Icon(Icons.replay_rounded),
-            label: Text(isMl ? 'à´µàµ€à´£àµà´Ÿàµà´‚ à´ªà´°à´¿à´¶àµ‹à´§à´¿à´•àµà´•àµà´•' : 'Retake Assessment', style: GoogleFonts.manrope(fontWeight: FontWeight.w800)),
+            label: Text(
+              isMl
+                  ? 'à´µàµ€à´£àµà´Ÿàµà´‚ à´ªà´°à´¿à´¶àµ‹à´§à´¿à´•àµà´•àµà´•'
+                  : 'Retake Assessment',
+              style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+            ),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF5A88F1),
               side: const BorderSide(color: Color(0xFF5A88F1)),
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
         ),
@@ -1007,18 +1312,28 @@ class _ResultsScreenState extends State<_ResultsScreen> {
               widget.onReset();
               PatientAppShell.of(context).goHome();
             },
-            icon: Icon(Icons.home_rounded, size: 20, color: const Color(0xFF192233).withValues(alpha: 0.6)),
+            icon: Icon(
+              Icons.home_rounded,
+              size: 20,
+              color: const Color(0xFF192233).withValues(alpha: 0.6),
+            ),
             label: Text(
-              isMl ? 'à´¤à´¿à´°à´¿à´•àµ† à´¹àµ‹à´®à´¿à´²àµ‡à´•àµà´•àµ' : 'Back to Home',
+              isMl
+                  ? 'à´¤à´¿à´°à´¿à´•àµ† à´¹àµ‹à´®à´¿à´²àµ‡à´•àµà´•àµ'
+                  : 'Back to Home',
               style: GoogleFonts.manrope(
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233).withValues(alpha: 0.6),
               ),
             ),
             style: OutlinedButton.styleFrom(
-              side: BorderSide(color: const Color(0xFF192233).withValues(alpha: 0.12)),
+              side: BorderSide(
+                color: const Color(0xFF192233).withValues(alpha: 0.12),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
         ),
@@ -1034,14 +1349,30 @@ class _ResultsScreenState extends State<_ResultsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Text(isMl ? 'à´¨à´¿à´™àµà´™à´³àµà´Ÿàµ† à´†à´°àµ‹à´—àµà´¯ à´¸àµà´•àµ‹àµ¼' : 'Your Health Score', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+          Text(
+            isMl
+                ? 'à´¨à´¿à´™àµà´™à´³àµà´Ÿàµ† à´†à´°àµ‹à´—àµà´¯ à´¸àµà´•àµ‹àµ¼'
+                : 'Your Health Score',
+            style: GoogleFonts.manrope(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF192233),
+            ),
+          ),
           const SizedBox(height: 20),
           SizedBox(
-            width: 140, height: 140,
+            width: 140,
+            height: 140,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -1052,7 +1383,14 @@ class _ResultsScreenState extends State<_ResultsScreen> {
                   valueColor: AlwaysStoppedAnimation(scoreColor),
                 ),
                 Center(
-                  child: Text('$score%', style: GoogleFonts.manrope(fontSize: 36, fontWeight: FontWeight.w900, color: const Color(0xFF192233))),
+                  child: Text(
+                    '$score%',
+                    style: GoogleFonts.manrope(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF192233),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1061,8 +1399,18 @@ class _ResultsScreenState extends State<_ResultsScreen> {
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(color: const Color(0xFFFFF8F0), borderRadius: BorderRadius.circular(12)),
-              child: Text(widget.result.peerComparison, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFFF5A623))),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8F0),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                widget.result.peerComparison,
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFFF5A623),
+                ),
+              ),
             ),
           ],
         ],
@@ -1077,7 +1425,13 @@ class _ResultsScreenState extends State<_ResultsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: widget.result.risks.map((risk) {
@@ -1094,18 +1448,41 @@ class _ResultsScreenState extends State<_ResultsScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: const Color(0xFFFFF4F4), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFFFF5C5C)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF4F4),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 20,
+                        color: Color(0xFFFF5C5C),
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(name, style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+                          Text(
+                            name,
+                            style: GoogleFonts.manrope(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF192233),
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          if (reason.isNotEmpty) 
-                            Text(reason, style: GoogleFonts.manrope(fontSize: 13, height: 1.5, color: const Color(0xFF192233).withValues(alpha: 0.7))),
+                          if (reason.isNotEmpty)
+                            Text(
+                              reason,
+                              style: GoogleFonts.manrope(
+                                fontSize: 13,
+                                height: 1.5,
+                                color: const Color(
+                                  0xFF192233,
+                                ).withValues(alpha: 0.7),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -1119,26 +1496,39 @@ class _ResultsScreenState extends State<_ResultsScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF4F7FF),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF5A88F1).withValues(alpha: 0.1)),
+                      border: Border.all(
+                        color: const Color(0xFF5A88F1).withValues(alpha: 0.1),
+                      ),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.lightbulb_outline_rounded, size: 16, color: Color(0xFF5A88F1)),
+                        const Icon(
+                          Icons.lightbulb_outline_rounded,
+                          size: 16,
+                          color: Color(0xFF5A88F1),
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             "${isMl ? 'à´®àµàµ»à´•à´°àµà´¤àµ½' : 'Precaution'}: $precaution",
-                            style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF5A88F1)),
+                            style: GoogleFonts.manrope(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF5A88F1),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ],
-                if (widget.result.risks.indexOf(risk) < widget.result.risks.length - 1) ...[
+                if (widget.result.risks.indexOf(risk) <
+                    widget.result.risks.length - 1) ...[
                   const SizedBox(height: 20),
-                  Divider(color: const Color(0xFFE5E9F0).withValues(alpha: 0.5)),
+                  Divider(
+                    color: const Color(0xFFE5E9F0).withValues(alpha: 0.5),
+                  ),
                 ],
               ],
             ),
@@ -1154,7 +1544,13 @@ class _ResultsScreenState extends State<_ResultsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: widget.result.testRecommendations.map((t) {
@@ -1166,17 +1562,41 @@ class _ResultsScreenState extends State<_ResultsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(color: const Color(0xFFF4F7FF), borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.biotech_outlined, color: Color(0xFF5A88F1), size: 18),
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4F7FF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.biotech_outlined,
+                    color: Color(0xFF5A88F1),
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
-                      if (reason.isNotEmpty) Text(reason, style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF192233).withValues(alpha: 0.5))),
+                      Text(
+                        name,
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF192233),
+                        ),
+                      ),
+                      if (reason.isNotEmpty)
+                        Text(
+                          reason,
+                          style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            color: const Color(
+                              0xFF192233,
+                            ).withValues(alpha: 0.5),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1199,11 +1619,14 @@ class _ResultsScreenState extends State<_ResultsScreen> {
       category: pkg['category'] as String?,
       imageUrl: pkg['imageUrl'] as String? ?? pkg['image_url'] as String?,
       totalTests: (pkg['totalTests'] as num?)?.toInt(),
-      discountedPrice: pkg['discountedPrice'] != null || pkg['discounted_price'] != null
+      discountedPrice:
+          pkg['discountedPrice'] != null || pkg['discounted_price'] != null
           ? _parseInt(pkg['discountedPrice'] ?? pkg['discounted_price'])
           : null,
     );
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => PackageBookingScreen(package: package)));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => PackageBookingScreen(package: package)),
+    );
   }
 
   int _parseInt(dynamic v) {
@@ -1218,12 +1641,20 @@ class _PackageResultCard extends StatelessWidget {
   final Map<String, dynamic> pkg;
   final bool isAvailable;
   final VoidCallback? onBook;
-  const _PackageResultCard({required this.pkg, required this.isAvailable, this.onBook});
+  const _PackageResultCard({
+    required this.pkg,
+    required this.isAvailable,
+    this.onBook,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final name = pkg['name'] as String? ?? pkg['package']?['name'] as String? ?? 'Package';
-    final reason = pkg['reason'] as String? ?? pkg['package']?['reason'] as String? ?? '';
+    final name =
+        pkg['name'] as String? ??
+        pkg['package']?['name'] as String? ??
+        'Package';
+    final reason =
+        pkg['reason'] as String? ?? pkg['package']?['reason'] as String? ?? '';
     final basePrice = (pkg['basePrice'] ?? pkg['base_price'] ?? 0) as num;
     final discountedPrice = pkg['discountedPrice'] ?? pkg['discounted_price'];
 
@@ -1233,7 +1664,13 @@ class _PackageResultCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1241,18 +1678,40 @@ class _PackageResultCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(color: const Color(0xFFF4F7FF), borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF5A88F1)),
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F7FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.inventory_2_outlined,
+                  color: Color(0xFF5A88F1),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF192233))),
+                    Text(
+                      name,
+                      style: GoogleFonts.manrope(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF192233),
+                      ),
+                    ),
                     if (reason.isNotEmpty)
-                      Text(reason, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF192233).withValues(alpha: 0.5))),
+                      Text(
+                        reason,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(
+                          fontSize: 12,
+                          color: const Color(0xFF192233).withValues(alpha: 0.5),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -1263,11 +1722,32 @@ class _PackageResultCard extends StatelessWidget {
             Row(
               children: [
                 if (discountedPrice != null) ...[
-                  Text('\u20B9${(discountedPrice as num).toInt()}', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF5A88F1))),
+                  Text(
+                    '\u20B9${(discountedPrice as num).toInt()}',
+                    style: GoogleFonts.manrope(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF5A88F1),
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Text('\u20B9${basePrice.toInt()}', style: GoogleFonts.manrope(fontSize: 13, decoration: TextDecoration.lineThrough, color: const Color(0xFF192233).withValues(alpha: 0.3))),
+                  Text(
+                    '\u20B9${basePrice.toInt()}',
+                    style: GoogleFonts.manrope(
+                      fontSize: 13,
+                      decoration: TextDecoration.lineThrough,
+                      color: const Color(0xFF192233).withValues(alpha: 0.3),
+                    ),
+                  ),
                 ] else
-                  Text('\u20B9${basePrice.toInt()}', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF5A88F1))),
+                  Text(
+                    '\u20B9${basePrice.toInt()}',
+                    style: GoogleFonts.manrope(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF5A88F1),
+                    ),
+                  ),
                 const Spacer(),
                 ElevatedButton(
                   onPressed: onBook,
@@ -1275,10 +1755,21 @@ class _PackageResultCard extends StatelessWidget {
                     backgroundColor: const Color(0xFF5A88F1),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: Text('Book Now', style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 13)),
+                  child: Text(
+                    'Book Now',
+                    style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1286,8 +1777,18 @@ class _PackageResultCard extends StatelessWidget {
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: const Color(0xFFF4F7FF), borderRadius: BorderRadius.circular(8)),
-              child: Text('Not available in our lab yet', style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF5A88F1))),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F7FF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Not available in our lab yet',
+                style: GoogleFonts.manrope(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF5A88F1),
+                ),
+              ),
             ),
           ],
         ],
@@ -1295,4 +1796,3 @@ class _PackageResultCard extends StatelessWidget {
     );
   }
 }
-
