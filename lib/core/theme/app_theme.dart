@@ -59,12 +59,19 @@ class AppTheme {
       ),
 
       // AppBar Theme
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
         backgroundColor: AppColors.surfaceLight,
         foregroundColor: AppColors.textPrimaryLight,
         elevation: 0.5,
+        scrolledUnderElevation: 0,
+        toolbarHeight: 72,
+        titleTextStyle: GoogleFonts.manrope(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textPrimaryLight,
+        ),
       ),
 
       // Input Base Theme
@@ -175,12 +182,19 @@ class AppTheme {
       ),
 
       // AppBar Theme
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
         backgroundColor: AppColors.surfaceDark,
         foregroundColor: AppColors.textPrimaryDark,
         elevation: 0.5,
+        scrolledUnderElevation: 0,
+        toolbarHeight: 72,
+        titleTextStyle: GoogleFonts.manrope(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textPrimaryDark,
+        ),
       ),
 
       // Input Base Theme

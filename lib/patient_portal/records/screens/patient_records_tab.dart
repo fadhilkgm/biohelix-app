@@ -36,17 +36,17 @@ class _RecordsTabState extends State<_RecordsTab> {
     final uri = Uri.tryParse(trimmed);
     if (uri == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid report link.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid report link.')));
       return;
     }
 
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open report.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not open report.')));
     }
   }
 
@@ -65,24 +65,30 @@ class _RecordsTabState extends State<_RecordsTab> {
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 52, 16, 0),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    MediaQuery.of(context).padding.top + 14,
+                    16,
+                    0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ── Back Button ─────────────────────────────────────
                       IconButton(
                         onPressed: () => PatientAppShell.of(context).goHome(),
-                        icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                        tooltip: 'Back to Home',
+                        icon: const Icon(Icons.arrow_back_rounded, size: 24),
                         style: IconButton.styleFrom(
                           backgroundColor: theme.colorScheme.surface,
                           foregroundColor: theme.colorScheme.onSurface,
-                          padding: const EdgeInsets.all(12),
+                          fixedSize: const Size(48, 48),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       // ── Header ──────────────────────────────────────────
                       Text(
                         'Medical Records',
@@ -90,7 +96,6 @@ class _RecordsTabState extends State<_RecordsTab> {
                           fontSize: 26,
                           fontWeight: FontWeight.w800,
                           color: theme.colorScheme.onSurface,
-                          letterSpacing: -0.5,
                           height: 1.1,
                         ),
                       ),
@@ -103,7 +108,7 @@ class _RecordsTabState extends State<_RecordsTab> {
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 18),
                       // ── Filter chips ─────────────────────────────────────
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -128,7 +133,8 @@ class _RecordsTabState extends State<_RecordsTab> {
                               label: 'Prescriptions',
                               icon: Icons.medication_rounded,
                               selected: _filter == 'prescription',
-                              onTap: () => setState(() => _filter = 'prescription'),
+                              onTap: () =>
+                                  setState(() => _filter = 'prescription'),
                             ),
                             const SizedBox(width: 8),
                             _RecordsFilterChip(
@@ -140,7 +146,7 @@ class _RecordsTabState extends State<_RecordsTab> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 18),
                     ],
                   ),
                 ),
@@ -157,16 +163,13 @@ class _RecordsTabState extends State<_RecordsTab> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final item = visibleItems[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _RecordsListCard(item: item, onTap: item.onTap),
-                        );
-                      },
-                      childCount: visibleItems.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final item = visibleItems[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _RecordsListCard(item: item, onTap: item.onTap),
+                      );
+                    }, childCount: visibleItems.length),
                   ),
                 ),
             ],
@@ -199,7 +202,7 @@ class _RecordsTabState extends State<_RecordsTab> {
             onTap: record.category == 'prescription'
                 ? () => _openPrescriptionDetail(record: record)
                 : (record.documentPath ?? '').trim().isNotEmpty
-                    ? () => _openDocument(record.documentPath!)
+                ? () => _openDocument(record.documentPath!)
                 : null,
           ),
         )
@@ -344,15 +347,15 @@ class _RecordsFilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? activeColor : theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: selected 
-            ? [
-                BoxShadow(
-                  color: activeColor.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                )
-              ] 
-            : null,
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -396,9 +399,7 @@ class _RecordsListCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: AppShadows.low(
-          dark: theme.brightness == Brightness.dark,
-        ),
+        boxShadow: AppShadows.low(dark: theme.brightness == Brightness.dark),
       ),
       child: Material(
         color: Colors.transparent,
@@ -487,7 +488,9 @@ class _RecordsListCard extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF5A88F1).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFF5A88F1,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
@@ -523,8 +526,6 @@ class _RecordsListCard extends StatelessWidget {
   }
 }
 
-
-
 class _RecordsAvailabilityBadge extends StatelessWidget {
   const _RecordsAvailabilityBadge({required this.label});
 
@@ -535,12 +536,12 @@ class _RecordsAvailabilityBadge extends StatelessWidget {
     final status = label.toLowerCase();
     final isAvailable = status == 'available';
     final isPending = status == 'pending' || status == 'processing';
-    
+
     final Color accentColor = isAvailable
         ? const Color(0xFF10B981)
-        : isPending 
-            ? const Color(0xFF6366F1)
-            : const Color(0xFFF59E0B);
+        : isPending
+        ? const Color(0xFF6366F1)
+        : const Color(0xFFF59E0B);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -607,9 +608,7 @@ class _RecordsEmptyState extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: AppShadows.low(
-          dark: theme.brightness == Brightness.dark,
-        ),
+        boxShadow: AppShadows.low(dark: theme.brightness == Brightness.dark),
       ),
       child: Column(
         children: [

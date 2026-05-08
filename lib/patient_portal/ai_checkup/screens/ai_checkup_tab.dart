@@ -155,13 +155,22 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       appBar: AppBar(
         title: Text(
           'AI Health Checkup',
-          style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+          style: GoogleFonts.manrope(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF192233),
+          ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8F9FB),
+        foregroundColor: const Color(0xFF192233),
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        toolbarHeight: 72,
         leading: _step != 'history'
             ? IconButton(
+                tooltip: 'Back',
                 icon: const Icon(
                   Icons.arrow_back_rounded,
                   color: Color(0xFF192233),

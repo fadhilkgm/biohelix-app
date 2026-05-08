@@ -2,6 +2,13 @@
 import 'package:google_fonts/google_fonts.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/providers/language_provider.dart';
+import '../utils/home_header_content_mapper.dart';
+import '../widgets/home_health_alert_widget.dart';
+import '../widgets/home_hero_header_widget.dart';
+import '../widgets/offers_and_appointments_section_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -116,6 +123,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final language = context.watch<LanguageProvider>().language;
+    final headerContent = HomeHeaderContentMapper.build(
+      patientName: widget.patientName,
+      banners: widget.banners,
+      tickerMessages: widget.tickerMessages,
+      language: language,
+    );
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
@@ -142,28 +157,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'How are you today?',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          widget.patientName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
+                    child: HomeHeroHeaderWidget(
+                      greeting: headerContent.greeting,
+                      patientName: headerContent.displayName,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: HomeHealthAlertWidget(
+                      title: headerContent.healthTipTitle,
+                      message: headerContent.healthTipMessage,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -227,6 +231,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildBannerCarousel(context)
               else if (widget.isLoading)
                 _buildBannerSkeleton(context),
+              const SizedBox(height: 32),
+              OffersAndAppointmentsSectionWidget(
+                bookings: widget.bookings,
+                onSeeAllAppointments: widget.onSeeAllAppointments,
+                onOfferTap: widget.onOfferTap,
+                homeOffers: widget.homeOffers,
+              ),
               const SizedBox(height: 32),
               // Quick Links Section
               Row(
@@ -687,59 +698,79 @@ class _PackageCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      pkg.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF192233),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'â‚¹${pkg.discountedPrice ?? pkg.basePrice}',
+                          pkg.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 20,
+                            fontSize: 18,
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF5A88F1),
+                            color: Color(0xFF192233),
                           ),
                         ),
-                        if (pkg.discountedPrice != null && pkg.discountedPrice! < pkg.basePrice) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            'â‚¹${pkg.basePrice}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              decoration: TextDecoration.lineThrough,
-                              color: const Color(0xFF192233).withValues(alpha: 0.3),
-                              fontWeight: FontWeight.w600,
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                'â‚¹${pkg.discountedPrice ?? pkg.basePrice}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF5A88F1),
+                                ),
+                              ),
+                            ),
+                            if (pkg.discountedPrice != null &&
+                                pkg.discountedPrice! < pkg.basePrice) ...[
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  'â‚¹${pkg.basePrice}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    decoration: TextDecoration.lineThrough,
+                                    color: const Color(0xFF192233).withValues(
+                                      alpha: 0.3,
+                                    ),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF4F7FF),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${pkg.totalTests ?? pkg.includedTests.length} Tests included',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF5A88F1),
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                        ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F7FF),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${pkg.totalTests ?? pkg.includedTests.length} Tests included',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF5A88F1),
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(

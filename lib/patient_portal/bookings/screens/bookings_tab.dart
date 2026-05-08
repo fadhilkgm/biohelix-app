@@ -80,52 +80,59 @@ class _BookingsTabState extends State<_BookingsTab> {
 
         final currentAppointments =
             _selectedTimeline == _BookingsTimeline.upcoming
-                ? upcomingBookings
-                : historyBookings;
+            ? upcomingBookings
+            : historyBookings;
         final currentLabOrders = _selectedTimeline == _BookingsTimeline.upcoming
             ? upcomingLabOrders
             : historyLabOrders;
         final currentPackageOrders =
             _selectedTimeline == _BookingsTimeline.upcoming
-                ? upcomingPackageOrders
-                : historyPackageOrders;
+            ? upcomingPackageOrders
+            : historyPackageOrders;
 
-        final showAppointments = _selectedView == _BookingsView.all ||
+        final showAppointments =
+            _selectedView == _BookingsView.all ||
             _selectedView == _BookingsView.appointments;
-        final showTests = _selectedView == _BookingsView.all ||
+        final showTests =
+            _selectedView == _BookingsView.all ||
             _selectedView == _BookingsView.tests;
-        final showPackages = _selectedView == _BookingsView.all ||
+        final showPackages =
+            _selectedView == _BookingsView.all ||
             _selectedView == _BookingsView.packages;
 
         return Scaffold(
           backgroundColor: Colors.transparent,
           body: DecoratedBox(
-            decoration: BoxDecoration(
-              color: theme.scaffoldBackgroundColor,
-            ),
+            decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 52, 16, 0),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      MediaQuery.of(context).padding.top + 14,
+                      16,
+                      0,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // ── Back Button ─────────────────────────────────────
                         IconButton(
                           onPressed: () => PatientAppShell.of(context).goHome(),
-                          icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                          tooltip: 'Back to Home',
+                          icon: const Icon(Icons.arrow_back_rounded, size: 24),
                           style: IconButton.styleFrom(
                             backgroundColor: theme.colorScheme.surface,
                             foregroundColor: theme.colorScheme.onSurface,
-                            padding: const EdgeInsets.all(12),
+                            fixedSize: const Size(48, 48),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         // ── Header ──────────────────────────────────────────
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -140,7 +147,6 @@ class _BookingsTabState extends State<_BookingsTab> {
                                       fontSize: 26,
                                       fontWeight: FontWeight.w800,
                                       color: theme.colorScheme.onSurface,
-                                      letterSpacing: -0.5,
                                       height: 1.1,
                                     ),
                                   ),
@@ -165,7 +171,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 18),
                         // ── Filter chips ─────────────────────────────────────
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -187,8 +193,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                                     _selectedView == _BookingsView.appointments,
                                 icon: Icons.medical_services_rounded,
                                 onTap: () => setState(
-                                  () =>
-                                      _selectedView = _BookingsView.appointments,
+                                  () => _selectedView =
+                                      _BookingsView.appointments,
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -203,7 +209,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                               const SizedBox(width: 8),
                               _BookingsFilterChip(
                                 label: 'Packages',
-                                selected: _selectedView == _BookingsView.packages,
+                                selected:
+                                    _selectedView == _BookingsView.packages,
                                 icon: Icons.inventory_2_rounded,
                                 onTap: () => setState(
                                   () => _selectedView = _BookingsView.packages,
@@ -221,13 +228,13 @@ class _BookingsTabState extends State<_BookingsTab> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                        ..._buildTimelineContent(
-                          context,
-                          portal,
-                          showAppointments ? currentAppointments : [],
-                          showTests ? currentLabOrders : [],
-                          showPackages ? currentPackageOrders : [],
-                        ),
+                      ..._buildTimelineContent(
+                        context,
+                        portal,
+                        showAppointments ? currentAppointments : [],
+                        showTests ? currentLabOrders : [],
+                        showPackages ? currentPackageOrders : [],
+                      ),
                       const SizedBox(height: 40),
                     ]),
                   ),
@@ -468,11 +475,11 @@ class _BookingsTabState extends State<_BookingsTab> {
                                   onTap: portal.isCreatingBooking
                                       ? null
                                       : () =>
-                                          widget._showRescheduleBookingSheet(
-                                            context,
-                                            portal,
-                                            booking,
-                                          ),
+                                            widget._showRescheduleBookingSheet(
+                                              context,
+                                              portal,
+                                              booking,
+                                            ),
                                 ),
                               ),
 
@@ -485,10 +492,10 @@ class _BookingsTabState extends State<_BookingsTab> {
                                   onTap: portal.isCreatingBooking
                                       ? null
                                       : () => widget._cancelBooking(
-                                            context,
-                                            portal,
-                                            booking,
-                                          ),
+                                          context,
+                                          portal,
+                                          booking,
+                                        ),
                                 ),
                               ),
                             ],
@@ -635,10 +642,10 @@ class _BookingsTabState extends State<_BookingsTab> {
                               onTap: portal.isCreatingLabOrder
                                   ? null
                                   : () => widget._cancelLabOrder(
-                                        context,
-                                        portal,
-                                        order,
-                                      ),
+                                      context,
+                                      portal,
+                                      order,
+                                    ),
                             ),
                           ),
                         ],
@@ -761,11 +768,12 @@ class _BookingsTabState extends State<_BookingsTab> {
                             child: _CompactActionButton(
                               label: 'Reschedule',
                               icon: Icons.schedule_rounded,
-                              onTap: () => widget._showRescheduleLabPackageOrderSheet(
-                                context,
-                                portal,
-                                order,
-                              ),
+                              onTap: () =>
+                                  widget._showRescheduleLabPackageOrderSheet(
+                                    context,
+                                    portal,
+                                    order,
+                                  ),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -777,10 +785,10 @@ class _BookingsTabState extends State<_BookingsTab> {
                               onTap: portal.isCreatingLabOrder
                                   ? null
                                   : () => widget._cancelLabPackageOrder(
-                                        context,
-                                        portal,
-                                        order,
-                                      ),
+                                      context,
+                                      portal,
+                                      order,
+                                    ),
                             ),
                           ),
                         ],
@@ -1103,7 +1111,7 @@ class _BookingsFilterChip extends StatelessWidget {
                     color: activeColor.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -1312,9 +1320,7 @@ class _EmptyBookingsState extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: AppShadows.low(
-          dark: theme.brightness == Brightness.dark,
-        ),
+        boxShadow: AppShadows.low(dark: theme.brightness == Brightness.dark),
       ),
       child: Column(
         children: [
@@ -1353,4 +1359,3 @@ class _EmptyBookingsState extends StatelessWidget {
     );
   }
 }
-

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -8,6 +8,7 @@ import '../widgets/test_card_widget.dart';
 import 'cart_screen.dart';
 import 'test_booking_screen.dart';
 import '../../labs/screens/lab_test_detail_page.dart';
+import '../../shared/widgets/patient_screen_header.dart';
 
 class TestListScreen extends StatelessWidget {
   const TestListScreen({super.key, this.onTestTap});
@@ -21,61 +22,22 @@ class TestListScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF8F9FB),
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            floating: true,
-            pinned: true,
-            snap: false,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            surfaceTintColor: Colors.transparent,
-            title: Text(
-              'Lab Tests',
-              style: GoogleFonts.manrope(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF192233),
+          SliverToBoxAdapter(
+            child: PatientScreenHeader(
+              title: 'Lab Tests',
+              subtitle: 'Search tests and health packages',
+              onBack: () => Navigator.of(context).maybePop(),
+              action: PatientHeaderAction(
+                icon: Icons.shopping_bag_outlined,
+                tooltip: 'Open cart',
+                badgeCount: c.cartCount,
+                onPressed: () => _push(context, const CartScreen()),
               ),
             ),
-            actions: [
-              Stack(
-                children: [
-                  IconButton(
-                    onPressed: () => _push(context, const CartScreen()),
-                    icon: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF192233)),
-                  ),
-                  if (c.cartCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF5A88F1),
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '${c.cartCount}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 8),
-            ],
           ),
           SliverToBoxAdapter(
             child: Container(
-              color: Colors.white,
+              color: const Color(0xFFF8F9FB),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +46,10 @@ class TestListScreen extends StatelessWidget {
                     onChanged: c.setQuery,
                     style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF5A88F1)),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF5A88F1),
+                      ),
                       hintText: 'Search tests or biomarkers',
                       hintStyle: GoogleFonts.manrope(
                         color: const Color(0xFF192233).withValues(alpha: 0.4),
@@ -110,12 +75,19 @@ class TestListScreen extends StatelessWidget {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             margin: const EdgeInsets.only(right: 10),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF5A88F1) : const Color(0xFFF4F7FF),
+                              color: isSelected
+                                  ? const Color(0xFF5A88F1)
+                                  : const Color(0xFFF4F7FF),
                               borderRadius: BorderRadius.circular(30),
                               border: Border.all(
-                                color: isSelected ? const Color(0xFF5A88F1) : Colors.transparent,
+                                color: isSelected
+                                    ? const Color(0xFF5A88F1)
+                                    : Colors.transparent,
                               ),
                             ),
                             child: Text(
@@ -123,7 +95,11 @@ class TestListScreen extends StatelessWidget {
                               style: GoogleFonts.manrope(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: isSelected ? Colors.white : const Color(0xFF192233).withValues(alpha: 0.6),
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(
+                                        0xFF192233,
+                                      ).withValues(alpha: 0.6),
                               ),
                             ),
                           ),
@@ -145,29 +121,29 @@ class TestListScreen extends StatelessWidget {
             SliverPadding(
               padding: const EdgeInsets.all(16),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final t = c.filteredTests[index];
-                    return TestCardWidget(
-                      test: t,
-                      onAdd: () => _handleAddToCart(context, c, t),
-                      onOpen: () {
-                        if (onTestTap != null) {
-                          onTestTap!(t);
-                        } else if (t.originalItem != null) {
-                          _push(context, LabTestDetailPage(test: t.originalItem!));
-                        } else {
-                          c.addToCart(t);
-                          _push(context, const TestBookingScreen());
-                        }
-                      },
-                    );
-                  },
-                  childCount: c.filteredTests.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final t = c.filteredTests[index];
+                  return TestCardWidget(
+                    test: t,
+                    onAdd: () => _handleAddToCart(context, c, t),
+                    onOpen: () {
+                      if (onTestTap != null) {
+                        onTestTap!(t);
+                      } else if (t.originalItem != null) {
+                        _push(
+                          context,
+                          LabTestDetailPage(test: t.originalItem!),
+                        );
+                      } else {
+                        c.addToCart(t);
+                        _push(context, const TestBookingScreen());
+                      }
+                    },
+                  );
+                }, childCount: c.filteredTests.length),
               ),
             ),
-        const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),
       bottomNavigationBar: _buildCartBottomBar(context, c),
@@ -256,11 +232,12 @@ class TestListScreen extends StatelessWidget {
           message,
           style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
         ),
-        backgroundColor: added ? const Color(0xFF4CAF50) : const Color(0xFF192233),
+        backgroundColor: added
+            ? const Color(0xFF4CAF50)
+            : const Color(0xFF192233),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 }
-

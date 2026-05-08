@@ -21,9 +21,9 @@ class _RedesignedProfileSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF5A88F1),
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
       ),
       child: Container(
         decoration: const BoxDecoration(
@@ -118,106 +118,71 @@ class _ProfileHeroHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final initials = _buildInitials(patient.name);
     final topInset = MediaQuery.of(context).padding.top;
+    final theme = Theme.of(context);
 
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 240),
-      padding: EdgeInsets.fromLTRB(16, topInset + 20, 16, 22),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      padding: EdgeInsets.fromLTRB(16, topInset + 14, 16, 18),
+      color: const Color(0xFFF4F7F8),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onSwitchProfiles,
-                  borderRadius: BorderRadius.circular(999),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: CircleAvatar(
-                      radius: 37,
-                      backgroundColor: Colors.white.withValues(alpha: 0.28),
-                      child: Text(
-                        initials,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ),
+              CircleAvatar(
+                radius: 27,
+                backgroundColor: const Color(
+                  0xFF5A88F1,
+                ).withValues(alpha: 0.14),
+                child: Text(
+                  initials,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: const Color(0xFF5A88F1),
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: onSwitchProfiles,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.45)),
-                  backgroundColor: Colors.white.withValues(alpha: 0.12),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Profile',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        height: 1.12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${patient.name} - MRN: ${patient.registrationNumber}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                icon: const Icon(Icons.swap_horiz_rounded),
-                label: const Text(
-                  'Switch Profile',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                onPressed: onSwitchProfiles,
+                tooltip: 'Switch Profile',
+                icon: const Icon(Icons.swap_horiz_rounded, size: 24),
+                style: IconButton.styleFrom(
+                  fixedSize: const Size(48, 48),
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF192233),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            patient.name,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'MRN: ${patient.registrationNumber}',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Manage family members and switch profiles instantly',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.white.withValues(alpha: 0.82),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF759BF1).withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: const Text(
-              'Privilege Member',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
         ],
       ),

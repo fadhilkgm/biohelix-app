@@ -1,8 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:biohelix_app/patient_portal/premium_home/utils/home_header_content_mapper.dart';
+import 'package:biohelix_app/core/l10n/app_strings.dart';
 import 'package:biohelix_app/core/providers/language_provider.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
+import 'package:biohelix_app/patient_portal/premium_home/utils/home_header_content_mapper.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('HomeHeaderContentMapper', () {
@@ -72,7 +73,7 @@ void main() {
         tickerMessages: tickerMessages,
       );
 
-      expect(content.announcement, 'Message 1 ✦ Message 2');
+      expect(content.announcement, ['Message 1', 'Message 2'].join(' ✦ '));
     });
 
     test('should handle Malayalam language support', () {
@@ -81,17 +82,16 @@ void main() {
         banners: [],
         language: AppLanguage.ml,
       );
+      final strings = AppStrings.of(AppLanguage.ml);
 
-      // 'സുപ്രഭാതം,' (Good Morning) or other greetings based on time
-      // Since time depends on DateTime.now(), we just check if it contains the greeting
       expect(
-        content.greeting,
-        anyOf([
-          'സുപ്രഭാതം,',
-          'ഉച്ചയ്ക്ക് ശേഷം,',
-          'സായംസന്ധ്യ,',
-          'ശുഭരാത്രി,',
-        ]),
+        [
+          strings.goodMorning,
+          strings.goodAfternoon,
+          strings.goodEvening,
+          strings.goodNight,
+        ],
+        contains(content.greeting),
       );
     });
   });

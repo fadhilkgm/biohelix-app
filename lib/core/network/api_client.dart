@@ -5,7 +5,11 @@ import '../config/app_config.dart';
 import 'api_exception.dart';
 
 class ApiClient {
-  ApiClient({required AppConfig config, Logger? logger})
+  ApiClient({
+    required AppConfig config,
+    Logger? logger,
+    HttpClientAdapter? httpClientAdapter,
+  })
     : _logger = logger ?? Logger(),
       _config = config,
       _dio = Dio(
@@ -20,6 +24,9 @@ class ApiClient {
           },
         ),
       ) {
+    if (httpClientAdapter != null) {
+      _dio.httpClientAdapter = httpClientAdapter;
+    }
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
