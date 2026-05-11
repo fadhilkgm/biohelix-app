@@ -1,6 +1,6 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
-class ChatInputWidget extends StatelessWidget {
+class ChatInputWidget extends StatefulWidget {
   const ChatInputWidget({
     required this.controller,
     required this.isBusy,
@@ -10,6 +10,7 @@ class ChatInputWidget extends StatelessWidget {
     required this.onLiveTap,
     required this.onVoiceTap,
     required this.onSend,
+    required this.soundLevel,
     super.key,
   });
 
@@ -21,10 +22,61 @@ class ChatInputWidget extends StatelessWidget {
   final VoidCallback onLiveTap;
   final VoidCallback onVoiceTap;
   final VoidCallback onSend;
+  final double soundLevel;
+
+  @override
+  State<ChatInputWidget> createState() => _ChatInputWidgetState();
+}
+
+class _ChatInputWidgetState extends State<ChatInputWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    if (widget.isListening) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(ChatInputWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isListening && !oldWidget.isListening) {
+      _pulseController.repeat(reverse: true);
+    } else if (!widget.isListening && oldWidget.isListening) {
+      _pulseController.stop();
+      _pulseController.value = 0.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
+    final isBusy = widget.isBusy;
+    final isListening = widget.isListening;
+    final isLiveMode = widget.isLiveMode;
+    final onAttach = widget.onAttach;
+    final onLiveTap = widget.onLiveTap;
+    final onVoiceTap = widget.onVoiceTap;
+    final onSend = widget.onSend;
+    final controller = widget.controller;
+    final soundLevel = widget.soundLevel;
+
+    // Map sound level (-2 to 10 typical) to a scale factor (1.0 to 2.2)
+    final soundScale = 1.0 + (soundLevel.clamp(-2, 10) + 2) / 12 * 1.2;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -83,6 +135,7 @@ class ChatInputWidget extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(width: 8),
               IconButton(
                 onPressed: isBusy ? null : onVoiceTap,
                 tooltip: isListening
@@ -103,8 +156,6 @@ class ChatInputWidget extends StatelessWidget {
                             ? const Color(0xFFFFD2DB)
                             : const Color(0xFFE9EEF7),
                         shape: BoxShape.circle,
-                        // Keep shadow list stable across states to avoid invalid
-                        // interpolation values during implicit animations.
                         boxShadow: [
                           BoxShadow(
                             color: isListening
@@ -117,12 +168,41 @@ class ChatInputWidget extends StatelessWidget {
                       ),
                     ),
                     if (isListening)
-                      const SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          color: Color(0xFFBE123C),
+                      ScaleTransition(
+                        scale: Tween(begin: 1.0, end: soundScale).animate(
+                          CurvedAnimation(
+                            parent: _pulseController,
+                            curve: Curves.easeInOut,
+                          ),
+                        ),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFBE123C).withValues(alpha: 0.4),
+                              width: 3,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (isListening)
+                      FadeTransition(
+                        opacity: Tween(begin: 0.2, end: 0.5).animate(
+                          CurvedAnimation(
+                            parent: _pulseController,
+                            curve: Curves.easeInOut,
+                          ),
+                        ),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 100),
+                          width: 40 + (soundLevel.clamp(0, 10) * 2),
+                          height: 40 + (soundLevel.clamp(0, 10) * 2),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFFBE123C),
+                          ),
                         ),
                       ),
                     Icon(
@@ -159,6 +239,7 @@ class ChatInputWidget extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
               Expanded(
                 child: TextField(
                   controller: controller,
@@ -173,6 +254,7 @@ class ChatInputWidget extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(width: 12),
               Container(
                 width: 42,
                 height: 42,

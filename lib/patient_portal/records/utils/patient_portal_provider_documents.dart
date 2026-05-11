@@ -1,13 +1,21 @@
 part of 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
 
 extension PatientPortalDocumentMixin on PatientPortalProvider {
-  Future<DocumentRecord> uploadDocument(String filePath) async {
+  Future<DocumentRecord> uploadDocument({
+    String? filePath,
+    List<int>? bytes,
+    required String fileName,
+  }) async {
     _isUploadingDocument = true;
     _errorMessage = null;
     _notify();
 
     try {
-      final uploaded = await _repository.uploadDocument(filePath);
+      final uploaded = await _repository.uploadDocument(
+        filePath: filePath,
+        bytes: bytes,
+        fileName: fileName,
+      );
       await loadPortal();
       return uploaded;
     } catch (error) {

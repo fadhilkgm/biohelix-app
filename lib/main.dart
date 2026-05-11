@@ -4,14 +4,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();                                            
+  WidgetsFlutterBinding.ensureInitialized();
   await _loadEnvironment();
   runApp(const BioHelixApp());
 }
-// dd
-Future<void> _loadEnvironment() async { 
+
+Future<void> _loadEnvironment() async {
   try {
     await dotenv.load(fileName: '.env');
+    debugPrint('Loaded .env successfully (${dotenv.env.length} variables)');
   } catch (error, stackTrace) {
     debugPrint('Skipping .env load: $error');
     debugPrintStack(stackTrace: stackTrace);

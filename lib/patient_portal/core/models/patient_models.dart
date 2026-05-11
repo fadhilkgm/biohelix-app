@@ -770,12 +770,16 @@ class ChatAttachment {
     required this.url,
     this.mimeType,
     this.sizeBytes,
+    this.documentId,
+    this.analysisSummary,
   });
 
   final String name;
   final String url;
   final String? mimeType;
   final int? sizeBytes;
+  final int? documentId;
+  final String? analysisSummary;
 
   bool get isImage {
     final byType = (mimeType ?? '').toLowerCase();
@@ -795,6 +799,9 @@ class ChatAttachment {
       'url': url,
       if ((mimeType ?? '').isNotEmpty) 'mimeType': mimeType,
       if (sizeBytes != null) 'sizeBytes': sizeBytes,
+      if (documentId != null) 'documentId': documentId,
+      if ((analysisSummary ?? '').trim().isNotEmpty)
+        'analysisSummary': analysisSummary,
     };
   }
 
@@ -804,6 +811,8 @@ class ChatAttachment {
       url: json['url'] as String? ?? '',
       mimeType: json['mimeType'] as String?,
       sizeBytes: (json['sizeBytes'] as num?)?.toInt(),
+      documentId: (json['documentId'] as num?)?.toInt(),
+      analysisSummary: json['analysisSummary'] as String?,
     );
   }
 }

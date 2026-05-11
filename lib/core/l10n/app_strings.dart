@@ -5,11 +5,13 @@ class AppStrings {
 
   static const _en = _EnStrings();
   static const _ml = _MlStrings();
+  static const _hi = _HiStrings();
 
   static LocalizedStrings of(AppLanguage lang) {
     return switch (lang) {
       AppLanguage.en => _en,
       AppLanguage.ml => _ml,
+      AppLanguage.hi => _hi,
     };
   }
 }
@@ -309,5 +311,126 @@ class _MlStrings extends LocalizedStrings {
     'എന്റെ പുതിയ ലാബ് റിപ്പോർട്ട് വിശദീകരിക്കൂ',
     'എന്തെല്ലാം ടെസ്റ്റുകൾ പരിഗണിക്കണം?',
     'ഒരു ഹെൽത്ത് പാക്കേജ് ബുക്ക് ചെയ്യാൻ സഹായിക്കൂ',
+  ];
+}
+
+class _HiStrings extends LocalizedStrings {
+  const _HiStrings();
+
+  @override
+  String get goodMorning => 'शुभ प्रभात,';
+  @override
+  String get goodAfternoon => 'नमस्कार,';
+  @override
+  String get goodEvening => 'शुभ संध्या,';
+  @override
+  String get goodNight => 'शुभ रात्रि,';
+  @override
+  String get featuredDoctors => 'प्रमुख डॉक्टर';
+  @override
+  String get bookAppointments => 'विशेषज्ञों के साथ अपॉइंटमेंट बुक करें';
+  @override
+  String get popularLabTests => 'लोकप्रिय लैब टेस्ट';
+  @override
+  String get accurateResults => 'प्रमाणित लैब से सटीक परिणाम';
+  @override
+  String get popularPackages => 'लोकप्रिय पैकेज';
+  @override
+  String get curatedBundles => 'बेहतर मूल्य वाले चुनिंदा बंडल';
+  @override
+  String get specialOffers => 'विशेष ऑफर';
+  @override
+  String get viewOffer => 'ऑफर देखें';
+  @override
+  String get upcomingAppointments => 'आने वाले अपॉइंटमेंट';
+  @override
+  String get seeAll => 'सभी देखें';
+  @override
+  String get exploreDoctors => 'डॉक्टरों की खोज करें';
+  @override
+  String get summerHealthTips => 'गर्मी के लिए स्वास्थ्य सुझाव';
+  @override
+  String get quickActions => 'त्वरित कार्य';
+  @override
+  String get viewAll => 'सभी देखें';
+  @override
+  String get defaultHealthTipMessage =>
+      'डॉक्टर द्वारा बताए गए समय पर ही दवाएं लें';
+  @override
+  String get defaultAnnouncement => 'ईद मुबारक! ओणम की शुभकामनाएं...';
+  @override
+  String get noUpcomingAppointments => 'अभी कोई आने वाला अपॉइंटमेंट नहीं है।';
+  @override
+  String get assistantFabLabel => 'हेल्थ AI';
+  @override
+  String get assistantTitle => 'हेल्थ AI असिस्टेंट';
+  @override
+  String get assistantReady => 'तैयार';
+  @override
+  String get assistantListening => 'सुन रहा हूँ...';
+  @override
+  String get assistantSpeaking => 'AI बोल रहा है';
+  @override
+  String get assistantLiveModeActive => 'लाइव मोड सक्रिय है';
+  @override
+  String get assistantInputHint => 'अपनी स्वास्थ्य रिपोर्ट के बारे में पूछें';
+  @override
+  String get assistantDisclaimer =>
+      'AI गलती कर सकता है। कोई भी कदम उठाने से पहले डॉक्टर से सलाह लें।';
+  @override
+  String get assistantLive => 'लाइव';
+  @override
+  String get assistantStop => 'रुकें';
+  @override
+  String get assistantRecording => 'REC';
+  @override
+  String get assistantStartVoiceInput => 'वॉइस इनपुट शुरू करें';
+  @override
+  String get assistantStopVoiceInput => 'वॉइस इनपुट बंद करें';
+  @override
+  String get assistantVoiceUnavailable =>
+      'वॉइस इनपुट उपलब्ध नहीं है। कृपया माइक्रोफ़ोन अनुमति और वॉइस सर्विस की जांच करें।';
+  @override
+  String get assistantLiveVoiceUnavailable =>
+      'लाइव वॉइस उपलब्ध नहीं है। कृपया माइक्रोफ़ोन अनुमति और वॉइस सर्विस की जांच करें।';
+  @override
+  String get assistantUnableToListen => 'वॉइस सुनना शुरू नहीं हो सका';
+  @override
+  String get assistantPlayVoice => 'वॉइस चलाएं';
+  @override
+  String get assistantStopVoice => 'वॉइस बंद करें';
+  @override
+  String get assistantStopAiVoice => 'AI वॉइस बंद करें';
+  @override
+  String get assistantStopAiVoiceLabel => 'AI वॉइस बंद करें';
+  @override
+  String get assistantInterruptAi => 'AI को रोकें और बोलें';
+  @override
+  String get assistantPreviousChats => 'पिछले चैट्स';
+  @override
+  String get assistantNewChat => 'नया चैट';
+  @override
+  String get assistantRenameChat => 'नाम बदलें';
+  @override
+  String get assistantDeleteChat => 'हटाएं';
+  @override
+  String get assistantUploadingAttachment => 'अटैचमेंट अपलोड हो रहा है...';
+  @override
+  String assistantUploadingNamedAttachment(String fileName) =>
+      '$fileName अपलोड हो रहा है...';
+  @override
+  String assistantSummaryReady(String fileName) =>
+      '$fileName का सारांश रिपोर्ट्स में तैयार है।';
+  @override
+  String assistantUploadPending(String fileName) =>
+      '$fileName अपलोड हो गया है, सारांश बन रहा है।';
+  @override
+  String assistantUploadedReady(String fileName) =>
+      '$fileName अपलोड हो गया। मैसेज भेजने के लिए तैयार।';
+  @override
+  List<String> get assistantStarterPrompts => const [
+    'मेरी नई लैब रिपोर्ट समझाएं',
+    'मुझे कौन से टेस्ट कराने चाहिए?',
+    'हेल्थ पैकेज बुक करने में मदद करें',
   ];
 }
