@@ -96,7 +96,7 @@ class _MessageBubbleWidget extends StatelessWidget {
                     )
                   else
                     MarkdownBody(
-                      data: message.content,
+                      data: message.content.replaceAll(RegExp(r'\[\[VIEW_PACKAGE:\d+\]\]'), ''),
                       styleSheet:
                           MarkdownStyleSheet.fromTheme(
                             Theme.of(context),
@@ -115,6 +115,49 @@ class _MessageBubbleWidget extends StatelessWidget {
                         launchUrl(uri, mode: LaunchMode.externalApplication);
                       },
                     ),
+                  if (!isUser) ...[
+                    // Package Button parsing
+                    ...RegExp(r'\[\[VIEW_PACKAGE:(\d+)\]\]').allMatches(message.content).map((match) {
+                      final packageId = int.tryParse(match.group(1) ?? '');
+                      if (packageId == null) return const SizedBox.shrink();
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.s12),
+                        child: Consumer<PatientPortalProvider>(
+                          builder: (context, portal, _) {
+                            final pkg = portal.labPackages.firstWhere(
+                              (p) => p.id == packageId,
+                              orElse: () => const LabPackageItem(id: -1, name: '', slug: '', status: false, basePrice: 0),
+                            );
+                            
+                            if (pkg.id == -1) return const SizedBox.shrink();
+                            
+                            return SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context, rootNavigator: true).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => PackageBookingScreen(package: pkg),
+                                    ),
+                                  );
+                                },
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF5A88F1),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
+                                label: Text('View ${pkg.name}'),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }),
+                  ],
                   for (final attachment in attachments)
                     _ChatAttachmentWidget(
                       attachment: attachment,
