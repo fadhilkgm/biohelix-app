@@ -99,20 +99,33 @@ extension _AssistantActions on _AssistantTabState {
 
   LocalizedStrings get _strings => AppStrings.of(_assistantLanguage);
 
-  String get _assistantLanguageCode =>
-      _assistantLanguage == AppLanguage.ml ? 'ml' : 'en';
+  String get _assistantLanguageCode => switch (_assistantLanguage) {
+    AppLanguage.ml => 'ml',
+    AppLanguage.hi => 'hi',
+    _ => 'en',
+  };
 
-  String get _speechLocaleId =>
-      _assistantLanguage == AppLanguage.ml ? 'ml_IN' : 'en_IN';
+  String get _speechLocaleId => switch (_assistantLanguage) {
+    AppLanguage.ml => 'ml-IN',
+    AppLanguage.hi => 'hi-IN',
+    _ => 'en-IN',
+  };
 
-  String get _ttsLanguageCode =>
-      _assistantLanguage == AppLanguage.ml ? 'ml-IN' : 'en-IN';
+  String get _ttsLanguageCode => switch (_assistantLanguage) {
+    AppLanguage.ml => 'ml-IN',
+    AppLanguage.hi => 'hi-IN',
+    _ => 'en-IN',
+  };
 
   Future<void> _configureTtsLanguage() async {
     final target = _ttsLanguageCode;
     if (configuredTtsLanguage == target) return;
     await tts.setLanguage(target);
-    await tts.setSpeechRate(_assistantLanguage == AppLanguage.ml ? 0.42 : 0.45);
+    await tts.setSpeechRate(switch (_assistantLanguage) {
+      AppLanguage.ml => 0.42,
+      AppLanguage.hi => 0.45,
+      _ => 0.45,
+    });
     await tts.setPitch(1.0);
     configuredTtsLanguage = target;
   }
@@ -147,11 +160,13 @@ extension _AssistantActions on _AssistantTabState {
         type: FileType.custom,
         allowedExtensions: const ['pdf', 'png', 'jpg', 'jpeg', 'webp'],
         allowMultiple: false,
+        withData: kIsWeb,
       );
       if (result == null || result.files.isEmpty) return;
 
       final path = result.files.single.path;
-      if ((path ?? '').isEmpty || !mounted) return;
+      final bytes = result.files.single.bytes;
+      if (((path ?? '').isEmpty && bytes == null) || !mounted) return;
       final fileName = result.files.single.name;
 
       updateAssistantState(() {
@@ -159,12 +174,17 @@ extension _AssistantActions on _AssistantTabState {
         _uploadingAttachmentName = fileName;
       });
 
-      final uploaded = await portal.uploadDocument(path!);
+      final uploaded = await portal.uploadDocument(
+        filePath: path,
+        bytes: bytes,
+        fileName: fileName,
+      );
       final attachment = ChatAttachment(
         name: fileName,
         url: uploaded.documentPath,
         mimeType: uploaded.documentType,
         sizeBytes: result.files.single.size,
+        documentId: uploaded.id,
       );
 
       updateAssistantState(() {
@@ -176,6 +196,27 @@ extension _AssistantActions on _AssistantTabState {
       unawaited(() async {
         try {
           await portal.analyzeDocument(uploaded.id);
+          final summary =
+              portal.analysisFor(uploaded.id)?.summary.trim() ??
+              uploaded.summary?.trim() ??
+              '';
+          if (summary.isNotEmpty && mounted) {
+            updateAssistantState(() {
+              final index = _pendingAttachments.indexWhere(
+                (item) => item.documentId == uploaded.id,
+              );
+              if (index < 0) return;
+              final current = _pendingAttachments[index];
+              _pendingAttachments[index] = ChatAttachment(
+                name: current.name,
+                url: current.url,
+                mimeType: current.mimeType,
+                sizeBytes: current.sizeBytes,
+                documentId: current.documentId,
+                analysisSummary: summary,
+              );
+            });
+          }
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(_strings.assistantSummaryReady(fileName))),
@@ -281,43 +322,89 @@ extension _AssistantActions on _AssistantTabState {
   }
 
   Future<void> _initializeVoiceFeatures() async {
-    final available = await speechToText.initialize(
-      onStatus: (status) {
-        if (!mounted) return;
-        if (status == 'done' || status == 'notListening') {
+    bool available = false;
+    try {
+      available = await speechToText.initialize(
+        debugLogging: true,
+        onStatus: (status) {
+          if (!mounted) return;
+          debugPrint('SpeechToText Status: $status');
+          if (status == 'done' || status == 'notListening') {
+            updateAssistantState(() {
+              isListening = false;
+              soundLevel = 0.0;
+            });
+          }
+        },
+        onError: (errorNotification) {
+          if (!mounted) return;
+          debugPrint('SpeechToText Error: ${errorNotification.errorMsg}');
           updateAssistantState(() {
             isListening = false;
+            soundLevel = 0.0;
+          });
+
+          if (errorNotification.errorMsg == 'error_speech_timeout' || 
+              errorNotification.errorMsg == 'error_no_match') {
+            if (!isSpeaking &&
+                !isLiveTurnInFlight &&
+                (isLiveVoiceMode || isVoiceActiveManually)) {
+              Future.delayed(const Duration(milliseconds: 800), () {
+                if (mounted && (isLiveVoiceMode || isVoiceActiveManually)) {
+                  _startVoiceListening(context.read<PatientPortalProvider>());
+                }
+              });
+            }
+          }
+        },
+      );
+    } catch (e) {
+      debugPrint('SpeechToText Initialization Exception: $e');
+      available = false;
+    }
+
+    try {
+      await _configureTtsLanguage();
+      await tts.awaitSpeakCompletion(true);
+      tts.setStartHandler(() {
+        if (!mounted) return;
+        debugPrint('TTS: Started speaking');
+        updateAssistantState(() {
+          isSpeaking = true;
+        });
+      });
+      tts.setCompletionHandler(() {
+        if (!mounted) return;
+        debugPrint('TTS: Completed speaking');
+        updateAssistantState(() {
+          isSpeaking = false;
+        });
+        if (isLiveVoiceMode && !isLiveTurnInFlight) {
+          Future.delayed(const Duration(milliseconds: 250), () {
+            if (!mounted || !isLiveVoiceMode || isListening || isSpeaking) {
+              return;
+            }
+            _startVoiceListening(context.read<PatientPortalProvider>());
           });
         }
-      },
-      onError: (_) {
+      });
+      tts.setCancelHandler(() {
         if (!mounted) return;
+        debugPrint('TTS: Cancelled');
         updateAssistantState(() {
-          isListening = false;
+          isSpeaking = false;
         });
-      },
-    );
-
-    await _configureTtsLanguage();
-    await tts.awaitSpeakCompletion(true);
-    tts.setStartHandler(() {
-      if (!mounted) return;
-      updateAssistantState(() {
-        isSpeaking = true;
       });
-    });
-    tts.setCompletionHandler(() {
-      if (!mounted) return;
-      updateAssistantState(() {
-        isSpeaking = false;
+      tts.setErrorHandler((msg) {
+        if (!mounted) return;
+        debugPrint('TTS Error: $msg');
+        updateAssistantState(() {
+          isSpeaking = false;
+        });
       });
-    });
-    tts.setCancelHandler(() {
-      if (!mounted) return;
-      updateAssistantState(() {
-        isSpeaking = false;
-      });
-    });
+    } catch (e) {
+      debugPrint('TTS Initialization Error: $e');
+    }
 
     if (!mounted) return;
     updateAssistantState(() {
@@ -340,15 +427,22 @@ extension _AssistantActions on _AssistantTabState {
       return;
     }
 
-    if (isListening) {
+    if (isVoiceActiveManually) {
+      // User tapped to STOP manually
       await speechToText.stop();
       if (!mounted) return;
       updateAssistantState(() {
         isListening = false;
+        isVoiceActiveManually = false;
+        soundLevel = 0.0;
       });
       return;
     }
 
+    // User tapped to START manually
+    updateAssistantState(() {
+      isVoiceActiveManually = true;
+    });
     await _startVoiceListening(portal);
   }
 
@@ -370,6 +464,7 @@ extension _AssistantActions on _AssistantTabState {
         isListening = false;
         isSpeaking = false;
         isLiveTurnInFlight = false;
+        soundLevel = 0.0;
       });
       return;
     }
@@ -384,6 +479,7 @@ extension _AssistantActions on _AssistantTabState {
 
     updateAssistantState(() {
       isLiveVoiceMode = true;
+      isVoiceActiveManually = false;
       lastLiveSpokenReply = lastFingerprint;
     });
     await _startVoiceListening(portal);
@@ -397,41 +493,158 @@ extension _AssistantActions on _AssistantTabState {
 
       updateAssistantState(() {
         isListening = true;
+        soundLevel = 0.0;
       });
+      debugPrint('Voice listening requested...');
       await _configureTtsLanguage();
 
-      final started = await speechToText.listen(
+      var started = await speechToText.listen(
         localeId: _speechLocaleId,
-        listenFor: const Duration(seconds: 60),
-        pauseFor: const Duration(seconds: 3),
-        listenOptions: SpeechListenOptions(partialResults: true),
+        listenFor: const Duration(seconds: 180),
+        pauseFor: const Duration(seconds: 10),
+        listenOptions: SpeechListenOptions(
+          partialResults: true,
+          cancelOnError: true,
+          listenMode: ListenMode.dictation,
+        ),
+        onSoundLevelChange: (level) {
+          if (!mounted) return;
+          updateAssistantState(() {
+            soundLevel = level;
+          });
+        },
         onResult: (result) {
           if (!mounted) return;
           final words = result.recognizedWords.trim();
-          inputController.value = TextEditingValue(
-            text: words,
-            selection: TextSelection.collapsed(offset: words.length),
-          );
+          debugPrint('Speech Result: "$words" (final: ${result.finalResult})');
+          
+          if (words.isNotEmpty) {
+            // Check if current text already ends with these words to avoid duplication
+            final current = inputController.text;
+            if (result.finalResult) {
+              // On final result, if we are restarting, we might need to append
+              if (!current.endsWith(words)) {
+                inputController.text = current.isEmpty ? words : '$current $words';
+              }
+            } else {
+              // While partial, just update the end if possible or replace if short
+              if (current.length < words.length || !current.contains(words.substring(0, words.length ~/ 2))) {
+                 inputController.text = words; 
+              }
+            }
+            
+            inputController.selection = TextSelection.fromPosition(
+              TextPosition(offset: inputController.text.length),
+            );
+          }
 
           if (isLiveVoiceMode && result.finalResult && !isLiveTurnInFlight) {
             _sendLiveVoiceTurn(portal, words);
+          } else if (isVoiceActiveManually && result.finalResult) {
+            _sendManualVoiceTurn(portal, words);
           }
         },
       );
 
+      // Fallback: If preferred locale failed, try with default locale
+      if (started != true) {
+        debugPrint('Preferred locale failed, trying default locale...');
+        started = await speechToText.listen(
+          listenFor: const Duration(seconds: 180),
+          pauseFor: const Duration(seconds: 10),
+          listenOptions: SpeechListenOptions(
+            partialResults: true,
+            cancelOnError: true,
+            listenMode: ListenMode.dictation,
+          ),
+          onSoundLevelChange: (level) {
+            if (!mounted) return;
+            updateAssistantState(() {
+              soundLevel = level;
+            });
+          },
+          onResult: (result) {
+            if (!mounted) return;
+            final words = result.recognizedWords.trim();
+            debugPrint('SpeechToText Fallback Result: "$words" (final: ${result.finalResult})');
+
+            if (words.isNotEmpty) {
+              inputController.text = words;
+              inputController.selection = TextSelection.fromPosition(
+                TextPosition(offset: words.length),
+              );
+            }
+
+            if (isLiveVoiceMode && result.finalResult && !isLiveTurnInFlight) {
+              _sendLiveVoiceTurn(portal, words);
+            } else if (isVoiceActiveManually && result.finalResult) {
+              _sendManualVoiceTurn(portal, words);
+            }
+          },
+        );
+      }
+
       if (!mounted) return;
-      updateAssistantState(() {
-        isListening = started == true;
-      });
+      if (started != true) {
+        updateAssistantState(() {
+          isListening = false;
+          if (isLiveVoiceMode) {
+            isLiveVoiceMode = false;
+          }
+          if (isVoiceActiveManually) {
+            isVoiceActiveManually = false;
+          }
+          soundLevel = 0.0;
+        });
+      } else {
+        updateAssistantState(() {
+          isListening = true;
+        });
+      }
     } catch (error) {
       if (!mounted) return;
       updateAssistantState(() {
         isListening = false;
         isLiveVoiceMode = false;
+        isVoiceActiveManually = false;
+        soundLevel = 0.0;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${_strings.assistantUnableToListen}: $error')),
       );
+    }
+  }
+
+  Future<void> _sendManualVoiceTurn(
+    PatientPortalProvider portal,
+    String recognizedText,
+  ) async {
+    final message = _sanitizeSpeechText(recognizedText);
+    if (message.isEmpty) return;
+
+    await speechToText.stop();
+    if (!mounted) return;
+    updateAssistantState(() {
+      isListening = false;
+      isVoiceActiveManually = false;
+      soundLevel = 0.0;
+    });
+
+    inputController.text = message;
+    inputController.selection = TextSelection.fromPosition(
+      TextPosition(offset: message.length),
+    );
+
+    await portal.sendChatMessage(
+      message,
+      language: _assistantLanguageCode,
+      mode: 'voice',
+    );
+
+    if (!mounted) return;
+    final messages = portal.chatMessages;
+    if (messages.isNotEmpty && messages.last.role == 'ai') {
+      await _speakReply(messages.last);
     }
   }
 
@@ -447,6 +660,7 @@ extension _AssistantActions on _AssistantTabState {
     updateAssistantState(() {
       isListening = false;
       isLiveTurnInFlight = true;
+      soundLevel = 0.0;
     });
 
     inputController.clear();
@@ -457,19 +671,33 @@ extension _AssistantActions on _AssistantTabState {
     );
 
     if (!mounted) return;
+    final messages = portal.chatMessages;
+    if (messages.isNotEmpty && messages.last.role == 'ai') {
+      final fingerprint =
+          '${messages.last.createdAt ?? ''}:${messages.last.content.hashCode}';
+      updateAssistantState(() {
+        lastLiveSpokenReply = fingerprint;
+      });
+      await _speakReply(messages.last);
+    }
+
     updateAssistantState(() {
       isLiveTurnInFlight = false;
     });
   }
 
-  Future<void> _speakReplyThenResumeListening(
-    ChatMessage message,
-    PatientPortalProvider portal,
-  ) async {
-    if (!isLiveVoiceMode || isSpeaking) return;
+  Future<void> _speakReply(ChatMessage message) async {
+    if (isSpeaking) {
+      debugPrint('TTS skipped: Already speaking');
+      return;
+    }
 
     final toSpeak = _sanitizeSpeechText(message.content);
-    if (toSpeak.isEmpty) return;
+    debugPrint('TTS: Attempting to speak: "$toSpeak"');
+    if (toSpeak.isEmpty) {
+      debugPrint('TTS skipped: Empty content');
+      return;
+    }
 
     await _configureTtsLanguage();
     updateAssistantState(() {
@@ -477,15 +705,13 @@ extension _AssistantActions on _AssistantTabState {
     });
 
     final status = await tts.speak(toSpeak);
+    debugPrint('TTS Speak call status: $status');
     if (!mounted) return;
     if (status != 1) {
       updateAssistantState(() {
         isSpeaking = false;
       });
     }
-
-    if (!isLiveVoiceMode || !mounted) return;
-    await _startVoiceListening(portal);
   }
 
   String _sanitizeSpeechText(String value) {

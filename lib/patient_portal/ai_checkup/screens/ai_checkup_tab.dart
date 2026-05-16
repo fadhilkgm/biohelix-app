@@ -34,7 +34,7 @@ class AiCheckupTab extends StatefulWidget {
 }
 
 class _AiCheckupTabState extends State<AiCheckupTab> {
-  String _step = 'history';
+  String _step = 'language';
   String _language = 'en';
   bool _loadingHistory = true;
   AiHealthAssessmentResponse? _result;
@@ -102,10 +102,24 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   void _next(String nextStep) => setState(() => _step = nextStep);
 
   void _startAiChat() {
+    final portal = context.read<PatientPortalProvider>();
+    final p = portal.dashboard?.patient;
+    final latestVitals = portal.vitalTrend.isNotEmpty ? portal.vitalTrend.last : null;
+
+    if (p != null) {
+      _nameCtrl.text = p.name;
+      _ageCtrl.text = p.age?.toString() ?? '';
+    }
+    if (latestVitals != null) {
+      _weightCtrl.text = latestVitals.weight.toString();
+      _heightCtrl.text = latestVitals.height.toString();
+    }
+
     _answers['name'] = _nameCtrl.text.trim();
     _answers['age'] = int.tryParse(_ageCtrl.text.trim()) ?? 30;
     _answers['weight'] = _weightCtrl.text.trim();
     _answers['height'] = _heightCtrl.text.trim();
+    _answers['gender'] = p?.gender ?? 'unknown';
 
     // Initial message to AI to start questioning
     _messages.clear();
@@ -142,9 +156,13 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       setState(() {
         _step = 'ai_chat';
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Analysis failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Analysis failed: $e'),
+          duration: const Duration(seconds: 10),
+          action: SnackBarAction(label: 'Retry', onPressed: _analyze),
+        ),
+      );
     }
   }
 
@@ -220,8 +238,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
           onSelect: (lang) {
             setState(() {
               _language = lang;
-              _step = 'welcome';
             });
+            _startAiChat();
           },
           onReset: _reset,
         ),
@@ -302,7 +320,7 @@ class _LanguageSelectionScreen extends StatelessWidget {
           const SizedBox(height: 40),
           _OptionCard(label: 'English', onTap: () => onSelect('en')),
           _OptionCard(
-            label: 'à´®à´²à´¯à´¾à´³à´‚ (Malayalam)',
+            label: 'മലയാളം (Malayalam)',
             onTap: () => onSelect('ml'),
           ),
           const SizedBox(height: 20),
@@ -499,8 +517,7 @@ class _WelcomeScreen extends StatelessWidget {
           const SizedBox(height: 32),
           Text(
             isMl
-                ? 'à´Žà´ à´¹àµ†àµ½à´¤àµà´¤àµ à´šàµ†à´•àµà´•à´ªàµà´ªàµ'
-                : 'AI Health Checkup',
+                ? 'AI ഹെൽത്ത് ചെക്കപ്പ്' : 'AI Health Checkup',
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
               fontSize: 28,
@@ -511,8 +528,7 @@ class _WelcomeScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             isMl
-                ? 'à´¨à´¿à´™àµà´™à´³àµà´Ÿàµ† à´œàµ€à´µà´¿à´¤à´¶àµˆà´²à´¿à´¯àµ†à´¯àµà´‚ à´†à´°àµ‹à´—àµà´¯à´¤àµà´¤àµ†à´¯àµà´‚ à´•àµà´±à´¿à´šàµà´šàµà´³àµà´³ à´à´¤à´¾à´¨àµà´‚ à´šàµ‹à´¦àµà´¯à´™àµà´™àµ¾à´•àµà´•àµ à´®à´±àµà´ªà´Ÿà´¿ à´¨àµ½à´•àµà´•. à´žà´™àµà´™à´³àµà´Ÿàµ† à´Žà´ (AI) à´¨à´¿à´™àµà´™à´³àµà´Ÿàµ† à´‰à´¤àµà´¤à´°à´™àµà´™àµ¾ à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´•à´¯àµà´‚ à´¨à´¿à´™àµà´™àµ¾à´•àµà´•àµ à´…à´¨àµà´¯àµ‹à´œàµà´¯à´®à´¾à´¯ à´ªà´°à´¿à´¶àµ‹à´§à´¨à´•àµ¾ à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´•àµà´•àµà´•à´¯àµà´‚ à´šàµ†à´¯àµà´¯àµà´‚.'
-                : 'Answer a few questions about your lifestyle and health. Our AI will analyze your responses and suggest preventive lab tests tailored for you.',
+                ? 'നിങ്ങളുടെ ജീവിതരീതിയെയും ആരോഗ്യത്തെയും കുറിച്ചുള്ള ഏതാനും ചോദ്യങ്ങൾക്ക് മറുപടി നൽകുക. ഞങ്ങളുടെ AI നിങ്ങളുടെ ഉത്തരങ്ങൾ വിശകലനം ചെയ്യുകയും നിങ്ങൾക്ക് അനുയോജ്യമായ പരിശോധനകൾ നിർദ്ദേശിക്കുകയും ചെയ്യും.' : 'Answer a few questions about your lifestyle and health. Our AI will analyze your responses and suggest preventive lab tests tailored for you.',
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
               fontSize: 15,
@@ -536,8 +552,7 @@ class _WelcomeScreen extends StatelessWidget {
               ),
               child: Text(
                 isMl
-                    ? 'à´ªà´°à´¿à´¶àµ‹à´§à´¨ à´†à´°à´‚à´­à´¿à´•àµà´•àµà´•'
-                    : 'Start Assessment',
+                    ? 'പരിശോധന ആരംഭിക്കുക' : 'Start Assessment',
                 style: GoogleFonts.manrope(
                   fontWeight: FontWeight.w900,
                   fontSize: 18,
@@ -573,8 +588,7 @@ class _BasicDetailsScreen extends StatelessWidget {
       children: [
         Text(
           isMl
-              ? 'à´µà´¿à´µà´°à´™àµà´™àµ¾ à´¨àµ½à´•àµà´•'
-              : 'Please Enter Your Details',
+              ? 'വിവരങ്ങൾ നൽകുക' : 'Please Enter Your Details',
           style: GoogleFonts.manrope(
             fontSize: 22,
             fontWeight: FontWeight.w900,
@@ -592,12 +606,12 @@ class _BasicDetailsScreen extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         _TextField(
-          label: isMl ? 'à´ªàµ‚àµ¼à´£àµà´£à´¨à´¾à´®à´‚' : 'Full Name',
+          label: isMl ? 'പൂർണ്ണനാമം' : 'Full Name',
           controller: nameCtrl,
         ),
         const SizedBox(height: 16),
         _TextField(
-          label: isMl ? 'à´ªàµà´°à´¾à´¯à´‚' : 'Age',
+          label: isMl ? 'പ്രായം' : 'Age',
           controller: ageCtrl,
           keyboardType: TextInputType.number,
         ),
@@ -606,7 +620,7 @@ class _BasicDetailsScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _TextField(
-                label: isMl ? 'à´­à´¾à´°à´‚ (kg)' : 'Weight (kg)',
+                label: isMl ? 'ഭാരം (kg)' : 'Weight (kg)',
                 controller: weightCtrl,
                 keyboardType: TextInputType.number,
               ),
@@ -614,7 +628,7 @@ class _BasicDetailsScreen extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _TextField(
-                label: isMl ? 'à´‰à´¯à´°à´‚ (ft/inch)' : 'Height (ft/inch)',
+                label: isMl ? 'ഉയരം (ft/inch)' : 'Height (ft/inch)',
                 controller: heightCtrl,
               ),
             ),
@@ -638,7 +652,7 @@ class _BasicDetailsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  isMl ? 'à´¤àµà´Ÿà´°àµà´•' : 'Continue',
+                  isMl ? 'തുടരുക' : 'Continue',
                   style: GoogleFonts.manrope(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
@@ -725,103 +739,164 @@ class _AiChatScreen extends StatefulWidget {
 }
 
 class _AiChatScreenState extends State<_AiChatScreen> {
-  bool _loading = true;
+  bool _loading = false;
   String? _question;
-  List<String> _options = [];
+  List<String> _options = ['Yes', 'No'];
   final Map<String, dynamic> _chatAnswers = {};
   int _questionCount = 0;
   final int _maxQuestions = 10;
-  final List<({String? question, List<String> options})> _history = [];
+  
+  final Map<String, int> _scores = {
+    'HbA1c': 0,
+    'Lipid Profile': 0,
+    'Thyroid Profile': 0,
+    'CBC': 0,
+  };
+
+  final List<({String en, String ml, String test, int points})> _staticQuestions = [
+    (
+      en: 'Do you experience excessive thirst or frequent urination?',
+      ml: 'നിങ്ങൾക്ക് അധികമായ ദാഹമോ ഇടയ്ക്കിടെയുള്ള മൂത്രവിസർജ്ജനമോ അനുഭവപ്പെടുന്നുണ്ടോ?',
+      test: 'HbA1c',
+      points: 3,
+    ),
+    (
+      en: 'Have you noticed unexplained weight gain or loss recently?',
+      ml: 'ഈയിടെയായി വിശദീകരിക്കാനാകാത്ത ശരീരഭാര വ്യതിയാനം ശ്രദ്ധിച്ചിട്ടുണ്ടോ?',
+      test: 'Thyroid Profile',
+      points: 3,
+    ),
+    (
+      en: 'Do you feel tired or fatigued even after a full night\'s sleep?',
+      ml: 'മലയാളം ചോദ്യം ലഭ്യമല്ല',
+      test: 'CBC',
+      points: 2,
+    ),
+    (
+      en: 'Do you have a family history of heart disease or high blood pressure?',
+      ml: 'നിങ്ങളുടെ കുടുംബത്തിൽ ആർക്കെങ്കിലും ഹൃദ്രോഗമോ ഉയർന്ന രക്തസമ്മർദ്ദമോ ഉണ്ടോ?',
+      test: 'Lipid Profile',
+      points: 3,
+    ),
+    (
+      en: 'Do you often crave sugary foods or experience energy crashes?',
+      ml: 'നിങ്ങൾക്ക് പലപ്പോഴും മധുരപലഹാരങ്ങളോട് അമിതമായ ആസക്തി തോന്നാറുണ്ടോ?',
+      test: 'HbA1c',
+      points: 2,
+    ),
+    (
+      en: 'Have you noticed changes in your skin, hair, or sensitivity to cold/heat?',
+      ml: 'ചർമ്മത്തിലോ മുടിയിലോ മാറ്റങ്ങളോ തണുപ്പിനോ ചൂടിനോടുള്ള അമിത സംവേദനക്ഷമതയോ ഉണ്ടോ?',
+      test: 'Thyroid Profile',
+      points: 3,
+    ),
+    (
+      en: 'Do you experience shortness of breath during light physical activity?',
+      ml: 'ചെറിയ ശാരീരിക അധ്വാനത്തിൽ പോലും നിങ്ങൾക്ക് ശ്വാസംമുട്ടൽ അനുഭവപ്പെടുന്നുണ്ടോ?',
+      test: 'Lipid Profile',
+      points: 2,
+    ),
+    (
+      en: 'Do you consume fried foods or high-fat meals frequently?',
+      ml: 'നിങ്ങൾ വറുത്ത ഭക്ഷണങ്ങളും കൊഴുപ്പുള്ള ആഹാരങ്ങളും ഇടയ്ക്കിടെ കഴിക്കാറുണ്ടോ?',
+      test: 'Lipid Profile',
+      points: 3,
+    ),
+    (
+      en: 'Do you frequently get minor infections or take a long time to heal?',
+      ml: 'നിങ്ങൾക്ക് ഇടയ്ക്കിടെ അണുബാധകൾ ഉണ്ടാകാറുണ്ടോ അതോ മുറിവുകൾ ഉണങ്ങാൻ താമസമെടുക്കാറുണ്ടോ?',
+      test: 'CBC',
+      points: 3,
+    ),
+    (
+      en: 'Are you over 45 years old or have a sedentary lifestyle?',
+      ml: 'നിങ്ങൾക്ക് 45 വയസ്സിൽ കൂടുതൽ പ്രായമുണ്ടോ അതോ വ്യായാമമില്ലാത്ത ജീവിതരീതിയാണോ?',
+      test: 'HbA1c',
+      points: 1,
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _fetchNextQuestion();
+    _loadCurrentQuestion();
   }
 
-  Future<void> _fetchNextQuestion() async {
-    setState(() => _loading = true);
-    try {
-      final service = widget.serviceFactory(context);
 
-      final result = await service.getNextQuestion(
-        messages: widget.messages,
-        patientInfo: widget.patientInfo,
-        step: 'questions',
-        language: widget.language,
-      );
-      if (!mounted) return;
 
-      final reply = result['reply'];
-      if (reply is Map &&
-          (reply.containsKey('question') || reply.containsKey('options'))) {
-        final newQuestion = reply['question'] as String?;
-        final newOptions = List<String>.from(reply['options'] ?? []);
-
-        setState(() {
-          _question = newQuestion;
-          _options = newOptions;
-          _history.add((question: newQuestion, options: newOptions));
-          _loading = false;
-        });
-
-        // Add AI response to message history
-        widget.messages.add({'role': 'assistant', 'content': _question ?? ''});
-      } else if (reply is Map && reply['finished'] == true) {
-        widget.onComplete(_chatAnswers);
-      } else {
-        // AI returned something unexpected but we'll try to treat it as a final summary or fallback
-        if (reply is String && reply.length > 50) {
-          widget.onComplete(_chatAnswers);
-        } else {
-          setState(() => _loading = false);
-          throw Exception('AI returned an invalid response format.');
-        }
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to get next question: $e')),
-      );
-    }
+  void _loadCurrentQuestion() {
+    final isMl = widget.language == 'ml';
+    final q = _staticQuestions[_questionCount];
+    setState(() {
+      _question = isMl ? q.ml : q.en;
+      _options = isMl ? ['അതെ', 'അല്ല'] : ['Yes', 'No'];
+    });
+    
+    widget.messages.add({'role': 'assistant', 'content': _question ?? ''});
   }
 
   void _onAnswer(String answer) {
+    final isYes = answer == 'Yes' || answer == 'അതെ';
+    final q = _staticQuestions[_questionCount];
+    
+    if (isYes) {
+      _scores[q.test] = (_scores[q.test] ?? 0) + q.points;
+      // Secondary scores
+      if (q.test == 'CBC') _scores['Thyroid Profile'] = (_scores['Thyroid Profile'] ?? 0) + 1;
+      if (q.test == 'Lipid Profile') _scores['CBC'] = (_scores['CBC'] ?? 0) + 1;
+    }
+
+    // Only include question text for "Yes" answers to avoid triggering rule-based risks on "No"
     _chatAnswers['q${_questionCount + 1}'] = {
-      'question': _question,
+      'question': isYes ? q.en : '', 
       'answer': answer,
     };
 
     widget.messages.add({'role': 'user', 'content': answer});
 
-    _questionCount++;
-    if (_questionCount >= _maxQuestions) {
-      widget.onComplete(_chatAnswers);
+    if (_questionCount < _maxQuestions - 1) {
+      _questionCount++;
+      _loadCurrentQuestion();
     } else {
-      _fetchNextQuestion();
+      _completeAssessment();
     }
   }
 
+  void _completeAssessment() {
+    // Determine top recommendation and total risk score
+    int totalRiskPoints = 0;
+    _scores.forEach((key, value) => totalRiskPoints += value);
+    
+    int calculatedScore = 100 - (totalRiskPoints * 3);
+    calculatedScore = calculatedScore.clamp(15, 98);
+
+    final recommendedTest = _scores.entries
+        .reduce((a, b) => a.value >= b.value ? a : b)
+        .key;
+    
+    // Pass essential data in a flat format to prevent backend parsing issues
+    _chatAnswers['health_score_hint'] = calculatedScore;
+    _chatAnswers['priority_test'] = recommendedTest;
+    _chatAnswers['risk_level'] = totalRiskPoints > 15 ? 'High' : (totalRiskPoints > 7 ? 'Medium' : 'Low');
+    
+    widget.messages.add({
+      'role': 'system',
+      'content': 'Questionnaire Finished. Risk Priority: $recommendedTest. Calculated Score: $calculatedScore%.',
+    });
+    
+    widget.onComplete(_chatAnswers);
+  }
+
   void _goBack() {
-    if (_questionCount > 0 &&
-        widget.messages.length >= 2 &&
-        _history.length >= 2) {
+    if (_questionCount > 0) {
       setState(() {
-        // Remove current question from history
-        _history.removeLast();
-
-        // Restore previous question
-        final previous = _history.last;
-        _question = previous.question;
-        _options = previous.options;
-
-        // Remove last user answer and last AI question from message history
-        widget.messages.removeLast(); // AI Q(current)
-        widget.messages.removeLast(); // User A(previous)
-
         _questionCount--;
-        // We keep the answer in _chatAnswers so it can be shown as selected
+        // Remove last user answer and last AI question from message history
+        if (widget.messages.length >= 2) {
+          widget.messages.removeLast(); // User A
+          widget.messages.removeLast(); // AI Q
+        }
+        _loadCurrentQuestion();
       });
     }
   }
@@ -839,9 +914,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
             const CircularProgressIndicator(color: Color(0xFF5A88F1)),
             const SizedBox(height: 24),
             Text(
-              isMl
-                  ? 'à´Žà´ à´†à´²àµ‹à´šà´¿à´•àµà´•àµà´¨àµà´¨àµ...'
-                  : 'AI is thinking...',
+              isMl ? 'എഐ ആലോചിക്കുന്നു...' : 'AI is thinking...',
               style: GoogleFonts.manrope(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -887,7 +960,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
                   onPressed: _goBack,
                   icon: const Icon(Icons.arrow_back_rounded, size: 16),
                   label: Text(
-                    isMl ? 'à´¤à´¿à´°à´¿à´•àµ†' : 'Back',
+                    isMl ? 'തിരികെ' : 'Back',
                     style: GoogleFonts.manrope(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -941,7 +1014,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            isMl ? 'à´¤àµà´Ÿà´°àµà´•' : 'Continue',
+                            isMl ? 'തുടരുക' : 'Continue',
                             style: GoogleFonts.manrope(
                               fontWeight: FontWeight.w900,
                               fontSize: 18,
@@ -964,8 +1037,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
               onPressed: () => widget.onComplete(_chatAnswers),
               child: Text(
                 isMl
-                    ? 'à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´•'
-                    : 'Skip & Analyze Now',
+                    ? 'വിശകലനം ചെയ്യുക' : 'Skip & Analyze Now',
                 style: GoogleFonts.manrope(
                   color: const Color(0xFF8DA0BA),
                   fontWeight: FontWeight.w700,
@@ -1079,8 +1151,7 @@ class _AnalyzingScreen extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             isMl
-                ? 'à´†à´°àµ‹à´—àµà´¯à´‚ à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´¨àµà´¨àµ...'
-                : 'Analyzing your health...',
+                ? 'ആരോഗ്യം വിശകലനം ചെയ്യുന്നു...' : 'Analyzing your health...',
             style: GoogleFonts.manrope(
               fontSize: 20,
               fontWeight: FontWeight.w800,
@@ -1090,8 +1161,7 @@ class _AnalyzingScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isMl
-                ? 'à´žà´™àµà´™à´³àµà´Ÿàµ† à´Žà´ (AI) à´µà´¿à´µà´°à´™àµà´™àµ¾ à´ªà´°à´¿à´¶àµ‹à´§à´¿à´šàµà´šàµ à´µà´°à´¿à´•à´¯à´¾à´£àµ.'
-                : 'Our AI is reviewing your lifestyle and health history.',
+                ? 'ഞങ്ങളുടെ AI വിവരങ്ങൾ പരിശോധിച്ചു വരികയാണ്.' : 'Our AI is reviewing your lifestyle and health history.',
             style: GoogleFonts.manrope(
               fontSize: 14,
               color: const Color(0xFF192233).withValues(alpha: 0.5),
@@ -1144,8 +1214,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
           const SizedBox(height: 32),
           Text(
             isMl
-                ? 'à´•à´£àµà´Ÿàµ†à´¤àµà´¤à´¿à´¯ à´†à´°àµ‹à´—àµà´¯ à´ªàµà´°à´¶àµà´¨à´™àµà´™àµ¾'
-                : 'Suggested Issues',
+                ? 'കണ്ടെത്തിയ ആരോഗ്യ പ്രശ്നങ്ങൾ' : 'Suggested Issues',
             style: GoogleFonts.manrope(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1159,8 +1228,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
           const SizedBox(height: 32),
           Text(
             isMl
-                ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾'
-                : 'Recommended Packages',
+                ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Recommended Packages',
             style: GoogleFonts.manrope(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1202,13 +1270,15 @@ class _ResultsScreenState extends State<_ResultsScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  isMl
-                      ? 'à´…à´Ÿàµà´¤àµà´¤à´¤àµ: à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾ à´•à´¾à´£àµà´•'
-                      : 'Next: View Packages',
-                  style: GoogleFonts.manrope(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
+                Flexible(
+                  child: Text(
+                    isMl
+                        ? 'അടുത്തത് : പാക്കേജുകൾ കാണുക' : 'Next: View Packages',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.w900,
+                      fontSize: isMl ? 16 : 18,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1239,8 +1309,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
             Expanded(
               child: Text(
                 isMl
-                    ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾'
-                    : 'Suggested Packages',
+                    ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Suggested Packages',
                 style: GoogleFonts.manrope(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
@@ -1263,8 +1332,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
           const SizedBox(height: 24),
           Text(
             isMl
-                ? 'à´®à´±àµà´±àµ à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´™àµà´™àµ¾'
-                : 'Also Recommended',
+                ? 'മറ്റ് നിർദ്ദേശങ്ങൾ' : 'Also Recommended',
             style: GoogleFonts.manrope(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -1280,8 +1348,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
           const SizedBox(height: 24),
           Text(
             isMl
-                ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´°à´¿à´¶àµ‹à´§à´¨à´•àµ¾'
-                : 'Suggested Individual Tests',
+                ? 'നിർദ്ദേശിച്ച പരിശോധനകൾ' : 'Suggested Individual Tests',
             style: GoogleFonts.manrope(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -1299,8 +1366,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
             icon: const Icon(Icons.replay_rounded),
             label: Text(
               isMl
-                  ? 'à´µàµ€à´£àµà´Ÿàµà´‚ à´ªà´°à´¿à´¶àµ‹à´§à´¿à´•àµà´•àµà´•'
-                  : 'Retake Assessment',
+                  ? 'വീണ്ടും പരിശോധിക്കുക' : 'Retake Assessment',
               style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
             ),
             style: OutlinedButton.styleFrom(
@@ -1328,8 +1394,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
             ),
             label: Text(
               isMl
-                  ? 'à´¤à´¿à´°à´¿à´•àµ† à´¹àµ‹à´®à´¿à´²àµ‡à´•àµà´•àµ'
-                  : 'Back to Home',
+                  ? 'തിരികെ ഹോമിലേക്ക്' : 'Back to Home',
               style: GoogleFonts.manrope(
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233).withValues(alpha: 0.6),
@@ -1370,8 +1435,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
         children: [
           Text(
             isMl
-                ? 'à´¨à´¿à´™àµà´™à´³àµà´Ÿàµ† à´†à´°àµ‹à´—àµà´¯ à´¸àµà´•àµ‹àµ¼'
-                : 'Your Health Score',
+                ? 'നിങ്ങളുടെ ആരോഗ്യ സ്കോർ' : 'Your Health Score',
             style: GoogleFonts.manrope(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1520,7 +1584,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            "${isMl ? 'à´®àµàµ»à´•à´°àµà´¤àµ½' : 'Precaution'}: $precaution",
+                            "${isMl ? 'മുൻകരുതൽ' : 'Precaution'}: $precaution",
                             style: GoogleFonts.manrope(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,

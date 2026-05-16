@@ -32,6 +32,13 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    sourceSets {
+        getByName("main") {
+            kotlin.srcDir("src/main/kotlin")
+            java.srcDir("src/main/java")
+        }
+    }
+
     defaultConfig {
         applicationId = "com.biohelix.app"
         minSdk = flutter.minSdkVersion

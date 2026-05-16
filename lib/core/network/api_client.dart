@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 
@@ -15,9 +17,9 @@ class ApiClient {
       _dio = Dio(
         BaseOptions(
           baseUrl: config.apiBaseUrl,
-          connectTimeout: const Duration(seconds: 30),
-          sendTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 60),
+          connectTimeout: const Duration(seconds: 60),
+          sendTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(minutes: 5),
           headers: const {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
@@ -50,8 +52,8 @@ class ApiClient {
         },
         onError: (error, handler) {
           _logger.e(
-            'ERR ${error.response?.statusCode} ${error.requestOptions.uri}',
-            error: error.message,
+            'ERR ${error.response?.statusCode} ${error.requestOptions.uri}\nType: ${error.type}\nMessage: ${error.message}',
+            error: error.error,
           );
           if (error.requestOptions.data != null) {
             _logger.e('ERR REQ BODY ${_stringify(error.requestOptions.data)}');
@@ -77,14 +79,39 @@ class ApiClient {
   }
 
   static String _errorMessage(DioException error) {
-    final data = error.response?.data;
-    if (data is Map) {
-      return data['error']?.toString() ??
-          data['message']?.toString() ??
-          error.message ??
-          'Request failed';
+    if (error.error is SocketException) {
+      return 'Unable to connect to the server. Check your network or API host and try again.';
     }
-    return data?.toString() ?? error.message ?? 'Request failed';
+
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'Connection timed out. Please try again.';
+      case DioExceptionType.badCertificate:
+        return 'Server certificate validation failed.';
+      case DioExceptionType.cancel:
+        return 'Request was canceled.';
+      case DioExceptionType.badResponse:
+        final data = error.response?.data;
+        if (data is Map) {
+          return data['error']?.toString() ??
+              data['message']?.toString() ??
+              error.message ??
+              'Request failed';
+        }
+        return data?.toString() ?? error.message ?? 'Request failed';
+      case DioExceptionType.connectionError:
+      case DioExceptionType.unknown:
+        final data = error.response?.data;
+        if (data is Map) {
+          return data['error']?.toString() ??
+              data['message']?.toString() ??
+              error.message ??
+              'Request failed';
+        }
+        return data?.toString() ?? error.message ?? 'Request failed';
+    }
   }
 
   String get baseUrl => _config.apiBaseUrl;

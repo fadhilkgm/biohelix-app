@@ -26,6 +26,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
   bool _isAttachmentUploadInFlight = false;
   String? _uploadingAttachmentName;
+  double _soundLevel = 0.0;
+  bool _isVoiceActiveManually = false;
 
   TextEditingController get inputController => _inputController;
   ScrollController get messagesController => _messagesController;
@@ -45,6 +47,10 @@ class _AssistantTabState extends State<_AssistantTab> {
   set lastLiveSpokenReply(String? value) => _lastLiveSpokenReply = value;
   String? get configuredTtsLanguage => _configuredTtsLanguage;
   set configuredTtsLanguage(String? value) => _configuredTtsLanguage = value;
+  double get soundLevel => _soundLevel;
+  set soundLevel(double value) => _soundLevel = value;
+  bool get isVoiceActiveManually => _isVoiceActiveManually;
+  set isVoiceActiveManually(bool value) => _isVoiceActiveManually = value;
 
   void _updateAssistantState(VoidCallback update) {
     if (!mounted) return;
@@ -100,19 +106,6 @@ class _AssistantTabState extends State<_AssistantTab> {
         final uploadInProgress =
             _isAttachmentUploadInFlight || portal.isUploadingDocument;
         final uploadingLabel = _uploadingAttachmentName;
-
-        if (_isLiveVoiceMode && !_isLiveTurnInFlight && messages.isNotEmpty) {
-          final last = messages.last;
-          final fingerprint =
-              '${last.createdAt ?? ''}:${last.content.hashCode}';
-          if (last.role != 'user' && _lastLiveSpokenReply != fingerprint) {
-            _lastLiveSpokenReply = fingerprint;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted || !_isLiveVoiceMode) return;
-              _speakReplyThenResumeListening(last, portal);
-            });
-          }
-        }
 
         if (messages.length != _lastAutoScrolledMessageCount || busy) {
           _lastAutoScrolledMessageCount = messages.length;
@@ -336,6 +329,7 @@ class _AssistantTabState extends State<_AssistantTab> {
                       onLiveTap: () => _toggleLiveVoiceMode(portal),
                       onVoiceTap: _toggleVoiceInput,
                       onSend: () => _sendMessage(portal),
+                      soundLevel: _soundLevel,
                     ),
                   ),
                 ],

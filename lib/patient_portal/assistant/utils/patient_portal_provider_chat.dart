@@ -1,6 +1,52 @@
 part of 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
 
 extension PatientPortalChatMixin on PatientPortalProvider {
+  String _buildGlobalChatMessage(
+    String message,
+    List<ChatAttachment> attachments,
+  ) {
+    final wireMessage = ChatMessageCodec.encode(
+      content: message,
+      attachments: attachments,
+    );
+    final analyzedDocuments = attachments
+        .where(
+          (attachment) => !attachment.isImage,
+        )
+        .map((attachment) {
+          final direct = attachment.analysisSummary?.trim() ?? '';
+          if (direct.isNotEmpty) return (attachment.name, direct);
+          final documentId = attachment.documentId;
+          if (documentId == null) return null;
+          final derived = _documentAnalyses[documentId]?.summary.trim() ?? '';
+          if (derived.isEmpty) return null;
+          return (attachment.name, derived);
+        })
+        .whereType<(String, String)>()
+        .toList();
+
+    if (analyzedDocuments.isEmpty) {
+      return wireMessage;
+    }
+
+    final contextBuffer = StringBuffer(
+      'Use the following analyzed report context from the attached documents when answering.',
+    );
+    for (final document in analyzedDocuments) {
+      contextBuffer
+        ..write('\n\nReport: ')
+        ..write(document.$1)
+        ..write('\nSummary: ')
+        ..write(document.$2);
+    }
+
+    if (message.trim().isEmpty) {
+      return '$wireMessage\n\n${contextBuffer.toString()}'.trim();
+    }
+
+    return '$wireMessage\n\n${contextBuffer.toString()}';
+  }
+
   Future<void> initializeChatThreads({bool force = false}) async {
     if (_chatThreads.isNotEmpty && !force) {
       return;
@@ -159,7 +205,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     _notify();
 
     try {
-      final wireMessage = userMessage.toWireContent();
+      final wireMessage = _buildGlobalChatMessage(trimmed, attachments);
       final reply = await _repository.sendGlobalChatMessage(
         threadId: currentThreadId,
         message: wireMessage,

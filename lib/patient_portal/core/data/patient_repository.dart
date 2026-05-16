@@ -118,10 +118,7 @@ class PatientRepository {
 
   final ApiClient _apiClient;
 
-  Future<String?> sendOtp({
-    required String phone,
-    String? mrn,
-  }) async {
+  Future<String?> sendOtp({required String phone, String? mrn}) async {
     final response = await _apiClient.postJson(
       '/auth/otp/send',
       data: {'phone': phone, 'mrn': mrn},
@@ -137,12 +134,7 @@ class PatientRepository {
   }) async {
     final response = await _apiClient.postJson(
       '/auth/signup',
-      data: {
-        'phone': phone,
-        'name': name,
-        'dob': dob,
-        'place': place,
-      },
+      data: {'phone': phone, 'name': name, 'dob': dob, 'place': place},
     );
     return response['dev_otp']?.toString();
   }
@@ -153,10 +145,7 @@ class PatientRepository {
   }) async {
     final response = await _apiClient.postJson(
       '/auth/otp/verify',
-      data: {
-        'phone': phone,
-        'otp': otp,
-      },
+      data: {'phone': phone, 'otp': otp},
     );
 
     return OtpSession(
@@ -306,7 +295,8 @@ class PatientRepository {
     final doctors = response['doctors'] as List<dynamic>? ?? const [];
     return doctors.map((item) {
       final json = _map(item);
-      final rawImage = json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
+      final rawImage =
+          json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
       if (rawImage.trim().isNotEmpty) {
         json['imageUrl'] = _resolveApiMediaUrl(rawImage, _apiClient.baseUrl);
       }
@@ -319,7 +309,8 @@ class PatientRepository {
     final departments = response['departments'] as List<dynamic>? ?? const [];
     return departments.map((item) {
       final json = _map(item);
-      final rawImage = json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
+      final rawImage =
+          json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
       if (rawImage.trim().isNotEmpty) {
         json['imageUrl'] = _resolveApiMediaUrl(rawImage, _apiClient.baseUrl);
       }
@@ -421,7 +412,8 @@ class PatientRepository {
     final orders = response['orders'] as List<dynamic>? ?? const [];
     return orders.map((item) {
       final json = _map(item);
-      final rawImage = json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
+      final rawImage =
+          json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
       if (rawImage.trim().isNotEmpty) {
         json['imageUrl'] = _resolveApiMediaUrl(rawImage, _apiClient.baseUrl);
       }
@@ -560,13 +552,14 @@ class PatientRepository {
           : {'patientAgeSnapshot': patientAgeSnapshot},
       if ((trimmedPatientGender ?? '').isNotEmpty)
         'patientGenderSnapshot': trimmedPatientGender,
-      if ((trimmedBookingRef ?? '').isNotEmpty)
-        'bookingRef': trimmedBookingRef,
+      if ((trimmedBookingRef ?? '').isNotEmpty) 'bookingRef': trimmedBookingRef,
       'urgency': urgency,
       if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
     };
 
-    debugPrint('[PatientRepository] Creating lab package order with data: $data');
+    debugPrint(
+      '[PatientRepository] Creating lab package order with data: $data',
+    );
     try {
       final response = await _apiClient.postJson(
         '/patient/lab-package-orders',
@@ -600,18 +593,31 @@ class PatientRepository {
     );
   }
 
-  Future<DocumentRecord> uploadDocument(String filePath) async {
-    final normalized = filePath.trim();
-    final fileName = normalized.split(RegExp(r'[\\/]')).last;
+  Future<DocumentRecord> uploadDocument({
+    String? filePath,
+    List<int>? bytes,
+    required String fileName,
+  }) async {
+    MultipartFile multipartFile;
+    if (kIsWeb) {
+      if (bytes == null) {
+        throw ArgumentError('Bytes must be provided on web');
+      }
+      multipartFile = MultipartFile.fromBytes(bytes, filename: fileName);
+    } else {
+      if (filePath == null) {
+        throw ArgumentError('FilePath must be provided on native platforms');
+      }
+      final normalized = filePath.trim();
+      multipartFile = await MultipartFile.fromFile(
+        File(normalized).path,
+        filename: fileName,
+      );
+    }
 
     final response = await _apiClient.postMultipart(
       '/patients/documents',
-      data: FormData.fromMap({
-        'file': await MultipartFile.fromFile(
-          File(normalized).path,
-          filename: fileName,
-        ),
-      }),
+      data: FormData.fromMap({'file': multipartFile}),
     );
 
     final json = _map(response['document']);

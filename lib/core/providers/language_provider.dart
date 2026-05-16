@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AppLanguage { en, ml }
+enum AppLanguage { en, ml, hi }
 
 class LanguageProvider extends ChangeNotifier {
   static const _storageKey = 'app_language';
@@ -14,17 +14,22 @@ class LanguageProvider extends ChangeNotifier {
 
   bool get isMalayalam => _language == AppLanguage.ml;
 
+  bool get isHindi => _language == AppLanguage.hi;
+
   Locale get locale => switch (_language) {
     AppLanguage.en => const Locale('en'),
     AppLanguage.ml => const Locale('ml'),
+    AppLanguage.hi => const Locale('hi'),
   };
 
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString(_storageKey);
-    if (stored == 'ml') {
-      _language = AppLanguage.ml;
-    }
+    _language = switch (stored) {
+      'ml' => AppLanguage.ml,
+      'hi' => AppLanguage.hi,
+      _ => AppLanguage.en,
+    };
     notifyListeners();
   }
 
@@ -37,7 +42,12 @@ class LanguageProvider extends ChangeNotifier {
   }
 
   Future<void> toggle() async {
-    final next = isEnglish ? AppLanguage.ml : AppLanguage.en;
+    // Cycles through EN -> ML -> HI -> EN
+    final next = switch (_language) {
+      AppLanguage.en => AppLanguage.ml,
+      AppLanguage.ml => AppLanguage.hi,
+      AppLanguage.hi => AppLanguage.en,
+    };
     await setLanguage(next);
   }
 }
