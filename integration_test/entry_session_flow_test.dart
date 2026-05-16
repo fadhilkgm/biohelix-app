@@ -114,8 +114,8 @@ AppConfig _integrationConfig() {
 class _IntegrationPatientRepository extends PatientRepository {
   _IntegrationPatientRepository({
     required this.patient,
-    required ApiClient apiClient,
-  }) : super(apiClient: apiClient);
+    required super.apiClient,
+  });
 
   final PatientIdentity patient;
   String? otpRequestPhone;

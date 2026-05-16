@@ -739,7 +739,7 @@ class _AiChatScreen extends StatefulWidget {
 }
 
 class _AiChatScreenState extends State<_AiChatScreen> {
-  bool _loading = false;
+  final bool _loading = false;
   String? _question;
   List<String> _options = ['Yes', 'No'];
   final Map<String, dynamic> _chatAnswers = {};
