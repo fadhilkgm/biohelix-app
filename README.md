@@ -1,3 +1,4 @@
+Frontend readme by avp.
 # biohelix_app
 
 Starter Flutter client for a Bun + D1 backend.
