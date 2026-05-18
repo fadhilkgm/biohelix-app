@@ -299,20 +299,20 @@ extension _AssistantActions on _AssistantTabState {
     );
 
     await _configureTtsLanguage();
-    await tts.awaitSpeakCompletion(true);
-    tts.setStartHandler(() {
+    await voiceManager.awaitSpeakCompletion(true);
+    voiceManager.setTtsStartHandler(() {
       if (!mounted) return;
       updateAssistantState(() {
         isSpeaking = true;
       });
     });
-    tts.setCompletionHandler(() {
+    voiceManager.setTtsCompletionHandler(() {
       if (!mounted) return;
       updateAssistantState(() {
         isSpeaking = false;
       });
     });
-    tts.setCancelHandler(() {
+    voiceManager.setTtsCancelHandler(() {
       if (!mounted) return;
       updateAssistantState(() {
         isSpeaking = false;
@@ -362,8 +362,8 @@ extension _AssistantActions on _AssistantTabState {
     }
 
     if (isLiveVoiceMode) {
-      await speechToText.stop();
-      await tts.stop();
+      await voiceManager.stopListening();
+      await voiceManager.stopSpeaking();
       if (!mounted) return;
       updateAssistantState(() {
         isLiveVoiceMode = false;
@@ -392,7 +392,7 @@ extension _AssistantActions on _AssistantTabState {
   Future<void> _startVoiceListening(PatientPortalProvider portal) async {
     try {
       if (isSpeaking) {
-        await tts.stop();
+        await voiceManager.stopSpeaking();
       }
 
       updateAssistantState(() {
@@ -476,13 +476,8 @@ extension _AssistantActions on _AssistantTabState {
       isSpeaking = true;
     });
 
-    final status = await tts.speak(toSpeak);
+    await voiceManager.speak(toSpeak, _ttsLanguageCode);
     if (!mounted) return;
-    if (status != 1) {
-      updateAssistantState(() {
-        isSpeaking = false;
-      });
-    }
 
     if (!isLiveVoiceMode || !mounted) return;
     await _startVoiceListening(portal);
@@ -499,7 +494,7 @@ extension _AssistantActions on _AssistantTabState {
     if (message.role == 'user') return;
 
     if (isSpeaking) {
-      await tts.stop();
+      await voiceManager.stopSpeaking();
       if (!mounted) return;
       updateAssistantState(() {
         isSpeaking = false;
@@ -511,18 +506,13 @@ extension _AssistantActions on _AssistantTabState {
     if (toSpeak.isEmpty) return;
 
     await _configureTtsLanguage();
-    final status = await tts.speak(toSpeak);
+    await voiceManager.speak(toSpeak, _ttsLanguageCode);
     if (!mounted) return;
-    if (status != 1) {
-      updateAssistantState(() {
-        isSpeaking = false;
-      });
-    }
   }
 
   Future<void> _interruptAiSpeechAndListen(PatientPortalProvider portal) async {
     if (!isSpeaking) return;
-    await tts.stop();
+    await voiceManager.stopSpeaking();
     if (!mounted) return;
     updateAssistantState(() {
       isSpeaking = false;

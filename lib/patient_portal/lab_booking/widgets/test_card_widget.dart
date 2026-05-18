@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/lab_booking_models.dart';
 
@@ -89,7 +89,7 @@ class TestCardWidget extends StatelessWidget {
                     children: [
                       if (test.basePrice > test.price)
                         Text(
-                          'â‚¹${test.basePrice.toStringAsFixed(0)}',
+                          '₹${test.basePrice.toStringAsFixed(0)}',
                           style: GoogleFonts.manrope(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -98,7 +98,7 @@ class TestCardWidget extends StatelessWidget {
                           ),
                         ),
                       Text(
-                        'â‚¹${test.price.toStringAsFixed(0)}',
+                        '₹${test.price.toStringAsFixed(0)}',
                         style: GoogleFonts.manrope(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,

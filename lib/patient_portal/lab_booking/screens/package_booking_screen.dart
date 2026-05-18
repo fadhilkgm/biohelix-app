@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -513,7 +513,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                         ),
                       ),
                       Text(
-                        'â‚¹${widget.package.discountedPrice ?? widget.package.basePrice}',
+                        '₹${widget.package.discountedPrice ?? widget.package.basePrice}',
                         style: GoogleFonts.manrope(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,

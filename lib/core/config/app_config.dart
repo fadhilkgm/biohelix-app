@@ -7,12 +7,14 @@ class AppConfig {
     required this.apiBaseUrl,
     required this.healthEndpoint,
     required this.showDevOtp,
+    required this.sarvamApiKey,
   });
 
   final String appName;
   final String apiBaseUrl;
   final String healthEndpoint;
   final bool showDevOtp;
+  final String sarvamApiKey;
 
   factory AppConfig.fromEnvironment() {
     final env = _readDotEnv();
@@ -30,6 +32,7 @@ class AppConfig {
               : (env['API_BASE_URL'] ?? 'https://www.bhrchospital.com/api'),
       healthEndpoint: env['HEALTH_ENDPOINT'] ?? '/health',
       showDevOtp: showDevOtp,
+      sarvamApiKey: env['SARVAM_API_KEY'] ?? '',
     );
   }
 

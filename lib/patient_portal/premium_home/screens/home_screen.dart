@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
@@ -719,7 +719,7 @@ class _PackageCard extends StatelessWidget {
                           children: [
                             Flexible(
                               child: Text(
-                                'â‚¹${pkg.discountedPrice ?? pkg.basePrice}',
+                                '₹${pkg.discountedPrice ?? pkg.basePrice}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -734,7 +734,7 @@ class _PackageCard extends StatelessWidget {
                               const SizedBox(width: 8),
                               Flexible(
                                 child: Text(
-                                  'â‚¹${pkg.basePrice}',
+                                  '₹${pkg.basePrice}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
