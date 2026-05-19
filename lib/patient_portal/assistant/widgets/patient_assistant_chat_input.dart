@@ -10,6 +10,8 @@ class ChatInputWidget extends StatelessWidget {
     required this.onLiveTap,
     required this.onVoiceTap,
     required this.onSend,
+    this.isSpeaking = false,
+    this.onInterrupt,
     super.key,
   });
 
@@ -17,10 +19,12 @@ class ChatInputWidget extends StatelessWidget {
   final bool isBusy;
   final bool isListening;
   final bool isLiveMode;
+  final bool isSpeaking;
   final VoidCallback onAttach;
   final VoidCallback onLiveTap;
   final VoidCallback onVoiceTap;
   final VoidCallback onSend;
+  final VoidCallback? onInterrupt;
 
   @override
   Widget build(BuildContext context) {
@@ -74,21 +78,27 @@ class ChatInputWidget extends StatelessWidget {
                   IconButton(
                     onPressed: isBusy ? null : onAttach,
                     icon: isBusy
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.attach_file_rounded),
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.attach_file_rounded),
                   ),
                 ],
               ),
               IconButton(
-                onPressed: isBusy ? null : onVoiceTap,
+                onPressed: isBusy
+                    ? null
+                    : (isSpeaking && onInterrupt != null)
+                        ? onInterrupt
+                        : onVoiceTap,
                 tooltip: isListening
                     ? strings.assistantStopVoiceInput
-                    : strings.assistantStartVoiceInput,
-                iconSize: isListening ? 30 : 24,
+                    : isSpeaking
+                        ? 'Interrupt & Speak'
+                        : strings.assistantStartVoiceInput,
+                iconSize: isListening || isSpeaking ? 30 : 24,
                 icon: Stack(
                   clipBehavior: Clip.none,
                   alignment: Alignment.center,
@@ -96,20 +106,22 @@ class ChatInputWidget extends StatelessWidget {
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 240),
                       curve: Curves.easeInOutCubic,
-                      width: isListening ? 48 : 38,
-                      height: isListening ? 48 : 38,
+                      width: isListening || isSpeaking ? 48 : 38,
+                      height: isListening || isSpeaking ? 48 : 38,
                       decoration: BoxDecoration(
                         color: isListening
                             ? const Color(0xFFFFD2DB)
-                            : const Color(0xFFE9EEF7),
+                            : isSpeaking
+                                ? const Color(0xFFD2E3FF)
+                                : const Color(0xFFE9EEF7),
                         shape: BoxShape.circle,
-                        // Keep shadow list stable across states to avoid invalid
-                        // interpolation values during implicit animations.
                         boxShadow: [
                           BoxShadow(
                             color: isListening
                                 ? const Color(0x50E11D48)
-                                : const Color(0x00000000),
+                                : isSpeaking
+                                    ? const Color(0x305A88F1)
+                                    : const Color(0x00000000),
                             blurRadius: 14,
                             spreadRadius: 1,
                           ),
@@ -126,11 +138,15 @@ class ChatInputWidget extends StatelessWidget {
                         ),
                       ),
                     Icon(
-                      isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                      isListening || isSpeaking
+                          ? Icons.mic_rounded
+                          : Icons.mic_none_rounded,
                       color: isListening
                           ? const Color(0xFFBE123C)
-                          : const Color(0xFF475569),
-                      size: isListening ? 28 : 22,
+                          : isSpeaking
+                              ? const Color(0xFF5A88F1)
+                              : const Color(0xFF475569),
+                      size: isListening || isSpeaking ? 28 : 22,
                     ),
                     if (isListening)
                       Positioned(

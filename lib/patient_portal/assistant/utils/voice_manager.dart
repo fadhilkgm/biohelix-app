@@ -71,39 +71,123 @@ class VoiceManager {
     await _speakNative(text, languageCode);
   }
 
+  String _cleanTextForTts(String text) {
+    // Remove markdown bold/italic
+    var cleaned = text.replaceAll(RegExp(r'\*\*|__|\*|_|`'), '');
+    // Remove markdown headers
+    cleaned = cleaned.replaceAll(RegExp(r'#+\s+'), '');
+    // Remove bullet points/numbered lists at start of lines
+    cleaned = cleaned.replaceAll(RegExp(r'^\s*[-*+]\s+', multiLine: true), '');
+    cleaned = cleaned.replaceAll(RegExp(r'^\s*\d+\.\s+', multiLine: true), '');
+    // Replace links
+    cleaned = cleaned.replaceAll(RegExp(r'\[([^\]]+)\]\([^\)]+\)'), r'\1');
+    return cleaned.trim();
+  }
+
+  List<String> _splitTextIntoChunks(String text, {int maxChars = 350}) {
+    final List<String> chunks = [];
+    final sentences = text.split(RegExp(r'(?<=[.!?|])\s+|\n+'));
+    
+    String currentChunk = '';
+    for (final sentence in sentences) {
+      final cleanSentence = sentence.trim();
+      if (cleanSentence.isEmpty) continue;
+      
+      if (currentChunk.isEmpty) {
+        currentChunk = cleanSentence;
+      } else if ((currentChunk.length + cleanSentence.length + 1) <= maxChars) {
+        currentChunk += ' ' + cleanSentence;
+      } else {
+        chunks.add(currentChunk);
+        currentChunk = cleanSentence;
+      }
+    }
+    if (currentChunk.isNotEmpty) {
+      chunks.add(currentChunk);
+    }
+    
+    final List<String> finalChunks = [];
+    for (final chunk in chunks) {
+      if (chunk.length <= maxChars) {
+        finalChunks.add(chunk);
+      } else {
+        final words = chunk.split(' ');
+        String subChunk = '';
+        for (final word in words) {
+          if (subChunk.isEmpty) {
+            subChunk = word;
+          } else if ((subChunk.length + word.length + 1) <= maxChars) {
+            subChunk += ' ' + word;
+          } else {
+            finalChunks.add(subChunk);
+            subChunk = word;
+          }
+        }
+        if (subChunk.isNotEmpty) {
+          finalChunks.add(subChunk);
+        }
+      }
+    }
+    return finalChunks;
+  }
+
   Future<void> _speakPremium(String text, String languageCode) async {
-    final safeText = text.length > 2400 ? text.substring(0, 2400) : text;
+    final cleanedText = _cleanTextForTts(text);
+    final chunks = _splitTextIntoChunks(cleanedText);
+
+    if (chunks.isEmpty) return;
 
     final dio = Dio(BaseOptions(
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 60),
     ));
 
-    final response = await dio.post(
-      'https://api.sarvam.ai/text-to-speech',
-      options: Options(
-        headers: {
-          'api-subscription-key': sarvamApiKey,
-          'Content-Type': 'application/json',
+    final tempDir = await getTemporaryDirectory();
+    final List<File> audioFiles = [];
+
+    // Fetch all chunks in parallel for ultra-fast generation
+    final futures = chunks.asMap().entries.map((entry) async {
+      final index = entry.key;
+      final chunkText = entry.value;
+
+      final response = await dio.post(
+        'https://api.sarvam.ai/text-to-speech',
+        options: Options(
+          headers: {
+            'api-subscription-key': sarvamApiKey,
+            'Content-Type': 'application/json',
+          },
+        ),
+        data: {
+          'text': chunkText,
+          'target_language_code': languageCode,
+          'model': 'bulbul:v2',
+          'speaker': languageCode.startsWith('ml') ? 'vidya' : 'anushka',
+          'pace': 1.1,
         },
-      ),
-      data: {
-        'text': safeText,
-        'target_language_code': languageCode,
-        'model': 'bulbul:v2',
-        'speaker': languageCode.startsWith('ml') ? 'vidya' : 'anushka',
-        'pace': 1.3,
-      },
+      );
+
+      final audios = response.data['audios'] as List<dynamic>?;
+      if (audios != null && audios.isNotEmpty) {
+        final bytes = base64Decode(audios.first as String);
+        final file = File('${tempDir.path}/sarvam_tts_$index.wav');
+        await file.writeAsBytes(bytes);
+        return MapEntry(index, file);
+      }
+      return null;
+    });
+
+    final results = await Future.wait(futures);
+    final validResults = results.whereType<MapEntry<int, File>>().toList();
+    validResults.sort((a, b) => a.key.compareTo(b.key));
+
+    if (validResults.isEmpty) return;
+
+    final playlist = ConcatenatingAudioSource(
+      children: validResults.map((r) => AudioSource.file(r.value.path)).toList(),
     );
 
-    final audios = response.data['audios'] as List<dynamic>?;
-    if (audios == null || audios.isEmpty) return;
-    final bytes = base64Decode(audios.first as String);
-    final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/sarvam_tts.wav');
-    await file.writeAsBytes(bytes);
-
-    await _audioPlayer.setFilePath(file.path);
+    await _audioPlayer.setAudioSource(playlist);
     await _audioPlayer.play();
     await _audioPlayer.playerStateStream.firstWhere(
       (state) =>
