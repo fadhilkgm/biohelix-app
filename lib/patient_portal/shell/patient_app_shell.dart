@@ -13,6 +13,8 @@ import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../assistant/utils/voice_manager.dart';
+
 import '../../core/config/app_config.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/providers/language_provider.dart';
@@ -186,6 +188,9 @@ class _PatientAppShellState extends State<PatientAppShell>
       _selectedIndex = index;
     });
   }
+
+  // Public entry point used by child widgets (e.g. package suggestion cards)
+  void setTab(int index) => _setIndex(index);
 
   Future<void> _handleBackPress() async {
     if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {

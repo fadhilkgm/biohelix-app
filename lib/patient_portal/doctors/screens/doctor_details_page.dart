@@ -1,4 +1,4 @@
-﻿part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
+part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _DoctorDetailPage extends StatefulWidget {
   const _DoctorDetailPage({required this.doctor});
@@ -267,7 +267,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  'â‚¹${widget.doctor.consultationFee}',
+                                  '₹${widget.doctor.consultationFee}',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,

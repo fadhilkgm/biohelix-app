@@ -120,6 +120,21 @@ class _MessageBubbleWidget extends StatelessWidget {
                       attachment: attachment,
                       onTap: () => onAttachmentTap(attachment),
                     ),
+                  if (!isUser && message.suggestedPackages.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.s10),
+                    const Divider(thickness: 0.5, height: 1),
+                    const SizedBox(height: AppSpacing.s8),
+                    Text(
+                      '🧪 Suggested Packages',
+                      style: AppTextStyles.bubbleAi(context).copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s8),
+                    for (final pkg in message.suggestedPackages)
+                      _PackageSuggestionCard(pkg: pkg),
+                  ],
                   if (!isUser && isSpeaking)
                     Padding(
                       padding: const EdgeInsets.only(top: AppSpacing.s10),
@@ -170,6 +185,99 @@ class _DateSeparator extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(label, style: AppTextStyles.dateSeparator(context)),
+      ),
+    );
+  }
+}
+
+class _PackageSuggestionCard extends StatelessWidget {
+  const _PackageSuggestionCard({required this.pkg});
+
+  final LabPackageItem pkg;
+
+  @override
+  Widget build(BuildContext context) {
+    final price = pkg.discountedPrice != null && pkg.discountedPrice! > 0
+        ? pkg.discountedPrice!
+        : pkg.basePrice;
+    final hasDiscount = pkg.discountedPrice != null &&
+        pkg.discountedPrice! > 0 &&
+        pkg.discountedPrice! < pkg.basePrice;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const _TestsHubPage()),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.s8),
+        padding: const EdgeInsets.all(AppSpacing.s10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEFAF7),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF26A89A).withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.science_rounded, size: 18, color: Color(0xFF26A89A)),
+            const SizedBox(width: AppSpacing.s8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    pkg.name,
+                    style: AppTextStyles.bubbleAi(context).copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if ((pkg.category ?? '').isNotEmpty)
+                    Text(
+                      pkg.category!,
+                      style: AppTextStyles.bubbleAi(context).copyWith(
+                        fontSize: 10,
+                        color: AiChatColors.textSecondary,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (hasDiscount)
+                  Text(
+                    '₹${pkg.basePrice}',
+                    style: AppTextStyles.bubbleAi(context).copyWith(
+                      fontSize: 10,
+                      decoration: TextDecoration.lineThrough,
+                      color: AiChatColors.textSecondary,
+                    ),
+                  ),
+                Text(
+                  price == 0 ? 'Free' : '₹$price',
+                  style: AppTextStyles.bubbleAi(context).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: const Color(0xFF26A89A),
+                  ),
+                ),
+                Text(
+                  'View ›',
+                  style: AppTextStyles.bubbleAi(context).copyWith(
+                    fontSize: 10,
+                    color: const Color(0xFF26A89A),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

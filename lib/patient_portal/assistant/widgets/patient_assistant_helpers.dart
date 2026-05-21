@@ -282,37 +282,63 @@ extension _AssistantActions on _AssistantTabState {
 
   Future<void> _initializeVoiceFeatures() async {
     final available = await speechToText.initialize(
-      onStatus: (status) {
+      onStatus: (status) async {
         if (!mounted) return;
         if (status == 'done' || status == 'notListening') {
           updateAssistantState(() {
             isListening = false;
           });
+
+          // In Live Voice Mode: if listening stopped due to silence timeout,
+          // and the AI is NOT speaking / no turn is in flight, auto-resume listening
+          if (isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight) {
+            await Future<void>.delayed(const Duration(milliseconds: 300));
+            if (mounted && isLiveVoiceMode && !isListening && !isSpeaking && !isLiveTurnInFlight) {
+              final portal = context.read<PatientPortalProvider>();
+              await _startVoiceListening(portal);
+            }
+          }
         }
       },
-      onError: (_) {
+      onError: (errorNotification) async {
         if (!mounted) return;
         updateAssistantState(() {
           isListening = false;
         });
+
+        // Auto-resume on transient errors (like no speech detected timeout) if in Live Mode
+        if (isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight) {
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          if (mounted && isLiveVoiceMode && !isListening && !isSpeaking && !isLiveTurnInFlight) {
+            final portal = context.read<PatientPortalProvider>();
+            await _startVoiceListening(portal);
+          }
+        }
       },
     );
 
     await _configureTtsLanguage();
-    await tts.awaitSpeakCompletion(true);
-    tts.setStartHandler(() {
+    await voiceManager.awaitSpeakCompletion(true);
+    voiceManager.setTtsStartHandler(() {
       if (!mounted) return;
       updateAssistantState(() {
         isSpeaking = true;
       });
     });
-    tts.setCompletionHandler(() {
+    voiceManager.setTtsCompletionHandler(() async {
       if (!mounted) return;
       updateAssistantState(() {
         isSpeaking = false;
       });
+
+      // Re-activate mic listening ONLY after the voice output has finished playing,
+      // preventing the microphone from capturing the AI's own spoken output.
+      if (isLiveVoiceMode && !isLiveTurnInFlight && !isListening) {
+        final portal = context.read<PatientPortalProvider>();
+        await _startVoiceListening(portal);
+      }
     });
-    tts.setCancelHandler(() {
+    voiceManager.setTtsCancelHandler(() {
       if (!mounted) return;
       updateAssistantState(() {
         isSpeaking = false;
@@ -362,8 +388,8 @@ extension _AssistantActions on _AssistantTabState {
     }
 
     if (isLiveVoiceMode) {
-      await speechToText.stop();
-      await tts.stop();
+      await voiceManager.stopListening();
+      await voiceManager.stopSpeaking();
       if (!mounted) return;
       updateAssistantState(() {
         isLiveVoiceMode = false;
@@ -392,7 +418,7 @@ extension _AssistantActions on _AssistantTabState {
   Future<void> _startVoiceListening(PatientPortalProvider portal) async {
     try {
       if (isSpeaking) {
-        await tts.stop();
+        await voiceManager.stopSpeaking();
       }
 
       updateAssistantState(() {
@@ -427,11 +453,20 @@ extension _AssistantActions on _AssistantTabState {
       if (!mounted) return;
       updateAssistantState(() {
         isListening = false;
-        isLiveVoiceMode = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${_strings.assistantUnableToListen}: $error')),
-      );
+      
+      // If we are in live voice mode, retry listening after a short delay to let
+      // the device finish transitioning its audio session from playback to recording.
+      if (isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight) {
+        await Future<void>.delayed(const Duration(milliseconds: 1000));
+        if (mounted && isLiveVoiceMode && !isListening && !isSpeaking && !isLiveTurnInFlight) {
+          await _startVoiceListening(portal);
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${_strings.assistantUnableToListen}: $error')),
+        );
+      }
     }
   }
 
@@ -449,17 +484,31 @@ extension _AssistantActions on _AssistantTabState {
       isLiveTurnInFlight = true;
     });
 
-    inputController.clear();
-    await portal.sendChatMessage(
-      message,
-      language: _assistantLanguageCode,
-      mode: 'voice',
-    );
-
-    if (!mounted) return;
-    updateAssistantState(() {
-      isLiveTurnInFlight = false;
-    });
+    bool success = false;
+    try {
+      inputController.clear();
+      await portal.sendChatMessage(
+        message,
+        language: _assistantLanguageCode,
+        mode: 'voice',
+      );
+      success = true;
+    } catch (e) {
+      // ignore: avoid_print
+      print("Error sending live voice chat message: $e");
+    } finally {
+      if (mounted) {
+        updateAssistantState(() {
+          isLiveTurnInFlight = false;
+        });
+        // Only restart the mic here if the message FAILED to send.
+        // If it succeeded, the UI will trigger _speakReplyThenResumeListening,
+        // and the TTS completion handler will restart the mic AFTER the AI finishes talking!
+        if (!success && isLiveVoiceMode && !isListening && !isSpeaking) {
+          await _startVoiceListening(portal);
+        }
+      }
+    }
   }
 
   Future<void> _speakReplyThenResumeListening(
@@ -476,16 +525,7 @@ extension _AssistantActions on _AssistantTabState {
       isSpeaking = true;
     });
 
-    final status = await tts.speak(toSpeak);
-    if (!mounted) return;
-    if (status != 1) {
-      updateAssistantState(() {
-        isSpeaking = false;
-      });
-    }
-
-    if (!isLiveVoiceMode || !mounted) return;
-    await _startVoiceListening(portal);
+    await voiceManager.speak(toSpeak, _ttsLanguageCode);
   }
 
   String _sanitizeSpeechText(String value) {
@@ -499,11 +539,18 @@ extension _AssistantActions on _AssistantTabState {
     if (message.role == 'user') return;
 
     if (isSpeaking) {
-      await tts.stop();
+      await voiceManager.stopSpeaking();
       if (!mounted) return;
       updateAssistantState(() {
         isSpeaking = false;
       });
+      
+      // If the user stops the AI speech directly from the chat bubble,
+      // we must resume the microphone immediately so the Live Voice loop doesn't break!
+      if (isLiveVoiceMode && !isListening && !isLiveTurnInFlight) {
+        final portal = context.read<PatientPortalProvider>();
+        await _startVoiceListening(portal);
+      }
       return;
     }
 
@@ -511,18 +558,13 @@ extension _AssistantActions on _AssistantTabState {
     if (toSpeak.isEmpty) return;
 
     await _configureTtsLanguage();
-    final status = await tts.speak(toSpeak);
+    await voiceManager.speak(toSpeak, _ttsLanguageCode);
     if (!mounted) return;
-    if (status != 1) {
-      updateAssistantState(() {
-        isSpeaking = false;
-      });
-    }
   }
 
   Future<void> _interruptAiSpeechAndListen(PatientPortalProvider portal) async {
     if (!isSpeaking) return;
-    await tts.stop();
+    await voiceManager.stopSpeaking();
     if (!mounted) return;
     updateAssistantState(() {
       isSpeaking = false;

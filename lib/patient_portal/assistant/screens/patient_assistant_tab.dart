@@ -12,8 +12,7 @@ class _AssistantTab extends StatefulWidget {
 class _AssistantTabState extends State<_AssistantTab> {
   final _inputController = TextEditingController();
   final _messagesController = ScrollController();
-  final _speechToText = SpeechToText();
-  final _tts = FlutterTts();
+  late final VoiceManager _voiceManager;
   int _lastAutoScrolledMessageCount = 0;
   bool _showMobileSidebar = false;
   bool _speechReady = false;
@@ -29,8 +28,9 @@ class _AssistantTabState extends State<_AssistantTab> {
 
   TextEditingController get inputController => _inputController;
   ScrollController get messagesController => _messagesController;
-  SpeechToText get speechToText => _speechToText;
-  FlutterTts get tts => _tts;
+  SpeechToText get speechToText => _voiceManager.nativeStt;
+  FlutterTts get tts => _voiceManager.nativeTts;
+  VoiceManager get voiceManager => _voiceManager;
   bool get speechReady => _speechReady;
   set speechReady(bool value) => _speechReady = value;
   bool get isListening => _isListening;
@@ -64,6 +64,9 @@ class _AssistantTabState extends State<_AssistantTab> {
   @override
   void initState() {
     super.initState();
+    _voiceManager = VoiceManager(
+      sarvamApiKey: AppConfig.fromEnvironment().sarvamApiKey,
+    );
     _initializeVoiceFeatures();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -74,8 +77,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   @override
   void dispose() {
     _isLiveVoiceMode = false;
-    _speechToText.stop();
-    _tts.stop();
+    _voiceManager.stopListening();
+    _voiceManager.stopSpeaking();
     _messagesController.dispose();
     _inputController.dispose();
     super.dispose();
@@ -332,9 +335,11 @@ class _AssistantTabState extends State<_AssistantTab> {
                       isBusy: busy,
                       isListening: _isListening,
                       isLiveMode: _isLiveVoiceMode,
+                      isSpeaking: _isSpeaking,
                       onAttach: () => _attachFile(portal),
                       onLiveTap: () => _toggleLiveVoiceMode(portal),
                       onVoiceTap: _toggleVoiceInput,
+                      onInterrupt: () => _interruptAiSpeechAndListen(portal),
                       onSend: () => _sendMessage(portal),
                     ),
                   ),

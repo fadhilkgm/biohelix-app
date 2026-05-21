@@ -1,4 +1,4 @@
-﻿part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
+part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _DashboardTab extends StatelessWidget {
   const _DashboardTab({
@@ -292,7 +292,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  'â‚¹${activePackage.discountedPrice ?? activePackage.basePrice}',
+                                  '₹${activePackage.discountedPrice ?? activePackage.basePrice}',
                                   style: GoogleFonts.manrope(
                                     fontSize: 30,
                                     fontWeight: FontWeight.w900,
@@ -301,7 +301,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                 ),
                                 if (activePackage.discountedPrice != null && activePackage.discountedPrice! < activePackage.basePrice)
                                   Text(
-                                    'â‚¹${activePackage.basePrice}',
+                                    '₹${activePackage.basePrice}',
                                     style: GoogleFonts.manrope(
                                       fontSize: 16,
                                       decoration: TextDecoration.lineThrough,
@@ -523,7 +523,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                 ),
                               ),
                               Text(
-                                'â‚¹${pkg.discountedPrice ?? pkg.basePrice}',
+                                '₹${pkg.discountedPrice ?? pkg.basePrice}',
                                 style: GoogleFonts.manrope(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900,

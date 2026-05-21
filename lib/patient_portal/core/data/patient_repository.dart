@@ -677,9 +677,18 @@ class PatientRepository {
           'mode': normalizedMode,
       },
     );
+    final pkgsRaw = response['suggestedPackages'] as List<dynamic>? ?? const [];
+    final suggestedPackages = pkgsRaw
+        .map((item) => LabPackageItem.fromJson(
+              item is Map<String, dynamic>
+                  ? item
+                  : Map<String, dynamic>.from(item as Map),
+            ))
+        .toList();
     return ChatMessage(
       role: 'ai',
       content: response['reply'] as String? ?? 'No response',
+      suggestedPackages: suggestedPackages,
     );
   }
 

@@ -742,20 +742,28 @@ class ChatMessage {
     required this.content,
     this.createdAt,
     this.attachments = const [],
+    this.suggestedPackages = const [],
   });
 
   final String role;
   final String content;
   final String? createdAt;
   final List<ChatAttachment> attachments;
+  final List<LabPackageItem> suggestedPackages;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     final parsed = ChatMessageCodec.decode(json['content'] as String? ?? '');
+    final pkgsRaw = json['suggestedPackages'] as List<dynamic>? ?? const [];
     return ChatMessage(
       role: json['role'] as String? ?? 'assistant',
       content: parsed.content,
       createdAt: json['createdAt'] as String? ?? json['created_at'] as String?,
       attachments: parsed.attachments,
+      suggestedPackages: pkgsRaw
+          .map((item) => LabPackageItem.fromJson(
+                item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item as Map),
+              ))
+          .toList(),
     );
   }
 
