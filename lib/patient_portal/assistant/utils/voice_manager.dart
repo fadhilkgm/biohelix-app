@@ -10,7 +10,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 
 class VoiceManager {
   VoiceManager({
-    required this.sarvamApiKey,
+    this.sarvamApiKey = '',
   });
 
   final String sarvamApiKey;

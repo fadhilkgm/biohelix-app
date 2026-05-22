@@ -172,6 +172,10 @@ class _ProfileTabState extends State<_ProfileTab> {
               child: Image.network(
                 resolved,
                 fit: BoxFit.contain,
+                headers: {
+                  if (Provider.of<SessionProvider>(context, listen: false).authToken != null)
+                    'Authorization': 'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
+                },
                 errorBuilder: (_, _, _) => const Padding(
                   padding: EdgeInsets.all(20),
                   child: Text('Could not preview this image.'),
@@ -1155,6 +1159,10 @@ class _ProfileTabState extends State<_ProfileTab> {
                                   ? Image.network(
                                       resolvedUrl,
                                       fit: BoxFit.cover,
+                                      headers: {
+                                        if (Provider.of<SessionProvider>(context, listen: false).authToken != null)
+                                          'Authorization': 'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
+                                      },
                                       errorBuilder: (_, _, _) => const Icon(
                                         Icons.image_not_supported_outlined,
                                       ),

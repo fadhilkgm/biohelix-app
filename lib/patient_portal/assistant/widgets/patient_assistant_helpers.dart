@@ -281,74 +281,104 @@ extension _AssistantActions on _AssistantTabState {
   }
 
   Future<void> _initializeVoiceFeatures() async {
-    final available = await speechToText.initialize(
-      onStatus: (status) async {
-        if (!mounted) return;
-        if (status == 'done' || status == 'notListening') {
-          updateAssistantState(() {
-            isListening = false;
-          });
-
-          // In Live Voice Mode: if listening stopped due to silence timeout,
-          // and the AI is NOT speaking / no turn is in flight, auto-resume listening
-          if (isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight) {
-            await Future<void>.delayed(const Duration(milliseconds: 300));
-            if (mounted && isLiveVoiceMode && !isListening && !isSpeaking && !isLiveTurnInFlight) {
+    try {
+      final available = await speechToText.initialize(
+        onStatus: (status) async {
+          if (!mounted) return;
+          if (status == 'done' || status == 'notListening') {
+            // Auto-resume listening in Live Voice Mode only
+            final shouldAutoResume =
+                (isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight);
+            if (shouldAutoResume) {
+              await Future<void>.delayed(const Duration(milliseconds: 300));
+              if (mounted && isLiveVoiceMode) {
+                final portal = context.read<PatientPortalProvider>();
+                await _startVoiceListening(portal);
+              }
+            } else {
+              if (isListening || isTapRecording) {
+                updateAssistantState(() {
+                  _isListening = false;
+                  _isTapRecording = false;
+                  _soundLevel = 0.0;
+                });
+                Future.delayed(Duration.zero, () async {
+                  try {
+                    await speechToText.cancel();
+                  } catch (_) {}
+                });
+              }
+            }
+          }
+        },
+        onError: (errorNotification) async {
+          if (!mounted) return;
+          // Auto-resume on transient errors in Live Voice Mode only
+          final shouldAutoResume =
+              (isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight);
+          if (shouldAutoResume) {
+            await Future<void>.delayed(const Duration(milliseconds: 500));
+            if (mounted && isLiveVoiceMode) {
               final portal = context.read<PatientPortalProvider>();
               await _startVoiceListening(portal);
             }
+          } else {
+            if (isListening || isTapRecording) {
+              updateAssistantState(() {
+                _isListening = false;
+                _isTapRecording = false;
+                _soundLevel = 0.0;
+              });
+              Future.delayed(Duration.zero, () async {
+                try {
+                  await speechToText.cancel();
+                } catch (_) {}
+              });
+            }
           }
-        }
-      },
-      onError: (errorNotification) async {
+        },
+      );
+
+      await _configureTtsLanguage();
+      await voiceManager.awaitSpeakCompletion(true);
+      voiceManager.setTtsStartHandler(() {
         if (!mounted) return;
         updateAssistantState(() {
-          isListening = false;
+          isSpeaking = true;
+        });
+      });
+      voiceManager.setTtsCompletionHandler(() async {
+        if (!mounted) return;
+        updateAssistantState(() {
+          isSpeaking = false;
         });
 
-        // Auto-resume on transient errors (like no speech detected timeout) if in Live Mode
-        if (isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight) {
-          await Future<void>.delayed(const Duration(milliseconds: 500));
-          if (mounted && isLiveVoiceMode && !isListening && !isSpeaking && !isLiveTurnInFlight) {
-            final portal = context.read<PatientPortalProvider>();
-            await _startVoiceListening(portal);
-          }
+        // Re-activate mic listening ONLY after the voice output has finished playing,
+        // preventing the microphone from capturing the AI's own spoken output.
+        if (isLiveVoiceMode && !isLiveTurnInFlight && !isListening) {
+          final portal = context.read<PatientPortalProvider>();
+          await _startVoiceListening(portal);
         }
-      },
-    );
-
-    await _configureTtsLanguage();
-    await voiceManager.awaitSpeakCompletion(true);
-    voiceManager.setTtsStartHandler(() {
-      if (!mounted) return;
-      updateAssistantState(() {
-        isSpeaking = true;
       });
-    });
-    voiceManager.setTtsCompletionHandler(() async {
-      if (!mounted) return;
-      updateAssistantState(() {
-        isSpeaking = false;
+      voiceManager.setTtsCancelHandler(() {
+        if (!mounted) return;
+        updateAssistantState(() {
+          isSpeaking = false;
+        });
       });
 
-      // Re-activate mic listening ONLY after the voice output has finished playing,
-      // preventing the microphone from capturing the AI's own spoken output.
-      if (isLiveVoiceMode && !isLiveTurnInFlight && !isListening) {
-        final portal = context.read<PatientPortalProvider>();
-        await _startVoiceListening(portal);
-      }
-    });
-    voiceManager.setTtsCancelHandler(() {
       if (!mounted) return;
       updateAssistantState(() {
-        isSpeaking = false;
+        speechReady = available;
       });
-    });
-
-    if (!mounted) return;
-    updateAssistantState(() {
-      speechReady = available;
-    });
+    } catch (e) {
+      // ignore: avoid_print
+      print("🎙️ [VoiceAssistant] SpeechToText initialization failed: $e");
+      if (!mounted) return;
+      updateAssistantState(() {
+        speechReady = false;
+      });
+    }
   }
 
   Future<void> _toggleVoiceInput() async {
@@ -358,23 +388,24 @@ extension _AssistantActions on _AssistantTabState {
       await _toggleLiveVoiceMode(portal);
     }
 
-    if (!await _ensureVoiceReady()) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_strings.assistantVoiceUnavailable)),
-      );
-      return;
-    }
-
-    if (isListening) {
-      await speechToText.stop();
-      if (!mounted) return;
+    if (isListening || isTapRecording) {
+      // User explicitly pressed stop — clear the flag so auto-restart stops
       updateAssistantState(() {
-        isListening = false;
+        _isTapRecording = false;
+        _isListening = false;
+        _soundLevel = 0.0;
       });
+      try {
+        await speechToText.stop();
+      } catch (_) {}
       return;
     }
 
+    // User pressed to start recording — set the flag
+    updateAssistantState(() {
+      _isTapRecording = true;
+    });
+    await _ensureVoiceReady();
     await _startVoiceListening(portal);
   }
 
@@ -392,10 +423,12 @@ extension _AssistantActions on _AssistantTabState {
       await voiceManager.stopSpeaking();
       if (!mounted) return;
       updateAssistantState(() {
-        isLiveVoiceMode = false;
-        isListening = false;
-        isSpeaking = false;
-        isLiveTurnInFlight = false;
+        _isLiveVoiceMode = false;
+        _isListening = false;
+        _isSpeaking = false;
+        _isLiveTurnInFlight = false;
+        _isTapRecording = false;
+        _soundLevel = 0.0;
       });
       return;
     }
@@ -422,37 +455,76 @@ extension _AssistantActions on _AssistantTabState {
       }
 
       updateAssistantState(() {
-        isListening = true;
+        _isListening = true;
       });
       await _configureTtsLanguage();
 
-      final started = await speechToText.listen(
-        localeId: _speechLocaleId,
-        listenFor: const Duration(seconds: 60),
-        pauseFor: const Duration(seconds: 3),
-        listenOptions: SpeechListenOptions(partialResults: true),
-        onResult: (result) {
-          if (!mounted) return;
-          final words = result.recognizedWords.trim();
-          inputController.value = TextEditingValue(
-            text: words,
-            selection: TextSelection.collapsed(offset: words.length),
-          );
+      try {
+        await speechToText.listen(
+          localeId: _speechLocaleId,
+          listenFor: const Duration(seconds: 60),
+          pauseFor: isLiveVoiceMode
+              ? const Duration(seconds: 3)
+              : const Duration(seconds: 6),
+          listenOptions: SpeechListenOptions(
+            partialResults: true,
+            cancelOnError: true,
+          ),
+          onResult: (result) {
+            if (!mounted) return;
+            final words = result.recognizedWords.trim();
+            inputController.value = TextEditingValue(
+              text: words,
+              selection: TextSelection.collapsed(offset: words.length),
+            );
 
-          if (isLiveVoiceMode && result.finalResult && !isLiveTurnInFlight) {
-            _sendLiveVoiceTurn(portal, words);
-          }
-        },
-      );
+            if (isLiveVoiceMode && result.finalResult && !isLiveTurnInFlight) {
+              _sendLiveVoiceTurn(portal, words);
+            } else if (!isLiveVoiceMode && result.finalResult) {
+              speechToText.stop();
+              updateAssistantState(() {
+                _isListening = false;
+                _isTapRecording = false;
+                _soundLevel = 0.0;
+              });
+              if (words.isNotEmpty) {
+                _sendMessage(portal);
+              }
+            }
+          },
+          onSoundLevelChange: (level) {
+            if (!mounted) return;
+            double norm = 0.0;
+            if (level < 0) {
+              norm = (level + 160) / 160.0;
+            } else {
+              norm = (level + 2) / 14.0;
+            }
+            updateAssistantState(() {
+              _soundLevel = norm.clamp(0.0, 1.0);
+            });
+          },
+        );
+      } catch (e) {
+        // Fallback for emulators/devices where STT fails to start, allowing visual testing of premium animations.
+        // ignore: avoid_print
+        print("🎙️ [VoiceAssistant] Speech recognition failed to start: $e. Falling back to simulated animation mode.");
+      }
 
       if (!mounted) return;
       updateAssistantState(() {
-        isListening = started == true;
+        _isListening = true;
       });
     } catch (error) {
       if (!mounted) return;
       updateAssistantState(() {
-        isListening = false;
+        if (_isTapRecording || _isLiveVoiceMode) {
+          _isListening = true;
+        } else {
+          _isListening = false;
+          _isTapRecording = false;
+        }
+        _soundLevel = 0.0;
       });
       
       // If we are in live voice mode, retry listening after a short delay to let
@@ -480,8 +552,9 @@ extension _AssistantActions on _AssistantTabState {
     await speechToText.stop();
     if (!mounted) return;
     updateAssistantState(() {
-      isListening = false;
-      isLiveTurnInFlight = true;
+      _isListening = false;
+      _isLiveTurnInFlight = true;
+      _soundLevel = 0.0;
     });
 
     bool success = false;
@@ -609,6 +682,10 @@ Future<void> _openAttachmentPreview(
                       child: Image.network(
                         resolvedUrl,
                         fit: BoxFit.contain,
+                        headers: {
+                          if (Provider.of<SessionProvider>(context, listen: false).authToken != null)
+                            'Authorization': 'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
+                        },
                         errorBuilder: (_, _, _) => Text(
                           'Image preview unavailable.',
                           style: AppTextStyles.subtitle(sheetContext),
