@@ -468,6 +468,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: (_selectedSlot == null || portal.isCreatingBooking || portal.bookings.any((b) => 
+                    b.doctorId == widget.doctor.id &&
                     _selectedDate != null &&
                     b.bookingDate == DateFormat('yyyy-MM-dd').format(_selectedDate!) &&
                     b.status != 'cancelled'
@@ -508,10 +509,10 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
     if (date == null || slot == null) return;
 
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
-    if (portal.bookings.any((b) => b.bookingDate == dateStr && b.status != 'cancelled')) {
+    if (portal.bookings.any((b) => b.doctorId == widget.doctor.id && b.bookingDate == dateStr && b.status != 'cancelled')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You already have a session booked for this day.'),
+          content: Text('You already have a session booked with this doctor for this day.'),
           backgroundColor: Colors.orange,
         ),
       );

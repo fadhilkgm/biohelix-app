@@ -175,9 +175,17 @@ class _FakePortalRepository extends PatientRepository {
   static const _patient = PatientIdentity(
     id: 108, name: 'Amina Patient', phone: '9998887777', registrationNumber: 'BHRC-108', uuid: 'patient-108');
 
-  static const _bookings = [
+  static String _getFutureDateString(int daysAhead) {
+    final futureDate = DateTime.now().add(Duration(days: daysAhead));
+    final yyyy = futureDate.year.toString();
+    final mm = futureDate.month.toString().padLeft(2, '0');
+    final dd = futureDate.day.toString().padLeft(2, '0');
+    return '$yyyy-$mm-$dd';
+  }
+
+  static List<BookingItem> get _bookings => [
     BookingItem(
-      id: 1, bookingDate: '2026-05-12', timeslot: '10:30 AM', status: 'confirmed',
+      id: 1, bookingDate: _getFutureDateString(2), timeslot: '10:30 AM', status: 'confirmed',
       doctorId: 7, doctorName: 'Dr Sana Rahman', doctorSpecialization: 'Cardiology')
   ];
 
@@ -187,6 +195,12 @@ class _FakePortalRepository extends PatientRepository {
   }
 
   @override
+  Future<List<String>> getDoctorAvailableSlots({
+    required int doctorId,
+    required String date,
+  }) async => const ['09:00 AM - 09:30 AM', '10:00 AM - 10:30 AM'];
+
+  @override
   Future<String?> sendOtp({required String phone, String? mrn}) async => '123456';
   @override
   Future<OtpSession> verifyOtp({required String phone, required String otp}) async =>
@@ -194,20 +208,20 @@ class _FakePortalRepository extends PatientRepository {
   @override
   Future<PatientIdentity> getCurrentPatient() async => _patient;
   @override
-  Future<PatientDashboard> getDashboard() async => const PatientDashboard(
+  Future<PatientDashboard> getDashboard() async => PatientDashboard(
     patient: _patient,
-    metrics: PortalMetrics(totalRecords: 3, availableRecords: 3, processingRecords: 0, showingRecords: 3, upcomingBookings: 1),
-    recentBookings: _bookings, recentPrescriptions: [], recentDocuments: [], recentSummaries: [],
-    idCard: IdCardInfo(registrationNumber: 'BHRC-108', patientName: 'Amina Patient', membershipTier: 'Classic', qrValue: 'patient-108'),
-    myClub: MyClubSummary(patientId: 108, points: 240, currencyValue: 24, tier: 'Classic', transactions: []),
-    emergencyContacts: []);
+    metrics: const PortalMetrics(totalRecords: 3, availableRecords: 3, processingRecords: 0, showingRecords: 3, upcomingBookings: 1),
+    recentBookings: _bookings, recentPrescriptions: const [], recentDocuments: const [], recentSummaries: const [],
+    idCard: const IdCardInfo(registrationNumber: 'BHRC-108', patientName: 'Amina Patient', membershipTier: 'Classic', qrValue: 'patient-108'),
+    myClub: const MyClubSummary(patientId: 108, points: 240, currencyValue: 24, tier: 'Classic', transactions: []),
+    emergencyContacts: const []);
   @override
   Future<List<BookingItem>> getBookings() async => _bookings;
   @override
-  Future<List<LabOrderItem>> getLabOrders() async => const [
+  Future<List<LabOrderItem>> getLabOrders() async => [
     LabOrderItem(
       id: 11,
-      date: '2026-05-13',
+      date: _getFutureDateString(3),
       status: 'confirmed',
       testId: 101,
       testName: 'CBC Lab Order',
@@ -217,10 +231,10 @@ class _FakePortalRepository extends PatientRepository {
     )
   ];
   @override
-  Future<List<LabPackageOrderItem>> getLabPackageOrders() async => const [
+  Future<List<LabPackageOrderItem>> getLabPackageOrders() async => [
     LabPackageOrderItem(
       id: 21,
-      date: '2026-05-14',
+      date: _getFutureDateString(4),
       status: 'confirmed',
       packageId: 201,
       packageName: 'Executive Health Package',

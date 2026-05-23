@@ -108,10 +108,18 @@ class _FakePortalRepository extends PatientRepository {
     uuid: 'patient-108',
   );
 
-  static const _bookings = [
+  static String _getFutureDateString(int daysAhead) {
+    final futureDate = DateTime.now().add(Duration(days: daysAhead));
+    final yyyy = futureDate.year.toString();
+    final mm = futureDate.month.toString().padLeft(2, '0');
+    final dd = futureDate.day.toString().padLeft(2, '0');
+    return '$yyyy-$mm-$dd';
+  }
+
+  static List<BookingItem> get _bookings => [
     BookingItem(
       id: 1,
-      bookingDate: '2026-05-12',
+      bookingDate: _getFutureDateString(2),
       timeslot: '10:30 AM',
       status: 'confirmed',
       doctorId: 7,
@@ -149,9 +157,9 @@ class _FakePortalRepository extends PatientRepository {
   Future<PatientIdentity> getCurrentPatient() async => _patient;
 
   @override
-  Future<PatientDashboard> getDashboard() async => const PatientDashboard(
+  Future<PatientDashboard> getDashboard() async => PatientDashboard(
     patient: _patient,
-    metrics: PortalMetrics(
+    metrics: const PortalMetrics(
       totalRecords: 3,
       availableRecords: 3,
       processingRecords: 0,
@@ -159,23 +167,23 @@ class _FakePortalRepository extends PatientRepository {
       upcomingBookings: 1,
     ),
     recentBookings: _bookings,
-    recentPrescriptions: [],
-    recentDocuments: [],
-    recentSummaries: [],
-    idCard: IdCardInfo(
+    recentPrescriptions: const [],
+    recentDocuments: const [],
+    recentSummaries: const [],
+    idCard: const IdCardInfo(
       registrationNumber: 'BHRC-108',
       patientName: 'Amina Patient',
       membershipTier: 'Classic',
       qrValue: 'patient-108',
     ),
-    myClub: MyClubSummary(
+    myClub: const MyClubSummary(
       patientId: 108,
       points: 240,
       currencyValue: 24,
       tier: 'Classic',
       transactions: [],
     ),
-    emergencyContacts: [],
+    emergencyContacts: const [],
   );
 
   @override
