@@ -20,31 +20,82 @@ class _AssistantTabState extends State<_AssistantTab> {
   bool _isSpeaking = false;
   bool _isLiveVoiceMode = false;
   bool _isLiveTurnInFlight = false;
+  bool _isTapRecording = false;
   String? _lastLiveSpokenReply;
   String? _configuredTtsLanguage;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
   bool _isAttachmentUploadInFlight = false;
   String? _uploadingAttachmentName;
+  double _soundLevel = 0.0;
 
   TextEditingController get inputController => _inputController;
   ScrollController get messagesController => _messagesController;
   SpeechToText get speechToText => _voiceManager.nativeStt;
   FlutterTts get tts => _voiceManager.nativeTts;
   VoiceManager get voiceManager => _voiceManager;
+
   bool get speechReady => _speechReady;
-  set speechReady(bool value) => _speechReady = value;
+  set speechReady(bool value) {
+    _updateAssistantState(() {
+      _speechReady = value;
+    });
+  }
+
   bool get isListening => _isListening;
-  set isListening(bool value) => _isListening = value;
+  set isListening(bool value) {
+    _updateAssistantState(() {
+      _isListening = value;
+    });
+  }
+
   bool get isSpeaking => _isSpeaking;
-  set isSpeaking(bool value) => _isSpeaking = value;
+  set isSpeaking(bool value) {
+    _updateAssistantState(() {
+      _isSpeaking = value;
+    });
+  }
+
   bool get isLiveVoiceMode => _isLiveVoiceMode;
-  set isLiveVoiceMode(bool value) => _isLiveVoiceMode = value;
+  set isLiveVoiceMode(bool value) {
+    _updateAssistantState(() {
+      _isLiveVoiceMode = value;
+    });
+  }
+
   bool get isLiveTurnInFlight => _isLiveTurnInFlight;
-  set isLiveTurnInFlight(bool value) => _isLiveTurnInFlight = value;
+  set isLiveTurnInFlight(bool value) {
+    _updateAssistantState(() {
+      _isLiveTurnInFlight = value;
+    });
+  }
+
   String? get lastLiveSpokenReply => _lastLiveSpokenReply;
-  set lastLiveSpokenReply(String? value) => _lastLiveSpokenReply = value;
+  set lastLiveSpokenReply(String? value) {
+    _updateAssistantState(() {
+      _lastLiveSpokenReply = value;
+    });
+  }
+
   String? get configuredTtsLanguage => _configuredTtsLanguage;
-  set configuredTtsLanguage(String? value) => _configuredTtsLanguage = value;
+  set configuredTtsLanguage(String? value) {
+    _updateAssistantState(() {
+      _configuredTtsLanguage = value;
+    });
+  }
+
+  bool get isTapRecording => _isTapRecording;
+  set isTapRecording(bool value) {
+    _updateAssistantState(() {
+      _isTapRecording = value;
+    });
+  }
+
+  double get soundLevel => _soundLevel;
+  set soundLevel(double value) {
+    _updateAssistantState(() {
+      _soundLevel = value;
+    });
+  }
 
   void _updateAssistantState(VoidCallback update) {
     if (!mounted) return;
@@ -59,6 +110,7 @@ class _AssistantTabState extends State<_AssistantTab> {
     _pendingAttachments.clear();
     _isAttachmentUploadInFlight = false;
     _uploadingAttachmentName = null;
+    _isTapRecording = false;
   }
 
   @override
@@ -336,6 +388,7 @@ class _AssistantTabState extends State<_AssistantTab> {
                       isListening: _isListening,
                       isLiveMode: _isLiveVoiceMode,
                       isSpeaking: _isSpeaking,
+                      soundLevel: _soundLevel,
                       onAttach: () => _attachFile(portal),
                       onLiveTap: () => _toggleLiveVoiceMode(portal),
                       onVoiceTap: _toggleVoiceInput,

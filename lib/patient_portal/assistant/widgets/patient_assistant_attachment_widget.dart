@@ -34,6 +34,10 @@ class _ChatAttachmentWidget extends StatelessWidget {
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,
+                  headers: {
+                    if (Provider.of<SessionProvider>(context, listen: false).authToken != null)
+                      'Authorization': 'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
+                  },
                   loadingBuilder: (context, child, progress) {
                     if (progress == null) return child;
                     return const SizedBox(

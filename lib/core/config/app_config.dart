@@ -7,7 +7,7 @@ class AppConfig {
     required this.apiBaseUrl,
     required this.healthEndpoint,
     required this.showDevOtp,
-    required this.sarvamApiKey,
+    this.sarvamApiKey = '',
   });
 
   final String appName;
