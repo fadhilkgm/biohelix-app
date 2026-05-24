@@ -226,19 +226,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Banners Carousel
-              if (widget.banners.isNotEmpty)
-                _buildBannerCarousel(context)
-              else if (widget.isLoading)
-                _buildBannerSkeleton(context),
-              const SizedBox(height: 32),
-              OffersAndAppointmentsSectionWidget(
-                bookings: widget.bookings,
-                onSeeAllAppointments: widget.onSeeAllAppointments,
-                onOfferTap: widget.onOfferTap,
-                homeOffers: widget.homeOffers,
-              ),
-              const SizedBox(height: 32),
               // Quick Links Section
               Row(
                 children: [
@@ -263,6 +250,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: const Color(0xFF915AF1),
                   ),
                 ],
+              ),
+              const SizedBox(height: 32),
+              // Banners Carousel
+              if (widget.banners.isNotEmpty)
+                _buildBannerCarousel(context)
+              else if (widget.isLoading)
+                _buildBannerSkeleton(context),
+              const SizedBox(height: 32),
+              OffersAndAppointmentsSectionWidget(
+                bookings: widget.bookings,
+                onSeeAllAppointments: widget.onSeeAllAppointments,
+                onOfferTap: widget.onOfferTap,
+                homeOffers: widget.homeOffers,
               ),
               const SizedBox(height: 32),
               // Find Doctors Section
