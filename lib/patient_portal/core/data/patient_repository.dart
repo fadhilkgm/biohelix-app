@@ -118,10 +118,7 @@ class PatientRepository {
 
   final ApiClient _apiClient;
 
-  Future<String?> sendOtp({
-    required String phone,
-    String? mrn,
-  }) async {
+  Future<String?> sendOtp({required String phone, String? mrn}) async {
     final response = await _apiClient.postJson(
       '/auth/otp/send',
       data: {'phone': phone, 'mrn': mrn},
@@ -137,12 +134,7 @@ class PatientRepository {
   }) async {
     final response = await _apiClient.postJson(
       '/auth/signup',
-      data: {
-        'phone': phone,
-        'name': name,
-        'dob': dob,
-        'place': place,
-      },
+      data: {'phone': phone, 'name': name, 'dob': dob, 'place': place},
     );
     return response['dev_otp']?.toString();
   }
@@ -153,10 +145,7 @@ class PatientRepository {
   }) async {
     final response = await _apiClient.postJson(
       '/auth/otp/verify',
-      data: {
-        'phone': phone,
-        'otp': otp,
-      },
+      data: {'phone': phone, 'otp': otp},
     );
 
     return OtpSession(
@@ -306,7 +295,8 @@ class PatientRepository {
     final doctors = response['doctors'] as List<dynamic>? ?? const [];
     return doctors.map((item) {
       final json = _map(item);
-      final rawImage = json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
+      final rawImage =
+          json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
       if (rawImage.trim().isNotEmpty) {
         json['imageUrl'] = _resolveApiMediaUrl(rawImage, _apiClient.baseUrl);
       }
@@ -319,7 +309,8 @@ class PatientRepository {
     final departments = response['departments'] as List<dynamic>? ?? const [];
     return departments.map((item) {
       final json = _map(item);
-      final rawImage = json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
+      final rawImage =
+          json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
       if (rawImage.trim().isNotEmpty) {
         json['imageUrl'] = _resolveApiMediaUrl(rawImage, _apiClient.baseUrl);
       }
@@ -421,7 +412,8 @@ class PatientRepository {
     final orders = response['orders'] as List<dynamic>? ?? const [];
     return orders.map((item) {
       final json = _map(item);
-      final rawImage = json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
+      final rawImage =
+          json['imageUrl'] as String? ?? json['image_url'] as String? ?? '';
       if (rawImage.trim().isNotEmpty) {
         json['imageUrl'] = _resolveApiMediaUrl(rawImage, _apiClient.baseUrl);
       }
@@ -452,7 +444,8 @@ class PatientRepository {
   }
 
   Future<void> createLabOrder({
-    required int labTestId,
+    int? labTestId,
+    List<int>? labTestIds,
     int? doctorId,
     required String date,
     String? slot,
@@ -463,6 +456,7 @@ class PatientRepository {
     String? patientNameSnapshot,
     int? patientAgeSnapshot,
     String? patientGenderSnapshot,
+    String? patientPhoneSnapshot,
     String? bookingRef,
     String urgency = 'routine',
     String? notes,
@@ -471,13 +465,17 @@ class PatientRepository {
     final trimmedAddress = address?.trim();
     final trimmedPatientName = patientNameSnapshot?.trim();
     final trimmedPatientGender = patientGenderSnapshot?.trim();
+    final trimmedPatientPhone = patientPhoneSnapshot?.trim();
     final trimmedBookingRef = bookingRef?.trim();
     final trimmedNotes = notes?.trim();
 
     await _apiClient.postJson(
       '/patient/lab-orders',
       data: {
-        'labTestId': labTestId,
+        if (labTestIds != null && labTestIds.isNotEmpty)
+          'labTestIds': labTestIds,
+        if (labTestId != null && (labTestIds == null || labTestIds.isEmpty))
+          'labTestId': labTestId,
         'doctorId': doctorId,
         'date': date,
         if ((trimmedSlot ?? '').isNotEmpty) 'slot': trimmedSlot,
@@ -492,6 +490,8 @@ class PatientRepository {
             : {'patientAgeSnapshot': patientAgeSnapshot},
         if ((trimmedPatientGender ?? '').isNotEmpty)
           'patientGenderSnapshot': trimmedPatientGender,
+        if ((trimmedPatientPhone ?? '').isNotEmpty)
+          'patientPhoneSnapshot': trimmedPatientPhone,
         if ((trimmedBookingRef ?? '').isNotEmpty)
           'bookingRef': trimmedBookingRef,
         'urgency': urgency,
@@ -533,6 +533,7 @@ class PatientRepository {
     String? patientNameSnapshot,
     int? patientAgeSnapshot,
     String? patientGenderSnapshot,
+    String? patientPhoneSnapshot,
     String? bookingRef,
     String urgency = 'routine',
     String? notes,
@@ -541,6 +542,7 @@ class PatientRepository {
     final trimmedAddress = address?.trim();
     final trimmedPatientName = patientNameSnapshot?.trim();
     final trimmedPatientGender = patientGenderSnapshot?.trim();
+    final trimmedPatientPhone = patientPhoneSnapshot?.trim();
     final trimmedBookingRef = bookingRef?.trim();
     final trimmedNotes = notes?.trim();
 
@@ -560,13 +562,16 @@ class PatientRepository {
           : {'patientAgeSnapshot': patientAgeSnapshot},
       if ((trimmedPatientGender ?? '').isNotEmpty)
         'patientGenderSnapshot': trimmedPatientGender,
-      if ((trimmedBookingRef ?? '').isNotEmpty)
-        'bookingRef': trimmedBookingRef,
+      if ((trimmedPatientPhone ?? '').isNotEmpty)
+        'patientPhoneSnapshot': trimmedPatientPhone,
+      if ((trimmedBookingRef ?? '').isNotEmpty) 'bookingRef': trimmedBookingRef,
       'urgency': urgency,
       if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
     };
 
-    debugPrint('[PatientRepository] Creating lab package order with data: $data');
+    debugPrint(
+      '[PatientRepository] Creating lab package order with data: $data',
+    );
     try {
       final response = await _apiClient.postJson(
         '/patient/lab-package-orders',
@@ -679,11 +684,13 @@ class PatientRepository {
     );
     final pkgsRaw = response['suggestedPackages'] as List<dynamic>? ?? const [];
     final suggestedPackages = pkgsRaw
-        .map((item) => LabPackageItem.fromJson(
-              item is Map<String, dynamic>
-                  ? item
-                  : Map<String, dynamic>.from(item as Map),
-            ))
+        .map(
+          (item) => LabPackageItem.fromJson(
+            item is Map<String, dynamic>
+                ? item
+                : Map<String, dynamic>.from(item as Map),
+          ),
+        )
         .toList();
     return ChatMessage(
       role: 'ai',

@@ -52,12 +52,14 @@ class PatientProfile {
     required this.name,
     required this.age,
     required this.gender,
+    this.phone,
   });
 
   final String id;
   final String name;
   final int age;
   final String gender;
+  final String? phone;
 }
 
 class AddressProfile {

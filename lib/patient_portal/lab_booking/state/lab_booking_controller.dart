@@ -9,9 +9,16 @@ class LabBookingController extends ChangeNotifier {
   LabBookingController({
     required String patientName,
     required List<LabTestItem> tests,
+    String? patientPhone,
   }) {
     _patients = [
-      PatientProfile(id: 'self', name: patientName, age: 29, gender: 'Male'),
+      PatientProfile(
+        id: 'self',
+        name: patientName,
+        age: 29,
+        gender: 'Male',
+        phone: patientPhone,
+      ),
     ];
     _tests = tests.map(_mapTest).toList();
   }
@@ -173,9 +180,16 @@ class LabBookingController extends ChangeNotifier {
     required String name,
     required int age,
     required String gender,
+    String? phone,
   }) {
     _patients = [
-      PatientProfile(id: 'self', name: name, age: age, gender: gender),
+      PatientProfile(
+        id: 'self',
+        name: name,
+        age: age,
+        gender: gender,
+        phone: phone,
+      ),
     ];
     _selectedPatientId = 'self';
     notifyListeners();
@@ -185,6 +199,7 @@ class LabBookingController extends ChangeNotifier {
     required String name,
     required int age,
     required String gender,
+    String? phone,
   }) {
     _patients = [
       ..._patients,
@@ -193,6 +208,7 @@ class LabBookingController extends ChangeNotifier {
         name: name,
         age: age,
         gender: gender,
+        phone: phone,
       ),
     ];
     _selectedPatientId = _patients.last.id;
@@ -217,12 +233,8 @@ class LabBookingController extends ChangeNotifier {
       _cart.add(CartItem(test: test, quantity: 1));
       notifyListeners();
       return true;
-    } else {
-      // Keep one entry per test to simplify the booking cart UX.
-      _cart[index] = _cart[index].copyWith(quantity: 1);
-      notifyListeners();
-      return false;
     }
+    return false;
   }
 
   void updateQty(int testId, int qty) {
@@ -248,28 +260,31 @@ class LabBookingController extends ChangeNotifier {
         ? 'paid'
         : 'pay_at_collection';
 
-    for (final item in _cart) {
-      for (var i = 0; i < item.quantity; i++) {
-        await portal.createLabOrder(
-          labTestId: item.test.id,
-          doctorId: null, // Keep null for direct-to-consumer lab orders
-          date: dateStr,
-          slot: _slot ?? '',
-          collectionType: _collectionType.name,
-          address: address,
-          amount: item.test.price + collectionFee,
-          paymentStatus: paymentStatus,
-          patientNameSnapshot: selected.name,
-          patientAgeSnapshot: selected.age,
-          patientGenderSnapshot: selected.gender,
-          bookingRef: 'LB-$bookingRoot-${item.test.id}-$i',
-          notes: 'Slot ${_slot ?? "Standard"}, ${selected.name}',
-        );
-      }
-    }
+    final labTestIds = <int>[
+      for (final item in _cart)
+        for (var i = 0; i < item.quantity; i++) item.test.id,
+    ];
+
+    await portal.createLabOrder(
+      labTestIds: labTestIds,
+      doctorId: null, // Keep null for direct-to-consumer lab orders
+      date: dateStr,
+      slot: _slot ?? '',
+      collectionType: _collectionType.name,
+      address: address,
+      amount: total,
+      paymentStatus: paymentStatus,
+      patientNameSnapshot: selected.name,
+      patientAgeSnapshot: selected.age,
+      patientGenderSnapshot: selected.gender,
+      patientPhoneSnapshot: selected.phone,
+      bookingRef: 'LB-$bookingRoot',
+      notes: 'Slot ${_slot ?? "Standard"}, ${selected.name}',
+    );
+
     _cart.clear();
     notifyListeners();
-    return 'LB-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}';
+    return 'LB-$bookingRoot';
   }
 
   BookableLabTest _mapTest(LabTestItem test) {

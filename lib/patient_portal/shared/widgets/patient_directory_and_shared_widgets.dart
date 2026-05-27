@@ -1,4 +1,4 @@
-﻿part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
+part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _DoctorsDirectoryPage extends StatelessWidget {
   const _DoctorsDirectoryPage();
@@ -22,7 +22,11 @@ class _DoctorsDirectoryPage extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, color: Color(0xFF192233), size: 30),
+          icon: const Icon(
+            Icons.chevron_left,
+            color: Color(0xFF192233),
+            size: 30,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -54,7 +58,10 @@ class _DoctorsDirectoryPage extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF5A88F1),
                       borderRadius: BorderRadius.circular(24),
@@ -71,7 +78,11 @@ class _DoctorsDirectoryPage extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.search_rounded, color: Colors.white, size: 24),
+                            const Icon(
+                              Icons.search_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                             const SizedBox(width: 12),
                             Text(
                               'Search for doctors...',
@@ -160,10 +171,7 @@ class _DoctorShortCard extends StatelessWidget {
   final DoctorListing doc;
   final String apiBaseUrl;
 
-  const _DoctorShortCard({
-    required this.doc,
-    required this.apiBaseUrl,
-  });
+  const _DoctorShortCard({required this.doc, required this.apiBaseUrl});
 
   @override
   Widget build(BuildContext context) {
@@ -191,10 +199,7 @@ class _DoctorShortCard extends StatelessWidget {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(
-          color: const Color(0xFFE5E9F0),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFE5E9F0), width: 1),
       ),
       child: Material(
         color: Colors.transparent,
@@ -258,17 +263,25 @@ class _DoctorShortCard extends StatelessWidget {
                       Row(
                         children: [
                           Icon(
-                            Icons.calendar_month_outlined,
+                            Icons.access_time_rounded,
                             size: 14,
-                            color: const Color(0xFF192233).withValues(alpha: 0.4),
+                            color: const Color(
+                              0xFF192233,
+                            ).withValues(alpha: 0.4),
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            'Available Today',
-                            style: GoogleFonts.manrope(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF192233).withValues(alpha: 0.5),
+                          Expanded(
+                            child: Text(
+                              doc.availabilityWindowLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.manrope(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(
+                                  0xFF192233,
+                                ).withValues(alpha: 0.5),
+                              ),
                             ),
                           ),
                         ],
@@ -325,6 +338,7 @@ class _LabTestsDirectoryPage extends StatelessWidget {
         return ChangeNotifierProvider(
           create: (_) => LabBookingController(
             patientName: patientName,
+            patientPhone: portal.dashboard?.patient.phone,
             tests: portal.labTests,
           ),
           child: Builder(
@@ -352,6 +366,3 @@ class _LabTestsDirectoryPage extends StatelessWidget {
     );
   }
 }
-
-
-

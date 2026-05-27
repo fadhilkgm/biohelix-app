@@ -33,7 +33,8 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
   }
 
   Future<void> createLabOrder({
-    required int labTestId,
+    int? labTestId,
+    List<int>? labTestIds,
     int? doctorId,
     required String date,
     String? slot,
@@ -44,6 +45,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     String? patientNameSnapshot,
     int? patientAgeSnapshot,
     String? patientGenderSnapshot,
+    String? patientPhoneSnapshot,
     String? bookingRef,
     String urgency = 'routine',
     String? notes,
@@ -55,6 +57,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     try {
       await _repository.createLabOrder(
         labTestId: labTestId,
+        labTestIds: labTestIds,
         doctorId: null, // Keep null as requested
         date: date,
         slot: slot,
@@ -65,6 +68,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         patientNameSnapshot: patientNameSnapshot,
         patientAgeSnapshot: patientAgeSnapshot,
         patientGenderSnapshot: patientGenderSnapshot,
+        patientPhoneSnapshot: patientPhoneSnapshot,
         bookingRef: bookingRef,
         urgency: urgency,
         notes: notes,
@@ -108,6 +112,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     String? patientNameSnapshot,
     int? patientAgeSnapshot,
     String? patientGenderSnapshot,
+    String? patientPhoneSnapshot,
     String? bookingRef,
     String urgency = 'routine',
     String? notes,
@@ -129,6 +134,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         patientNameSnapshot: patientNameSnapshot,
         patientAgeSnapshot: patientAgeSnapshot,
         patientGenderSnapshot: patientGenderSnapshot,
+        patientPhoneSnapshot: patientPhoneSnapshot,
         bookingRef: bookingRef,
         urgency: urgency,
         notes: notes,

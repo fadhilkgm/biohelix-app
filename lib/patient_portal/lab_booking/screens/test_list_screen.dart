@@ -223,18 +223,19 @@ class TestListScreen extends StatelessWidget {
     BookableLabTest test,
   ) {
     final added = controller.addToCart(test);
-    final message = added
-        ? 'Added to cart'
-        : 'This test is already in your cart';
-    ScaffoldMessenger.of(context).showSnackBar(
+    if (!added) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
       SnackBar(
+        duration: const Duration(milliseconds: 1500),
         content: Text(
-          message,
+          '${test.name} added',
           style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
         ),
-        backgroundColor: added
-            ? const Color(0xFF4CAF50)
-            : const Color(0xFF192233),
+        backgroundColor: const Color(0xFF4CAF50),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),

@@ -8,13 +8,11 @@ import '../../core/providers/patient_portal_provider.dart';
 import '../../core/widgets/booking_success_screen.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../models/lab_booking_models.dart';
+import '../widgets/book_for_another_person_prompt.dart';
 import '../widgets/slot_selector_widget.dart';
 
 class PackageBookingScreen extends StatefulWidget {
-  const PackageBookingScreen({
-    super.key,
-    required this.package,
-  });
+  const PackageBookingScreen({super.key, required this.package});
 
   final LabPackageItem package;
 
@@ -31,7 +29,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   List<String> _slots = [];
   bool _isLoadingSlots = false;
   bool _isSubmitting = false;
-  bool _showTests = false;
+  bool _bookForAnotherPerson = false;
 
   @override
   void initState() {
@@ -39,7 +37,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
     _loadSlots();
     final portal = context.read<PatientPortalProvider>();
     _address = portal.dashboard?.patient.address ?? '';
-    
+
     final session = context.read<SessionProvider>();
     if (session.patient != null) {
       _selectedPatient = PatientProfile(
@@ -47,82 +45,148 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
         name: session.patient!.name,
         age: session.patient!.age ?? 29,
         gender: session.patient!.gender ?? 'Male',
+        phone: session.patient!.phone,
       );
     }
   }
 
   void _showAddPatientDialog() {
+    final loggedInPhone = context.read<SessionProvider>().patient?.phone ?? '';
     final name = TextEditingController();
     final age = TextEditingController();
-    String gender = 'Male';
+    final phone = TextEditingController(text: loggedInPhone);
+    var useLoggedInPhone = loggedInPhone.trim().isNotEmpty;
 
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Add Patient',
-          style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              decoration: InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: age,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Age',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+            title: Text(
+              'Add New Member',
+              style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: gender,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'Male', child: Text('Male')),
-                DropdownMenuItem(value: 'Female', child: Text('Female')),
-                DropdownMenuItem(value: 'Other', child: Text('Other')),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: name,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: age,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Age',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phone,
+                  enabled: !useLoggedInPhone,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Phone',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                if (loggedInPhone.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    value: useLoggedInPhone,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        useLoggedInPhone = value ?? false;
+                        if (useLoggedInPhone) {
+                          phone.text = loggedInPhone;
+                        }
+                      });
+                    },
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(
+                      'Use logged-in phone number',
+                      style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
               ],
-              onChanged: (v) => gender = v ?? 'Male',
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final parsed = int.tryParse(age.text) ?? 0;
-              if (name.text.trim().isNotEmpty && parsed > 0) {
-                setState(() {
-                  _selectedPatient = PatientProfile(
-                    id: 'new-${DateTime.now().millisecondsSinceEpoch}',
-                    name: name.text.trim(),
-                    age: parsed,
-                    gender: gender,
-                  );
-                });
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final parsed = int.tryParse(age.text) ?? 0;
+                  final memberPhone = phone.text.trim();
+                  if (name.text.trim().isNotEmpty &&
+                      parsed > 0 &&
+                      memberPhone.isNotEmpty) {
+                    setState(() {
+                      _selectedPatient = PatientProfile(
+                        id: 'new-${DateTime.now().millisecondsSinceEpoch}',
+                        name: name.text.trim(),
+                        age: parsed,
+                        gender: '',
+                        phone: memberPhone,
+                      );
+                    });
+                  }
+                  Navigator.pop(context);
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
       ),
-    );
+    ).whenComplete(() {
+      name.dispose();
+      age.dispose();
+      phone.dispose();
+    });
+  }
+
+  String _patientSubtitle(PatientProfile patient) {
+    final parts = <String>['${patient.age} yrs'];
+    if (patient.phone?.trim().isNotEmpty ?? false) {
+      parts.add(patient.phone!.trim());
+    } else if (patient.gender.trim().isNotEmpty) {
+      parts.add(patient.gender.trim());
+    }
+    return parts.join(' • ');
+  }
+
+  void _usePrimaryPatient() {
+    final patient = context.read<SessionProvider>().patient;
+    if (patient == null) return;
+    setState(() {
+      _selectedPatient = PatientProfile(
+        id: patient.uuid,
+        name: patient.name,
+        age: patient.age ?? 29,
+        gender: patient.gender ?? 'Male',
+        phone: patient.phone,
+      );
+    });
   }
 
   Future<void> _showSwitchUserSheet() async {
@@ -185,7 +249,9 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                   Text(
                                     'Select a family member to book this package for.',
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.82),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.82,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -195,7 +261,9 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                               onPressed: () => Navigator.of(sheetContext).pop(),
                               style: IconButton.styleFrom(
                                 foregroundColor: Colors.white,
-                                backgroundColor: Colors.white.withValues(alpha: 0.14),
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.14,
+                                ),
                               ),
                               icon: const Icon(Icons.close_rounded),
                             ),
@@ -223,7 +291,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                               )
                             else
                               ...profiles.map((profile) {
-                                final isActive = profile.patient.uuid == activePatientId;
+                                final isActive =
+                                    profile.patient.uuid == activePatientId;
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 12),
                                   child: Material(
@@ -235,19 +304,31 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                           : () {
                                               Navigator.of(sheetContext).pop();
                                               setState(() {
-                                                _selectedPatient = PatientProfile(
-                                                  id: profile.patient.uuid,
-                                                  name: profile.patient.name,
-                                                  age: profile.patient.age ?? 29,
-                                                  gender: profile.patient.gender ?? 'Male',
-                                                );
+                                                _selectedPatient =
+                                                    PatientProfile(
+                                                      id: profile.patient.uuid,
+                                                      name:
+                                                          profile.patient.name,
+                                                      age:
+                                                          profile.patient.age ??
+                                                          29,
+                                                      gender:
+                                                          profile
+                                                              .patient
+                                                              .gender ??
+                                                          'Male',
+                                                      phone:
+                                                          profile.patient.phone,
+                                                    );
                                               });
                                             },
                                       child: Ink(
                                         padding: const EdgeInsets.all(14),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(22),
+                                          borderRadius: BorderRadius.circular(
+                                            22,
+                                          ),
                                           border: Border.all(
                                             color: isActive
                                                 ? const Color(0xFF5A88F1)
@@ -267,13 +348,20 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                                     Color(0xFF759BF1),
                                                   ],
                                                 ),
-                                                borderRadius: BorderRadius.all(Radius.circular(16)),
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(16),
+                                                ),
                                               ),
                                               alignment: Alignment.center,
                                               child: Text(
                                                 profile.patient.name.isEmpty
                                                     ? 'P'
-                                                    : profile.patient.name.characters.first.toUpperCase(),
+                                                    : profile
+                                                          .patient
+                                                          .name
+                                                          .characters
+                                                          .first
+                                                          .toUpperCase(),
                                                 style: const TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.w800,
@@ -283,41 +371,65 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     profile.patient.name,
-                                                    style: theme.textTheme.titleSmall?.copyWith(
-                                                      fontWeight: FontWeight.w800,
-                                                    ),
+                                                    style: theme
+                                                        .textTheme
+                                                        .titleSmall
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                        ),
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
-                                                    profile.patient.registrationNumber,
-                                                    style: theme.textTheme.bodySmall?.copyWith(
-                                                      color: const Color(0xFF5A88F1),
-                                                      fontWeight: FontWeight.w700,
-                                                    ),
+                                                    profile
+                                                        .patient
+                                                        .registrationNumber,
+                                                    style: theme
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: const Color(
+                                                            0xFF5A88F1,
+                                                          ),
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
                                                   ),
                                                   const SizedBox(height: 2),
                                                   Text(
                                                     profile.patient.phone,
-                                                    style: theme.textTheme.bodySmall?.copyWith(
-                                                      color: const Color(0xFF7E8BA0),
-                                                    ),
+                                                    style: theme
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: const Color(
+                                                            0xFF7E8BA0,
+                                                          ),
+                                                        ),
                                                   ),
                                                 ],
                                               ),
                                             ),
                                             if (isActive)
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 8,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 8,
+                                                    ),
                                                 decoration: BoxDecoration(
-                                                  color: const Color(0xFFF4F7FF),
-                                                  borderRadius: BorderRadius.circular(999),
+                                                  color: const Color(
+                                                    0xFFF4F7FF,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        999,
+                                                      ),
                                                 ),
                                                 child: const Text(
                                                   'Active',
@@ -350,14 +462,18 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                 style: FilledButton.styleFrom(
                                   backgroundColor: const Color(0xFF5A88F1),
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
                                   ),
                                 ),
-                                icon: const Icon(Icons.person_add_alt_1_rounded),
+                                icon: const Icon(
+                                  Icons.person_add_alt_1_rounded,
+                                ),
                                 label: const Text(
-                                  'Add New Patient',
+                                  'Add New Member',
                                   style: TextStyle(fontWeight: FontWeight.w800),
                                 ),
                               ),
@@ -416,33 +532,39 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
         date: DateFormat('yyyy-MM-dd').format(_selectedDate),
         slot: _selectedSlot,
         collectionType: _collectionType,
-        address: _collectionType == 'home' ? (_address.isEmpty ? null : _address) : null,
-        amount: (widget.package.discountedPrice ?? widget.package.basePrice).toDouble(),
+        address: _collectionType == 'home'
+            ? (_address.isEmpty ? null : _address)
+            : null,
+        amount: (widget.package.discountedPrice ?? widget.package.basePrice)
+            .toDouble(),
         paymentStatus: 'pending',
         patientNameSnapshot: _selectedPatient?.name,
         patientAgeSnapshot: _selectedPatient?.age,
         patientGenderSnapshot: _selectedPatient?.gender,
+        patientPhoneSnapshot: _selectedPatient?.phone,
       );
 
       if (!mounted) return;
-      
-      final bookingId = 'PKG-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-      
+
+      final bookingId =
+          'PKG-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => BookingSuccessScreen(
             bookingId: bookingId,
             title: 'Package Booked!',
-            subtitle: 'Your health package has been successfully scheduled. Our team will contact you for confirmation.',
+            subtitle:
+                'Your health package has been successfully scheduled. Our team will contact you for confirmation.',
             imagePath: 'assets/images/lab-test-booking.png',
           ),
         ),
       );
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
       }
     } finally {
       if (mounted) {
@@ -456,7 +578,9 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   @override
   Widget build(BuildContext context) {
     final hasTests = widget.package.includedTests.isNotEmpty;
-    final hasDescription = widget.package.description != null && widget.package.description!.isNotEmpty;
+    final hasDescription =
+        widget.package.description != null &&
+        widget.package.description!.isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -522,92 +646,71 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       ),
                     ],
                   ),
-                  // Tests Included Collapsible Section
                   if (hasTests || hasDescription) ...[
                     const Divider(height: 32),
-                    InkWell(
-                      onTap: () => setState(() => _showTests = !_showTests),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Tests Included ${hasTests ? "(${widget.package.includedTests.length})" : ""}',
-                              style: GoogleFonts.manrope(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF192233),
+                    Text(
+                      'Tests Included ${hasTests ? "(${widget.package.includedTests.length})" : ""}',
+                      style: GoogleFonts.manrope(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF192233),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (hasTests) ...[
+                      ...widget.package.includedTests.map(
+                        (test) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF5A88F1,
+                                  ).withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  size: 12,
+                                  color: Color(0xFF5A88F1),
+                                ),
                               ),
-                            ),
-                            Icon(
-                              _showTests ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                              color: const Color(0xFF5A88F1),
-                              size: 28,
-                            ),
-                          ],
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  test,
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(
+                                      0xFF192233,
+                                    ).withValues(alpha: 0.7),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    AnimatedCrossFade(
-                      firstChild: const SizedBox(width: double.infinity),
-                      secondChild: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 16),
-                          if (hasTests) ...[
-                            ...widget.package.includedTests.map((test) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF5A88F1).withValues(alpha: 0.1),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.check,
-                                          size: 12,
-                                          color: Color(0xFF5A88F1),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          test,
-                                          style: GoogleFonts.manrope(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF192233).withValues(alpha: 0.7),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )),
-                          ] else if (hasDescription) ...[
-                            Text(
-                              widget.package.description!,
-                              style: GoogleFonts.manrope(
-                                fontSize: 14,
-                                color: const Color(0xFF192233).withValues(alpha: 0.6),
-                                height: 1.5,
-                              ),
-                            ),
-                          ],
-                        ],
+                    ] else if (hasDescription) ...[
+                      Text(
+                        widget.package.description!,
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          color: const Color(0xFF192233).withValues(alpha: 0.6),
+                          height: 1.5,
+                        ),
                       ),
-                      crossFadeState: _showTests ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                      duration: const Duration(milliseconds: 300),
-                    ),
+                    ],
                   ],
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Collection Type
             Text(
               'Sample Collection Mode',
@@ -641,7 +744,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 ],
               ),
             ),
-            
+
             if (_collectionType == 'home') ...[
               const SizedBox(height: 24),
               Text(
@@ -672,7 +775,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 32),
 
             // Patient
@@ -683,6 +786,22 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
               ),
+            ),
+            const SizedBox(height: 12),
+            BookForAnotherPersonPrompt(
+              value: _bookForAnotherPerson,
+              onChanged: (value) {
+                setState(() => _bookForAnotherPerson = value);
+                if (value) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted && _bookForAnotherPerson) {
+                      _showSwitchUserSheet();
+                    }
+                  });
+                } else {
+                  _usePrimaryPatient();
+                }
+              },
             ),
             const SizedBox(height: 12),
             Container(
@@ -727,32 +846,35 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                         ),
                         if (_selectedPatient != null)
                           Text(
-                            '${_selectedPatient!.age} yrs \u2022 ${_selectedPatient!.gender}',
+                            _patientSubtitle(_selectedPatient!),
                             style: GoogleFonts.manrope(
                               fontSize: 13,
-                              color: const Color(0xFF192233).withValues(alpha: 0.5),
+                              color: const Color(
+                                0xFF192233,
+                              ).withValues(alpha: 0.5),
                             ),
                           ),
                       ],
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: _showSwitchUserSheet,
-                    icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                    label: Text(
-                      'Switch User',
-                      style: GoogleFonts.manrope(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF5A88F1),
+                  if (_bookForAnotherPerson)
+                    TextButton.icon(
+                      onPressed: _showSwitchUserSheet,
+                      icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                      label: Text(
+                        'Switch User',
+                        style: GoogleFonts.manrope(
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF5A88F1),
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Date Selection
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -785,9 +907,9 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 _loadSlots();
               },
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Slot Selection
             Text(
               'Available Slots',
@@ -830,7 +952,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 );
               },
             ),
-            
+
             const SizedBox(height: 100), // Space for bottom button
           ],
         ),
@@ -850,7 +972,9 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: (_selectedSlot == null || _isSubmitting) ? null : _handleBooking,
+            onPressed: (_selectedSlot == null || _isSubmitting)
+                ? null
+                : _handleBooking,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF5A88F1),
               foregroundColor: Colors.white,
@@ -923,7 +1047,9 @@ class _CollectionTab extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color: selected ? const Color(0xFF5A88F1) : const Color(0xFF192233).withValues(alpha: 0.4),
+                color: selected
+                    ? const Color(0xFF5A88F1)
+                    : const Color(0xFF192233).withValues(alpha: 0.4),
               ),
               const SizedBox(width: 8),
               Text(
@@ -931,7 +1057,9 @@ class _CollectionTab extends StatelessWidget {
                 style: GoogleFonts.manrope(
                   fontSize: 14,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: selected ? const Color(0xFF5A88F1) : const Color(0xFF192233).withValues(alpha: 0.4),
+                  color: selected
+                      ? const Color(0xFF5A88F1)
+                      : const Color(0xFF192233).withValues(alpha: 0.4),
                 ),
               ),
             ],
@@ -954,7 +1082,10 @@ class _HorizontalDatePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final dates = List.generate(30, (index) => now.add(Duration(days: index + 1)));
+    final dates = List.generate(
+      30,
+      (index) => now.add(Duration(days: index + 1)),
+    );
 
     return SizedBox(
       height: 90,
@@ -964,7 +1095,7 @@ class _HorizontalDatePicker extends StatelessWidget {
         itemBuilder: (context, index) {
           final date = dates[index];
           final isSelected = DateUtils.isSameDay(date, selectedDate);
-          
+
           return GestureDetector(
             onTap: () => onDateSelected(date),
             child: AnimatedContainer(
@@ -983,7 +1114,9 @@ class _HorizontalDatePicker extends StatelessWidget {
                     style: GoogleFonts.manrope(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: isSelected ? Colors.white.withValues(alpha: 0.7) : const Color(0xFF192233).withValues(alpha: 0.4),
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : const Color(0xFF192233).withValues(alpha: 0.4),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -992,7 +1125,9 @@ class _HorizontalDatePicker extends StatelessWidget {
                     style: GoogleFonts.manrope(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: isSelected ? Colors.white : const Color(0xFF192233),
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF192233),
                     ),
                   ),
                 ],
@@ -1004,4 +1139,3 @@ class _HorizontalDatePicker extends StatelessWidget {
     );
   }
 }
-

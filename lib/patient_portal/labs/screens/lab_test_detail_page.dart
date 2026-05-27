@@ -33,10 +33,10 @@ class LabTestDetailPage extends StatelessWidget {
       description:
           'Advanced ${item.testName} profile with clinically reviewed parameters and fast turnaround.',
       preparation: (item.instructions ?? '').trim().isNotEmpty
-        ? item.instructions!.trim()
-        : (lower.contains('fbs')
-          ? 'Fasting required for 8-10 hours before sample collection.'
-          : 'Stay hydrated and follow physician instructions before collection.'),
+          ? item.instructions!.trim()
+          : (lower.contains('fbs')
+                ? 'Fasting required for 8-10 hours before sample collection.'
+                : 'Stay hydrated and follow physician instructions before collection.'),
       parameters: lower.contains('cbc')
           ? const ['Hemoglobin', 'WBC', 'RBC', 'Platelets']
           : const ['Primary marker', 'Secondary marker', 'Reference range'],
@@ -64,13 +64,16 @@ class LabTestDetailPage extends StatelessWidget {
       }
     }
 
-    final targetController = controller ?? () {
-      final patientName = portal.dashboard?.patient.name ?? 'Patient';
-      return LabBookingController(
-        patientName: patientName,
-        tests: portal.labTests,
-      );
-    }();
+    final targetController =
+        controller ??
+        () {
+          final patientName = portal.dashboard?.patient.name ?? 'Patient';
+          return LabBookingController(
+            patientName: patientName,
+            patientPhone: portal.dashboard?.patient.phone,
+            tests: portal.labTests,
+          );
+        }();
     targetController.addToCart(_toBookableTest(test));
 
     await Navigator.of(context).push(
@@ -102,16 +105,18 @@ class LabTestDetailPage extends StatelessWidget {
                   builder: (context, config, _) {
                     final apiBase = config.apiBaseUrl.replaceAll('/api', '');
                     final path = test.imageUrl ?? '';
-                    
+
                     String resolvedUrl = '';
                     if (path.isNotEmpty) {
                       if (path.startsWith('http')) {
                         resolvedUrl = path;
                       } else {
-                        final base = apiBase.endsWith('/') 
-                            ? apiBase.substring(0, apiBase.length - 1) 
+                        final base = apiBase.endsWith('/')
+                            ? apiBase.substring(0, apiBase.length - 1)
                             : apiBase;
-                        final normalizedPath = path.startsWith('/') ? path : '/$path';
+                        final normalizedPath = path.startsWith('/')
+                            ? path
+                            : '/$path';
                         resolvedUrl = '$base$normalizedPath';
                       }
                     }

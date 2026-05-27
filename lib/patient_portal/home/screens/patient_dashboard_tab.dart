@@ -84,6 +84,7 @@ class _DashboardTab extends StatelessWidget {
                 builder: (_) => ChangeNotifierProvider(
                   create: (_) => LabBookingController(
                     patientName: dashboard.idCard.patientName,
+                    patientPhone: portal.dashboard?.patient.phone,
                     tests: portal.labTests,
                   ),
                   child: const TestListScreen(),
@@ -140,12 +141,11 @@ class _BannerPackageLandingPage extends StatefulWidget {
   final LabPackageItem? package;
 
   @override
-  State<_BannerPackageLandingPage> createState() => _BannerPackageLandingPageState();
+  State<_BannerPackageLandingPage> createState() =>
+      _BannerPackageLandingPageState();
 }
 
 class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
-  bool _showTests = false;
-
   @override
   Widget build(BuildContext context) {
     final target = (widget.packageTarget ?? '').trim();
@@ -166,23 +166,29 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
         }
 
         // Use passed package if available, otherwise find it
-        final LabPackageItem? activePackage = widget.package ?? (() {
-          if (!widget.isSpecific || target.isEmpty) return null;
-          final normalizedTarget = target.toLowerCase();
-          try {
-            return portal.labPackages.firstWhere((p) => 
-               p.slug.toLowerCase() == normalizedTarget || 
-               p.name.toLowerCase().contains(normalizedTarget));
-          } catch (_) {
-            return null;
-          }
-        })();
+        final LabPackageItem? activePackage =
+            widget.package ??
+            (() {
+              if (!widget.isSpecific || target.isEmpty) return null;
+              final normalizedTarget = target.toLowerCase();
+              try {
+                return portal.labPackages.firstWhere(
+                  (p) =>
+                      p.slug.toLowerCase() == normalizedTarget ||
+                      p.name.toLowerCase().contains(normalizedTarget),
+                );
+              } catch (_) {
+                return null;
+              }
+            })();
 
         // If specific package view and found it, show detailed view
         if (widget.isSpecific && activePackage != null) {
           final packageImageUrl = resolveImageUrl(activePackage.imageUrl);
           final hasTests = activePackage.includedTests.isNotEmpty;
-          final hasDescription = activePackage.description != null && activePackage.description!.isNotEmpty;
+          final hasDescription =
+              activePackage.description != null &&
+              activePackage.description!.isNotEmpty;
 
           return Scaffold(
             backgroundColor: Colors.white,
@@ -270,7 +276,10 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                   ),
                                   const SizedBox(height: 12),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFF4F7FF),
                                       borderRadius: BorderRadius.circular(12),
@@ -299,13 +308,17 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                     color: const Color(0xFF5A88F1),
                                   ),
                                 ),
-                                if (activePackage.discountedPrice != null && activePackage.discountedPrice! < activePackage.basePrice)
+                                if (activePackage.discountedPrice != null &&
+                                    activePackage.discountedPrice! <
+                                        activePackage.basePrice)
                                   Text(
                                     '₹${activePackage.basePrice}',
                                     style: GoogleFonts.manrope(
                                       fontSize: 16,
                                       decoration: TextDecoration.lineThrough,
-                                      color: const Color(0xFF192233).withValues(alpha: 0.3),
+                                      color: const Color(
+                                        0xFF192233,
+                                      ).withValues(alpha: 0.3),
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -314,89 +327,76 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                           ],
                         ),
                         const SizedBox(height: 32),
-                        // Tests Included Collapsible Section
                         if (hasTests || hasDescription) ...[
-                          InkWell(
-                            onTap: () => setState(() => _showTests = !_showTests),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Tests Included ${hasTests ? "(${activePackage.includedTests.length})" : ""}',
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF192233),
-                                    ),
-                                  ),
-                                  Icon(
-                                    _showTests ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                                    color: const Color(0xFF5A88F1),
-                                    size: 28,
-                                  ),
-                                ],
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              'Tests Included ${hasTests ? "(${activePackage.includedTests.length})" : ""}',
+                              style: GoogleFonts.manrope(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF192233),
                               ),
                             ),
                           ),
-                          AnimatedCrossFade(
-                            firstChild: const SizedBox(width: double.infinity),
-                            secondChild: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 12),
-                                if (hasTests) ...[
-                                  ...activePackage.includedTests.map((testName) {
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 10),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF8F9FB),
-                                          borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(color: const Color(0xFFE5E9F0)),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.science_rounded,
-                                              size: 18,
-                                              color: Color(0xFF5A88F1),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                testName,
-                                                style: GoogleFonts.manrope(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: const Color(0xFF192233).withValues(alpha: 0.8),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ] else if (hasDescription) ...[
-                                  Text(
-                                    activePackage.description!,
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 16,
-                                      color: const Color(0xFF192233).withValues(alpha: 0.6),
-                                      height: 1.6,
+                          const SizedBox(height: 12),
+                          if (hasTests) ...[
+                            ...activePackage.includedTests.map((testName) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8F9FB),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: const Color(0xFFE5E9F0),
                                     ),
                                   ),
-                                ],
-                              ],
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.science_rounded,
+                                        size: 18,
+                                        color: Color(0xFF5A88F1),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          testName,
+                                          style: GoogleFonts.manrope(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(
+                                              0xFF192233,
+                                            ).withValues(alpha: 0.8),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                          ] else if (hasDescription) ...[
+                            Text(
+                              activePackage.description!,
+                              style: GoogleFonts.manrope(
+                                fontSize: 16,
+                                color: const Color(
+                                  0xFF192233,
+                                ).withValues(alpha: 0.6),
+                                height: 1.6,
+                              ),
                             ),
-                            crossFadeState: _showTests ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                            duration: const Duration(milliseconds: 300),
-                          ),
+                          ],
                         ],
-                        const SizedBox(height: 120), // Bottom padding for button
+                        const SizedBox(
+                          height: 120,
+                        ), // Bottom padding for button
                       ],
                     ),
                   ),
@@ -421,11 +421,11 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                   onPressed: portal.isCreatingLabOrder
                       ? null
                       : () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  PackageBookingScreen(package: activePackage),
-                            ),
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                PackageBookingScreen(package: activePackage),
                           ),
+                        ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF5A88F1),
                     foregroundColor: Colors.white,
@@ -488,7 +488,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(32),
+                      ),
                       child: SizedBox(
                         height: 300,
                         width: double.infinity,
@@ -497,7 +499,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                 pkgImageUrl,
                                 fit: BoxFit.cover,
                                 alignment: Alignment.centerRight,
-                                errorBuilder: (_, _, _) => _fallbackPackageImage(),
+                                errorBuilder: (_, _, _) =>
+                                    _fallbackPackageImage(),
                               )
                             : _fallbackPackageImage(),
                       ),
@@ -534,7 +537,10 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                           ),
                           const SizedBox(height: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF4F7FF),
                               borderRadius: BorderRadius.circular(10),
@@ -553,19 +559,21 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () => Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) => _BannerPackageLandingPage(
-                                        packageTarget: pkg.slug,
-                                        isSpecific: true,
-                                        package: pkg,
-                                      ),
-                                    ),
+                                MaterialPageRoute<void>(
+                                  builder: (_) => _BannerPackageLandingPage(
+                                    packageTarget: pkg.slug,
+                                    isSpecific: true,
+                                    package: pkg,
                                   ),
+                                ),
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF5A88F1),
                                 foregroundColor: Colors.white,
                                 elevation: 0,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
@@ -605,4 +613,3 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
     );
   }
 }
-

@@ -654,10 +654,7 @@ class DoctorListing {
     this.workingDays,
     this.workStartTime,
     this.workEndTime,
-    this.breakStartTime,
-    this.breakEndTime,
     this.slotDurationMinutes,
-    this.globalSchedule,
     this.departmentName,
     this.email,
     this.phone,
@@ -676,10 +673,7 @@ class DoctorListing {
   final String? workingDays;
   final String? workStartTime;
   final String? workEndTime;
-  final String? breakStartTime;
-  final String? breakEndTime;
   final int? slotDurationMinutes;
-  final String? globalSchedule;
   final String? departmentName;
   final String? email;
   final String? phone;
@@ -699,10 +693,7 @@ class DoctorListing {
       workingDays: json['workingDays'] as String?,
       workStartTime: json['workStartTime'] as String?,
       workEndTime: json['workEndTime'] as String?,
-      breakStartTime: json['breakStartTime'] as String?,
-      breakEndTime: json['breakEndTime'] as String?,
       slotDurationMinutes: (json['slotDurationMinutes'] as num?)?.toInt(),
-      globalSchedule: json['globalSchedule'] as String?,
       departmentName:
           json['departmentName'] as String? ??
           json['department_name'] as String?,
@@ -717,6 +708,37 @@ class DoctorListing {
           (json['consultationFee'] as num?)?.toInt() ??
           (json['consultation_fee'] as num?)?.toInt(),
     );
+  }
+
+  String get availabilityWindowLabel {
+    final start = workStartTime?.trim();
+    final end = workEndTime?.trim();
+    if (start != null && start.isNotEmpty && end != null && end.isNotEmpty) {
+      return '${_formatTime(start)} - ${_formatTime(end)}';
+    }
+
+    final fallback = availableTime?.trim();
+    if (fallback != null && fallback.isNotEmpty) return fallback;
+
+    return 'Contact hospital for timings';
+  }
+
+  static String _formatTime(String value) {
+    if (value.toLowerCase().contains('am') ||
+        value.toLowerCase().contains('pm')) {
+      return value;
+    }
+
+    final parts = value.split(':');
+    if (parts.length < 2) return value;
+
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return value;
+
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    return '${hour12.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
   }
 }
 
@@ -760,9 +782,13 @@ class ChatMessage {
       createdAt: json['createdAt'] as String? ?? json['created_at'] as String?,
       attachments: parsed.attachments,
       suggestedPackages: pkgsRaw
-          .map((item) => LabPackageItem.fromJson(
-                item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item as Map),
-              ))
+          .map(
+            (item) => LabPackageItem.fromJson(
+              item is Map<String, dynamic>
+                  ? item
+                  : Map<String, dynamic>.from(item as Map),
+            ),
+          )
           .toList(),
     );
   }
@@ -1034,7 +1060,10 @@ class LabOrderItem {
           json['patientName'] as String? ??
           json['patient_name'] as String?,
       patientPhone:
-          json['patientPhone'] as String? ?? json['patient_phone'] as String?,
+          json['patientPhoneSnapshot'] as String? ??
+          json['patient_phone_snapshot'] as String? ??
+          json['patientPhone'] as String? ??
+          json['patient_phone'] as String?,
       patientAge:
           (json['patientAgeSnapshot'] as num?)?.toInt() ??
           (json['patient_age_snapshot'] as num?)?.toInt(),
@@ -1204,7 +1233,10 @@ class LabPackageOrderItem {
           json['patientName'] as String? ??
           json['patient_name'] as String?,
       patientPhone:
-          json['patientPhone'] as String? ?? json['patient_phone'] as String?,
+          json['patientPhoneSnapshot'] as String? ??
+          json['patient_phone_snapshot'] as String? ??
+          json['patientPhone'] as String? ??
+          json['patient_phone'] as String?,
       patientAge:
           (json['patientAgeSnapshot'] as num?)?.toInt() ??
           (json['patient_age_snapshot'] as num?)?.toInt(),

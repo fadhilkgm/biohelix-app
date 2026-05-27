@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/providers/patient_portal_provider.dart';
@@ -23,6 +24,7 @@ class LabTestHomeScreen extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => LabBookingController(
         patientName: patientName,
+        patientPhone: portal.dashboard?.patient.phone,
         tests: portal.labTests,
       ),
       child: const _LabHomeContent(),
@@ -166,12 +168,18 @@ class _LabHomeContent extends StatelessWidget {
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF5A88F1),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text('View Cart', style: TextStyle(fontWeight: FontWeight.w800)),
+                        child: const Text(
+                          'View Cart',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
                       ),
                     ],
                   ),
@@ -204,12 +212,22 @@ class _LabHomeContent extends StatelessWidget {
     BookableLabTest test,
   ) {
     final added = controller.addToCart(test);
-    final message = added
-        ? 'Added to cart'
-        : 'This test is already in your cart';
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    if (!added) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(milliseconds: 1500),
+        content: Text(
+          '${test.name} added',
+          style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+        ),
+        backgroundColor: const Color(0xFF4CAF50),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 }
-
