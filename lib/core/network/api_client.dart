@@ -125,12 +125,17 @@ class ApiClient {
     String path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
+    Duration? receiveTimeout,
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         path,
         data: data,
         queryParameters: queryParameters,
+        options:
+            receiveTimeout == null
+                ? null
+                : Options(receiveTimeout: receiveTimeout),
       );
       return response.data ?? <String, dynamic>{};
     } on DioException catch (error) {

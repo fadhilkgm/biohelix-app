@@ -669,6 +669,7 @@ class PatientRepository {
     final normalizedMode = (mode ?? '').trim().toLowerCase();
     final response = await _apiClient.postJson(
       '/patients/chat/global/threads/$threadId/messages',
+      receiveTimeout: const Duration(minutes: 3),
       data: {
         'message': message,
         if (normalizedLanguage == 'en' || normalizedLanguage == 'ml')
