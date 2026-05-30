@@ -765,6 +765,7 @@ class ChatMessage {
     this.createdAt,
     this.attachments = const [],
     this.suggestedPackages = const [],
+    this.suggestedTests = const [],
   });
 
   final String role;
@@ -772,10 +773,12 @@ class ChatMessage {
   final String? createdAt;
   final List<ChatAttachment> attachments;
   final List<LabPackageItem> suggestedPackages;
+  final List<LabTestItem> suggestedTests;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     final parsed = ChatMessageCodec.decode(json['content'] as String? ?? '');
     final pkgsRaw = json['suggestedPackages'] as List<dynamic>? ?? const [];
+    final testsRaw = json['suggestedTests'] as List<dynamic>? ?? const [];
     return ChatMessage(
       role: json['role'] as String? ?? 'assistant',
       content: parsed.content,
@@ -784,6 +787,15 @@ class ChatMessage {
       suggestedPackages: pkgsRaw
           .map(
             (item) => LabPackageItem.fromJson(
+              item is Map<String, dynamic>
+                  ? item
+                  : Map<String, dynamic>.from(item as Map),
+            ),
+          )
+          .toList(),
+      suggestedTests: testsRaw
+          .map(
+            (item) => LabTestItem.fromJson(
               item is Map<String, dynamic>
                   ? item
                   : Map<String, dynamic>.from(item as Map),

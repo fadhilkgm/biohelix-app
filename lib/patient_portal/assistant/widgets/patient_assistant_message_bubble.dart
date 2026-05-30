@@ -135,6 +135,21 @@ class _MessageBubbleWidget extends StatelessWidget {
                     for (final pkg in message.suggestedPackages)
                       _PackageSuggestionCard(pkg: pkg),
                   ],
+                  if (!isUser && message.suggestedTests.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.s10),
+                    const Divider(thickness: 0.5, height: 1),
+                    const SizedBox(height: AppSpacing.s8),
+                    Text(
+                      '🔬 Suggested Tests',
+                      style: AppTextStyles.bubbleAi(context).copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s8),
+                    for (final test in message.suggestedTests)
+                      _TestSuggestionCard(test: test),
+                  ],
                   if (!isUser && isSpeaking)
                     Padding(
                       padding: const EdgeInsets.only(top: AppSpacing.s10),
@@ -205,11 +220,7 @@ class _PackageSuggestionCard extends StatelessWidget {
         pkg.discountedPrice! < pkg.basePrice;
 
     return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const _TestsHubPage()),
-        );
-      },
+      onTap: () => _openBooking(context),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.s8),
         padding: const EdgeInsets.all(AppSpacing.s10),
@@ -267,16 +278,174 @@ class _PackageSuggestionCard extends StatelessWidget {
                     color: const Color(0xFF26A89A),
                   ),
                 ),
-                Text(
-                  'View ›',
-                  style: AppTextStyles.bubbleAi(context).copyWith(
-                    fontSize: 10,
-                    color: const Color(0xFF26A89A),
+                const SizedBox(height: 4),
+                FilledButton(
+                  onPressed: () => _openBooking(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF26A89A),
+                    foregroundColor: Colors.white,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    minimumSize: const Size(0, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Book Now',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openBooking(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PackageBookingScreen(package: pkg),
+      ),
+    );
+  }
+}
+
+class _TestSuggestionCard extends StatelessWidget {
+  const _TestSuggestionCard({required this.test});
+
+  final LabTestItem test;
+
+  @override
+  Widget build(BuildContext context) {
+    final price = test.discountedPrice != null && test.discountedPrice! > 0
+        ? test.discountedPrice!
+        : test.basePrice;
+    final hasDiscount = test.discountedPrice != null &&
+        test.discountedPrice! > 0 &&
+        test.discountedPrice! < test.basePrice;
+
+    return GestureDetector(
+      onTap: () => _addAndBook(context),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.s8),
+        padding: const EdgeInsets.all(AppSpacing.s10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFF4FF),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF5A88F1).withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.biotech_rounded, size: 18, color: Color(0xFF5A88F1)),
+            const SizedBox(width: AppSpacing.s8),
+            Expanded(
+              child: Text(
+                test.testName,
+                style: AppTextStyles.bubbleAi(context).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (hasDiscount)
+                  Text(
+                    '₹${test.basePrice.toStringAsFixed(0)}',
+                    style: AppTextStyles.bubbleAi(context).copyWith(
+                      fontSize: 10,
+                      decoration: TextDecoration.lineThrough,
+                      color: AiChatColors.textSecondary,
+                    ),
+                  ),
+                Text(
+                  price == 0 ? 'Free' : '₹${price.toStringAsFixed(0)}',
+                  style: AppTextStyles.bubbleAi(context).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: const Color(0xFF5A88F1),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                FilledButton(
+                  onPressed: () => _addAndBook(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF5A88F1),
+                    foregroundColor: Colors.white,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    minimumSize: const Size(0, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    '+ Add & Book',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  BookableLabTest _toBookable(LabTestItem item) {
+    final lower = item.testName.toLowerCase();
+    return BookableLabTest(
+      id: item.id,
+      name: item.testName,
+      bodyPoints: item.bodyPoints,
+      imageUrl: item.imageUrl,
+      description:
+          'Advanced ${item.testName} profile with clinically reviewed parameters and fast turnaround.',
+      preparation: (item.instructions ?? '').trim().isNotEmpty
+          ? item.instructions!.trim()
+          : (lower.contains('fbs')
+                ? 'Fasting required for 8-10 hours before sample collection.'
+                : 'Stay hydrated and follow physician instructions before collection.'),
+      parameters: lower.contains('cbc')
+          ? const ['Hemoglobin', 'WBC', 'RBC', 'Platelets']
+          : const ['Primary marker', 'Secondary marker', 'Reference range'],
+      price: (item.discountedPrice ?? item.basePrice).toDouble(),
+      basePrice: item.basePrice.toDouble(),
+      popular: item.id % 2 == 0,
+      originalItem: item,
+    );
+  }
+
+  void _addAndBook(BuildContext context) {
+    final portal = context.read<PatientPortalProvider>();
+    final controller = LabBookingController(
+      patientName: portal.dashboard?.patient.name ?? 'Patient',
+      patientPhone: portal.dashboard?.patient.phone,
+      tests: portal.labTests,
+      bodyPoints: portal.bodyPoints,
+    );
+    controller.addToCart(_toBookable(test));
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: controller,
+          child: const TestBookingScreen(),
         ),
       ),
     );

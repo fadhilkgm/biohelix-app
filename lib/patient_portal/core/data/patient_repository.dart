@@ -699,10 +699,21 @@ class PatientRepository {
           ),
         )
         .toList();
+    final testsRaw = response['suggestedTests'] as List<dynamic>? ?? const [];
+    final suggestedTests = testsRaw
+        .map(
+          (item) => LabTestItem.fromJson(
+            item is Map<String, dynamic>
+                ? item
+                : Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList();
     return ChatMessage(
       role: 'ai',
       content: response['reply'] as String? ?? 'No response',
       suggestedPackages: suggestedPackages,
+      suggestedTests: suggestedTests,
     );
   }
 

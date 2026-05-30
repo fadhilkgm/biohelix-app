@@ -31,6 +31,9 @@ import '../core/providers/patient_portal_provider.dart';
 
 import '../lab_booking/screens/package_booking_screen.dart';
 import '../lab_booking/screens/lab_test_home_screen.dart';
+import '../lab_booking/screens/test_booking_screen.dart';
+import '../lab_booking/state/lab_booking_controller.dart';
+import '../lab_booking/models/lab_booking_models.dart';
 import '../labs/screens/lab_test_detail_page.dart';
 import '../core/widgets/booking_success_screen.dart';
 import '../premium_home/screens/home_screen.dart' as premium_home;
