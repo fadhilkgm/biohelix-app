@@ -9,6 +9,7 @@ class LabBookingController extends ChangeNotifier {
   LabBookingController({
     required String patientName,
     required List<LabTestItem> tests,
+    required List<BodyPointItem> bodyPoints,
     String? patientPhone,
   }) {
     _patients = [
@@ -20,10 +21,12 @@ class LabBookingController extends ChangeNotifier {
         phone: patientPhone,
       ),
     ];
+    _bodyPoints = bodyPoints;
     _tests = tests.map(_mapTest).toList();
   }
 
   late List<BookableLabTest> _tests;
+  late List<BodyPointItem> _bodyPoints;
   final List<CartItem> _cart = [];
   late List<PatientProfile> _patients;
   final List<AddressProfile> _addresses = const [
@@ -39,7 +42,7 @@ class LabBookingController extends ChangeNotifier {
     ),
   ].toList();
   String _query = '';
-  String _category = 'All';
+  BodyPointItem? _selectedBodyPoint;
   bool _popularOnly = false;
   double _maxPrice = 2500;
   String _coupon = '';
@@ -50,7 +53,8 @@ class LabBookingController extends ChangeNotifier {
   String _selectedAddressId = 'home';
   PaymentMethod _paymentMethod = PaymentMethod.online;
 
-  List<String> get categories => ['All', 'Blood', 'Scan', 'Urine'];
+  List<BodyPointItem> get bodyPoints => List.unmodifiable(_bodyPoints);
+  BodyPointItem? get selectedBodyPoint => _selectedBodyPoint;
   List<String> get slots => const [
     '07:00 - 08:00 AM',
     '08:00 - 09:00 AM',
@@ -61,7 +65,6 @@ class LabBookingController extends ChangeNotifier {
   List<PatientProfile> get patients => List.unmodifiable(_patients);
   List<AddressProfile> get addresses => List.unmodifiable(_addresses);
   String get query => _query;
-  String get category => _category;
   bool get popularOnly => _popularOnly;
   double get maxPrice => _maxPrice;
   CollectionType get collectionType => _collectionType;
@@ -78,16 +81,21 @@ class LabBookingController extends ChangeNotifier {
   AddressProfile? get selectedAddress => _collectionType == CollectionType.home
       ? _addresses.firstWhere((e) => e.id == _selectedAddressId)
       : null;
-  List<BookableLabTest> get popularTests =>
-      filteredTests.where((e) => e.popular).take(6).toList();
+  List<BookableLabTest> get popularTests {
+    if (_selectedBodyPoint != null) {
+      return filteredTests;
+    }
+    return filteredTests.where((e) => e.popular).take(10).toList();
+  }
 
   List<BookableLabTest> get filteredTests {
     return _tests.where((BookableLabTest t) {
       final inQuery = t.name.toLowerCase().contains(_query.toLowerCase());
-      final inCategory = _category == 'All' || t.category == _category;
+      final inBodyPoint = _selectedBodyPoint == null ||
+          t.bodyPoints.any((bp) => bp.id == _selectedBodyPoint!.id);
       final inPrice = t.price <= _maxPrice;
       final inPopular = !_popularOnly || t.popular;
-      return inQuery && inCategory && inPrice && inPopular;
+      return inQuery && inBodyPoint && inPrice && inPopular;
     }).toList();
   }
 
@@ -122,8 +130,8 @@ class LabBookingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setCategory(String value) {
-    _category = value;
+  void setSelectedBodyPoint(BodyPointItem? value) {
+    _selectedBodyPoint = value;
     notifyListeners();
   }
 
@@ -289,22 +297,10 @@ class LabBookingController extends ChangeNotifier {
 
   BookableLabTest _mapTest(LabTestItem test) {
     final lower = test.testName.toLowerCase();
-    final blood =
-        lower.contains('cbc') ||
-        lower.contains('thyroid') ||
-        lower.contains('fbs');
-    final urine = lower.contains('urine');
-    final category = urine
-        ? 'Urine'
-        : (blood
-              ? 'Blood'
-              : (test.categoryName.toLowerCase().contains('scan')
-                    ? 'Scan'
-                    : 'Blood'));
     return BookableLabTest(
       id: test.id,
       name: test.testName,
-      category: category,
+      bodyPoints: test.bodyPoints,
       imageUrl: test.imageUrl,
       description:
           'Advanced ${test.testName} profile with clinically reviewed parameters and fast turnaround.',

@@ -13,5 +13,5 @@ class AppColors {
 
   static const shellGradient = [Color(0xFFEDF5F5), Color(0xFFF8FAFA)];
   static const cardGradient = [Color(0xFFFFFFFF), Color(0xFFF5FBFA)];
-  static const bannerGradient = [Color(0xFF0F9B8E), Color(0xFF2C74BA)];
+  static const bannerGradient = [Color(0xFF5A88F1), Color(0xFF3F6ED1)];
 }

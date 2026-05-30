@@ -930,6 +930,46 @@ class ChatThreadSummary {
   }
 }
 
+class BodyPointItem {
+  const BodyPointItem({
+    required this.id,
+    required this.name,
+    required this.slug,
+    required this.imageX,
+    required this.imageY,
+    required this.status,
+  });
+
+  final int id;
+  final String name;
+  final String slug;
+  final int imageX;
+  final int imageY;
+  final bool status;
+
+  factory BodyPointItem.fromJson(Map<String, dynamic> json) {
+    return BodyPointItem(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      name: json['name'] as String? ?? '',
+      slug: json['slug'] as String? ?? '',
+      imageX: (json['imageX'] as num?)?.toInt() ?? (json['image_x'] as num?)?.toInt() ?? 0,
+      imageY: (json['imageY'] as num?)?.toInt() ?? (json['image_y'] as num?)?.toInt() ?? 0,
+      status: json['status'] == 1 || json['status'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'slug': slug,
+      'imageX': imageX,
+      'imageY': imageY,
+      'status': status,
+    };
+  }
+}
+
 class LabTestItem {
   const LabTestItem({
     required this.id,
@@ -938,6 +978,7 @@ class LabTestItem {
     required this.categoryName,
     required this.status,
     required this.basePrice,
+    this.bodyPoints = const [],
     this.discountedPrice,
     this.uuid,
     this.imageUrl,
@@ -951,6 +992,7 @@ class LabTestItem {
   final String categoryName;
   final bool status;
   final double basePrice;
+  final List<BodyPointItem> bodyPoints;
   final double? discountedPrice;
   final String? uuid;
   final String? imageUrl;
@@ -965,6 +1007,15 @@ class LabTestItem {
       return 0.0;
     }
 
+    final bodyPointsRaw = json['bodyPoints'] as List<dynamic>? ?? const [];
+    final bodyPointsList = bodyPointsRaw
+        .map((item) => BodyPointItem.fromJson(
+              item is Map<String, dynamic>
+                  ? item
+                  : Map<String, dynamic>.from(item as Map),
+            ))
+        .toList();
+
     return LabTestItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
       testName: json['testName'] as String? ?? 'Lab test',
@@ -972,6 +1023,7 @@ class LabTestItem {
       categoryName: json['categoryName'] as String? ?? 'General',
       status: json['status'] as bool? ?? true,
       basePrice: parseDbl(json['basePrice'] ?? json['base_price']),
+      bodyPoints: bodyPointsList,
       discountedPrice:
           json['discountedPrice'] != null || json['discounted_price'] != null
           ? parseDbl(json['discountedPrice'] ?? json['discounted_price'])

@@ -586,7 +586,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  item.test.category,
+                                  item.test.bodyPoints.isNotEmpty ? item.test.bodyPoints.first.name : 'Lab test',
                                   style: GoogleFonts.manrope(
                                     fontSize: 12,
                                     color: const Color(

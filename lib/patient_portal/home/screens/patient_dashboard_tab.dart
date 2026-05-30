@@ -81,14 +81,7 @@ class _DashboardTab extends StatelessWidget {
           onOpenLabOrder: () {
             Navigator.of(context).push(
               MaterialPageRoute<void>(
-                builder: (_) => ChangeNotifierProvider(
-                  create: (_) => LabBookingController(
-                    patientName: dashboard.idCard.patientName,
-                    patientPhone: portal.dashboard?.patient.phone,
-                    tests: portal.labTests,
-                  ),
-                  child: const TestListScreen(),
-                ),
+                builder: (_) => const LabTestHomeScreen(),
               ),
             );
           },

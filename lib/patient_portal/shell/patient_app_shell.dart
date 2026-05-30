@@ -30,10 +30,8 @@ import '../core/models/home_feed_models.dart';
 import '../core/providers/patient_portal_provider.dart';
 
 import '../lab_booking/screens/package_booking_screen.dart';
-import '../lab_booking/screens/test_list_screen.dart';
+import '../lab_booking/screens/lab_test_home_screen.dart';
 import '../labs/screens/lab_test_detail_page.dart';
-import '../lab_booking/state/lab_booking_controller.dart'
-    show LabBookingController;
 import '../core/widgets/booking_success_screen.dart';
 import '../premium_home/screens/home_screen.dart' as premium_home;
 import 'widgets/bottom_nav_bar_widget.dart';

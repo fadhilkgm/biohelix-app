@@ -231,7 +231,7 @@ class _CartItemCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item.test.category,
+                  item.test.bodyPoints.isNotEmpty ? item.test.bodyPoints.first.name : 'Lab test',
                   style: GoogleFonts.manrope(
                     fontSize: 13,
                     color: const Color(0xFF192233).withValues(alpha: 0.5),

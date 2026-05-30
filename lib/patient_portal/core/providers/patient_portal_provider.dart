@@ -34,6 +34,7 @@ class PatientPortalProvider extends ChangeNotifier {
   List<VitalRecord> _vitalTrend = const [];
   List<DoctorListing> _doctors = const [];
   List<LabTestItem> _labTests = const [];
+  List<BodyPointItem> _bodyPoints = const [];
   List<LabOrderItem> _labOrders = const [];
   List<LabPackageItem> _labPackages = const [];
   List<LabPackageOrderItem> _labPackageOrders = const [];
@@ -70,6 +71,7 @@ class PatientPortalProvider extends ChangeNotifier {
   List<VitalRecord> get vitalTrend => _vitalTrend;
   List<DoctorListing> get doctors => _doctors;
   List<LabTestItem> get labTests => _labTests;
+  List<BodyPointItem> get bodyPoints => _bodyPoints;
   List<LabOrderItem> get labOrders => _labOrders;
   List<LabPackageItem> get labPackages => _labPackages;
   List<LabPackageOrderItem> get labPackageOrders => _labPackageOrders;
@@ -142,6 +144,7 @@ class PatientPortalProvider extends ChangeNotifier {
     _vitalTrend = const [];
     _doctors = const [];
     _labTests = const [];
+    _bodyPoints = const [];
     _labOrders = const [];
     _labPackages = const [];
     _labPackageOrders = const [];

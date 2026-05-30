@@ -326,43 +326,6 @@ class _LabTestsDirectoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<PatientPortalProvider>(
-      builder: (context, portal, _) {
-        if (portal.isLoading && portal.labTests.isEmpty) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        final patientName = portal.dashboard?.patient.name ?? 'Patient';
-        return ChangeNotifierProvider(
-          create: (_) => LabBookingController(
-            patientName: patientName,
-            patientPhone: portal.dashboard?.patient.phone,
-            tests: portal.labTests,
-          ),
-          child: Builder(
-            builder: (context) {
-              return TestListScreen(
-                onTestTap: (bookableTest) {
-                  final labTestItem = portal.labTests.firstWhere(
-                    (lt) => lt.id == bookableTest.id,
-                  );
-                  final controller = context.read<LabBookingController>();
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => LabTestDetailPage(
-                        test: labTestItem,
-                        controller: controller,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        );
-      },
-    );
+    return const LabTestHomeScreen();
   }
 }

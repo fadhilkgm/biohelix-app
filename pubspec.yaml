@@ -86,6 +86,7 @@ flutter:
   assets:
     - .env
     - assets/images/body-organ-map.png
+    - assets/images/human-body.png
     - assets/images/
     - assets/images/doctor-looking-clipboard/
 

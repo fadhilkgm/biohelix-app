@@ -8,7 +8,7 @@ class BookableLabTest {
   const BookableLabTest({
     required this.id,
     required this.name,
-    required this.category,
+    required this.bodyPoints,
     required this.description,
     required this.preparation,
     required this.parameters,
@@ -21,7 +21,7 @@ class BookableLabTest {
 
   final int id;
   final String name;
-  final String category;
+  final List<BodyPointItem> bodyPoints;
   final String description;
   final String preparation;
   final List<String> parameters;

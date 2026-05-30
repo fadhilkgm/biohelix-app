@@ -68,6 +68,7 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
       ),
       safeLoad<List<HomeOfferItem>>(_repository.getHomeOffers, 'home offers'),
       safeLoad<List<DepartmentItem>>(_repository.getDepartments, 'departments'),
+      safeLoad<List<BodyPointItem>>(_repository.getBodyPoints, 'body points'),
     ]);
 
     _dashboard = dashboardResult ?? _buildFallbackDashboard();
@@ -87,6 +88,7 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
     _tickerMessages = results[13] as List<TickerMessageItem>? ?? const [];
     _homeOffers = results[14] as List<HomeOfferItem>? ?? const [];
     _departments = results[15] as List<DepartmentItem>? ?? const [];
+    _bodyPoints = results[16] as List<BodyPointItem>? ?? const [];
 
     if (_chatThreads.isNotEmpty) {
       if (_activeChatThreadId == null ||

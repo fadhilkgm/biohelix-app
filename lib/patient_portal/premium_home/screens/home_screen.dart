@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
       names.sort();
       return ['All', ...names];
     }
-    
+
     final depts = widget.doctors
         .map((d) => d.departmentName ?? d.specialization)
         .where((d) => d.isNotEmpty && d.toLowerCase() != 'laboratory')
@@ -91,17 +91,19 @@ class _HomeScreenState extends State<HomeScreen> {
   List<DoctorListing> get _filteredDoctors {
     if (_selectedDepartment == 'All') return widget.doctors;
     return widget.doctors
-        .where((d) => (d.departmentName ?? d.specialization) == _selectedDepartment)
+        .where(
+          (d) => (d.departmentName ?? d.specialization) == _selectedDepartment,
+        )
         .toList();
   }
 
   String _resolveImageUrl(String path) {
     if (path.isEmpty) return '';
     if (path.startsWith('http')) return path;
-    
+
     // Fallback for relative paths
-    final base = widget.apiBaseUrl.endsWith('/') 
-        ? widget.apiBaseUrl.substring(0, widget.apiBaseUrl.length - 1) 
+    final base = widget.apiBaseUrl.endsWith('/')
+        ? widget.apiBaseUrl.substring(0, widget.apiBaseUrl.length - 1)
         : widget.apiBaseUrl;
     final normalizedPath = path.startsWith('/') ? path : '/$path';
     return '$base$normalizedPath';
@@ -111,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (name == 'All') return null;
     try {
       final dept = widget.departments.firstWhere(
-        (d) => d.name.toLowerCase() == name.toLowerCase()
+        (d) => d.name.toLowerCase() == name.toLowerCase(),
       );
       final rawPath = dept.imageUrl;
       if (rawPath == null || rawPath.isEmpty) return null;
@@ -144,9 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
               end: Alignment.bottomCenter,
               colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
             ),
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular(40),
-            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
           ),
           child: SafeArea(
             bottom: false,
@@ -183,7 +183,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () => widget.onTickerTap(ticker),
                             child: Container(
                               alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -344,20 +346,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 SizedBox(
                   height: 480,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: widget.labPackages.length,
-                    itemBuilder: (context, index) {
-                      final pkg = widget.labPackages[index];
-                      return _PackageCard(
-                        pkg: pkg,
-                        onTap: () => widget.onPackageTap(pkg),
-                        resolvedImageUrl: _resolveImageUrl(pkg.imageUrl ?? ''),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: widget.labPackages.length,
+                        itemBuilder: (context, index) {
+                          final pkg = widget.labPackages[index];
+                          return _PackageCard(
+                            pkg: pkg,
+                            width: constraints.maxWidth,
+                            margin: EdgeInsets.only(
+                              right: index == widget.labPackages.length - 1
+                                  ? 0
+                                  : 18,
+                            ),
+                            onTap: () => widget.onPackageTap(pkg),
+                            resolvedImageUrl: _resolveImageUrl(
+                              pkg.imageUrl ?? '',
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
                 ),
-                
+
                 // Add Lab Tests section
                 if (widget.labTests.isNotEmpty) ...[
                   const SizedBox(height: 32),
@@ -395,7 +409,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         return _TestCard(
                           test: test,
                           onTap: () => widget.onLabTap(test),
-                          resolvedImageUrl: _resolveImageUrl(test.imageUrl ?? ''),
+                          resolvedImageUrl: _resolveImageUrl(
+                            test.imageUrl ?? '',
+                          ),
                         );
                       },
                     ),
@@ -615,11 +631,15 @@ class _TestCard extends StatelessWidget {
 
 class _PackageCard extends StatelessWidget {
   final LabPackageItem pkg;
+  final double width;
+  final EdgeInsetsGeometry margin;
   final VoidCallback onTap;
   final String resolvedImageUrl;
 
   const _PackageCard({
     required this.pkg,
+    required this.width,
+    required this.margin,
     required this.onTap,
     required this.resolvedImageUrl,
   });
@@ -627,8 +647,8 @@ class _PackageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 280,
-      margin: const EdgeInsets.only(right: 18),
+      width: width,
+      margin: margin,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
@@ -649,7 +669,9 @@ class _PackageCard extends StatelessWidget {
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(32),
+                  ),
                   child: SizedBox(
                     height: 280,
                     width: double.infinity,
@@ -671,12 +693,16 @@ class _PackageCard extends StatelessWidget {
                         : _fallbackIcon(),
                   ),
                 ),
-                if (pkg.discountedPrice != null && pkg.discountedPrice! < pkg.basePrice)
+                if (pkg.discountedPrice != null &&
+                    pkg.discountedPrice! < pkg.basePrice)
                   Positioned(
                     top: 16,
                     right: 16,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFF5C5C),
                         borderRadius: BorderRadius.circular(12),
@@ -740,9 +766,9 @@ class _PackageCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 14,
                                     decoration: TextDecoration.lineThrough,
-                                    color: const Color(0xFF192233).withValues(
-                                      alpha: 0.3,
-                                    ),
+                                    color: const Color(
+                                      0xFF192233,
+                                    ).withValues(alpha: 0.3),
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -820,7 +846,7 @@ class _DoctorCard extends StatelessWidget {
   final String resolvedImageUrl;
 
   const _DoctorCard({
-    required this.doc, 
+    required this.doc,
     required this.onTap,
     required this.resolvedImageUrl,
   });
@@ -833,10 +859,7 @@ class _DoctorCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FB),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: const Color(0xFFE5E9F0),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFE5E9F0), width: 1),
       ),
       child: InkWell(
         onTap: onTap,
@@ -845,7 +868,9 @@ class _DoctorCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(31)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(31),
+              ),
               child: SizedBox(
                 height: 240, // Increased room for text below
                 width: double.infinity,
@@ -886,7 +911,9 @@ class _DoctorCard extends StatelessWidget {
                             Icon(
                               _getSpecialtyIcon(doc.specialization),
                               size: 13,
-                              color: const Color(0xFF192233).withValues(alpha: 0.4),
+                              color: const Color(
+                                0xFF192233,
+                              ).withValues(alpha: 0.4),
                             ),
                             const SizedBox(width: 5),
                             Expanded(
@@ -896,7 +923,9 @@ class _DoctorCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: const Color(0xFF192233).withValues(alpha: 0.5),
+                                  color: const Color(
+                                    0xFF192233,
+                                  ).withValues(alpha: 0.5),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -919,7 +948,10 @@ class _DoctorCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        icon: const Icon(Icons.calendar_month_outlined, size: 16),
+                        icon: const Icon(
+                          Icons.calendar_month_outlined,
+                          size: 16,
+                        ),
                         label: const Text(
                           'Book Now',
                           style: TextStyle(
@@ -981,13 +1013,15 @@ class _CategoryChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFF5A88F1) : const Color(0xFFF4F7FF),
           borderRadius: BorderRadius.circular(20),
-          boxShadow: isActive ? [
-            BoxShadow(
-              color: const Color(0xFF5A88F1).withValues(alpha: 0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ] : null,
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF5A88F1).withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
           border: Border.all(
             color: isActive ? Colors.transparent : const Color(0xFFE5E9F0),
             width: 1,
@@ -1023,7 +1057,9 @@ class _CategoryChip extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: isActive ? Colors.white : const Color(0xFF192233).withValues(alpha: 0.8),
+                color: isActive
+                    ? Colors.white
+                    : const Color(0xFF192233).withValues(alpha: 0.8),
                 fontWeight: isActive ? FontWeight.w900 : FontWeight.w700,
                 fontSize: 12,
                 height: 1.1,
@@ -1043,11 +1079,15 @@ IconData _getSpecialtyIcon(String spec) {
   if (s.contains('derma')) return Icons.face_outlined;
   if (s.contains('gyne')) return Icons.supervised_user_circle_outlined;
   if (s.contains('pedi')) return Icons.child_care_outlined;
-  if (s.contains('dentist') || s.contains('dental')) return Icons.medical_services_outlined;
+  if (s.contains('dentist') || s.contains('dental')) {
+    return Icons.medical_services_outlined;
+  }
   if (s.contains('neuro')) return Icons.psychology_outlined;
   if (s.contains('ortho')) return Icons.accessibility_new_rounded;
   if (s.contains('ent')) return Icons.hearing_rounded;
-  if (s.contains('eye') || s.contains('opthal')) return Icons.visibility_outlined;
+  if (s.contains('eye') || s.contains('opthal')) {
+    return Icons.visibility_outlined;
+  }
   if (s.contains('physio')) return Icons.fitness_center_rounded;
   if (s.contains('general')) return Icons.medical_information_outlined;
   return Icons.health_and_safety_outlined;
@@ -1100,11 +1140,7 @@ class _QuickLink extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  child: Icon(icon, color: Colors.white, size: 24),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -1153,9 +1189,10 @@ class _SkeletonPulseState extends State<_SkeletonPulse>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.4, end: 0.8).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 0.4,
+      end: 0.8,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1179,4 +1216,3 @@ class _SkeletonPulseState extends State<_SkeletonPulse>
     );
   }
 }
-

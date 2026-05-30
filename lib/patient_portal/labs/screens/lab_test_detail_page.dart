@@ -14,22 +14,10 @@ class LabTestDetailPage extends StatelessWidget {
 
   BookableLabTest _toBookableTest(LabTestItem item) {
     final lower = item.testName.toLowerCase();
-    final blood =
-        lower.contains('cbc') ||
-        lower.contains('thyroid') ||
-        lower.contains('fbs');
-    final urine = lower.contains('urine');
-    final category = urine
-        ? 'Urine'
-        : (blood
-              ? 'Blood'
-              : (item.categoryName.toLowerCase().contains('scan')
-                    ? 'Scan'
-                    : 'Blood'));
     return BookableLabTest(
       id: item.id,
       name: item.testName,
-      category: category,
+      bodyPoints: item.bodyPoints,
       description:
           'Advanced ${item.testName} profile with clinically reviewed parameters and fast turnaround.',
       preparation: (item.instructions ?? '').trim().isNotEmpty
@@ -72,6 +60,7 @@ class LabTestDetailPage extends StatelessWidget {
             patientName: patientName,
             patientPhone: portal.dashboard?.patient.phone,
             tests: portal.labTests,
+            bodyPoints: portal.bodyPoints,
           );
         }();
     targetController.addToCart(_toBookableTest(test));

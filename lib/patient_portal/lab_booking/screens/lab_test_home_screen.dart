@@ -8,8 +8,10 @@ import '../../lab_booking/design/app_spacing.dart';
 import '../../lab_booking/design/app_text_styles.dart';
 import '../../lab_booking/models/lab_booking_models.dart';
 import '../../lab_booking/state/lab_booking_controller.dart';
+import '../../lab_booking/widgets/anatomy_map_widget.dart';
 import '../../lab_booking/widgets/category_chip_widget.dart';
 import '../../lab_booking/widgets/test_card_widget.dart';
+import '../../labs/screens/lab_test_detail_page.dart';
 import 'cart_screen.dart';
 import 'test_booking_screen.dart';
 import 'test_list_screen.dart';
@@ -26,6 +28,7 @@ class LabTestHomeScreen extends StatelessWidget {
         patientName: patientName,
         patientPhone: portal.dashboard?.patient.phone,
         tests: portal.labTests,
+        bodyPoints: portal.bodyPoints,
       ),
       child: const _LabHomeContent(),
     );
@@ -38,9 +41,43 @@ class _LabHomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<LabBookingController>();
-    return Material(
-      color: Colors.transparent,
-      child: DecoratedBox(
+    return Scaffold(
+      backgroundColor: AppColors.shellGradient.first,
+      appBar: AppBar(
+        title: Text(
+          'Lab Tests',
+          style: GoogleFonts.manrope(
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF192233),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.chevron_left,
+            color: Color(0xFF192233),
+            size: 30,
+          ),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: Badge(
+              label: Text('${c.cartCount}'),
+              isLabelVisible: c.cartCount > 0,
+              child: const Icon(
+                Icons.shopping_bag_outlined,
+                color: Color(0xFF192233),
+              ),
+            ),
+            onPressed: () => _push(context, const CartScreen()),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: AppColors.shellGradient,
@@ -51,8 +88,6 @@ class _LabHomeContent extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
-            _banner(context),
-            const SizedBox(height: AppSpacing.md),
             TextField(
               onChanged: c.setQuery,
               decoration: InputDecoration(
@@ -70,24 +105,43 @@ class _LabHomeContent extends StatelessWidget {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: c.categories
-                    .map(
-                      (cat) => Padding(
-                        padding: const EdgeInsets.only(right: 10),
-                        child: CategoryChipWidget(
-                          label: cat,
-                          selected: c.category == cat,
-                          onTap: () => c.setCategory(cat),
-                        ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: CategoryChipWidget(
+                      label: 'All',
+                      selected: c.selectedBodyPoint == null,
+                      onTap: () => c.setSelectedBodyPoint(null),
+                    ),
+                  ),
+                  ...c.bodyPoints.map(
+                    (bp) => Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: CategoryChipWidget(
+                        label: bp.name,
+                        selected: c.selectedBodyPoint?.id == bp.id,
+                        onTap: () => c.setSelectedBodyPoint(bp),
                       ),
-                    )
-                    .toList(),
+                    ),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AnatomyMapWidget(
+              bodyPoints: c.bodyPoints,
+              selectedBodyPoint: c.selectedBodyPoint,
+              onSelect: c.setSelectedBodyPoint,
             ),
             const SizedBox(height: AppSpacing.lg),
             Row(
               children: [
-                Text('Popular Tests', style: AppTextStyles.section(context)),
+                Text(
+                  c.selectedBodyPoint == null
+                      ? 'Popular Tests'
+                      : '${c.selectedBodyPoint!.name} Tests',
+                  style: AppTextStyles.section(context),
+                ),
                 const Spacer(),
                 TextButton(
                   onPressed: () => _push(context, const TestListScreen()),
@@ -95,104 +149,101 @@ class _LabHomeContent extends StatelessWidget {
                 ),
               ],
             ),
-            ...c.popularTests.map(
-              (t) => TestCardWidget(
-                test: t,
-                onAdd: () => _handleAddToCart(context, c, t),
-                onOpen: () {
-                  c.addToCart(t);
-                  _push(context, const TestBookingScreen());
-                },
+            if (c.popularTests.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                child: Center(
+                  child: Text(
+                    'No tests found for this body system.',
+                    style: AppTextStyles.body(context).copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              )
+            else
+              ...c.popularTests.map(
+                (t) => TestCardWidget(
+                  test: t,
+                  onAdd: () => _handleAddToCart(context, c, t),
+                  onOpen: () {
+                    if (t.originalItem != null) {
+                      _push(
+                        context,
+                        LabTestDetailPage(
+                          test: t.originalItem!,
+                          controller: c,
+                        ),
+                      );
+                    } else {
+                      c.addToCart(t);
+                      _push(context, const TestBookingScreen());
+                    }
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: 80),
           ],
         ),
       ),
+      bottomNavigationBar: _buildCartBottomBar(context, c),
     );
   }
 
-  Widget _banner(BuildContext context) {
+  Widget? _buildCartBottomBar(BuildContext context, LabBookingController c) {
+    if (c.cartCount == 0) return null;
     return Container(
-      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF5A88F1), Color(0xFF3F6ED1)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -20,
-            bottom: -10,
-            child: Opacity(
-              opacity: 0.2,
-              child: Image.asset(
-                'assets/images/lab.png',
-                width: 180,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Book Lab Tests',
-                        style: AppTextStyles.title(context).copyWith(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Same-day slots, verified labs,\nhome sample collection.',
-                        style: AppTextStyles.body(context).copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: () => _push(context, const CartScreen()),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF5A88F1),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'View Cart',
-                          style: TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Image.asset(
-                  'assets/images/lab.png',
-                  height: 120,
-                  fit: BoxFit.contain,
-                ),
-              ],
-            ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
           ),
         ],
+      ),
+      child: SafeArea(
+        child: ElevatedButton(
+          onPressed: () => _push(context, const CartScreen()),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF5A88F1),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Confirm Booking',
+                style: GoogleFonts.manrope(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '${c.cartCount}',
+                  style: GoogleFonts.manrope(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

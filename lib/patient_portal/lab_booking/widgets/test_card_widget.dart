@@ -48,7 +48,7 @@ class TestCardWidget extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      test.category.toUpperCase(),
+                      (test.bodyPoints.isNotEmpty ? test.bodyPoints.first.name : 'Lab test').toUpperCase(),
                       style: GoogleFonts.manrope(
                         fontSize: 9,
                         fontWeight: FontWeight.w800,

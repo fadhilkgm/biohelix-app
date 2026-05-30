@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/models/patient_models.dart';
 import '../models/lab_booking_models.dart';
 import '../state/lab_booking_controller.dart';
 import '../widgets/test_card_widget.dart';
@@ -68,10 +69,9 @@ class TestListScreen extends StatelessWidget {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: c.categories.map((category) {
-                        final isSelected = c.category == category;
-                        return GestureDetector(
-                          onTap: () => c.setCategory(category),
+                      children: [
+                        GestureDetector(
+                          onTap: () => c.setSelectedBodyPoint(null),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             margin: const EdgeInsets.only(right: 10),
@@ -80,31 +80,64 @@ class TestListScreen extends StatelessWidget {
                               vertical: 10,
                             ),
                             decoration: BoxDecoration(
-                              color: isSelected
+                              color: c.selectedBodyPoint == null
                                   ? const Color(0xFF5A88F1)
                                   : const Color(0xFFF4F7FF),
                               borderRadius: BorderRadius.circular(30),
                               border: Border.all(
-                                color: isSelected
+                                color: c.selectedBodyPoint == null
                                     ? const Color(0xFF5A88F1)
                                     : Colors.transparent,
                               ),
                             ),
                             child: Text(
-                              category,
+                              'All',
                               style: GoogleFonts.manrope(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: isSelected
+                                color: c.selectedBodyPoint == null
                                     ? Colors.white
-                                    : const Color(
-                                        0xFF192233,
-                                      ).withValues(alpha: 0.6),
+                                    : const Color(0xFF192233).withValues(alpha: 0.6),
                               ),
                             ),
                           ),
-                        );
-                      }).toList(),
+                        ),
+                        ...c.bodyPoints.map((BodyPointItem bp) {
+                          final isSelected = c.selectedBodyPoint?.id == bp.id;
+                          return GestureDetector(
+                            onTap: () => c.setSelectedBodyPoint(bp),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: const EdgeInsets.only(right: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFF5A88F1)
+                                    : const Color(0xFFF4F7FF),
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF5A88F1)
+                                      : Colors.transparent,
+                                ),
+                              ),
+                              child: Text(
+                                bp.name,
+                                style: GoogleFonts.manrope(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : const Color(0xFF192233).withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
                     ),
                   ),
                 ],

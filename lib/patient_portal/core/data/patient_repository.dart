@@ -407,6 +407,13 @@ class PatientRepository {
     }).toList();
   }
 
+  Future<List<BodyPointItem>> getBodyPoints() async {
+    final response = await _apiClient.getJson('/body-points');
+    final points = response['bodyPoints'] as List<dynamic>? ?? const [];
+    return points.map((item) => BodyPointItem.fromJson(_map(item))).toList();
+  }
+
+
   Future<List<LabOrderItem>> getLabOrders() async {
     final response = await _apiClient.getJson('/patient/lab-orders');
     final orders = response['orders'] as List<dynamic>? ?? const [];
