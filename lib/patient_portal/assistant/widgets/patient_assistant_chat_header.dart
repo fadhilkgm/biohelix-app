@@ -23,59 +23,76 @@ class ChatHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
-    final subtitle = isSpeaking
-        ? strings.assistantSpeaking
-        : isListening
-        ? strings.assistantListening
-        : isLiveMode
-        ? strings.assistantLiveModeActive
-        : strings.assistantReady;
 
-    return Row(
-      children: [
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(strings.assistantTitle, style: AppTextStyles.title(context)),
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AiChatColors.online,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.s8),
-                  Text(subtitle, style: AppTextStyles.subtitle(context)),
-                ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
+      child: Row(
+        children: [
+          if (showToggleThreads)
+            _HeaderIconButton(
+              onPressed: onToggleThreads,
+              icon: Icons.menu_rounded,
+              tooltip: strings.assistantPreviousChats,
+            )
+          else
+            const SizedBox(width: 48),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Text(
+              strings.assistantTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.manrope(
+                color: AiChatColors.textPrimary,
+                fontSize: 25,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.6,
               ),
-            ],
+            ),
+          ),
+          _HeaderIconButton(
+            onPressed: isSpeaking ? onInterruptAi : onNewChat,
+            icon: isSpeaking
+                ? Icons.stop_circle_outlined
+                : Icons.add_comment_outlined,
+            tooltip: isSpeaking
+                ? strings.assistantInterruptAi
+                : strings.assistantNewChat,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.onPressed,
+    required this.icon,
+    required this.tooltip,
+  });
+
+  final VoidCallback onPressed;
+  final IconData icon;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: IconButton(
+        onPressed: onPressed,
+        tooltip: tooltip,
+        icon: Icon(icon, size: 31, color: AiChatColors.primary),
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: AiChatColors.primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
-        if (isSpeaking)
-          IconButton.filledTonal(
-            onPressed: onInterruptAi,
-            icon: const Icon(Icons.stop_circle_outlined, size: 18),
-            tooltip: strings.assistantInterruptAi,
-          ),
-        if (isSpeaking) const SizedBox(width: AppSpacing.s8),
-        if (showToggleThreads)
-          IconButton.filledTonal(
-            onPressed: onToggleThreads,
-            icon: const Icon(Icons.history_rounded, size: 18),
-            tooltip: strings.assistantPreviousChats,
-          ),
-        const SizedBox(width: AppSpacing.s8),
-        IconButton.filledTonal(
-          onPressed: onNewChat,
-          icon: const Icon(Icons.add_comment_rounded, size: 18),
-          tooltip: strings.assistantNewChat,
-        ),
-      ],
+      ),
     );
   }
 }

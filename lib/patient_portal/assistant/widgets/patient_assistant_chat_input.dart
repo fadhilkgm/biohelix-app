@@ -89,162 +89,70 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
-    // strings is LocalizedStrings
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Main input bar ──
         Container(
           decoration: BoxDecoration(
             color: AiChatColors.inputSurface,
-            borderRadius: BorderRadius.circular(AppRadius.input),
-            boxShadow: AiChatColors.softShadow,
+            borderRadius: BorderRadius.circular(40),
+            border: Border.all(color: AiChatColors.border),
           ),
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // ── Top action row: Centered Live button + Left-aligned Attach ──
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: _buildAttachButton(),
-                  ),
-                  _buildLiveButton(strings),
-                ],
-              ),
-              const SizedBox(height: 6),
-              // ── Bottom row: Mic + TextField + Send ──
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _buildMicButton(strings),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: widget.isListening
-                        ? _AudioWaveform(soundLevel: widget.soundLevel)
-                        : TextField(
-                            controller: widget.controller,
-                            minLines: 1,
-                            maxLines: 5,
-                            style: GoogleFonts.manrope(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: AiChatColors.textPrimary,
-                            ),
-                            textInputAction: TextInputAction.send,
-                            onSubmitted: (_) => widget.onSend(),
-                            decoration: InputDecoration(
-                              hintText: strings.assistantInputHint,
-                              hintStyle: AppTextStyles.inputHint(context),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 4,
-                              ),
-                            ),
+              _buildAttachButton(),
+              const SizedBox(width: 8),
+              Expanded(
+                child: widget.isListening
+                    ? _AudioWaveform(soundLevel: widget.soundLevel)
+                    : TextField(
+                        controller: widget.controller,
+                        minLines: 1,
+                        maxLines: 4,
+                        style: GoogleFonts.manrope(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          color: AiChatColors.textPrimary,
+                          letterSpacing: -0.2,
+                        ),
+                        cursorColor: AiChatColors.primary,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => widget.onSend(),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          filled: false,
+                          hintText: strings.assistantInputHint,
+                          hintStyle: AppTextStyles.inputHint(context),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 2,
                           ),
-                  ),
-                  const SizedBox(width: 6),
-                  _buildSendButton(),
-                ],
+                        ),
+                      ),
               ),
+              _buildMicButton(strings),
+              const SizedBox(width: 8),
+              _buildSendButton(),
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
           strings.assistantDisclaimer,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Colors.grey,
-            fontWeight: FontWeight.w500,
+          style: GoogleFonts.manrope(
+            fontSize: 12,
+            color: const Color(0xFF8E8E93),
+            fontWeight: FontWeight.w400,
           ),
         ),
-        const SizedBox(height: 4),
       ],
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  Live Button — prominent gradient pill with breathing glow
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildLiveButton(LocalizedStrings strings) {
-    final isLive = widget.isLiveMode;
-
-    return AnimatedBuilder(
-      animation: _liveGlowCtrl,
-      builder: (context, child) {
-        final glowOpacity = isLive ? 0.2 + (_liveGlowCtrl.value * 0.25) : 0.0;
-
-        return GestureDetector(
-          onTap: widget.isBusy && !isLive ? null : widget.onLiveTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeInOutCubic,
-            height: 38,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              gradient: isLive
-                  ? const LinearGradient(
-                      colors: [Color(0xFFE11D48), Color(0xFFFF6B8A)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : const LinearGradient(
-                      colors: [Color(0xFF2B79FF), Color(0xFF16B5A4)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              borderRadius: BorderRadius.circular(999),
-              boxShadow: [
-                BoxShadow(
-                  color: isLive
-                      ? Color.fromRGBO(225, 29, 72, glowOpacity)
-                      : const Color(0x202B79FF),
-                  blurRadius: isLive ? 16 : 10,
-                  spreadRadius: isLive ? 2 : 0,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isLive && widget.isListening)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                else
-                  Icon(
-                    isLive ? Icons.call_end_rounded : Icons.graphic_eq_rounded,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                const SizedBox(width: 6),
-                Text(
-                  isLive ? strings.assistantStop : strings.assistantLive,
-                  style: GoogleFonts.manrope(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -253,17 +161,17 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildAttachButton() {
     return SizedBox(
-      width: 56,
-      height: 56,
+      width: 48,
+      height: 48,
       child: Center(
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeInOutCubic,
-          width: 42,
-          height: 42,
+          width: 46,
+          height: 46,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: Color(0xFFF1F4F8),
+            color: Colors.transparent,
           ),
           child: widget.isBusy
               ? const Center(
@@ -280,9 +188,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                   onPressed: widget.onAttach,
                   padding: EdgeInsets.zero,
                   icon: const Icon(
-                    Icons.attach_file_rounded,
-                    size: 22,
-                    color: Color(0xFF475569),
+                    Icons.add_rounded,
+                    size: 34,
+                    color: AiChatColors.primary,
                   ),
                 ),
         ),
@@ -298,8 +206,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
       onTap: widget.isBusy
           ? null
           : (widget.isSpeaking && widget.onInterrupt != null)
-              ? widget.onInterrupt
-              : widget.onVoiceTap,
+          ? widget.onInterrupt
+          : widget.onVoiceTap,
       child: AnimatedBuilder(
         animation: _pulseCtrl,
         builder: (context, child) {
@@ -309,23 +217,22 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
           final bool isSpeaking = widget.isSpeaking && !widget.isLiveMode;
 
           return SizedBox(
-            width: 56,
-            height: 56,
+            width: 42,
+            height: 48,
             child: Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
                 // ── 3 concentric red sound-wave rings ──
                 if (isRecording)
-                  for (int i = 0; i < 3; i++)
-                    _buildWaveRing(i),
+                  for (int i = 0; i < 3; i++) _buildWaveRing(i),
 
                 // ── Background circle ──
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 260),
                   curve: Curves.easeInOutCubic,
-                  width: 42,
-                  height: 42,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: isRecording
@@ -335,22 +242,25 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                             end: Alignment.bottomRight,
                           )
                         : isSpeaking
-                            ? const LinearGradient(
-                                colors: [Color(0xFF2B79FF), Color(0xFF5A9BFF)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : null,
+                        ? const LinearGradient(
+                            colors: [
+                              AiChatColors.primary,
+                              AiChatColors.accent,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
                     color: (isRecording || isSpeaking)
                         ? null
-                        : const Color(0xFFF1F4F8),
+                        : Colors.transparent,
                     boxShadow: [
                       BoxShadow(
                         color: isRecording
                             ? const Color(0x40E11D48)
                             : isSpeaking
-                                ? const Color(0x302B79FF)
-                                : const Color(0x00000000),
+                            ? const Color(0x301B4D3E)
+                            : const Color(0x00000000),
                         blurRadius: 12,
                         spreadRadius: 1,
                       ),
@@ -365,8 +275,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                       : Icons.mic_none_rounded,
                   color: isRecording || isSpeaking
                       ? Colors.white
-                      : const Color(0xFF475569),
-                  size: 22,
+                      : AiChatColors.primary,
+                  size: 31,
                 ),
 
                 // ── REC badge ──
@@ -437,37 +347,42 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   //  Send Button — gradient circle with soft shadow
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildSendButton() {
-    return Container(
-      width: 46,
-      height: 46,
-      decoration: const BoxDecoration(
-        gradient: AiChatColors.userBubbleGradient,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x302B79FF),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+    return AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, child) {
+        final hasText = widget.controller.text.trim().isNotEmpty;
+        return Container(
+          width: 54,
+          height: 54,
+          decoration: const BoxDecoration(
+            gradient: AiChatColors.userBubbleGradient,
+            shape: BoxShape.circle,
           ),
-        ],
-      ),
-      child: IconButton(
-        onPressed: widget.isBusy ? null : widget.onSend,
-        icon: widget.isBusy
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Icon(
-                Icons.send_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-      ),
+          child: IconButton(
+            onPressed: widget.isBusy
+                ? null
+                : hasText
+                ? widget.onSend
+                : widget.onLiveTap,
+            icon: widget.isBusy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Icon(
+                    hasText
+                        ? Icons.arrow_upward_rounded
+                        : Icons.graphic_eq_rounded,
+                    color: Colors.white,
+                    size: 31,
+                  ),
+          ),
+        );
+      },
     );
   }
 }
@@ -520,16 +435,21 @@ class _AudioWaveformState extends State<_AudioWaveform>
               // Stagger phase based on index to create a traveling wave effect
               final double phase = index * 0.35;
               final double angle = (t * 2 * math.pi) - phase;
-              
+
               // Parabolic bell curve envelope (symmetric peaking in the middle)
               final double centerOffset = (index - 11).abs() / 11.0;
               final double envelope = 1.0 - (centerOffset * centerOffset);
-              
+
               // Sine wave oscillation
               final double sineVal = math.sin(angle).abs();
-              
+
               // Dynamic height calculations modulated by real-time voice decibel levels
-              final double height = 6.0 + (sineVal * 28.0 * envelope * (0.15 + 0.85 * widget.soundLevel));
+              final double height =
+                  6.0 +
+                  (sineVal *
+                      28.0 *
+                      envelope *
+                      (0.15 + 0.85 * widget.soundLevel));
 
               return Container(
                 width: 3.5,

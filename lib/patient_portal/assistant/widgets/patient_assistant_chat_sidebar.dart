@@ -24,8 +24,8 @@ class ChatSidebarWidget extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AiChatColors.inputSurface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: AiChatColors.softShadow,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AiChatColors.border),
       ),
       child: Column(
         children: [
@@ -64,7 +64,7 @@ class ChatSidebarWidget extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
                     decoration: BoxDecoration(
                       color: selected
-                          ? const Color(0xFFE8F2FF)
+                          ? AiChatColors.surfaceTint
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(14),
                     ),

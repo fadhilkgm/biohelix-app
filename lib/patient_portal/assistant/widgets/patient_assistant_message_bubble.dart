@@ -45,10 +45,14 @@ class _MessageBubbleWidget extends StatelessWidget {
               width: 28,
               height: 28,
               decoration: const BoxDecoration(
-                color: Color(0xFFDDF3EF),
+                gradient: AiChatColors.userBubbleGradient,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.smart_toy_rounded, size: 16),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(width: AppSpacing.s8),
           ],
@@ -59,8 +63,10 @@ class _MessageBubbleWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: isUser ? AiChatColors.userBubbleGradient : null,
                 color: isUser ? null : AiChatColors.bubbleAi,
+                border: isUser
+                    ? null
+                    : Border.all(color: AiChatColors.border),
                 borderRadius: radius,
-                boxShadow: isUser ? null : AiChatColors.softShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,10 +132,9 @@ class _MessageBubbleWidget extends StatelessWidget {
                     const SizedBox(height: AppSpacing.s8),
                     Text(
                       '🧪 Suggested Packages',
-                      style: AppTextStyles.bubbleAi(context).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                      ),
+                      style: AppTextStyles.bubbleAi(
+                        context,
+                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 12),
                     ),
                     const SizedBox(height: AppSpacing.s8),
                     for (final pkg in message.suggestedPackages)
@@ -141,10 +146,9 @@ class _MessageBubbleWidget extends StatelessWidget {
                     const SizedBox(height: AppSpacing.s8),
                     Text(
                       '🔬 Suggested Tests',
-                      style: AppTextStyles.bubbleAi(context).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                      ),
+                      style: AppTextStyles.bubbleAi(
+                        context,
+                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 12),
                     ),
                     const SizedBox(height: AppSpacing.s8),
                     for (final test in message.suggestedTests)
@@ -196,7 +200,8 @@ class _DateSeparator extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFE9EEF7),
+          color: AiChatColors.surfaceTint,
+          border: Border.all(color: AiChatColors.border),
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(label, style: AppTextStyles.dateSeparator(context)),
@@ -215,7 +220,8 @@ class _PackageSuggestionCard extends StatelessWidget {
     final price = pkg.discountedPrice != null && pkg.discountedPrice! > 0
         ? pkg.discountedPrice!
         : pkg.basePrice;
-    final hasDiscount = pkg.discountedPrice != null &&
+    final hasDiscount =
+        pkg.discountedPrice != null &&
         pkg.discountedPrice! > 0 &&
         pkg.discountedPrice! < pkg.basePrice;
 
@@ -227,11 +233,17 @@ class _PackageSuggestionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFEEFAF7),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF26A89A).withValues(alpha: 0.4)),
+          border: Border.all(
+            color: const Color(0xFF26A89A).withValues(alpha: 0.4),
+          ),
         ),
         child: Row(
           children: [
-            const Icon(Icons.science_rounded, size: 18, color: Color(0xFF26A89A)),
+            const Icon(
+              Icons.science_rounded,
+              size: 18,
+              color: Color(0xFF26A89A),
+            ),
             const SizedBox(width: AppSpacing.s8),
             Expanded(
               child: Column(
@@ -239,10 +251,9 @@ class _PackageSuggestionCard extends StatelessWidget {
                 children: [
                   Text(
                     pkg.name,
-                    style: AppTextStyles.bubbleAi(context).copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
+                    style: AppTextStyles.bubbleAi(
+                      context,
+                    ).copyWith(fontWeight: FontWeight.w600, fontSize: 12),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -327,7 +338,8 @@ class _TestSuggestionCard extends StatelessWidget {
     final price = test.discountedPrice != null && test.discountedPrice! > 0
         ? test.discountedPrice!
         : test.basePrice;
-    final hasDiscount = test.discountedPrice != null &&
+    final hasDiscount =
+        test.discountedPrice != null &&
         test.discountedPrice! > 0 &&
         test.discountedPrice! < test.basePrice;
 
@@ -339,19 +351,24 @@ class _TestSuggestionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFEFF4FF),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF5A88F1).withValues(alpha: 0.4)),
+          border: Border.all(
+            color: const Color(0xFF5A88F1).withValues(alpha: 0.4),
+          ),
         ),
         child: Row(
           children: [
-            const Icon(Icons.biotech_rounded, size: 18, color: Color(0xFF5A88F1)),
+            const Icon(
+              Icons.biotech_rounded,
+              size: 18,
+              color: Color(0xFF5A88F1),
+            ),
             const SizedBox(width: AppSpacing.s8),
             Expanded(
               child: Text(
                 test.testName,
-                style: AppTextStyles.bubbleAi(context).copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
+                style: AppTextStyles.bubbleAi(
+                  context,
+                ).copyWith(fontWeight: FontWeight.w600, fontSize: 12),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

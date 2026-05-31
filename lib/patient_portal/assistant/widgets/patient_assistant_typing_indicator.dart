@@ -35,10 +35,14 @@ class _TypingIndicatorWidgetState extends State<TypingIndicatorWidget>
           width: 28,
           height: 28,
           decoration: const BoxDecoration(
-            color: Color(0xFFDDF3EF),
+            gradient: AiChatColors.userBubbleGradient,
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.smart_toy_rounded, size: 16),
+          child: const Icon(
+            Icons.auto_awesome_rounded,
+            size: 16,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(width: AppSpacing.s8),
         Container(
@@ -46,7 +50,7 @@ class _TypingIndicatorWidgetState extends State<TypingIndicatorWidget>
           decoration: BoxDecoration(
             color: AiChatColors.bubbleAi,
             borderRadius: BorderRadius.circular(AppRadius.bubble),
-            boxShadow: AiChatColors.softShadow,
+            border: Border.all(color: AiChatColors.border),
           ),
           child: AnimatedBuilder(
             animation: _controller,

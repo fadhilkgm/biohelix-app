@@ -377,9 +377,12 @@ class _AssistantPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Health AI')),
-      body: const _AssistantTab(),
+    return const AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: AiChatColors.background,
+        body: _AssistantTab(),
+      ),
     );
   }
 }

@@ -192,10 +192,15 @@ class _AssistantTabState extends State<_AssistantTab> {
             final showDesktopSidebar = constraints.maxWidth >= 940;
 
             Widget messagePane() {
+              final patientName =
+                  (portal.dashboard?.patient.name.trim().isNotEmpty ?? false)
+                  ? portal.dashboard!.patient.name.trim().split(' ').first
+                  : 'there';
+
               return Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
                     child: ChatHeaderWidget(
                       onToggleThreads: () {
                         setState(() {
@@ -214,9 +219,22 @@ class _AssistantTabState extends State<_AssistantTab> {
                     ),
                   ),
                   Expanded(
-                    child: messages.isEmpty && !portal.isSendingMessage
+                    child: _isLiveVoiceMode
+                        ? _AssistantLiveStage(
+                            patientName: patientName,
+                            isListening: _isListening,
+                            isSpeaking: _isSpeaking,
+                            isBusy: portal.isSendingMessage,
+                            latestAssistantText: _latestAssistantText(messages),
+                            onAttach: () => _attachFile(portal),
+                            onInterrupt: () =>
+                                _interruptAiSpeechAndListen(portal),
+                            onStopLive: () => _toggleLiveVoiceMode(portal),
+                          )
+                        : messages.isEmpty && !portal.isSendingMessage
                         ? _AssistantEmptyState(
                             prompts: strings.assistantStarterPrompts,
+                            patientName: patientName,
                             onPromptTap: (prompt) {
                               _inputController.text = prompt;
                               _sendMessage(portal);
@@ -382,19 +400,22 @@ class _AssistantTabState extends State<_AssistantTab> {
                     ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                    child: ChatInputWidget(
-                      controller: _inputController,
-                      isBusy: busy,
-                      isListening: _isListening,
-                      isLiveMode: _isLiveVoiceMode,
-                      isSpeaking: _isSpeaking,
-                      soundLevel: _soundLevel,
-                      onAttach: () => _attachFile(portal),
-                      onLiveTap: () => _toggleLiveVoiceMode(portal),
-                      onVoiceTap: _toggleVoiceInput,
-                      onInterrupt: () => _interruptAiSpeechAndListen(portal),
-                      onSend: () => _sendMessage(portal),
-                    ),
+                    child: _isLiveVoiceMode
+                        ? const SizedBox.shrink()
+                        : ChatInputWidget(
+                            controller: _inputController,
+                            isBusy: busy,
+                            isListening: _isListening,
+                            isLiveMode: _isLiveVoiceMode,
+                            isSpeaking: _isSpeaking,
+                            soundLevel: _soundLevel,
+                            onAttach: () => _attachFile(portal),
+                            onLiveTap: () => _toggleLiveVoiceMode(portal),
+                            onVoiceTap: _toggleVoiceInput,
+                            onInterrupt: () =>
+                                _interruptAiSpeechAndListen(portal),
+                            onSend: () => _sendMessage(portal),
+                          ),
                   ),
                 ],
               );
@@ -425,7 +446,19 @@ class _AssistantTabState extends State<_AssistantTab> {
               top: true,
               bottom: false,
               child: Container(
-                color: AiChatColors.background,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AiChatColors.background,
+                      AiChatColors.background,
+                      AiChatColors.surfaceTint,
+                      AiChatColors.backgroundBlue,
+                    ],
+                    stops: [0.0, 0.58, 0.78, 1.0],
+                  ),
+                ),
                 child: Stack(
                   children: [
                     Row(
@@ -478,13 +511,24 @@ class _AssistantTabState extends State<_AssistantTab> {
   }
 }
 
+String? _latestAssistantText(List<ChatMessage> messages) {
+  for (final message in messages.reversed) {
+    if (message.role != 'user' && message.content.trim().isNotEmpty) {
+      return message.content.trim();
+    }
+  }
+  return null;
+}
+
 class _AssistantEmptyState extends StatelessWidget {
   const _AssistantEmptyState({
     required this.prompts,
+    required this.patientName,
     required this.onPromptTap,
   });
 
   final List<String> prompts;
+  final String patientName;
   final ValueChanged<String> onPromptTap;
 
   @override
@@ -492,77 +536,362 @@ class _AssistantEmptyState extends StatelessWidget {
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 24, 18, 18),
+      padding: const EdgeInsets.fromLTRB(24, 130, 24, 18),
       children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AiChatColors.bubbleAi,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            boxShadow: AiChatColors.softShadow,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: const BoxDecoration(
-                  gradient: AiChatColors.userBubbleGradient,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.health_and_safety_rounded,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.s14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      strings.assistantTitle,
-                      style: AppTextStyles.title(context),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      strings.assistantDisclaimer,
-                      style: AppTextStyles.subtitle(context),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        const Center(child: _GeminiSparkle(size: 58)),
+        const SizedBox(height: 38),
+        Text(
+          'Hi $patientName, how can I help?',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.manrope(
+            color: AiChatColors.textPrimary,
+            fontSize: 40,
+            height: 1.1,
+            fontWeight: FontWeight.w500,
+            letterSpacing: -1.8,
           ),
         ),
-        const SizedBox(height: AppSpacing.s20),
+        const SizedBox(height: 96),
         for (final prompt in prompts)
           Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.s10),
-            child: OutlinedButton.icon(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: TextButton.icon(
               onPressed: () => onPromptTap(prompt),
-              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+              icon: const Icon(Icons.auto_awesome_rounded, size: 19),
               label: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(prompt, textAlign: TextAlign.left),
               ),
-              style: OutlinedButton.styleFrom(
+              style: TextButton.styleFrom(
                 alignment: Alignment.centerLeft,
-                foregroundColor: AiChatColors.textPrimary,
-                side: BorderSide(
-                  color: AiChatColors.gradientStart.withValues(alpha: 0.16),
+                foregroundColor: AiChatColors.primary,
+                textStyle: GoogleFonts.manrope(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.2,
                 ),
+                backgroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
+                  horizontal: 18,
+                  vertical: 16,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(24),
+                  side: const BorderSide(color: AiChatColors.border),
                 ),
               ),
             ),
           ),
+        const SizedBox(height: 16),
+        Text(
+          strings.assistantDisclaimer,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.manrope(
+            color: const Color(0xFF8E8E93),
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
       ],
     );
   }
+}
+
+class _AssistantLiveStage extends StatelessWidget {
+  const _AssistantLiveStage({
+    required this.patientName,
+    required this.isListening,
+    required this.isSpeaking,
+    required this.isBusy,
+    required this.latestAssistantText,
+    required this.onAttach,
+    required this.onInterrupt,
+    required this.onStopLive,
+  });
+
+  final String patientName;
+  final bool isListening;
+  final bool isSpeaking;
+  final bool isBusy;
+  final String? latestAssistantText;
+  final VoidCallback onAttach;
+  final VoidCallback onInterrupt;
+  final VoidCallback onStopLive;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayText = isSpeaking && (latestAssistantText ?? '').isNotEmpty
+        ? latestAssistantText!
+        : 'Hi $patientName, how can I help?';
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(26, 160, 26, 180),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const _GeminiSparkle(size: 58),
+                const SizedBox(height: 40),
+                Text(
+                  displayText,
+                  textAlign: isSpeaking ? TextAlign.start : TextAlign.center,
+                  maxLines: isSpeaking ? 7 : 2,
+                  overflow: TextOverflow.fade,
+                  style: GoogleFonts.manrope(
+                    color: AiChatColors.textPrimary,
+                    fontSize: isSpeaking ? 36 : 40,
+                    height: isSpeaking ? 1.18 : 1.1,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -1.7,
+                  ),
+                ),
+                if (isSpeaking || isBusy) ...[
+                  const SizedBox(height: 34),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AiChatColors.surfaceTint,
+                      border: Border.all(color: AiChatColors.border),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      isSpeaking ? 'Tap to interrupt' : 'Thinking...',
+                      style: GoogleFonts.manrope(
+                        color: AiChatColors.primary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          left: 18,
+          right: 18,
+          bottom: 28,
+          child: _LiveControlsDock(
+            isListening: isListening,
+            isSpeaking: isSpeaking,
+            onAttach: onAttach,
+            onInterrupt: onInterrupt,
+            onStopLive: onStopLive,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LiveControlsDock extends StatelessWidget {
+  const _LiveControlsDock({
+    required this.isListening,
+    required this.isSpeaking,
+    required this.onAttach,
+    required this.onInterrupt,
+    required this.onStopLive,
+  });
+
+  final bool isListening;
+  final bool isSpeaking;
+  final VoidCallback onAttach;
+  final VoidCallback onInterrupt;
+  final VoidCallback onStopLive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _RoundLiveButton(icon: Icons.videocam_outlined, onTap: () {}),
+        _RoundLiveButton(icon: Icons.upload_rounded, onTap: onAttach),
+        const _LiveOrb(),
+        _RoundLiveButton(
+          icon: Icons.mic_none_rounded,
+          onTap: isSpeaking ? onInterrupt : () {},
+          highlighted: isListening,
+        ),
+        _RoundLiveButton(icon: Icons.close_rounded, onTap: onStopLive),
+      ],
+    );
+  }
+}
+
+class _RoundLiveButton extends StatelessWidget {
+  const _RoundLiveButton({
+    required this.icon,
+    required this.onTap,
+    this.highlighted = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 58,
+        height: 58,
+        decoration: BoxDecoration(
+          color: highlighted ? AiChatColors.primary : Colors.white,
+          border: Border.all(color: AiChatColors.border),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          color: highlighted ? Colors.white : AiChatColors.primary,
+          size: 31,
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveOrb extends StatelessWidget {
+  const _LiveOrb();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 118,
+      height: 82,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(40),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF0D2A22), Color(0xFF1B4D3E), Color(0xFF35D399)],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x802E8B57),
+            blurRadius: 34,
+            offset: Offset(0, 14),
+          ),
+        ],
+      ),
+      child: CustomPaint(painter: _OrbPainter()),
+    );
+  }
+}
+
+class _GeminiSparkle extends StatelessWidget {
+  const _GeminiSparkle({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(size: Size.square(size), painter: _SparklePainter());
+  }
+}
+
+class _SparklePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..shader = const LinearGradient(
+        colors: [
+          Color(0xFF2E8B57),
+          Color(0xFF35D399),
+          Color(0xFF1B4D3E),
+          Color(0xFF26A89A),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomRight,
+      ).createShader(rect);
+
+    final path = Path();
+    final c = size.center(Offset.zero);
+    final r = size.shortestSide / 2;
+    path
+      ..moveTo(c.dx, c.dy - r)
+      ..cubicTo(
+        c.dx + r * 0.10,
+        c.dy - r * 0.28,
+        c.dx + r * 0.28,
+        c.dy - r * 0.10,
+        c.dx + r,
+        c.dy,
+      )
+      ..cubicTo(
+        c.dx + r * 0.28,
+        c.dy + r * 0.10,
+        c.dx + r * 0.10,
+        c.dy + r * 0.28,
+        c.dx,
+        c.dy + r,
+      )
+      ..cubicTo(
+        c.dx - r * 0.10,
+        c.dy + r * 0.28,
+        c.dx - r * 0.28,
+        c.dy + r * 0.10,
+        c.dx - r,
+        c.dy,
+      )
+      ..cubicTo(
+        c.dx - r * 0.28,
+        c.dy - r * 0.10,
+        c.dx - r * 0.10,
+        c.dy - r * 0.28,
+        c.dx,
+        c.dy - r,
+      )
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _OrbPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..shader = const LinearGradient(
+        colors: [Color(0xFFEAFBF3), Color(0x00EAFBF3)],
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+      ).createShader(Offset.zero & size)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+    final path = Path()
+      ..moveTo(0, size.height * 0.58)
+      ..cubicTo(
+        size.width * 0.25,
+        size.height * 0.28,
+        size.width * 0.45,
+        size.height * 0.62,
+        size.width * 0.7,
+        size.height * 0.42,
+      )
+      ..cubicTo(
+        size.width * 0.9,
+        size.height * 0.28,
+        size.width,
+        size.height * 0.5,
+        size.width,
+        size.height * 0.5,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -1,15 +1,24 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class AiChatColors {
-  static const background = Color(0xFFF5F7FB);
+  // Light theme aligned with the BioHelix app palette (deep green / sea green).
+  static const background = Color(0xFFF9FAFB); // app backgroundLight
+  static const backgroundBlue = Color(0xFFE8F2EC); // soft green tint
   static const bubbleAi = Color(0xFFFFFFFF);
-  static const bubbleAiSoft = Color(0xFFF1F4F8);
-  static const textPrimary = Color(0xFF1D2939);
-  static const textSecondary = Color(0xFF667085);
+  static const bubbleAiSoft = Color(0xFFF3F4F6);
+  static const textPrimary = Color(0xFF111827);
+  static const textSecondary = Color(0xFF4B5563);
   static const inputSurface = Color(0xFFFFFFFF);
-  static const online = Color(0xFF18B87A);
-  static const gradientStart = Color(0xFF2B79FF);
-  static const gradientEnd = Color(0xFF16B5A4);
+  static const online = Color(0xFF10B981);
+
+  // Brand accents
+  static const primary = Color(0xFF1B4D3E); // deep green
+  static const accent = Color(0xFF2E8B57); // sea green
+  static const border = Color(0xFFE5E7EB);
+  static const surfaceTint = Color(0xFFECF5F1);
+
+  static const gradientStart = primary;
+  static const gradientEnd = accent;
 
   static const userBubbleGradient = LinearGradient(
     colors: [gradientStart, gradientEnd],
@@ -17,21 +26,21 @@ class AiChatColors {
     end: Alignment.bottomRight,
   );
 
-  static List<BoxShadow> softShadow = const [
-    BoxShadow(color: Color(0x140F172A), blurRadius: 18, offset: Offset(0, 8)),
-  ];
+  // Clean, flat UI — rely on borders instead of drop shadows.
+  static List<BoxShadow> softShadow = const [];
 }
 
 class AppTextStyles {
   static TextStyle title(BuildContext context) => GoogleFonts.manrope(
-    fontSize: 20,
-    fontWeight: FontWeight.w800,
+    fontSize: 22,
+    fontWeight: FontWeight.w500,
     color: AiChatColors.textPrimary,
+    letterSpacing: -0.4,
   );
 
   static TextStyle subtitle(BuildContext context) => GoogleFonts.manrope(
-    fontSize: 12,
-    fontWeight: FontWeight.w600,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
     color: AiChatColors.textSecondary,
   );
 
@@ -44,8 +53,8 @@ class AppTextStyles {
 
   static TextStyle bubbleAi(BuildContext context) => GoogleFonts.manrope(
     fontSize: 15,
-    height: 1.5,
-    fontWeight: FontWeight.w500,
+    height: 1.45,
+    fontWeight: FontWeight.w400,
     color: AiChatColors.textPrimary,
   );
 
@@ -56,8 +65,12 @@ class AppTextStyles {
     letterSpacing: 0.3,
   );
 
-  static TextStyle inputHint(BuildContext context) =>
-      GoogleFonts.manrope(fontSize: 15, color: AiChatColors.textSecondary);
+  static TextStyle inputHint(BuildContext context) => GoogleFonts.manrope(
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    color: AiChatColors.textSecondary,
+    letterSpacing: -0.2,
+  );
 }
 
 class AppSpacing {
