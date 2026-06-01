@@ -527,14 +527,26 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
         timeslot: slot,
       );
       if (mounted) {
+        final config = Provider.of<AppConfig>(context, listen: false);
+        final apiBase = config.apiBaseUrl.replaceAll('/api', '');
+        final doctorImageUrl = _resolveDoctorImageUrl(
+          widget.doctor.imageUrl,
+          apiBase,
+        );
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => const BookingSuccessScreen(
+            builder: (_) => BookingSuccessScreen(
               bookingId: 'DOC-REQ',
               title: 'Appointment Booked!',
               subtitle:
                   'Your session has been successfully scheduled. You can track your upcoming sessions in the bookings tab.',
               imagePath: 'assets/images/appoiment-success.png',
+              doctorName: widget.doctor.name,
+              doctorSpecialization: widget.doctor.specialization,
+              doctorImageUrl: doctorImageUrl,
+              bookingDate: DateFormat('EEE, d MMM yyyy').format(date),
+              bookingTime: slot,
             ),
           ),
         );
@@ -546,6 +558,16 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
         );
       }
     }
+  }
+
+  String _resolveDoctorImageUrl(String? url, String apiBase) {
+    if (url == null || url.trim().isEmpty) return '';
+    final cleanValue = url.trim();
+    if (cleanValue.startsWith('http')) return cleanValue;
+    final cleanUrl = cleanValue.startsWith('/')
+        ? cleanValue.substring(1)
+        : cleanValue;
+    return '$apiBase/$cleanUrl';
   }
 
   Future<void> _pickTime(PatientPortalProvider portal) async {
