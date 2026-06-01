@@ -14,6 +14,7 @@ class _AssistantTabState extends State<_AssistantTab> {
   final _messagesController = ScrollController();
   late final VoiceManager _voiceManager;
   int _lastAutoScrolledMessageCount = 0;
+  String? _lastAutoScrolledThreadId;
   bool _showMobileSidebar = false;
   bool _speechReady = false;
   bool _isListening = false;
@@ -21,6 +22,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   bool _isLiveVoiceMode = false;
   bool _isLiveTurnInFlight = false;
   bool _isTapRecording = false;
+  Timer? _liveAutoSendDebounce;
+  String _lastLiveSentText = '';
   String? _lastLiveSpokenReply;
   String? _configuredTtsLanguage;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
@@ -129,6 +132,7 @@ class _AssistantTabState extends State<_AssistantTab> {
   @override
   void dispose() {
     _isLiveVoiceMode = false;
+    _liveAutoSendDebounce?.cancel();
     _voiceManager.stopListening();
     _voiceManager.stopSpeaking();
     _messagesController.dispose();
@@ -148,6 +152,7 @@ class _AssistantTabState extends State<_AssistantTab> {
     return Consumer<PatientPortalProvider>(
       builder: (context, portal, _) {
         final messages = portal.chatMessages;
+        final activeThreadId = portal.activeChatThreadId;
         final busy = portal.isSendingMessage || portal.isUploadingDocument;
         final pendingAttachments = List<ChatAttachment>.unmodifiable(
           _pendingAttachments,
@@ -167,6 +172,16 @@ class _AssistantTabState extends State<_AssistantTab> {
               _speakReplyThenResumeListening(last, portal);
             });
           }
+        }
+
+        if (activeThreadId != _lastAutoScrolledThreadId) {
+          _lastAutoScrolledThreadId = activeThreadId;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || !_messagesController.hasClients) return;
+            final position = _messagesController.position;
+            if (!position.hasContentDimensions) return;
+            _messagesController.jumpTo(position.maxScrollExtent);
+          });
         }
 
         if (messages.length != _lastAutoScrolledMessageCount || busy) {
@@ -237,7 +252,6 @@ class _AssistantTabState extends State<_AssistantTab> {
                               latestAssistantText: _latestAssistantText(
                                 messages,
                               ),
-                              onAttach: () => _attachFile(portal),
                               onInterrupt: () =>
                                   _interruptAiSpeechAndListen(portal),
                               onStopLive: () => _toggleLiveVoiceMode(portal),
@@ -622,14 +636,13 @@ class _AssistantEmptyState extends StatelessWidget {
   }
 }
 
-class _AssistantLiveStage extends StatelessWidget {
+class _AssistantLiveStage extends StatefulWidget {
   const _AssistantLiveStage({
     required this.patientName,
     required this.isListening,
     required this.isSpeaking,
     required this.isBusy,
     required this.latestAssistantText,
-    required this.onAttach,
     required this.onInterrupt,
     required this.onStopLive,
   });
@@ -639,15 +652,46 @@ class _AssistantLiveStage extends StatelessWidget {
   final bool isSpeaking;
   final bool isBusy;
   final String? latestAssistantText;
-  final VoidCallback onAttach;
   final VoidCallback onInterrupt;
   final VoidCallback onStopLive;
 
   @override
+  State<_AssistantLiveStage> createState() => _AssistantLiveStageState();
+}
+
+class _AssistantLiveStageState extends State<_AssistantLiveStage> {
+  final ScrollController _liveTextScrollController = ScrollController();
+
+  @override
+  void didUpdateWidget(covariant _AssistantLiveStage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSpeaking &&
+        widget.latestAssistantText != oldWidget.latestAssistantText) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_liveTextScrollController.hasClients) return;
+        _liveTextScrollController.animateTo(
+          _liveTextScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _liveTextScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final displayText = isSpeaking && (latestAssistantText ?? '').isNotEmpty
-        ? latestAssistantText!
-        : 'Hi $patientName, how can I help?';
+    final isSpeaking = widget.isSpeaking;
+    final isListening = widget.isListening;
+    final displayText =
+        isSpeaking && (widget.latestAssistantText ?? '').isNotEmpty
+        ? widget.latestAssistantText!
+        : 'Hi ${widget.patientName}, how can I help?';
 
     return Stack(
       children: [
@@ -657,43 +701,30 @@ class _AssistantLiveStage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const _GeminiSparkle(size: 58),
-                const SizedBox(height: 40),
-                Text(
-                  displayText,
-                  textAlign: isSpeaking ? TextAlign.start : TextAlign.center,
-                  maxLines: isSpeaking ? 7 : 2,
-                  overflow: TextOverflow.fade,
-                  style: GoogleFonts.manrope(
-                    color: AiChatColors.textPrimary,
-                    fontSize: isSpeaking ? 36 : 40,
-                    height: isSpeaking ? 1.18 : 1.1,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: -1.7,
-                  ),
+                _LiveStatusOrb(
+                  isListening: isListening,
+                  isSpeaking: isSpeaking,
+                  isBusy: widget.isBusy,
                 ),
-                if (isSpeaking || isBusy) ...[
-                  const SizedBox(height: 34),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 11,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AiChatColors.surfaceTint,
-                      border: Border.all(color: AiChatColors.border),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
+                const SizedBox(height: 40),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _liveTextScrollController,
                     child: Text(
-                      isSpeaking ? 'Tap to interrupt' : 'Thinking...',
+                      displayText,
+                      textAlign: isSpeaking
+                          ? TextAlign.start
+                          : TextAlign.center,
                       style: GoogleFonts.manrope(
-                        color: AiChatColors.primary,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
+                        color: AiChatColors.textPrimary,
+                        fontSize: isSpeaking ? 32 : 40,
+                        height: isSpeaking ? 1.18 : 1.1,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -1.5,
                       ),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -705,9 +736,8 @@ class _AssistantLiveStage extends StatelessWidget {
           child: _LiveControlsDock(
             isListening: isListening,
             isSpeaking: isSpeaking,
-            onAttach: onAttach,
-            onInterrupt: onInterrupt,
-            onStopLive: onStopLive,
+            onInterrupt: widget.onInterrupt,
+            onStopLive: widget.onStopLive,
           ),
         ),
       ],
@@ -719,14 +749,12 @@ class _LiveControlsDock extends StatelessWidget {
   const _LiveControlsDock({
     required this.isListening,
     required this.isSpeaking,
-    required this.onAttach,
     required this.onInterrupt,
     required this.onStopLive,
   });
 
   final bool isListening;
   final bool isSpeaking;
-  final VoidCallback onAttach;
   final VoidCallback onInterrupt;
   final VoidCallback onStopLive;
 
@@ -736,15 +764,62 @@ class _LiveControlsDock extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _RoundLiveButton(icon: Icons.upload_rounded, onTap: onAttach),
-        const _LiveOrb(),
+        _LiveOrb(isListening: isListening, isSpeaking: isSpeaking),
         _RoundLiveButton(
-          icon: Icons.mic_none_rounded,
+          icon: Icons.stop_rounded,
           onTap: isSpeaking ? onInterrupt : () {},
-          highlighted: isListening,
+          highlighted: isSpeaking,
         ),
         _RoundLiveButton(icon: Icons.close_rounded, onTap: onStopLive),
       ],
+    );
+  }
+}
+
+class _LiveStatusOrb extends StatelessWidget {
+  const _LiveStatusOrb({
+    required this.isListening,
+    required this.isSpeaking,
+    required this.isBusy,
+  });
+
+  final bool isListening;
+  final bool isSpeaking;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = isSpeaking
+        ? const [Color(0xFF1B4D3E), Color(0xFF35D399), Color(0xFF9EF3D1)]
+        : isListening
+        ? const [Color(0xFF0F3A7A), Color(0xFF5A88F1), Color(0xFFAFC7FF)]
+        : isBusy
+        ? const [Color(0xFF6B4E16), Color(0xFFF0B429), Color(0xFFFFE4A3)]
+        : const [Color(0xFF2E8B57), Color(0xFF35D399), Color(0xFF1B4D3E)];
+
+    return Container(
+      width: 78,
+      height: 78,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colors[1].withValues(alpha: 0.42),
+            blurRadius: 24,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.graphic_eq_rounded,
+        color: Colors.white,
+        size: 38,
+      ),
     );
   }
 }
@@ -783,29 +858,49 @@ class _RoundLiveButton extends StatelessWidget {
 }
 
 class _LiveOrb extends StatelessWidget {
-  const _LiveOrb();
+  const _LiveOrb({required this.isListening, required this.isSpeaking});
+
+  final bool isListening;
+  final bool isSpeaking;
 
   @override
   Widget build(BuildContext context) {
+    final colors = isSpeaking
+        ? const [Color(0xFF0D2A22), Color(0xFF1B4D3E), Color(0xFF35D399)]
+        : isListening
+        ? const [Color(0xFF102A52), Color(0xFF2C5DB6), Color(0xFF5A88F1)]
+        : const [Color(0xFF0D2A22), Color(0xFF1B4D3E), Color(0xFF35D399)];
+    final icon = isSpeaking
+        ? Icons.volume_up_rounded
+        : isListening
+        ? Icons.hearing_rounded
+        : Icons.graphic_eq_rounded;
+
     return Container(
       width: 118,
       height: 82,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(40),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF0D2A22), Color(0xFF1B4D3E), Color(0xFF35D399)],
+          colors: colors,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x802E8B57),
+            color: colors.last.withValues(alpha: 0.5),
             blurRadius: 34,
             offset: Offset(0, 14),
           ),
         ],
       ),
-      child: CustomPaint(painter: _OrbPainter()),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(painter: _OrbPainter()),
+          Icon(icon, color: Colors.white, size: 32),
+        ],
+      ),
     );
   }
 }
