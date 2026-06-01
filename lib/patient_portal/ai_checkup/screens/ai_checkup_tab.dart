@@ -301,10 +301,7 @@ class _LanguageSelectionScreen extends StatelessWidget {
           ),
           const SizedBox(height: 40),
           _OptionCard(label: 'English', onTap: () => onSelect('en')),
-          _OptionCard(
-            label: 'à´®à´²à´¯à´¾à´³à´‚ (Malayalam)',
-            onTap: () => onSelect('ml'),
-          ),
+          _OptionCard(label: 'മലയാളം (Malayalam)', onTap: () => onSelect('ml')),
           const SizedBox(height: 20),
           TextButton(onPressed: onReset, child: const Text('Back to History')),
         ],
@@ -399,40 +396,44 @@ class _HistoryScreen extends StatelessWidget {
                         displayDate = dateStr;
                       }
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE5E9F0)),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 8,
+                      return Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        clipBehavior: Clip.antiAlias,
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFE5E9F0)),
                           ),
-                          onTap: () => onSelect(item),
-                          title: Text(
-                            displayDate,
-                            style: GoogleFonts.manrope(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 8,
                             ),
-                          ),
-                          subtitle: Text('Health Score: $score%'),
-                          trailing: const Icon(
-                            Icons.chevron_right_rounded,
-                            color: Color(0xFF5A88F1),
-                          ),
-                          leading: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF4F7FF),
-                              borderRadius: BorderRadius.circular(12),
+                            onTap: () => onSelect(item),
+                            title: Text(
+                              displayDate,
+                              style: GoogleFonts.manrope(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.analytics_rounded,
+                            subtitle: Text('Health Score: $score%'),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
                               color: Color(0xFF5A88F1),
+                            ),
+                            leading: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF4F7FF),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.analytics_rounded,
+                                color: Color(0xFF5A88F1),
+                              ),
                             ),
                           ),
                         ),
@@ -478,11 +479,11 @@ class _WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMl = language == 'ml';
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(24),
         children: [
-          const Spacer(),
+          const SizedBox(height: 32),
           Container(
             width: 120,
             height: 120,
@@ -498,9 +499,7 @@ class _WelcomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            isMl
-                ? 'à´Žà´ à´¹àµ†àµ½à´¤àµà´¤àµ à´šàµ†à´•àµà´•à´ªàµà´ªàµ'
-                : 'AI Health Checkup',
+            isMl ? 'എഐ ഹെൽത്ത് ചെക്കപ്പ്' : 'AI Health Checkup',
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
               fontSize: 28,
@@ -511,7 +510,7 @@ class _WelcomeScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             isMl
-                ? 'à´¨à´¿à´™àµà´™à´³àµà´Ÿàµ† à´œàµ€à´µà´¿à´¤à´¶àµˆà´²à´¿à´¯àµ†à´¯àµà´‚ à´†à´°àµ‹à´—àµà´¯à´¤àµà´¤àµ†à´¯àµà´‚ à´•àµà´±à´¿à´šàµà´šàµà´³àµà´³ à´à´¤à´¾à´¨àµà´‚ à´šàµ‹à´¦àµà´¯à´™àµà´™àµ¾à´•àµà´•àµ à´®à´±àµà´ªà´Ÿà´¿ à´¨àµ½à´•àµà´•. à´žà´™àµà´™à´³àµà´Ÿàµ† à´Žà´ (AI) à´¨à´¿à´™àµà´™à´³àµà´Ÿàµ† à´‰à´¤àµà´¤à´°à´™àµà´™àµ¾ à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´•à´¯àµà´‚ à´¨à´¿à´™àµà´™àµ¾à´•àµà´•àµ à´…à´¨àµà´¯àµ‹à´œàµà´¯à´®à´¾à´¯ à´ªà´°à´¿à´¶àµ‹à´§à´¨à´•àµ¾ à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´•àµà´•àµà´•à´¯àµà´‚ à´šàµ†à´¯àµà´¯àµà´‚.'
+                ? 'നിങ്ങളുടെ ജീവിതശൈലിയെയും ആരോഗ്യത്തെയും കുറിച്ച് കുറച്ച് ചോദ്യങ്ങൾക്ക് മറുപടി നൽകുക. നിങ്ങളുടെ ഉത്തരങ്ങൾ വിലയിരുത്തി അനുയോജ്യമായ പരിശോധനകൾ നിർദ്ദേശിക്കും.'
                 : 'Answer a few questions about your lifestyle and health. Our AI will analyze your responses and suggest preventive lab tests tailored for you.',
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
@@ -520,7 +519,7 @@ class _WelcomeScreen extends StatelessWidget {
               height: 1.5,
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 40),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -535,9 +534,7 @@ class _WelcomeScreen extends StatelessWidget {
                 ),
               ),
               child: Text(
-                isMl
-                    ? 'à´ªà´°à´¿à´¶àµ‹à´§à´¨ à´†à´°à´‚à´­à´¿à´•àµà´•àµà´•'
-                    : 'Start Assessment',
+                isMl ? 'പരിശോധന ആരംഭിക്കുക' : 'Start Assessment',
                 style: GoogleFonts.manrope(
                   fontWeight: FontWeight.w900,
                   fontSize: 18,
@@ -572,9 +569,7 @@ class _BasicDetailsScreen extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       children: [
         Text(
-          isMl
-              ? 'à´µà´¿à´µà´°à´™àµà´™àµ¾ à´¨àµ½à´•àµà´•'
-              : 'Please Enter Your Details',
+          isMl ? 'വിവരങ്ങൾ നൽകുക' : 'Please Enter Your Details',
           style: GoogleFonts.manrope(
             fontSize: 22,
             fontWeight: FontWeight.w900,
@@ -592,12 +587,12 @@ class _BasicDetailsScreen extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         _TextField(
-          label: isMl ? 'à´ªàµ‚àµ¼à´£àµà´£à´¨à´¾à´®à´‚' : 'Full Name',
+          label: isMl ? 'പൂർണ്ണനാമം' : 'Full Name',
           controller: nameCtrl,
         ),
         const SizedBox(height: 16),
         _TextField(
-          label: isMl ? 'à´ªàµà´°à´¾à´¯à´‚' : 'Age',
+          label: isMl ? 'പ്രായം' : 'Age',
           controller: ageCtrl,
           keyboardType: TextInputType.number,
         ),
@@ -606,7 +601,7 @@ class _BasicDetailsScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _TextField(
-                label: isMl ? 'à´­à´¾à´°à´‚ (kg)' : 'Weight (kg)',
+                label: isMl ? 'ഭാരം (kg)' : 'Weight (kg)',
                 controller: weightCtrl,
                 keyboardType: TextInputType.number,
               ),
@@ -614,7 +609,7 @@ class _BasicDetailsScreen extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _TextField(
-                label: isMl ? 'à´‰à´¯à´°à´‚ (ft/inch)' : 'Height (ft/inch)',
+                label: isMl ? 'ഉയരം (ft/inch)' : 'Height (ft/inch)',
                 controller: heightCtrl,
               ),
             ),
@@ -638,7 +633,7 @@ class _BasicDetailsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  isMl ? 'à´¤àµà´Ÿà´°àµà´•' : 'Continue',
+                  isMl ? 'തുടരുക' : 'Continue',
                   style: GoogleFonts.manrope(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
@@ -832,23 +827,8 @@ class _AiChatScreenState extends State<_AiChatScreen> {
     final progress = (_questionCount + 1) / _maxQuestions;
 
     if (_loading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(color: Color(0xFF5A88F1)),
-            const SizedBox(height: 24),
-            Text(
-              isMl
-                  ? 'à´Žà´ à´†à´²àµ‹à´šà´¿à´•àµà´•àµà´¨àµà´¨àµ...'
-                  : 'AI is thinking...',
-              style: GoogleFonts.manrope(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF5A88F1)),
       );
     }
 
@@ -874,7 +854,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
             children: [
               Text(
                 isMl
-                    ? 'à´šàµ‹à´¦àµà´¯à´‚ ${_questionCount + 1}'
+                    ? 'ചോദ്യം ${_questionCount + 1}'
                     : 'Question ${_questionCount + 1}',
                 style: GoogleFonts.manrope(
                   fontSize: 14,
@@ -887,7 +867,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
                   onPressed: _goBack,
                   icon: const Icon(Icons.arrow_back_rounded, size: 16),
                   label: Text(
-                    isMl ? 'à´¤à´¿à´°à´¿à´•àµ†' : 'Back',
+                    isMl ? 'തിരികെ' : 'Back',
                     style: GoogleFonts.manrope(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -941,7 +921,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            isMl ? 'à´¤àµà´Ÿà´°àµà´•' : 'Continue',
+                            isMl ? 'തുടരുക' : 'Continue',
                             style: GoogleFonts.manrope(
                               fontWeight: FontWeight.w900,
                               fontSize: 18,
@@ -963,9 +943,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
             child: TextButton(
               onPressed: () => widget.onComplete(_chatAnswers),
               child: Text(
-                isMl
-                    ? 'à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´•'
-                    : 'Skip & Analyze Now',
+                isMl ? 'വിശകലനം ചെയ്യുക' : 'Skip & Analyze Now',
                 style: GoogleFonts.manrope(
                   color: const Color(0xFF8DA0BA),
                   fontWeight: FontWeight.w700,
@@ -1079,8 +1057,9 @@ class _AnalyzingScreen extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             isMl
-                ? 'à´†à´°àµ‹à´—àµà´¯à´‚ à´µà´¿à´¶à´•à´²à´¨à´‚ à´šàµ†à´¯àµà´¯àµà´¨àµà´¨àµ...'
-                : 'Analyzing your health...',
+                ? 'നിങ്ങളുടെ ഉത്തരങ്ങൾ വിശകലനം ചെയ്യുന്നു...'
+                : 'Analyzing your answers...',
+            textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
               fontSize: 20,
               fontWeight: FontWeight.w800,
@@ -1090,8 +1069,9 @@ class _AnalyzingScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isMl
-                ? 'à´žà´™àµà´™à´³àµà´Ÿàµ† à´Žà´ (AI) à´µà´¿à´µà´°à´™àµà´™àµ¾ à´ªà´°à´¿à´¶àµ‹à´§à´¿à´šàµà´šàµ à´µà´°à´¿à´•à´¯à´¾à´£àµ.'
+                ? 'നിങ്ങളുടെ വിവരങ്ങൾ പരിശോധിച്ചുകൊണ്ടിരിക്കുന്നു.'
                 : 'Our AI is reviewing your lifestyle and health history.',
+            textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
               fontSize: 14,
               color: const Color(0xFF192233).withValues(alpha: 0.5),
@@ -1143,9 +1123,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
         if (widget.result.risks.isNotEmpty) ...[
           const SizedBox(height: 32),
           Text(
-            isMl
-                ? 'à´•à´£àµà´Ÿàµ†à´¤àµà´¤à´¿à´¯ à´†à´°àµ‹à´—àµà´¯ à´ªàµà´°à´¶àµà´¨à´™àµà´™àµ¾'
-                : 'Suggested Issues',
+            isMl ? 'കണ്ടെത്തിയ ആരോഗ്യ പ്രശ്നങ്ങൾ' : 'Suggested Issues',
             style: GoogleFonts.manrope(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1158,9 +1136,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
         if (widget.result.matchedPackages.isNotEmpty) ...[
           const SizedBox(height: 32),
           Text(
-            isMl
-                ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾'
-                : 'Recommended Packages',
+            isMl ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Recommended Packages',
             style: GoogleFonts.manrope(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1201,14 +1177,18 @@ class _ResultsScreenState extends State<_ResultsScreen> {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  isMl
-                      ? 'à´…à´Ÿàµà´¤àµà´¤à´¤àµ: à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾ à´•à´¾à´£àµà´•'
-                      : 'Next: View Packages',
-                  style: GoogleFonts.manrope(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
+                Flexible(
+                  child: Text(
+                    isMl ? 'പാക്കേജുകൾ കാണുക' : 'View Packages',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1238,9 +1218,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
             ),
             Expanded(
               child: Text(
-                isMl
-                    ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´¾à´•àµà´•àµ‡à´œàµà´•àµ¾'
-                    : 'Suggested Packages',
+                isMl ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Suggested Packages',
                 style: GoogleFonts.manrope(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
@@ -1262,9 +1240,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
         if (widget.result.unmatchedPackages.isNotEmpty) ...[
           const SizedBox(height: 24),
           Text(
-            isMl
-                ? 'à´®à´±àµà´±àµ à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´™àµà´™àµ¾'
-                : 'Also Recommended',
+            isMl ? 'മറ്റ് നിർദ്ദേശങ്ങൾ' : 'Also Recommended',
             style: GoogleFonts.manrope(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -1279,9 +1255,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
         if (widget.result.testRecommendations.isNotEmpty) ...[
           const SizedBox(height: 24),
           Text(
-            isMl
-                ? 'à´¨à´¿àµ¼à´¦àµà´¦àµ‡à´¶à´¿à´šàµà´š à´ªà´°à´¿à´¶àµ‹à´§à´¨à´•àµ¾'
-                : 'Suggested Individual Tests',
+            isMl ? 'നിർദ്ദേശിച്ച പരിശോധനകൾ' : 'Suggested Individual Tests',
             style: GoogleFonts.manrope(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -1298,9 +1272,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
             onPressed: widget.onRetake,
             icon: const Icon(Icons.replay_rounded),
             label: Text(
-              isMl
-                  ? 'à´µàµ€à´£àµà´Ÿàµà´‚ à´ªà´°à´¿à´¶àµ‹à´§à´¿à´•àµà´•àµà´•'
-                  : 'Retake Assessment',
+              isMl ? 'വീണ്ടും പരിശോധിക്കുക' : 'Retake Assessment',
               style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
             ),
             style: OutlinedButton.styleFrom(
@@ -1327,9 +1299,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
               color: const Color(0xFF192233).withValues(alpha: 0.6),
             ),
             label: Text(
-              isMl
-                  ? 'à´¤à´¿à´°à´¿à´•àµ† à´¹àµ‹à´®à´¿à´²àµ‡à´•àµà´•àµ'
-                  : 'Back to Home',
+              isMl ? 'ഹോമിലേക്ക് മടങ്ങുക' : 'Back to Home',
               style: GoogleFonts.manrope(
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233).withValues(alpha: 0.6),
@@ -1369,9 +1339,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
       child: Column(
         children: [
           Text(
-            isMl
-                ? 'à´¨à´¿à´™àµà´™à´³àµà´Ÿàµ† à´†à´°àµ‹à´—àµà´¯ à´¸àµà´•àµ‹àµ¼'
-                : 'Your Health Score',
+            isMl ? 'നിങ്ങളുടെ ആരോഗ്യ സ്കോർ' : 'Your Health Score',
             style: GoogleFonts.manrope(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1520,7 +1488,7 @@ class _ResultsScreenState extends State<_ResultsScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            "${isMl ? 'à´®àµàµ»à´•à´°àµà´¤àµ½' : 'Precaution'}: $precaution",
+                            "${isMl ? 'മുൻകരുതൽ' : 'Precaution'}: $precaution",
                             style: GoogleFonts.manrope(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
