@@ -75,6 +75,75 @@ class OtpSession {
   final PatientIdentity patient;
 }
 
+class PatientAuthSession {
+  const PatientAuthSession({required this.token, required this.patient});
+
+  final String token;
+  final PatientIdentity patient;
+}
+
+class BookingConfirmation {
+  const BookingConfirmation({
+    required this.reference,
+    this.id,
+    this.batchId,
+    this.raw = const <String, dynamic>{},
+  });
+
+  final String reference;
+  final int? id;
+  final String? batchId;
+  final Map<String, dynamic> raw;
+
+  factory BookingConfirmation.fromBookingResponse(Map<String, dynamic> json) {
+    final id = (json['id'] as num?)?.toInt();
+    final bookingNumber = json['booking_number']?.toString();
+    return BookingConfirmation(
+      reference: (bookingNumber ?? (id == null ? 'BKG-PENDING' : 'BKG-$id')),
+      id: id,
+      raw: json,
+    );
+  }
+
+  factory BookingConfirmation.fromTestBatchResponse(Map<String, dynamic> json) {
+    final batchId = json['batch_id']?.toString();
+    final bookings = json['bookings'] as List<dynamic>? ?? const [];
+    final first = bookings.isNotEmpty ? _map(bookings.first) : null;
+    final bookingNumber = first?['booking_number']?.toString();
+    final id = (first?['id'] as num?)?.toInt();
+    return BookingConfirmation(
+      reference:
+          batchId ?? bookingNumber ?? (id == null ? 'LAB-PENDING' : 'LAB-$id'),
+      id: id,
+      batchId: batchId,
+      raw: json,
+    );
+  }
+}
+
+String _normalizeBookingTime(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) return trimmed;
+
+  final firstPart = trimmed.split('-').first.trim();
+  final periodMatch = RegExp(
+    r'\b(am|pm)\b',
+    caseSensitive: false,
+  ).firstMatch(trimmed);
+  final period = periodMatch?.group(1)?.toUpperCase();
+  final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(firstPart);
+  if (timeMatch == null) return trimmed;
+
+  var hour = int.tryParse(timeMatch.group(1) ?? '');
+  final minute = int.tryParse(timeMatch.group(2) ?? '');
+  if (hour == null || minute == null) return trimmed;
+
+  if (period == 'PM' && hour < 12) hour += 12;
+  if (period == 'AM' && hour == 12) hour = 0;
+
+  return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+}
+
 class VitalInput {
   const VitalInput({
     this.height,
@@ -126,6 +195,55 @@ class PatientRepository {
     return response['dev_otp']?.toString();
   }
 
+  Future<PatientAuthSession> registerPatient({
+    required String phone,
+    required String password,
+    required String passwordConfirmation,
+    required String firstName,
+    required String lastName,
+    String? gender,
+    String? email,
+    String? dateOfBirth,
+    String? bloodGroup,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/auth/register',
+      data: {
+        'phone': phone.trim(),
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+        'first_name': firstName.trim(),
+        'last_name': lastName.trim(),
+        if ((gender ?? '').trim().isNotEmpty) 'gender': gender!.trim(),
+        if ((email ?? '').trim().isNotEmpty) 'email': email!.trim(),
+        if ((dateOfBirth ?? '').trim().isNotEmpty)
+          'date_of_birth': dateOfBirth!.trim(),
+        if ((bloodGroup ?? '').trim().isNotEmpty)
+          'blood_group': bloodGroup!.trim(),
+      },
+    );
+
+    return PatientAuthSession(
+      token: response['token'] as String? ?? '',
+      patient: PatientIdentity.fromJson(_map(response['patient'])),
+    );
+  }
+
+  Future<PatientAuthSession> loginPatient({
+    required String phone,
+    required String password,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/auth/login',
+      data: {'phone': phone.trim(), 'password': password},
+    );
+
+    return PatientAuthSession(
+      token: response['token'] as String? ?? '',
+      patient: PatientIdentity.fromJson(_map(response['patient'])),
+    );
+  }
+
   Future<String?> signUp({
     required String phone,
     required String name,
@@ -155,8 +273,14 @@ class PatientRepository {
   }
 
   Future<PatientIdentity> getCurrentPatient() async {
-    final response = await _apiClient.getJson('/patients/me');
-    return PatientIdentity.fromJson(_map(response['patient']));
+    final response = await _apiClient.getJson('/auth/profile');
+    return PatientIdentity.fromJson(
+      response.containsKey('patient') ? _map(response['patient']) : response,
+    );
+  }
+
+  Future<void> logout() async {
+    await _apiClient.postJson('/auth/logout');
   }
 
   Future<PatientIdentity> updatePatientProfile(PatientIdentity patient) async {
@@ -207,7 +331,10 @@ class PatientRepository {
 
   Future<List<BookingItem>> getBookings() async {
     final response = await _apiClient.getJson('/patients/bookings');
-    final bookings = response['bookings'] as List<dynamic>? ?? const [];
+    final bookings =
+        response['bookings'] as List<dynamic>? ??
+        response['data'] as List<dynamic>? ??
+        const [];
     return bookings.map((item) => BookingItem.fromJson(_map(item))).toList();
   }
 
@@ -292,7 +419,10 @@ class PatientRepository {
 
   Future<List<DoctorListing>> getDoctors() async {
     final response = await _apiClient.getJson('/doctors');
-    final doctors = response['doctors'] as List<dynamic>? ?? const [];
+    final doctors =
+        response['doctors'] as List<dynamic>? ??
+        response['data'] as List<dynamic>? ??
+        const [];
     return doctors.map((item) {
       final json = _map(item);
       final rawImage =
@@ -318,28 +448,28 @@ class PatientRepository {
     }).toList();
   }
 
-  Future<void> createBooking({
-    required PatientIdentity patient,
+  Future<BookingConfirmation> createBooking({
     required int doctorId,
+    required int scheduleId,
     required String bookingDate,
     required String timeslot,
+    String? notes,
   }) async {
-    await _apiClient.postJson(
-      '/bookings',
+    final response = await _apiClient.postJson(
+      '/bookings/doctors',
       data: {
-        'name': patient.name,
-        'phone': patient.phone,
-        'dob': patient.dob,
-        'place': patient.address,
-        'doctorId': doctorId,
-        'bookingDate': bookingDate,
-        'timeslot': timeslot,
+        'doctor_id': doctorId,
+        'schedule_id': scheduleId,
+        'booking_date': bookingDate,
+        'booking_time': _normalizeBookingTime(timeslot),
+        if ((notes ?? '').trim().isNotEmpty) 'notes': notes!.trim(),
       },
     );
+    return BookingConfirmation.fromBookingResponse(response);
   }
 
   Future<void> cancelBooking(int bookingId) async {
-    await _apiClient.patchJson('/patients/bookings/$bookingId/cancel');
+    await _apiClient.patchJson('/bookings/doctors/$bookingId/cancel');
   }
 
   Future<void> checkInBooking(int bookingId) async {
@@ -394,8 +524,11 @@ class PatientRepository {
   }
 
   Future<List<LabTestItem>> getLabTests() async {
-    final response = await _apiClient.getJson('/patient/lab-tests');
-    final tests = response['tests'] as List<dynamic>? ?? const [];
+    final response = await _apiClient.getJson('/lab/tests');
+    final tests =
+        response['tests'] as List<dynamic>? ??
+        response['data'] as List<dynamic>? ??
+        const [];
     return tests.map((item) {
       final json = _map(item);
       final rawImage =
@@ -413,7 +546,6 @@ class PatientRepository {
     return points.map((item) => BodyPointItem.fromJson(_map(item))).toList();
   }
 
-
   Future<List<LabOrderItem>> getLabOrders() async {
     final response = await _apiClient.getJson('/patient/lab-orders');
     final orders = response['orders'] as List<dynamic>? ?? const [];
@@ -429,8 +561,11 @@ class PatientRepository {
   }
 
   Future<List<LabPackageItem>> getLabPackages() async {
-    final response = await _apiClient.getJson('/patient/lab-packages');
-    final packages = response['packages'] as List<dynamic>? ?? const [];
+    final response = await _apiClient.getJson('/lab/packages');
+    final packages =
+        response['packages'] as List<dynamic>? ??
+        response['data'] as List<dynamic>? ??
+        const [];
     return packages.map((item) {
       final json = _map(item);
       final rawImage =
@@ -450,7 +585,7 @@ class PatientRepository {
         .toList();
   }
 
-  Future<void> createLabOrder({
+  Future<BookingConfirmation> createLabOrder({
     int? labTestId,
     List<int>? labTestIds,
     int? doctorId,
@@ -469,49 +604,30 @@ class PatientRepository {
     String? notes,
   }) async {
     final trimmedSlot = slot?.trim();
-    final trimmedAddress = address?.trim();
-    final trimmedPatientName = patientNameSnapshot?.trim();
-    final trimmedPatientGender = patientGenderSnapshot?.trim();
-    final trimmedPatientPhone = patientPhoneSnapshot?.trim();
-    final trimmedBookingRef = bookingRef?.trim();
     final trimmedNotes = notes?.trim();
+    final resolvedTestIds = labTestIds != null && labTestIds.isNotEmpty
+        ? labTestIds
+        : <int>[?labTestId];
 
-    await _apiClient.postJson(
-      '/patient/lab-orders',
+    if (resolvedTestIds.isEmpty) {
+      throw StateError('Select at least one lab test.');
+    }
+
+    final response = await _apiClient.postJson(
+      '/bookings/tests',
       data: {
-        if (labTestIds != null && labTestIds.isNotEmpty)
-          'labTestIds': labTestIds,
-        if (labTestId != null && (labTestIds == null || labTestIds.isEmpty))
-          'labTestId': labTestId,
-        'doctorId': doctorId,
-        'date': date,
-        if ((trimmedSlot ?? '').isNotEmpty) 'slot': trimmedSlot,
-        'collectionType': collectionType,
-        if ((trimmedAddress ?? '').isNotEmpty) 'address': trimmedAddress,
-        if (amount != null) 'amount': amount.round(),
-        'paymentStatus': paymentStatus,
-        if ((trimmedPatientName ?? '').isNotEmpty)
-          'patientNameSnapshot': trimmedPatientName,
-        ...?patientAgeSnapshot == null
-            ? null
-            : {'patientAgeSnapshot': patientAgeSnapshot},
-        if ((trimmedPatientGender ?? '').isNotEmpty)
-          'patientGenderSnapshot': trimmedPatientGender,
-        if ((trimmedPatientPhone ?? '').isNotEmpty)
-          'patientPhoneSnapshot': trimmedPatientPhone,
-        if ((trimmedBookingRef ?? '').isNotEmpty)
-          'bookingRef': trimmedBookingRef,
-        'urgency': urgency,
+        'test_ids': resolvedTestIds,
+        'booking_date': date,
+        if ((trimmedSlot ?? '').isNotEmpty)
+          'booking_time': _normalizeBookingTime(trimmedSlot!),
         if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
       },
     );
+    return BookingConfirmation.fromTestBatchResponse(response);
   }
 
   Future<void> cancelLabOrder(int orderId) async {
-    await _apiClient.patchJson(
-      '/patient/lab-orders/$orderId',
-      data: {'status': 'cancelled'},
-    );
+    await _apiClient.patchJson('/bookings/tests/$orderId/cancel');
   }
 
   Future<void> rescheduleLabOrder({
@@ -528,7 +644,7 @@ class PatientRepository {
     );
   }
 
-  Future<void> createLabPackageOrder({
+  Future<BookingConfirmation> createLabPackageOrder({
     required int labPackageId,
     int? doctorId,
     required String date,
@@ -546,45 +662,22 @@ class PatientRepository {
     String? notes,
   }) async {
     final trimmedSlot = slot?.trim();
-    final trimmedAddress = address?.trim();
-    final trimmedPatientName = patientNameSnapshot?.trim();
-    final trimmedPatientGender = patientGenderSnapshot?.trim();
-    final trimmedPatientPhone = patientPhoneSnapshot?.trim();
-    final trimmedBookingRef = bookingRef?.trim();
     final trimmedNotes = notes?.trim();
 
     final data = {
-      'labPackageId': labPackageId,
-      'doctorId': ?doctorId,
-      'date': date,
-      if ((trimmedSlot ?? '').isNotEmpty) 'slot': trimmedSlot,
-      'collectionType': collectionType,
-      if ((trimmedAddress ?? '').isNotEmpty) 'address': trimmedAddress,
-      if (amount != null) 'amount': amount.round(),
-      'paymentStatus': paymentStatus,
-      if ((trimmedPatientName ?? '').isNotEmpty)
-        'patientNameSnapshot': trimmedPatientName,
-      ...?patientAgeSnapshot == null
-          ? null
-          : {'patientAgeSnapshot': patientAgeSnapshot},
-      if ((trimmedPatientGender ?? '').isNotEmpty)
-        'patientGenderSnapshot': trimmedPatientGender,
-      if ((trimmedPatientPhone ?? '').isNotEmpty)
-        'patientPhoneSnapshot': trimmedPatientPhone,
-      if ((trimmedBookingRef ?? '').isNotEmpty) 'bookingRef': trimmedBookingRef,
-      'urgency': urgency,
+      'package_id': labPackageId,
+      'booking_date': date,
+      if ((trimmedSlot ?? '').isNotEmpty)
+        'booking_time': _normalizeBookingTime(trimmedSlot!),
       if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
     };
 
-    debugPrint(
-      '[PatientRepository] Creating lab package order with data: $data',
-    );
     try {
       final response = await _apiClient.postJson(
-        '/patient/lab-package-orders',
+        '/bookings/packages',
         data: data,
       );
-      debugPrint('[PatientRepository] Lab package order response: $response');
+      return BookingConfirmation.fromBookingResponse(response);
     } catch (e) {
       debugPrint('[PatientRepository] Error creating lab package order: $e');
       rethrow;
@@ -592,10 +685,7 @@ class PatientRepository {
   }
 
   Future<void> cancelLabPackageOrder(int orderId) async {
-    await _apiClient.patchJson(
-      '/patient/lab-package-orders/$orderId',
-      data: {'status': 'cancelled'},
-    );
+    await _apiClient.patchJson('/bookings/packages/$orderId/cancel');
   }
 
   Future<void> rescheduleLabPackageOrder({

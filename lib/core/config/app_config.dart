@@ -18,18 +18,16 @@ class AppConfig {
 
   factory AppConfig.fromEnvironment() {
     final env = _readDotEnv();
-    final showDevOtp =
-        const bool.hasEnvironment('SHOW_DEV_OTP')
-            ? const bool.fromEnvironment('SHOW_DEV_OTP')
-            : (_readBool(env['SHOW_DEV_OTP']) ?? !kReleaseMode);
+    final showDevOtp = const bool.hasEnvironment('SHOW_DEV_OTP')
+        ? const bool.fromEnvironment('SHOW_DEV_OTP')
+        : (_readBool(env['SHOW_DEV_OTP']) ?? !kReleaseMode);
     const definedApiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
     return AppConfig(
       appName: env['APP_NAME'] ?? 'Biohelix',
-      apiBaseUrl:
-          definedApiBaseUrl.isNotEmpty
-              ? definedApiBaseUrl
-              : (env['API_BASE_URL'] ?? 'https://www.bhrchospital.com/api'),
+      apiBaseUrl: definedApiBaseUrl.isNotEmpty
+          ? definedApiBaseUrl
+          : (env['API_BASE_URL'] ?? 'https://www.bhrchospital.com/api/v1'),
       healthEndpoint: env['HEALTH_ENDPOINT'] ?? '/health',
       showDevOtp: showDevOtp,
       sarvamApiKey: env['SARVAM_API_KEY'] ?? '',

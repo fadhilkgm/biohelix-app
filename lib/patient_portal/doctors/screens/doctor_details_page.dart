@@ -11,10 +11,6 @@ class _DoctorDetailPage extends StatefulWidget {
 class _DoctorDetailPageState extends State<_DoctorDetailPage> {
   DateTime? _selectedDate;
   String? _selectedSlot;
-  TimeOfDay? _selectedTime;
-  List<String> _availableSlots = [];
-  bool _loadingSlots = false;
-  bool _initialized = false;
 
   @override
   void initState() {
@@ -22,46 +18,10 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
     _selectedDate = _nextWorkingDateForDoctor(widget.doctor, DateTime.now());
   }
 
-  Future<void> _loadSlots() async {
-    if (_selectedDate == null) return;
-    setState(() => _loadingSlots = true);
-
-    final portal = Provider.of<PatientPortalProvider>(context, listen: false);
-
-    try {
-      final slots = await portal.getDoctorAvailableSlots(
-        doctorId: widget.doctor.id,
-        date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
-      );
-      setState(() {
-        _availableSlots = slots;
-        if (!_availableSlots.contains(_selectedSlot)) {
-          _selectedSlot = null;
-          _selectedTime = null;
-        }
-      });
-    } catch (_) {
-      setState(() {
-        _availableSlots = [];
-        if (!_availableSlots.contains(_selectedSlot)) {
-          _selectedSlot = null;
-          _selectedTime = null;
-        }
-      });
-    } finally {
-      setState(() => _loadingSlots = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final config = Provider.of<AppConfig>(context, listen: false);
     final apiBase = config.apiBaseUrl.replaceAll('/api', '');
-
-    if (!_initialized) {
-      _initialized = true;
-      Future.microtask(_loadSlots);
-    }
 
     String resolveUrl(String? url) {
       if (url == null || url.isEmpty) return '';
@@ -383,9 +343,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                               setState(() {
                                 _selectedDate = date;
                                 _selectedSlot = null;
-                                _selectedTime = null;
                               });
-                              _loadSlots();
                             },
                           ),
                           const SizedBox(height: 32),
@@ -398,27 +356,28 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          if (_loadingSlots)
-                            const Center(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(vertical: 40),
-                                child: CircularProgressIndicator(),
+                          _ScheduleWindowHint(
+                            doctor: widget.doctor,
+                            date: _selectedDate,
+                          ),
+                          _TimePickerCard(
+                            selectedSlot: _selectedSlot,
+                            onTap: () => _pickTime(portal),
+                            hasError:
+                                _selectedSlot != null &&
+                                !_isSelectedSlotAllowed(portal),
+                          ),
+                          if (_selectedSlot != null &&
+                              !_isSelectedSlotAllowed(portal)) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              _isSelectedSlotBooked(portal)
+                                  ? 'This doctor already has an appointment at that time.'
+                                  : 'Choose a time within the doctor available window.',
+                              style: const TextStyle(
+                                color: Color(0xFFE65100),
+                                fontWeight: FontWeight.w700,
                               ),
-                            )
-                          else if (_availableSlots.isEmpty)
-                            const Center(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(vertical: 40),
-                                child: Text(
-                                  'No slots available for this date.',
-                                  style: TextStyle(color: Colors.black45),
-                                ),
-                              ),
-                            )
-                          else ...[
-                            _TimePickerCard(
-                              selectedSlot: _selectedSlot,
-                              onTap: () => _pickTime(portal),
                             ),
                           ],
                         ],
@@ -448,8 +407,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                 onPressed:
                     (_selectedSlot == null ||
                         portal.isCreatingBooking ||
-                        _isSelectedSlotBooked(portal) ||
-                        !_availableSlots.contains(_selectedSlot))
+                        !_isSelectedSlotAllowed(portal))
                     ? null
                     : () => _bookNow(portal),
                 style: ElevatedButton.styleFrom(
@@ -497,19 +455,6 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
     if (date == null || slot == null) return;
 
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
-    if (!_availableSlots.contains(slot)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'This time is no longer available. Please choose another time.',
-          ),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      await _loadSlots();
-      return;
-    }
-
     if (_hasBookedSlot(portal.bookings, dateStr, slot, widget.doctor.id)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -520,17 +465,38 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
       return;
     }
 
+    if (!_isSlotInsideDoctorSchedule(widget.doctor, date, slot)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This time is outside the doctor available time. Please choose an available slot.',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     try {
-      await portal.createBooking(
+      final scheduleId = _scheduleIdForDateAndSlot(date, slot);
+      if (scheduleId == null) {
+        throw StateError(
+          'This doctor does not have a schedule for the selected time.',
+        );
+      }
+
+      final confirmation = await portal.createBooking(
         doctorId: widget.doctor.id,
+        scheduleId: scheduleId,
         bookingDate: DateFormat('yyyy-MM-dd').format(date),
         timeslot: slot,
+        notes: 'Booked from BioHelix patient app.',
       );
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => const BookingSuccessScreen(
-              bookingId: 'DOC-REQ',
+            builder: (_) => BookingSuccessScreen(
+              bookingId: confirmation.reference,
               title: 'Appointment Booked!',
               subtitle:
                   'Your session has been successfully scheduled. You can track your upcoming sessions in the bookings tab.',
@@ -549,56 +515,63 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
   }
 
   Future<void> _pickTime(PatientPortalProvider portal) async {
-    final initialTime =
-        _selectedTime ??
-        _timeOfDayFromSlot(_selectedSlot) ??
-        _timeOfDayFromSlot(
-          _availableSlots.isNotEmpty ? _availableSlots.first : null,
-        ) ??
-        TimeOfDay.now();
+    final date = _selectedDate;
+    if (date == null) return;
 
     final picked = await showTimePicker(
       context: context,
-      initialTime: initialTime,
-      helpText: 'Choose appointment time',
+      initialTime:
+          _timeOfDayFromSlot(_selectedSlot) ??
+          _firstScheduleTimeForDate(widget.doctor, date) ??
+          TimeOfDay.now(),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
     if (picked == null) return;
-    if (!mounted) return;
 
-    final matchingSlot = _slotForPickedTime(picked, _availableSlots, context);
-    if (matchingSlot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'That time is unavailable for this doctor. Please choose an available time.',
-          ),
-          backgroundColor: Colors.orange,
-        ),
-      );
+    final slot = _timeOfDayToSlot(picked);
+    setState(() => _selectedSlot = slot);
+
+    if (_hasBookedSlot(
+      portal.bookings,
+      DateFormat('yyyy-MM-dd').format(date),
+      slot,
+      widget.doctor.id,
+    )) {
+      _showTimeWarning('This doctor already has an appointment at that time.');
       return;
     }
 
-    final date = _selectedDate;
-    if (date != null &&
-        _hasBookedSlot(
-          portal.bookings,
-          DateFormat('yyyy-MM-dd').format(date),
-          matchingSlot,
-          widget.doctor.id,
-        )) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This doctor already has an appointment at that time.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
+    if (!_isSlotInsideDoctorSchedule(widget.doctor, date, slot)) {
+      _showTimeWarning('Choose a time within the doctor available window.');
+    }
+  }
+
+  void _showTimeWarning(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.orange),
+    );
+  }
+
+  int? _scheduleIdForDateAndSlot(DateTime date, String slot) {
+    final slotTime = _timeOfDayFromSlot(slot);
+    if (slotTime == null) return null;
+    final slotMinutes = slotTime.hour * 60 + slotTime.minute;
+
+    for (final schedule in _schedulesForDate(widget.doctor, date)) {
+      final start = _minutesFromTimeText(schedule.startTime);
+      final end = _minutesFromTimeText(schedule.endTime);
+      if (start == null || end == null) continue;
+      if (slotMinutes >= start && slotMinutes < end) return schedule.id;
     }
 
-    setState(() {
-      _selectedTime = picked;
-      _selectedSlot = matchingSlot;
-    });
+    return widget.doctor.schedules.isNotEmpty
+        ? widget.doctor.schedules.first.id
+        : null;
   }
 
   bool _isSelectedSlotBooked(PatientPortalProvider portal) {
@@ -611,6 +584,19 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
       slot,
       widget.doctor.id,
     );
+  }
+
+  bool _isSelectedSlotAllowed(PatientPortalProvider portal) {
+    final date = _selectedDate;
+    final slot = _selectedSlot;
+    if (date == null || slot == null) return false;
+    return !_hasBookedSlot(
+          portal.bookings,
+          DateFormat('yyyy-MM-dd').format(date),
+          slot,
+          widget.doctor.id,
+        ) &&
+        _isSlotInsideDoctorSchedule(widget.doctor, date, slot);
   }
 }
 
@@ -776,74 +762,128 @@ class _HorizontalDatePicker extends StatelessWidget {
 class _TimePickerCard extends StatelessWidget {
   final String? selectedSlot;
   final VoidCallback onTap;
+  final bool hasError;
 
-  const _TimePickerCard({required this.selectedSlot, required this.onTap});
+  const _TimePickerCard({
+    required this.selectedSlot,
+    required this.onTap,
+    required this.hasError,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final hasSelection =
-        selectedSlot != null && selectedSlot!.trim().isNotEmpty;
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         decoration: BoxDecoration(
           color: const Color(0xFFF4F7FB),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: hasSelection
-                ? const Color(0xFF5A88F1)
-                : const Color(0xFFE1E8F2),
-            width: hasSelection ? 1.5 : 1,
+            color: hasError ? const Color(0xFFE65100) : const Color(0xFFE1E8F2),
           ),
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF5A88F1).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.access_time_rounded,
-                color: Color(0xFF5A88F1),
-                size: 22,
-              ),
+            Icon(
+              Icons.access_time_rounded,
+              color: hasError
+                  ? const Color(0xFFE65100)
+                  : const Color(0xFF5A88F1),
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hasSelection ? selectedSlot! : 'Choose a time',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      color: Color(0xFF192233),
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    hasSelection
-                        ? 'Tap to change appointment time'
-                        : 'Only available doctor times can be selected',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13,
-                      color: Colors.black.withValues(alpha: 0.45),
-                    ),
-                  ),
-                ],
+              child: Text(
+                selectedSlot ?? 'Choose time',
+                style: TextStyle(
+                  color: hasError
+                      ? const Color(0xFFE65100)
+                      : const Color(0xFF192233),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 17,
+                ),
               ),
             ),
             const Icon(
               Icons.keyboard_arrow_down_rounded,
               color: Color(0xFF192233),
+              size: 28,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+TimeOfDay? _firstScheduleTimeForDate(DoctorListing doctor, DateTime date) {
+  final schedules = _schedulesForDate(doctor, date);
+  if (schedules.isEmpty) return null;
+  final minutes = _minutesFromTimeText(schedules.first.startTime);
+  if (minutes == null) return null;
+  return TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60);
+}
+
+String _timeOfDayToSlot(TimeOfDay time) {
+  final period = time.hour >= 12 ? 'PM' : 'AM';
+  final hour12 = time.hour == 0
+      ? 12
+      : time.hour > 12
+      ? time.hour - 12
+      : time.hour;
+  return '$hour12:${time.minute.toString().padLeft(2, '0')} $period';
+}
+
+class _ScheduleWindowHint extends StatelessWidget {
+  const _ScheduleWindowHint({required this.doctor, required this.date});
+
+  final DoctorListing doctor;
+  final DateTime? date;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedDate = date;
+    if (selectedDate == null) return const SizedBox.shrink();
+
+    final schedules = _schedulesForDate(doctor, selectedDate);
+    if (schedules.isEmpty) return const SizedBox.shrink();
+
+    final windows = schedules
+        .map(
+          (schedule) =>
+              '${DoctorListing.formatTimeLabel(schedule.startTime)} - ${DoctorListing.formatTimeLabel(schedule.endTime)}',
+        )
+        .join(', ');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4F7FB),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE1E8F2)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.schedule_rounded,
+              color: Color(0xFF5A88F1),
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Available only between $windows',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: const Color(0xFF192233).withValues(alpha: 0.7),
+                ),
+              ),
             ),
           ],
         ),
@@ -870,6 +910,10 @@ class _DoctorImageFallback extends StatelessWidget {
 }
 
 bool _isDoctorWorkingOnDate(DoctorListing doctor, DateTime date) {
+  if (doctor.schedules.isNotEmpty) {
+    return _schedulesForDate(doctor, date).isNotEmpty;
+  }
+
   final isoDate = DateFormat('yyyy-MM-dd').format(date);
   final availableStr = doctor.availableDates ?? '';
   if (availableStr.contains(isoDate)) return true;
@@ -894,6 +938,44 @@ bool _isDoctorWorkingOnDate(DoctorListing doctor, DateTime date) {
     return lowerWorking.contains(longWeekday) ||
         lowerWorking.contains(shortWeekday);
   }
+}
+
+List<DoctorSchedule> _schedulesForDate(DoctorListing doctor, DateTime date) {
+  final day = DateFormat('EEEE').format(date).toLowerCase();
+  return doctor.schedules
+      .where((schedule) => schedule.dayOfWeek.toLowerCase() == day)
+      .toList();
+}
+
+bool _isSlotInsideDoctorSchedule(
+  DoctorListing doctor,
+  DateTime date,
+  String slot,
+) {
+  final slotTime = _timeOfDayFromSlot(slot);
+  if (slotTime == null) return false;
+  final slotMinutes = slotTime.hour * 60 + slotTime.minute;
+
+  for (final schedule in _schedulesForDate(doctor, date)) {
+    final start = _minutesFromTimeText(schedule.startTime);
+    final end = _minutesFromTimeText(schedule.endTime);
+    if (start == null || end == null) continue;
+    if (slotMinutes >= start && slotMinutes < end) return true;
+  }
+
+  return doctor.schedules.isEmpty;
+}
+
+int? _minutesFromTimeText(String value) {
+  final match = RegExp(r'(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?').firstMatch(value);
+  if (match == null) return null;
+  var hour = int.tryParse(match.group(1) ?? '');
+  final minute = int.tryParse(match.group(2) ?? '');
+  if (hour == null || minute == null) return null;
+  final suffix = match.group(3)?.toLowerCase();
+  if (suffix == 'pm' && hour < 12) hour += 12;
+  if (suffix == 'am' && hour == 12) hour = 0;
+  return hour * 60 + minute;
 }
 
 DateTime _nextWorkingDateForDoctor(DoctorListing doctor, DateTime fromDate) {
@@ -928,31 +1010,6 @@ bool _hasBookedSlot(
         slotTime.hour == bookedTime.hour &&
         slotTime.minute == bookedTime.minute;
   });
-}
-
-String? _slotForPickedTime(
-  TimeOfDay picked,
-  List<String> availableSlots,
-  BuildContext context,
-) {
-  final pickedMinutes = picked.hour * 60 + picked.minute;
-  final pickedLabel = _normalizeSlot(
-    MaterialLocalizations.of(
-      context,
-    ).formatTimeOfDay(picked, alwaysUse24HourFormat: false),
-  );
-
-  for (final slot in availableSlots) {
-    final slotTime = _timeOfDayFromSlot(slot);
-    if (slotTime != null &&
-        slotTime.hour * 60 + slotTime.minute == pickedMinutes) {
-      return slot;
-    }
-    if (_normalizeSlot(slot) == pickedLabel) {
-      return slot;
-    }
-  }
-  return null;
 }
 
 TimeOfDay? _timeOfDayFromSlot(String? slot) {

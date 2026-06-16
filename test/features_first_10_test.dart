@@ -63,65 +63,96 @@ void main() {
     expect(find.text('Your Smart Health Partner'), findsOneWidget);
     expect(find.text('Swipe to Start'), findsOneWidget);
 
-    await tester.drag(find.byIcon(Icons.chevron_right_rounded), const Offset(500, 0));
+    await tester.drag(
+      find.byIcon(Icons.chevron_right_rounded),
+      const Offset(500, 0),
+    );
     await tester.pumpAndSettle();
 
     expect(completed, isTrue);
   });
 
-  testWidgets('3. OTP login sends an OTP and opens verification', (tester) async {
+  testWidgets('3. login authenticates with phone and password', (tester) async {
     final repository = _FakePatientRepository(patient: patient);
     final session = _buildSession(repository);
 
     await tester.pumpWidget(_authSubject(session));
     await tester.pumpAndSettle();
 
-    expect(find.text('Login'), findsOneWidget);
+    expect(find.text('Login'), findsWidgets);
 
     await tester.enterText(
-      find.widgetWithText(TextField, 'Enter your mobile number'),
+      find.widgetWithText(TextField, '+919876543210'),
       '9998887777',
     );
-    await tester.ensureVisible(find.text('Continue'));
-    await tester.tap(find.text('Continue'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Enter password'),
+      'password123',
+    );
+    await tester.ensureVisible(find.text('Login').last);
+    await tester.tap(find.text('Login').last);
     await tester.pumpAndSettle();
 
-    expect(repository.lastOtpPhone, '9998887777');
-    expect(find.text('Verify OTP'), findsWidgets);
-    expect(find.text('ENTER OTP'), findsOneWidget);
-    expect(find.text('123456'), findsOneWidget);
+    expect(repository.lastLoginPayload, {
+      'phone': '9998887777',
+      'password': 'password123',
+    });
+    expect(session.isAuthenticated, isTrue);
   });
 
-  testWidgets('4. sign-up submits patient details and opens verification', (tester) async {
+  testWidgets('4. register submits documented patient details', (tester) async {
     final repository = _FakePatientRepository(patient: patient);
     final session = _buildSession(repository);
 
     await tester.pumpWidget(_authSubject(session));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('New patient? Sign up'));
-    await tester.tap(find.text('New patient? Sign up'));
+    await tester.ensureVisible(find.text('New patient? Register'));
+    await tester.tap(find.text('New patient? Register'));
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.widgetWithText(TextField, 'Enter your mobile number'),
+      find.widgetWithText(TextField, '+919876543210'),
       '8887776666',
     );
-    await tester.enterText(find.widgetWithText(TextField, 'Enter your full name'), 'New Patient');
-    await tester.enterText(find.widgetWithText(TextField, 'YYYY-MM-DD'), '1990-01-02');
-    await tester.enterText(find.widgetWithText(TextField, 'Enter your place'), 'Ponnani');
-    await tester.ensureVisible(find.text('Sign up and send OTP'));
-    await tester.tap(find.text('Sign up and send OTP'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Aisha Rahman'),
+      'New Patient',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Enter password'),
+      'password123',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Re-enter password'),
+      'password123',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, '1994-04-12'),
+      '1990-01-02',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'aisha.rahman@example.com'),
+      'new@example.test',
+    );
+    await tester.enterText(find.widgetWithText(TextField, 'female'), 'female');
+    await tester.enterText(find.widgetWithText(TextField, 'O+'), 'A+');
+    await tester.ensureVisible(find.text('Register').last);
+    await tester.tap(find.text('Register').last);
     await tester.pumpAndSettle();
 
     expect(repository.lastSignupPayload, {
       'phone': '8887776666',
-      'name': 'New Patient',
-      'dob': '1990-01-02',
-      'place': 'Ponnani',
+      'password': 'password123',
+      'passwordConfirmation': 'password123',
+      'firstName': 'New',
+      'lastName': 'Patient',
+      'gender': 'female',
+      'email': 'new@example.test',
+      'dateOfBirth': '1990-01-02',
+      'bloodGroup': 'A+',
     });
-    expect(find.text('Verify OTP'), findsWidgets);
-    expect(find.text('ENTER OTP'), findsOneWidget);
+    expect(session.isAuthenticated, isTrue);
   });
 
   test('5. auth storage persists and clears the auth token', () async {
@@ -152,80 +183,96 @@ void main() {
     expect(stored.single.patient.name, 'Amina Patient');
   });
 
-  test('7. session initializes from a stored token and loads the patient', () async {
-    SharedPreferences.setMockInitialValues({'auth_token': 'stored-token'});
-    final apiAdapter = _RecordingAdapter();
-    final apiClient = _testApiClient(adapter: apiAdapter);
-    final repository = _FakePatientRepository(patient: patient, apiClient: apiClient);
-    final session = SessionProvider(
-      authStorage: AuthStorage(),
-      apiClient: apiClient,
-      patientRepository: repository,
-    );
+  test(
+    '7. session initializes from a stored token and loads the patient',
+    () async {
+      SharedPreferences.setMockInitialValues({'auth_token': 'stored-token'});
+      final apiAdapter = _RecordingAdapter();
+      final apiClient = _testApiClient(adapter: apiAdapter);
+      final repository = _FakePatientRepository(
+        patient: patient,
+        apiClient: apiClient,
+      );
+      final session = SessionProvider(
+        authStorage: AuthStorage(),
+        apiClient: apiClient,
+        patientRepository: repository,
+      );
 
-    await session.initialize();
+      await session.initialize();
 
-    expect(session.isAuthenticated, isTrue);
-    expect(session.authToken, 'stored-token');
-    expect(session.patient?.id, 42);
-    expect(repository.getCurrentPatientCalls, 1);
-  });
+      expect(session.isAuthenticated, isTrue);
+      expect(session.authToken, 'stored-token');
+      expect(session.patient?.id, 42);
+      expect(repository.getCurrentPatientCalls, 1);
+    },
+  );
 
-  test('8. session recovers from saved family profiles when primary token fails', () async {
-    final profile = SavedPatientProfile(
-      token: 'fallback-token',
-      patient: patient,
-      lastUsedAt: DateTime(2026, 5, 8).toIso8601String(),
-    );
-    SharedPreferences.setMockInitialValues({
-      'auth_token': 'expired-token',
-      'family_profiles': [jsonEncode(profile.toJson())],
-    });
-    final repository = _FakePatientRepository(
-      patient: patient,
-      failCurrentPatientCalls: 1,
-    );
-    final session = _buildSession(repository);
+  test(
+    '8. session recovers from saved family profiles when primary token fails',
+    () async {
+      final profile = SavedPatientProfile(
+        token: 'fallback-token',
+        patient: patient,
+        lastUsedAt: DateTime(2026, 5, 8).toIso8601String(),
+      );
+      SharedPreferences.setMockInitialValues({
+        'auth_token': 'expired-token',
+        'family_profiles': [jsonEncode(profile.toJson())],
+      });
+      final repository = _FakePatientRepository(
+        patient: patient,
+        failCurrentPatientCalls: 1,
+      );
+      final session = _buildSession(repository);
 
-    await session.initialize();
+      await session.initialize();
 
-    expect(session.isAuthenticated, isTrue);
-    expect(session.authToken, 'fallback-token');
-    expect(session.patient?.name, 'Amina Patient');
-    expect(repository.getCurrentPatientCalls, 2);
-  });
+      expect(session.isAuthenticated, isTrue);
+      expect(session.authToken, 'fallback-token');
+      expect(session.patient?.name, 'Amina Patient');
+      expect(repository.getCurrentPatientCalls, 2);
+    },
+  );
 
   test('9. app config uses production-safe defaults when env is absent', () {
     final config = AppConfig.fromEnvironment();
 
     expect(config.appName, isNotEmpty);
-    expect(config.apiBaseUrl, 'https://www.bhrchospital.com/api');
+    expect(config.apiBaseUrl, 'https://www.bhrchospital.com/api/v1');
     expect(config.healthEndpoint, '/health');
   });
 
-  test('10. API client sends bearer auth and preserves signed media URLs', () async {
-    final adapter = _RecordingAdapter();
-    final apiClient = _testApiClient(adapter: adapter);
+  test(
+    '10. API client sends bearer auth and preserves signed media URLs',
+    () async {
+      final adapter = _RecordingAdapter();
+      final apiClient = _testApiClient(adapter: adapter);
 
-    apiClient.updateAuthToken('secret-token');
-    final response = await apiClient.getJson('/patients/me');
+      apiClient.updateAuthToken('secret-token');
+      final response = await apiClient.getJson('/patients/me');
 
-    expect(response['ok'], isTrue);
-    expect(adapter.lastPath, '/patients/me');
-    expect(adapter.lastAuthorizationHeader, 'Bearer secret-token');
-    expect(apiClient.authenticatedMediaUrl('https://signed.example/report.pdf'), 'https://signed.example/report.pdf');
+      expect(response['ok'], isTrue);
+      expect(adapter.lastPath, '/patients/me');
+      expect(adapter.lastAuthorizationHeader, 'Bearer secret-token');
+      expect(
+        apiClient.authenticatedMediaUrl('https://signed.example/report.pdf'),
+        'https://signed.example/report.pdf',
+      );
 
-    apiClient.updateAuthToken(null);
-    await apiClient.getJson('/health');
-    expect(adapter.lastAuthorizationHeader, isNull);
-  });
+      apiClient.updateAuthToken(null);
+      await apiClient.getJson('/health');
+      expect(adapter.lastAuthorizationHeader, isNull);
+    },
+  );
 
-  testWidgets('10b. authenticated patient shell exposes the five bottom tabs', (tester) async {
+  testWidgets('10b. authenticated patient shell exposes the five bottom tabs', (
+    tester,
+  ) async {
     final repository = _FakePatientRepository(patient: patient);
     final session = _buildSession(repository);
 
-    await session.sendOtp(phone: patient.phone);
-    await session.verifyOtp(otp: '123456');
+    await session.login(phone: patient.phone, password: 'password123');
 
     final portal = PatientPortalProvider(
       repository: repository,
@@ -234,7 +281,7 @@ void main() {
     await portal.loadPortal();
 
     await tester.pumpWidget(_shellSubject(session: session, portal: portal));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Home'), findsWidgets);
     expect(find.text('Reports'), findsOneWidget);
@@ -291,10 +338,7 @@ AppConfig _testConfig({bool showDevOtp = false}) {
 }
 
 ApiClient _testApiClient({_RecordingAdapter? adapter}) {
-  return ApiClient(
-    config: _testConfig(),
-    httpClientAdapter: adapter,
-  );
+  return ApiClient(config: _testConfig(), httpClientAdapter: adapter);
 }
 
 class _FakePatientRepository extends PatientRepository {
@@ -311,6 +355,7 @@ class _FakePatientRepository extends PatientRepository {
   int getCurrentPatientCalls = 0;
   String? lastOtpPhone;
   Map<String, String>? lastSignupPayload;
+  Map<String, String>? lastLoginPayload;
 
   @override
   Future<String?> sendOtp({required String phone, String? mrn}) async {
@@ -335,7 +380,45 @@ class _FakePatientRepository extends PatientRepository {
   }
 
   @override
-  Future<OtpSession> verifyOtp({required String phone, required String otp}) async {
+  Future<PatientAuthSession> registerPatient({
+    required String phone,
+    required String password,
+    required String passwordConfirmation,
+    required String firstName,
+    required String lastName,
+    String? gender,
+    String? email,
+    String? dateOfBirth,
+    String? bloodGroup,
+  }) async {
+    lastSignupPayload = {
+      'phone': phone,
+      'password': password,
+      'passwordConfirmation': passwordConfirmation,
+      'firstName': firstName,
+      'lastName': lastName,
+      'gender': gender ?? '',
+      'email': email ?? '',
+      'dateOfBirth': dateOfBirth ?? '',
+      'bloodGroup': bloodGroup ?? '',
+    };
+    return PatientAuthSession(token: 'registered-token', patient: patient);
+  }
+
+  @override
+  Future<PatientAuthSession> loginPatient({
+    required String phone,
+    required String password,
+  }) async {
+    lastLoginPayload = {'phone': phone, 'password': password};
+    return PatientAuthSession(token: 'login-token', patient: patient);
+  }
+
+  @override
+  Future<OtpSession> verifyOtp({
+    required String phone,
+    required String otp,
+  }) async {
     return OtpSession(token: 'verified-token', patient: patient);
   }
 

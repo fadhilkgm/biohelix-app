@@ -3,8 +3,6 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 extension _BookingsTabSheetActions on _BookingsTab {
-
-
   Future<void> _showLabOrderSheet(
     BuildContext context,
     PatientPortalProvider portal, {
@@ -13,12 +11,11 @@ extension _BookingsTabSheetActions on _BookingsTab {
     LabTestItem? selectedTest =
         initialTest ??
         (portal.labTests.isNotEmpty ? portal.labTests.first : null);
-    DoctorListing? selectedDoctor = portal.doctors.isNotEmpty
-        ? portal.doctors.first
-        : null;
     DateTime? selectedDate = DateTime.now();
+    var selectedSlot = '08:30';
     var urgency = 'routine';
     var notes = '';
+    const slots = ['08:30', '09:30', '10:30', '11:30', '14:30', '15:30'];
 
     try {
       await showModalBottomSheet<void>(
@@ -88,26 +85,6 @@ extension _BookingsTabSheetActions on _BookingsTab {
                           },
                         ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<DoctorListing>(
-                        initialValue: selectedDoctor,
-                        decoration: const InputDecoration(labelText: 'Doctor'),
-                        items: portal.doctors
-                            .map(
-                              (doctor) => DropdownMenuItem<DoctorListing>(
-                                value: doctor,
-                                child: Text(
-                                  '${doctor.name} • ${doctor.specialization}',
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedDoctor = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Preferred date'),
@@ -131,6 +108,26 @@ extension _BookingsTabSheetActions on _BookingsTab {
                               selectedDate = selected;
                             });
                           }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedSlot,
+                        decoration: const InputDecoration(
+                          labelText: 'Preferred time',
+                        ),
+                        items: slots
+                            .map(
+                              (slot) => DropdownMenuItem<String>(
+                                value: slot,
+                                child: Text(slot),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedSlot = value ?? selectedSlot;
+                          });
                         },
                       ),
                       const SizedBox(height: 12),
@@ -165,39 +162,47 @@ extension _BookingsTabSheetActions on _BookingsTab {
                       CustomButton(
                         onPressed: () async {
                           final test = selectedTest;
-                          final doctor = selectedDoctor;
                           final date = selectedDate;
-                          if (test == null || doctor == null || date == null) {
+                          if (test == null || date == null) {
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                  'Select a lab test, doctor, and preferred date before confirming.',
+                                  'Select a lab test and preferred date before confirming.',
                                 ),
                               ),
                             );
                             return;
                           }
                           try {
-                            await portal.createLabOrder(
+                            final confirmation = await portal.createLabOrder(
                               labTestId: test.id,
-                              doctorId: doctor.id,
                               date: DateFormat('yyyy-MM-dd').format(date),
-                              urgency: urgency,
-                              notes: notes,
+                              slot: selectedSlot,
+                              notes: [
+                                if (urgency.trim().isNotEmpty)
+                                  'Urgency: $urgency',
+                                if (notes.trim().isNotEmpty) notes.trim(),
+                              ].join('. '),
                             );
                             if (!context.mounted) return;
                             Navigator.of(context).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Row(
-                                  children: const [
-                                    Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-                                    SizedBox(width: 12),
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_outline,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
-                                        'Lab test ordered successfully.',
-                                        style: TextStyle(fontWeight: FontWeight.w600),
+                                        'Lab test ordered successfully. Ref: ${confirmation.reference}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -205,7 +210,8 @@ extension _BookingsTabSheetActions on _BookingsTab {
                                 behavior: SnackBarBehavior.floating,
                                 backgroundColor: const Color(0xFF108E3E),
                                 margin: EdgeInsets.only(
-                                  bottom: MediaQuery.of(context).size.height - 160,
+                                  bottom:
+                                      MediaQuery.of(context).size.height - 160,
                                   left: 20,
                                   right: 20,
                                 ),

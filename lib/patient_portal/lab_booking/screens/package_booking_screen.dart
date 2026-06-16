@@ -526,7 +526,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
     });
 
     try {
-      await portal.createLabPackageOrder(
+      final confirmation = await portal.createLabPackageOrder(
         labPackageId: widget.package.id,
         doctorId: null,
         date: DateFormat('yyyy-MM-dd').format(_selectedDate),
@@ -546,13 +546,10 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
 
       if (!mounted) return;
 
-      final bookingId =
-          'PKG-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => BookingSuccessScreen(
-            bookingId: bookingId,
+            bookingId: confirmation.reference,
             title: 'Package Booked!',
             subtitle:
                 'Your health package has been successfully scheduled. Our team will contact you for confirmation.',

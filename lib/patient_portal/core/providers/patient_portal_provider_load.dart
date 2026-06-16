@@ -16,11 +16,17 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
 
     final loadErrors = <String>[];
 
-    Future<T?> safeLoad<T>(Future<T> Function() loader, String label) async {
+    Future<T?> safeLoad<T>(
+      Future<T> Function() loader,
+      String label, {
+      bool reportError = false,
+    }) async {
       try {
         return await loader();
       } catch (error) {
-        loadErrors.add('$label: $error');
+        if (reportError) {
+          loadErrors.add('$label: $error');
+        }
         return null;
       }
     }
@@ -47,12 +53,21 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
       safeLoad<List<DocumentRecord>>(_repository.getDocuments, 'documents'),
       safeLoad<List<SummaryRecord>>(_repository.getSummaries, 'summaries'),
       safeLoad<List<VitalRecord>>(_repository.getVitalTrend, 'vitals'),
-      safeLoad<List<DoctorListing>>(_repository.getDoctors, 'doctors'),
-      safeLoad<List<LabTestItem>>(_repository.getLabTests, 'lab tests'),
+      safeLoad<List<DoctorListing>>(
+        _repository.getDoctors,
+        'doctors',
+        reportError: true,
+      ),
+      safeLoad<List<LabTestItem>>(
+        _repository.getLabTests,
+        'lab tests',
+        reportError: true,
+      ),
       safeLoad<List<LabOrderItem>>(_repository.getLabOrders, 'lab orders'),
       safeLoad<List<LabPackageItem>>(
         _repository.getLabPackages,
         'lab packages',
+        reportError: true,
       ),
       safeLoad<List<LabPackageOrderItem>>(
         _repository.getLabPackageOrders,

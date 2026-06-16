@@ -32,16 +32,27 @@ class PatientIdentity {
   final String? chronicConditions;
 
   factory PatientIdentity.fromJson(Map<String, dynamic> json) {
+    final firstName = json['first_name'] as String?;
+    final lastName = json['last_name'] as String?;
+    final joinedName = [
+      firstName,
+      lastName,
+    ].where((value) => (value ?? '').trim().isNotEmpty).join(' ');
     return PatientIdentity(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      name: json['name'] as String? ?? 'Patient',
+      name:
+          json['name'] as String? ??
+          json['full_name'] as String? ??
+          (joinedName.isNotEmpty ? joinedName : 'Patient'),
       phone: json['phone'] as String? ?? '',
       registrationNumber:
           json['registrationNumber'] as String? ??
           json['registration_number'] as String? ??
+          json['patient_number'] as String? ??
+          json['patient_card_number'] as String? ??
           'BHRC',
       uuid: json['uuid'] as String? ?? '',
-      dob: json['dob'] as String?,
+      dob: json['dob'] as String? ?? json['date_of_birth'] as String?,
       gender: json['gender'] as String?,
       age: (json['age'] as num?)?.toInt(),
       address: json['address'] as String?,
@@ -208,14 +219,38 @@ class BookingItem {
   final String? doctorSpecialization;
 
   factory BookingItem.fromJson(Map<String, dynamic> json) {
+    final doctor = _map(json['doctor']);
+    final test = _map(json['test']);
+    final package = _map(json['package']);
+    final bookingType = json['booking_type'] as String?;
+    final nameFromRelation =
+        doctor['name'] as String? ??
+        test['test_name'] as String? ??
+        package['package_name'] as String?;
     return BookingItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      bookingDate: json['bookingDate'] as String? ?? '',
-      timeslot: json['timeslot'] as String? ?? '',
+      bookingDate:
+          json['bookingDate'] as String? ??
+          json['booking_date'] as String? ??
+          '',
+      timeslot:
+          json['timeslot'] as String? ?? json['booking_time'] as String? ?? '',
       status: json['status'] as String? ?? 'pending',
-      doctorId: (json['doctorId'] as num?)?.toInt() ?? 0,
-      doctorName: json['doctorName'] as String? ?? 'BHRC Doctor',
-      doctorSpecialization: json['doctorSpecialization'] as String?,
+      doctorId:
+          (json['doctorId'] as num?)?.toInt() ??
+          (json['doctor_id'] as num?)?.toInt() ??
+          0,
+      doctorName:
+          json['doctorName'] as String? ??
+          nameFromRelation ??
+          (bookingType == 'test'
+              ? 'Lab test'
+              : bookingType == 'package'
+              ? 'Health package'
+              : 'BHRC Doctor'),
+      doctorSpecialization:
+          json['doctorSpecialization'] as String? ??
+          json['booking_type'] as String?,
     );
   }
 }
@@ -643,6 +678,32 @@ class HomeBannerItem {
   }
 }
 
+class DoctorSchedule {
+  const DoctorSchedule({
+    required this.id,
+    required this.dayOfWeek,
+    required this.sessionName,
+    required this.startTime,
+    required this.endTime,
+  });
+
+  final int id;
+  final String dayOfWeek;
+  final String sessionName;
+  final String startTime;
+  final String endTime;
+
+  factory DoctorSchedule.fromJson(Map<String, dynamic> json) {
+    return DoctorSchedule(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      dayOfWeek: json['day_of_week'] as String? ?? '',
+      sessionName: json['session_name'] as String? ?? '',
+      startTime: json['start_time'] as String? ?? '',
+      endTime: json['end_time'] as String? ?? '',
+    );
+  }
+}
+
 class DoctorListing {
   const DoctorListing({
     required this.id,
@@ -662,6 +723,7 @@ class DoctorListing {
     this.imageUrl,
     this.description,
     this.consultationFee,
+    this.schedules = const [],
   });
 
   final int id;
@@ -681,14 +743,25 @@ class DoctorListing {
   final String? imageUrl;
   final String? description;
   final int? consultationFee;
+  final List<DoctorSchedule> schedules;
 
   factory DoctorListing.fromJson(Map<String, dynamic> json) {
+    final schedulesRaw = json['schedules'] as List<dynamic>? ?? const [];
+    int? parseInt(dynamic v) {
+      if (v == null) return null;
+      if (v is num) return v.toInt();
+      if (v is String) return double.tryParse(v)?.round();
+      return null;
+    }
+
     return DoctorListing(
       id: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name'] as String? ?? 'Doctor',
       specialization: json['specialization'] as String? ?? 'General',
-      qualifications: json['qualifications'] as String?,
-      availableTime: json['availableTime'] as String?,
+      qualifications:
+          json['qualifications'] as String? ?? json['qualification'] as String?,
+      availableTime:
+          json['availableTime'] as String? ?? json['available_time'] as String?,
       availableDates: json['availableDates'] as String?,
       workingDays: json['workingDays'] as String?,
       workStartTime: json['workStartTime'] as String?,
@@ -702,11 +775,17 @@ class DoctorListing {
       registrationNumber:
           json['registrationNumber'] as String? ??
           json['registration_number'] as String?,
-      imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
+      imageUrl:
+          json['imageUrl'] as String? ??
+          json['image_url'] as String? ??
+          json['profile_photo_url'] as String?,
       description: json['description'] as String?,
       consultationFee:
           (json['consultationFee'] as num?)?.toInt() ??
-          (json['consultation_fee'] as num?)?.toInt(),
+          parseInt(json['consultation_fee']),
+      schedules: schedulesRaw
+          .map((item) => DoctorSchedule.fromJson(_map(item)))
+          .toList(),
     );
   }
 
@@ -714,16 +793,21 @@ class DoctorListing {
     final start = workStartTime?.trim();
     final end = workEndTime?.trim();
     if (start != null && start.isNotEmpty && end != null && end.isNotEmpty) {
-      return '${_formatTime(start)} - ${_formatTime(end)}';
+      return '${formatTimeLabel(start)} - ${formatTimeLabel(end)}';
     }
 
     final fallback = availableTime?.trim();
     if (fallback != null && fallback.isNotEmpty) return fallback;
 
+    if (schedules.isNotEmpty) {
+      final first = schedules.first;
+      return '${formatTimeLabel(first.startTime)} - ${formatTimeLabel(first.endTime)}';
+    }
+
     return 'Contact hospital for timings';
   }
 
-  static String _formatTime(String value) {
+  static String formatTimeLabel(String value) {
     if (value.toLowerCase().contains('am') ||
         value.toLowerCase().contains('pm')) {
       return value;
@@ -964,8 +1048,14 @@ class BodyPointItem {
       id: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name'] as String? ?? '',
       slug: json['slug'] as String? ?? '',
-      imageX: (json['imageX'] as num?)?.toInt() ?? (json['image_x'] as num?)?.toInt() ?? 0,
-      imageY: (json['imageY'] as num?)?.toInt() ?? (json['image_y'] as num?)?.toInt() ?? 0,
+      imageX:
+          (json['imageX'] as num?)?.toInt() ??
+          (json['image_x'] as num?)?.toInt() ??
+          0,
+      imageY:
+          (json['imageY'] as num?)?.toInt() ??
+          (json['image_y'] as num?)?.toInt() ??
+          0,
       status: json['status'] == 1 || json['status'] == true,
     );
   }
@@ -1020,21 +1110,43 @@ class LabTestItem {
     }
 
     final bodyPointsRaw = json['bodyPoints'] as List<dynamic>? ?? const [];
+    bool parseStatus(dynamic v) {
+      if (v is bool) return v;
+      if (v is num) return v != 0;
+      if (v is String) {
+        final normalized = v.trim().toLowerCase();
+        return normalized == 'active' ||
+            normalized == 'true' ||
+            normalized == '1';
+      }
+      return true;
+    }
+
     final bodyPointsList = bodyPointsRaw
-        .map((item) => BodyPointItem.fromJson(
-              item is Map<String, dynamic>
-                  ? item
-                  : Map<String, dynamic>.from(item as Map),
-            ))
+        .map(
+          (item) => BodyPointItem.fromJson(
+            item is Map<String, dynamic>
+                ? item
+                : Map<String, dynamic>.from(item as Map),
+          ),
+        )
         .toList();
 
     return LabTestItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      testName: json['testName'] as String? ?? 'Lab test',
+      testName:
+          json['testName'] as String? ??
+          json['test_name'] as String? ??
+          'Lab test',
       categoryId: (json['categoryId'] as num?)?.toInt() ?? 0,
-      categoryName: json['categoryName'] as String? ?? 'General',
-      status: json['status'] as bool? ?? true,
-      basePrice: parseDbl(json['basePrice'] ?? json['base_price']),
+      categoryName:
+          json['categoryName'] as String? ??
+          json['category'] as String? ??
+          'General',
+      status: parseStatus(json['status']),
+      basePrice: parseDbl(
+        json['basePrice'] ?? json['base_price'] ?? json['price'],
+      ),
       bodyPoints: bodyPointsList,
       discountedPrice:
           json['discountedPrice'] != null || json['discounted_price'] != null
@@ -1042,7 +1154,8 @@ class LabTestItem {
           : null,
       uuid: json['uuid'] as String?,
       imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
-      instructions: json['instructions'] as String?,
+      instructions:
+          json['instructions'] as String? ?? json['description'] as String?,
       resultEta: json['resultEta'] as String? ?? json['result_eta'] as String?,
     );
   }
@@ -1181,28 +1294,46 @@ class LabPackageItem {
     int parseInt(dynamic v) {
       if (v == null) return 0;
       if (v is num) return v.toInt();
-      if (v is String) return int.tryParse(v) ?? 0;
+      if (v is String) return double.tryParse(v)?.round() ?? 0;
       return 0;
     }
 
-    final includedRaw = json['includedTests'] as List<dynamic>? ?? const [];
+    bool parseStatus(dynamic v) {
+      if (v is bool) return v;
+      if (v is num) return v != 0;
+      if (v is String) {
+        final normalized = v.trim().toLowerCase();
+        return normalized == 'active' ||
+            normalized == 'true' ||
+            normalized == '1';
+      }
+      return true;
+    }
+
+    final includedRaw =
+        json['includedTests'] as List<dynamic>? ??
+        json['tests'] as List<dynamic>? ??
+        const [];
     final rawStatus = json['status'];
     return LabPackageItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      name: json['name'] as String? ?? 'Health package',
-      slug: json['slug'] as String? ?? '',
-      status: rawStatus is bool
-          ? rawStatus
-          : rawStatus is num
-          ? rawStatus != 0
-          : true,
-      basePrice: parseInt(json['basePrice'] ?? json['base_price']),
+      name:
+          json['name'] as String? ??
+          json['package_name'] as String? ??
+          'Health package',
+      slug: json['slug'] as String? ?? json['package_code'] as String? ?? '',
+      status: parseStatus(rawStatus),
+      basePrice: parseInt(
+        json['basePrice'] ?? json['base_price'] ?? json['price'],
+      ),
       description: json['description'] as String?,
       category: json['category'] as String?,
       imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
       instructions: json['instructions'] as String?,
       resultEta: json['resultEta'] as String? ?? json['result_eta'] as String?,
-      totalTests: (json['totalTests'] as num?)?.toInt(),
+      totalTests:
+          (json['totalTests'] as num?)?.toInt() ??
+          (json['test_count'] as num?)?.toInt(),
       discountedPrice:
           json['discountedPrice'] != null || json['discounted_price'] != null
           ? parseInt(json['discountedPrice'] ?? json['discounted_price'])
@@ -1210,10 +1341,14 @@ class LabPackageItem {
       includedTests: includedRaw
           .map((item) {
             if (item is Map<String, dynamic>) {
-              return item['testName'] as String? ?? '';
+              return item['testName'] as String? ??
+                  item['test_name'] as String? ??
+                  '';
             }
             if (item is Map) {
-              return item['testName']?.toString() ?? '';
+              return item['testName']?.toString() ??
+                  item['test_name']?.toString() ??
+                  '';
             }
             return item.toString();
           })

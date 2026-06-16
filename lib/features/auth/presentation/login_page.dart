@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../session/providers/session_provider.dart';
 import 'widgets/auth_form_widgets.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.onOtpSent, this.onBack});
+  const LoginPage({super.key, this.onBack});
 
-  final void Function(String maskedPhone) onOtpSent;
   final VoidCallback? onBack;
 
   @override
@@ -17,70 +15,52 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
   final _dobController = TextEditingController();
-  final _placeController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _genderController = TextEditingController();
+  final _bloodGroupController = TextEditingController();
   bool _isSignup = false;
-  bool _didPrefillDevLogin = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_didPrefillDevLogin) return;
-
-    final showDevOtp = context.read<AppConfig>().showDevOtp;
-    if (showDevOtp) {
-      _phoneController.text = '7034598461';
-    }
-    _didPrefillDevLogin = true;
-  }
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _nameController.dispose();
     _dobController.dispose();
-    _placeController.dispose();
+    _emailController.dispose();
+    _genderController.dispose();
+    _bloodGroupController.dispose();
     super.dispose();
-  }
-
-  String _maskPhone(String phone) {
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
-    if (digits.length < 4) return '****';
-    return '****${digits.substring(digits.length - 4)}';
   }
 
   Future<void> _submit() async {
     final session = context.read<SessionProvider>();
-
     if (_isSignup) {
-      await session.signUp(
+      await session.register(
         phone: _phoneController.text,
-        name: _nameController.text,
-        dob: _dobController.text,
-        place: _placeController.text,
+        password: _passwordController.text,
+        passwordConfirmation: _confirmPasswordController.text,
+        fullName: _nameController.text,
+        dateOfBirth: _dobController.text,
+        email: _emailController.text,
+        gender: _genderController.text,
+        bloodGroup: _bloodGroupController.text,
       );
     } else {
-      await session.sendOtp(phone: _phoneController.text);
-    }
-
-    if (!mounted) return;
-
-    if (_isSignup &&
-        (session.errorMessage ?? '').toLowerCase().contains('already')) {
-      setState(() => _isSignup = false);
-      return;
-    }
-
-    if (session.errorMessage == null && session.pendingPhone != null) {
-      widget.onOtpSent(_maskPhone(_phoneController.text));
+      await session.login(
+        phone: _phoneController.text,
+        password: _passwordController.text,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final showDevOtp = context.read<AppConfig>().showDevOtp;
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -137,16 +117,16 @@ class _LoginPageState extends State<LoginPage> {
                           height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 60),
+                      const SizedBox(height: 48),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _isSignup ? 'Sign up' : 'Login',
+                              _isSignup ? 'Create account' : 'Login',
                               style: const TextStyle(
-                                fontSize: 40,
+                                fontSize: 38,
                                 fontWeight: FontWeight.w900,
                                 color: Color(0xFF192233),
                                 height: 1.1,
@@ -155,65 +135,117 @@ class _LoginPageState extends State<LoginPage> {
                             const SizedBox(height: 12),
                             Text(
                               _isSignup
-                                  ? 'Create your patient account to access appointments and health records.'
-                                  : 'Enter your mobile number to access your health records and book appointments.',
+                                  ? 'Register your patient profile and start booking doctors, lab tests, and health packages.'
+                                  : 'Sign in with your mobile number and password to continue.',
                               style: TextStyle(
                                 fontSize: 16,
-                                color: const Color(0xFF192233)
-                                    .withValues(alpha: 0.6),
+                                color: const Color(
+                                  0xFF192233,
+                                ).withValues(alpha: 0.6),
                                 height: 1.5,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const SizedBox(height: 40),
-                            AuthTextField(
-                              controller: _phoneController,
-                              label: 'Mobile Number',
-                              hint: 'Enter your mobile number',
-                              keyboardType: TextInputType.phone,
-                              prefixIcon: Icons.phone_android_rounded,
-                            ),
+                            const SizedBox(height: 32),
                             if (_isSignup) ...[
-                              const SizedBox(height: 20),
                               AuthTextField(
                                 controller: _nameController,
-                                label: 'Name',
-                                hint: 'Enter your full name',
+                                label: 'Full Name',
+                                hint: 'Aisha Rahman',
                                 keyboardType: TextInputType.name,
                                 prefixIcon: Icons.person_outline_rounded,
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 18),
+                            ],
+                            AuthTextField(
+                              controller: _phoneController,
+                              label: 'Mobile Number',
+                              hint: '+919876543210',
+                              keyboardType: TextInputType.phone,
+                              prefixIcon: Icons.phone_android_rounded,
+                            ),
+                            const SizedBox(height: 18),
+                            AuthTextField(
+                              controller: _passwordController,
+                              label: 'Password',
+                              hint: 'Enter password',
+                              obscureText: _obscurePassword,
+                              keyboardType: TextInputType.visiblePassword,
+                              prefixIcon: Icons.lock_outline_rounded,
+                              suffixIcon: IconButton(
+                                onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                              ),
+                            ),
+                            if (_isSignup) ...[
+                              const SizedBox(height: 18),
+                              AuthTextField(
+                                controller: _confirmPasswordController,
+                                label: 'Confirm Password',
+                                hint: 'Re-enter password',
+                                obscureText: _obscurePassword,
+                                keyboardType: TextInputType.visiblePassword,
+                                prefixIcon: Icons.verified_user_outlined,
+                              ),
+                              const SizedBox(height: 18),
                               AuthTextField(
                                 controller: _dobController,
                                 label: 'Date of Birth',
-                                hint: 'YYYY-MM-DD',
+                                hint: '1994-04-12',
                                 keyboardType: TextInputType.datetime,
                                 prefixIcon: Icons.calendar_today_rounded,
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 18),
                               AuthTextField(
-                                controller: _placeController,
-                                label: 'Place',
-                                hint: 'Enter your place',
-                                keyboardType: TextInputType.streetAddress,
-                                prefixIcon: Icons.location_on_outlined,
+                                controller: _emailController,
+                                label: 'Email',
+                                hint: 'aisha.rahman@example.com',
+                                keyboardType: TextInputType.emailAddress,
+                                prefixIcon: Icons.email_outlined,
+                              ),
+                              const SizedBox(height: 18),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: AuthTextField(
+                                      controller: _genderController,
+                                      label: 'Gender',
+                                      hint: 'female',
+                                      keyboardType: TextInputType.text,
+                                      prefixIcon: Icons.wc_rounded,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: AuthTextField(
+                                      controller: _bloodGroupController,
+                                      label: 'Blood Group',
+                                      hint: 'O+',
+                                      keyboardType: TextInputType.text,
+                                      prefixIcon: Icons.bloodtype_outlined,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
-                            if ((session.errorMessage ?? '').isNotEmpty) ...[
+                            if ((session.errorMessage ?? '').isNotEmpty)
                               AuthErrorText(message: session.errorMessage!),
-                            ],
-                            const SizedBox(height: 40),
+                            const SizedBox(height: 32),
                             AuthPrimaryButton(
-                              label: _isSignup
-                                  ? 'Sign up and send OTP'
-                                  : 'Continue',
-                              isLoading: session.isSendingOtp,
+                              label: _isSignup ? 'Register' : 'Login',
+                              isLoading: session.isSubmittingAuth,
                               onPressed: _submit,
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 18),
                             Center(
                               child: TextButton(
-                                onPressed: session.isSendingOtp
+                                onPressed: session.isSubmittingAuth
                                     ? null
                                     : () {
                                         context
@@ -224,7 +256,7 @@ class _LoginPageState extends State<LoginPage> {
                                 child: Text(
                                   _isSignup
                                       ? 'Already registered? Login'
-                                      : 'New patient? Sign up',
+                                      : 'New patient? Register',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF537DE8),
@@ -233,9 +265,9 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             AuthDemoHint(
-                              text: showDevOtp
-                                  ? 'Demo login is prefilled for local testing.'
-                                  : 'Use the mobile number registered at the hospital.',
+                              text: _isSignup
+                                  ? 'Registration returns a secure patient token from BHRC.'
+                                  : 'Use the phone and password created in the hospital system.',
                             ),
                           ],
                         ),

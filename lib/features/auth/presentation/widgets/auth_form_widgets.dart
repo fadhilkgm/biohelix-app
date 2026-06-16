@@ -35,6 +35,7 @@ class AuthTextField extends StatelessWidget {
     required this.hint,
     this.keyboardType = TextInputType.text,
     this.prefixIcon,
+    this.suffixIcon,
     this.obscureText = false,
   });
 
@@ -43,6 +44,7 @@ class AuthTextField extends StatelessWidget {
   final String hint;
   final TextInputType keyboardType;
   final IconData? prefixIcon;
+  final Widget? suffixIcon;
   final bool obscureText;
 
   @override
@@ -71,6 +73,7 @@ class AuthTextField extends StatelessWidget {
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon, size: 18, color: const Color(0xFF9CA3AF))
                 : null,
+            suffixIcon: suffixIcon,
             filled: true,
             fillColor: const Color(0xFFF3F4F6),
             contentPadding: const EdgeInsets.symmetric(
@@ -117,7 +120,9 @@ class AuthPrimaryButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF537DE8),
-          disabledBackgroundColor: const Color(0xFF537DE8).withValues(alpha: 0.55),
+          disabledBackgroundColor: const Color(
+            0xFF537DE8,
+          ).withValues(alpha: 0.55),
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -181,10 +186,7 @@ class AuthDemoHint extends StatelessWidget {
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Color(0xFF9CA3AF),
-          fontSize: 12,
-        ),
+        style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
       ),
     );
   }

@@ -50,6 +50,8 @@ class SessionProvider extends ChangeNotifier {
   bool get isBootstrapping => _state == SessionState.bootstrapping;
   bool get isSendingOtp => _state == SessionState.sendingOtp;
   bool get isVerifyingOtp => _state == SessionState.verifyingOtp;
+  bool get isSubmittingAuth =>
+      _state == SessionState.sendingOtp || _state == SessionState.verifyingOtp;
   bool get isAuthenticated => (_authToken ?? '').isNotEmpty && _patient != null;
 
   Future<void> initialize() async {
@@ -128,34 +130,88 @@ class SessionProvider extends ChangeNotifier {
     required String dob,
     required String place,
   }) async {
-    final normalizedPhone = phone.trim();
-    final normalizedName = name.trim();
-    final normalizedDob = dob.trim();
-    final normalizedPlace = place.trim();
+    await register(
+      phone: phone,
+      password: place,
+      passwordConfirmation: place,
+      fullName: name,
+      dateOfBirth: dob,
+    );
+  }
 
-    if (normalizedPhone.isEmpty ||
-        normalizedName.isEmpty ||
-        normalizedDob.isEmpty ||
-        normalizedPlace.isEmpty) {
-      _errorMessage = 'Enter your phone, name, date of birth, and place.';
+  Future<void> login({required String phone, required String password}) async {
+    final normalizedPhone = phone.trim();
+    if (normalizedPhone.isEmpty || password.isEmpty) {
+      _errorMessage = 'Enter your phone number and password.';
       notifyListeners();
       return;
     }
+
+    _state = SessionState.verifyingOtp;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final session = await _patientRepository.loginPatient(
+        phone: normalizedPhone,
+        password: password,
+      );
+      await _applyAuthenticatedSession(session);
+    } catch (error) {
+      _errorMessage = error.toString();
+      _state = SessionState.signedOut;
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> register({
+    required String phone,
+    required String password,
+    required String passwordConfirmation,
+    required String fullName,
+    String? gender,
+    String? email,
+    String? dateOfBirth,
+    String? bloodGroup,
+  }) async {
+    final normalizedPhone = phone.trim();
+    final normalizedName = fullName.trim();
+    if (normalizedPhone.isEmpty ||
+        password.isEmpty ||
+        passwordConfirmation.isEmpty ||
+        normalizedName.isEmpty) {
+      _errorMessage = 'Enter your name, phone number, and password.';
+      notifyListeners();
+      return;
+    }
+    if (password != passwordConfirmation) {
+      _errorMessage = 'Password confirmation does not match.';
+      notifyListeners();
+      return;
+    }
+
+    final parts = normalizedName.split(RegExp(r'\s+'));
+    final firstName = parts.first;
+    final lastName = parts.length > 1 ? parts.skip(1).join(' ') : '-';
 
     _state = SessionState.sendingOtp;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _devOtp = await _patientRepository.signUp(
+      final session = await _patientRepository.registerPatient(
         phone: normalizedPhone,
-        name: normalizedName,
-        dob: normalizedDob,
-        place: normalizedPlace,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+        firstName: firstName,
+        lastName: lastName,
+        gender: gender,
+        email: email,
+        dateOfBirth: dateOfBirth,
+        bloodGroup: bloodGroup,
       );
-      _pendingPhone = normalizedPhone;
-      _pendingMrn = null;
-      _state = SessionState.signedOut;
+      await _applyAuthenticatedSession(session);
     } catch (error) {
       _errorMessage = error.toString();
       _state = SessionState.signedOut;
@@ -283,6 +339,13 @@ class SessionProvider extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    try {
+      if ((_authToken ?? '').isNotEmpty) {
+        await _patientRepository.logout();
+      }
+    } catch (_) {
+      // Local sign-out should still complete if the token is already invalid.
+    }
     await _authStorage.clearAll();
     _authToken = null;
     _apiClient.updateAuthToken(null);
@@ -293,6 +356,18 @@ class SessionProvider extends ChangeNotifier {
     _devOtp = null;
     _state = SessionState.signedOut;
     notifyListeners();
+  }
+
+  Future<void> _applyAuthenticatedSession(PatientAuthSession session) async {
+    _authToken = session.token;
+    await _authStorage.writeToken(session.token);
+    _apiClient.updateAuthToken(session.token);
+    _patient = session.patient;
+    await _saveFamilyProfile(token: session.token, patient: _patient!);
+    _state = SessionState.signedIn;
+    _devOtp = null;
+    _pendingPhone = null;
+    _pendingMrn = null;
   }
 
   Future<bool> _recoverFromStoredProfiles() async {

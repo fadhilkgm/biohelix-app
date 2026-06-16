@@ -91,7 +91,8 @@ class LabBookingController extends ChangeNotifier {
   List<BookableLabTest> get filteredTests {
     return _tests.where((BookableLabTest t) {
       final inQuery = t.name.toLowerCase().contains(_query.toLowerCase());
-      final inBodyPoint = _selectedBodyPoint == null ||
+      final inBodyPoint =
+          _selectedBodyPoint == null ||
           t.bodyPoints.any((bp) => bp.id == _selectedBodyPoint!.id);
       final inPrice = t.price <= _maxPrice;
       final inPopular = !_popularOnly || t.popular;
@@ -273,7 +274,7 @@ class LabBookingController extends ChangeNotifier {
         for (var i = 0; i < item.quantity; i++) item.test.id,
     ];
 
-    await portal.createLabOrder(
+    final confirmation = await portal.createLabOrder(
       labTestIds: labTestIds,
       doctorId: null, // Keep null for direct-to-consumer lab orders
       date: dateStr,
@@ -292,7 +293,7 @@ class LabBookingController extends ChangeNotifier {
 
     _cart.clear();
     notifyListeners();
-    return 'LB-$bookingRoot';
+    return confirmation.reference;
   }
 
   BookableLabTest _mapTest(LabTestItem test) {
