@@ -96,6 +96,7 @@ class PatientAppShell extends StatefulWidget {
 class _PatientAppShellState extends State<PatientAppShell>
     implements PatientAppShellController {
   int _selectedIndex = 0;
+  bool _assistantOpenedInThisAppSession = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey<_RecordsTabState> _recordsTabKey =
       GlobalKey<_RecordsTabState>();
@@ -144,9 +145,18 @@ class _PatientAppShellState extends State<PatientAppShell>
 
     return Consumer2<SessionProvider, PatientPortalProvider>(
       builder: (context, session, portal, _) {
+        const homeStatusBarColor = Color(0xFF5A88F1);
         final statusStyle = _selectedIndex == 0
-            ? SystemUiOverlayStyle.light
-            : SystemUiOverlayStyle.dark;
+            ? const SystemUiOverlayStyle(
+                statusBarColor: homeStatusBarColor,
+                statusBarIconBrightness: Brightness.light,
+                statusBarBrightness: Brightness.dark,
+              )
+            : SystemUiOverlayStyle(
+                statusBarColor: Theme.of(context).scaffoldBackgroundColor,
+                statusBarIconBrightness: Brightness.dark,
+                statusBarBrightness: Brightness.light,
+              );
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: statusStyle,
@@ -161,15 +171,33 @@ class _PatientAppShellState extends State<PatientAppShell>
             child: Scaffold(
               key: _scaffoldKey,
               extendBodyBehindAppBar: _selectedIndex == 0,
-              body: portal.isLoading && portal.dashboard == null
-                  ? const Center(child: CircularProgressIndicator())
-                  : RefreshIndicator(
-                      onRefresh: portal.refresh,
-                      child: IndexedStack(
-                        index: _selectedIndex,
-                        children: pages,
-                      ),
+              body: Stack(
+                children: [
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: MediaQuery.paddingOf(context).top,
+                    child: ColoredBox(
+                      color: _selectedIndex == 0
+                          ? homeStatusBarColor
+                          : Theme.of(context).scaffoldBackgroundColor,
                     ),
+                  ),
+                  SafeArea(
+                    bottom: false,
+                    child: portal.isLoading && portal.dashboard == null
+                        ? const Center(child: CircularProgressIndicator())
+                        : RefreshIndicator(
+                            onRefresh: portal.refresh,
+                            child: IndexedStack(
+                              index: _selectedIndex,
+                              children: pages,
+                            ),
+                          ),
+                  ),
+                ],
+              ),
               bottomNavigationBar: BottomNavBarWidget(
                 selectedIndex: _selectedIndex,
                 onTap: _setIndex,
@@ -253,7 +281,12 @@ class _PatientAppShellState extends State<PatientAppShell>
     _setIndex(3);
   }
 
-  void _openAssistant() {
+  Future<void> _openAssistant() async {
+    if (!_assistantOpenedInThisAppSession) {
+      await context.read<PatientPortalProvider>().createNewChatThread();
+      _assistantOpenedInThisAppSession = true;
+    }
+    if (!mounted) return;
     Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const _AssistantPage()));

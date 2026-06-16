@@ -473,14 +473,39 @@ extension _AssistantActions on _AssistantTabState {
           onResult: (result) {
             if (!mounted) return;
             final words = result.recognizedWords.trim();
-            inputController.value = TextEditingValue(
-              text: words,
-              selection: TextSelection.collapsed(offset: words.length),
-            );
+            if (isLiveVoiceMode) {
+              if (words.isEmpty || isLiveTurnInFlight) return;
 
-            if (isLiveVoiceMode && result.finalResult && !isLiveTurnInFlight) {
-              _sendLiveVoiceTurn(portal, words);
+              // In live mode, don't write transcript into the text composer.
+              // Auto-send after a brief pause, or immediately on final result.
+              _liveAutoSendDebounce?.cancel();
+              if (result.finalResult) {
+                if (_sanitizeSpeechText(words) != _lastLiveSentText) {
+                  _lastLiveSentText = _sanitizeSpeechText(words);
+                  _sendLiveVoiceTurn(portal, words);
+                }
+                return;
+              }
+
+              _liveAutoSendDebounce = Timer(
+                const Duration(milliseconds: 1200),
+                () {
+                  if (!mounted || !isLiveVoiceMode || isLiveTurnInFlight) {
+                    return;
+                  }
+                  final sanitized = _sanitizeSpeechText(words);
+                  if (sanitized.isEmpty || sanitized == _lastLiveSentText) {
+                    return;
+                  }
+                  _lastLiveSentText = sanitized;
+                  _sendLiveVoiceTurn(portal, sanitized);
+                },
+              );
             } else if (!isLiveVoiceMode && result.finalResult) {
+              inputController.value = TextEditingValue(
+                text: words,
+                selection: TextSelection.collapsed(offset: words.length),
+              );
               speechToText.stop();
               updateAssistantState(() {
                 _isListening = false;
@@ -508,7 +533,9 @@ extension _AssistantActions on _AssistantTabState {
       } catch (e) {
         // Fallback for emulators/devices where STT fails to start, allowing visual testing of premium animations.
         // ignore: avoid_print
-        print("🎙️ [VoiceAssistant] Speech recognition failed to start: $e. Falling back to simulated animation mode.");
+        print(
+          "🎙️ [VoiceAssistant] Speech recognition failed to start: $e. Falling back to simulated animation mode.",
+        );
       }
 
       if (!mounted) return;
@@ -526,17 +553,23 @@ extension _AssistantActions on _AssistantTabState {
         }
         _soundLevel = 0.0;
       });
-      
+
       // If we are in live voice mode, retry listening after a short delay to let
       // the device finish transitioning its audio session from playback to recording.
       if (isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight) {
         await Future<void>.delayed(const Duration(milliseconds: 1000));
-        if (mounted && isLiveVoiceMode && !isListening && !isSpeaking && !isLiveTurnInFlight) {
+        if (mounted &&
+            isLiveVoiceMode &&
+            !isListening &&
+            !isSpeaking &&
+            !isLiveTurnInFlight) {
           await _startVoiceListening(portal);
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${_strings.assistantUnableToListen}: $error')),
+          SnackBar(
+            content: Text('${_strings.assistantUnableToListen}: $error'),
+          ),
         );
       }
     }
@@ -617,7 +650,7 @@ extension _AssistantActions on _AssistantTabState {
       updateAssistantState(() {
         isSpeaking = false;
       });
-      
+
       // If the user stops the AI speech directly from the chat bubble,
       // we must resume the microphone immediately so the Live Voice loop doesn't break!
       if (isLiveVoiceMode && !isListening && !isLiveTurnInFlight) {
@@ -683,8 +716,13 @@ Future<void> _openAttachmentPreview(
                         resolvedUrl,
                         fit: BoxFit.contain,
                         headers: {
-                          if (Provider.of<SessionProvider>(context, listen: false).authToken != null)
-                            'Authorization': 'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
+                          if (Provider.of<SessionProvider>(
+                                context,
+                                listen: false,
+                              ).authToken !=
+                              null)
+                            'Authorization':
+                                'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
                         },
                         errorBuilder: (_, _, _) => Text(
                           'Image preview unavailable.',

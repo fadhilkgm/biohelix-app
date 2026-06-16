@@ -14,6 +14,7 @@ class _AssistantTabState extends State<_AssistantTab> {
   final _messagesController = ScrollController();
   late final VoiceManager _voiceManager;
   int _lastAutoScrolledMessageCount = 0;
+  String? _lastAutoScrolledThreadId;
   bool _showMobileSidebar = false;
   bool _speechReady = false;
   bool _isListening = false;
@@ -21,6 +22,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   bool _isLiveVoiceMode = false;
   bool _isLiveTurnInFlight = false;
   bool _isTapRecording = false;
+  Timer? _liveAutoSendDebounce;
+  String _lastLiveSentText = '';
   String? _lastLiveSpokenReply;
   String? _configuredTtsLanguage;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
@@ -129,6 +132,7 @@ class _AssistantTabState extends State<_AssistantTab> {
   @override
   void dispose() {
     _isLiveVoiceMode = false;
+    _liveAutoSendDebounce?.cancel();
     _voiceManager.stopListening();
     _voiceManager.stopSpeaking();
     _messagesController.dispose();
@@ -148,6 +152,7 @@ class _AssistantTabState extends State<_AssistantTab> {
     return Consumer<PatientPortalProvider>(
       builder: (context, portal, _) {
         final messages = portal.chatMessages;
+        final activeThreadId = portal.activeChatThreadId;
         final busy = portal.isSendingMessage || portal.isUploadingDocument;
         final pendingAttachments = List<ChatAttachment>.unmodifiable(
           _pendingAttachments,
@@ -169,6 +174,16 @@ class _AssistantTabState extends State<_AssistantTab> {
           }
         }
 
+        if (activeThreadId != _lastAutoScrolledThreadId) {
+          _lastAutoScrolledThreadId = activeThreadId;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || !_messagesController.hasClients) return;
+            final position = _messagesController.position;
+            if (!position.hasContentDimensions) return;
+            _messagesController.jumpTo(position.maxScrollExtent);
+          });
+        }
+
         if (messages.length != _lastAutoScrolledMessageCount || busy) {
           _lastAutoScrolledMessageCount = messages.length;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -187,324 +202,348 @@ class _AssistantTabState extends State<_AssistantTab> {
           });
         }
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final showDesktopSidebar = constraints.maxWidth >= 940;
+        return PopScope<void>(
+          canPop: !_isLiveVoiceMode,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            if (_isLiveVoiceMode) {
+              _toggleLiveVoiceMode(portal);
+            }
+          },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final showDesktopSidebar = constraints.maxWidth >= 940;
 
-            Widget messagePane() {
-              final patientName =
-                  (portal.dashboard?.patient.name.trim().isNotEmpty ?? false)
-                  ? portal.dashboard!.patient.name.trim().split(' ').first
-                  : 'there';
+              Widget messagePane() {
+                final patientName =
+                    (portal.dashboard?.patient.name.trim().isNotEmpty ?? false)
+                    ? portal.dashboard!.patient.name.trim().split(' ').first
+                    : 'there';
 
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-                    child: ChatHeaderWidget(
-                      onToggleThreads: () {
-                        setState(() {
-                          _showMobileSidebar = !_showMobileSidebar;
-                        });
-                      },
-                      showToggleThreads: !showDesktopSidebar,
-                      onNewChat: () async {
-                        _updateAssistantState(_clearComposer);
-                        await portal.createNewChatThread();
-                      },
-                      isLiveMode: _isLiveVoiceMode,
-                      isListening: _isListening,
-                      isSpeaking: _isSpeaking,
-                      onInterruptAi: () => _interruptAiSpeechAndListen(portal),
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+                      child: ChatHeaderWidget(
+                        onToggleThreads: () {
+                          setState(() {
+                            _showMobileSidebar = !_showMobileSidebar;
+                          });
+                        },
+                        showToggleThreads: !showDesktopSidebar,
+                        onNewChat: () async {
+                          _updateAssistantState(_clearComposer);
+                          await portal.createNewChatThread();
+                        },
+                        isLiveMode: _isLiveVoiceMode,
+                        isListening: _isListening,
+                        isSpeaking: _isSpeaking,
+                        onInterruptAi: () =>
+                            _interruptAiSpeechAndListen(portal),
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: _isLiveVoiceMode
-                        ? _AssistantLiveStage(
-                            patientName: patientName,
-                            isListening: _isListening,
-                            isSpeaking: _isSpeaking,
-                            isBusy: portal.isSendingMessage,
-                            latestAssistantText: _latestAssistantText(messages),
-                            onAttach: () => _attachFile(portal),
-                            onInterrupt: () =>
-                                _interruptAiSpeechAndListen(portal),
-                            onStopLive: () => _toggleLiveVoiceMode(portal),
-                          )
-                        : messages.isEmpty && !portal.isSendingMessage
-                        ? _AssistantEmptyState(
-                            prompts: strings.assistantStarterPrompts,
-                            patientName: patientName,
-                            onPromptTap: (prompt) {
-                              _inputController.text = prompt;
-                              _sendMessage(portal);
-                            },
-                          )
-                        : ListView.separated(
-                            controller: _messagesController,
-                            padding: const EdgeInsets.fromLTRB(14, 8, 14, 18),
-                            itemCount:
-                                messages.length +
-                                (portal.isSendingMessage ? 1 : 0),
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: AppSpacing.s14),
-                            itemBuilder: (context, index) {
-                              if (index >= messages.length) {
-                                return const TypingIndicatorWidget();
-                              }
+                    Expanded(
+                      child: _isLiveVoiceMode
+                          ? _AssistantLiveStage(
+                              patientName: patientName,
+                              isListening: _isListening,
+                              isSpeaking: _isSpeaking,
+                              isBusy: portal.isSendingMessage,
+                              latestAssistantText: _latestAssistantText(
+                                messages,
+                              ),
+                              onInterrupt: () =>
+                                  _interruptAiSpeechAndListen(portal),
+                              onStopLive: () => _toggleLiveVoiceMode(portal),
+                            )
+                          : messages.isEmpty && !portal.isSendingMessage
+                          ? _AssistantEmptyState(
+                              prompts: strings.assistantStarterPrompts,
+                              patientName: patientName,
+                              onPromptTap: (prompt) {
+                                _inputController.text = prompt;
+                                _sendMessage(portal);
+                              },
+                            )
+                          : ListView.separated(
+                              controller: _messagesController,
+                              padding: const EdgeInsets.fromLTRB(14, 8, 14, 18),
+                              itemCount:
+                                  messages.length +
+                                  (portal.isSendingMessage ? 1 : 0),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: AppSpacing.s14),
+                              itemBuilder: (context, index) {
+                                if (index >= messages.length) {
+                                  return const TypingIndicatorWidget();
+                                }
 
-                              final message = messages[index];
-                              final date = _messageDate(message, index);
-                              final showDate =
-                                  index == 0 ||
-                                  _dateLabel(date) !=
-                                      _dateLabel(
-                                        _messageDate(
-                                          messages[index - 1],
-                                          index - 1,
+                                final message = messages[index];
+                                final date = _messageDate(message, index);
+                                final showDate =
+                                    index == 0 ||
+                                    _dateLabel(date) !=
+                                        _dateLabel(
+                                          _messageDate(
+                                            messages[index - 1],
+                                            index - 1,
+                                          ),
+                                        );
+                                final attachments = _attachmentsFromMessage(
+                                  context,
+                                  message,
+                                );
+
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    if (showDate)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: AppSpacing.s12,
                                         ),
-                                      );
-                              final attachments = _attachmentsFromMessage(
-                                context,
-                                message,
-                              );
-
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  if (showDate)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: AppSpacing.s12,
+                                        child: _DateSeparator(
+                                          label: _dateLabel(date),
+                                        ),
                                       ),
-                                      child: _DateSeparator(
-                                        label: _dateLabel(date),
+                                    _MessageBubbleWidget(
+                                      message: message,
+                                      timeLabel: _messageTimeLabel(
+                                        message,
+                                        index,
                                       ),
+                                      attachments: attachments,
+                                      onSpeakTap: () =>
+                                          _toggleSpeechPlayback(message),
+                                      isSpeaking:
+                                          _isSpeaking &&
+                                          message.role != 'user' &&
+                                          index == messages.length - 1,
+                                      onStopTap: () =>
+                                          _interruptAiSpeechAndListen(portal),
+                                      onAttachmentTap: (attachment) {
+                                        _openAttachmentPreview(
+                                          context,
+                                          attachment,
+                                        );
+                                      },
                                     ),
-                                  _MessageBubbleWidget(
-                                    message: message,
-                                    timeLabel: _messageTimeLabel(
-                                      message,
-                                      index,
+                                  ],
+                                );
+                              },
+                            ),
+                    ),
+                    if (pendingAttachments.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              for (
+                                var i = 0;
+                                i < pendingAttachments.length;
+                                i++
+                              )
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                    right: i == pendingAttachments.length - 1
+                                        ? 0
+                                        : AppSpacing.s8,
+                                  ),
+                                  child: InputChip(
+                                    avatar: Icon(
+                                      pendingAttachments[i].isImage
+                                          ? Icons.image_outlined
+                                          : Icons.attach_file_rounded,
+                                      size: 16,
                                     ),
-                                    attachments: attachments,
-                                    onSpeakTap: () =>
-                                        _toggleSpeechPlayback(message),
-                                    isSpeaking:
-                                        _isSpeaking &&
-                                        message.role != 'user' &&
-                                        index == messages.length - 1,
-                                    onStopTap: () =>
-                                        _interruptAiSpeechAndListen(portal),
-                                    onAttachmentTap: (attachment) {
+                                    label: Text(
+                                      pendingAttachments[i].name,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    onPressed: () {
+                                      final attachment = pendingAttachments[i];
                                       _openAttachmentPreview(
                                         context,
-                                        attachment,
+                                        _ChatAttachment(
+                                          name: attachment.name,
+                                          url: _resolveAttachmentUrl(
+                                            context,
+                                            attachment.url,
+                                          ),
+                                          sizeLabel: _formatBytes(
+                                            attachment.sizeBytes,
+                                          ),
+                                          isImage: attachment.isImage,
+                                        ),
                                       );
                                     },
+                                    onDeleted: () {
+                                      _updateAssistantState(() {
+                                        _pendingAttachments.removeAt(i);
+                                      });
+                                    },
                                   ),
-                                ],
-                              );
-                            },
+                                ),
+                            ],
                           ),
-                  ),
-                  if (pendingAttachments.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (var i = 0; i < pendingAttachments.length; i++)
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  right: i == pendingAttachments.length - 1
-                                      ? 0
-                                      : AppSpacing.s8,
-                                ),
-                                child: InputChip(
-                                  avatar: Icon(
-                                    pendingAttachments[i].isImage
-                                        ? Icons.image_outlined
-                                        : Icons.attach_file_rounded,
-                                    size: 16,
-                                  ),
-                                  label: Text(
-                                    pendingAttachments[i].name,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  onPressed: () {
-                                    final attachment = pendingAttachments[i];
-                                    _openAttachmentPreview(
-                                      context,
-                                      _ChatAttachment(
-                                        name: attachment.name,
-                                        url: _resolveAttachmentUrl(
-                                          context,
-                                          attachment.url,
-                                        ),
-                                        sizeLabel: _formatBytes(
-                                          attachment.sizeBytes,
-                                        ),
-                                        isImage: attachment.isImage,
-                                      ),
-                                    );
-                                  },
-                                  onDeleted: () {
-                                    _updateAssistantState(() {
-                                      _pendingAttachments.removeAt(i);
-                                    });
-                                  },
-                                ),
-                              ),
-                          ],
                         ),
                       ),
-                    ),
-                  if (uploadInProgress)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AiChatColors.bubbleAiSoft,
-                          borderRadius: BorderRadius.circular(AppRadius.card),
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            const SizedBox(width: AppSpacing.s8),
-                            Expanded(
-                              child: Text(
-                                uploadingLabel == null ||
-                                        uploadingLabel.trim().isEmpty
-                                    ? strings.assistantUploadingAttachment
-                                    : strings.assistantUploadingNamedAttachment(
-                                        uploadingLabel,
-                                      ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.subtitle(context),
+                    if (uploadInProgress)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AiChatColors.bubbleAiSoft,
+                            borderRadius: BorderRadius.circular(AppRadius.card),
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: AppSpacing.s8),
+                              Expanded(
+                                child: Text(
+                                  uploadingLabel == null ||
+                                          uploadingLabel.trim().isEmpty
+                                      ? strings.assistantUploadingAttachment
+                                      : strings
+                                            .assistantUploadingNamedAttachment(
+                                              uploadingLabel,
+                                            ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.subtitle(context),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                      child: _isLiveVoiceMode
+                          ? const SizedBox.shrink()
+                          : ChatInputWidget(
+                              controller: _inputController,
+                              isBusy: busy,
+                              isListening: _isListening,
+                              isLiveMode: _isLiveVoiceMode,
+                              isSpeaking: _isSpeaking,
+                              soundLevel: _soundLevel,
+                              onAttach: () => _attachFile(portal),
+                              onLiveTap: () => _toggleLiveVoiceMode(portal),
+                              onVoiceTap: _toggleVoiceInput,
+                              onInterrupt: () =>
+                                  _interruptAiSpeechAndListen(portal),
+                              onSend: () => _sendMessage(portal),
+                            ),
                     ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                    child: _isLiveVoiceMode
-                        ? const SizedBox.shrink()
-                        : ChatInputWidget(
-                            controller: _inputController,
-                            isBusy: busy,
-                            isListening: _isListening,
-                            isLiveMode: _isLiveVoiceMode,
-                            isSpeaking: _isSpeaking,
-                            soundLevel: _soundLevel,
-                            onAttach: () => _attachFile(portal),
-                            onLiveTap: () => _toggleLiveVoiceMode(portal),
-                            onVoiceTap: _toggleVoiceInput,
-                            onInterrupt: () =>
-                                _interruptAiSpeechAndListen(portal),
-                            onSend: () => _sendMessage(portal),
-                          ),
-                  ),
-                ],
+                  ],
+                );
+              }
+
+              final sidebar = ChatSidebarWidget(
+                threads: portal.chatThreads,
+                activeThreadId: portal.activeChatThreadId,
+                onThreadSelect: (threadId) {
+                  _updateAssistantState(_clearComposer);
+                  portal.switchChatThread(threadId);
+                  if (!showDesktopSidebar) {
+                    setState(() {
+                      _showMobileSidebar = false;
+                    });
+                  }
+                },
+                onRenameThread: (threadId) => _renameThread(portal, threadId),
+                onDeleteThread: (threadId) =>
+                    _confirmDeleteThread(portal, threadId),
+                onNewChat: () async {
+                  _updateAssistantState(_clearComposer);
+                  await portal.createNewChatThread();
+                },
               );
-            }
 
-            final sidebar = ChatSidebarWidget(
-              threads: portal.chatThreads,
-              activeThreadId: portal.activeChatThreadId,
-              onThreadSelect: (threadId) {
-                _updateAssistantState(_clearComposer);
-                portal.switchChatThread(threadId);
-                if (!showDesktopSidebar) {
-                  setState(() {
-                    _showMobileSidebar = false;
-                  });
-                }
-              },
-              onRenameThread: (threadId) => _renameThread(portal, threadId),
-              onDeleteThread: (threadId) =>
-                  _confirmDeleteThread(portal, threadId),
-              onNewChat: () async {
-                _updateAssistantState(_clearComposer);
-                await portal.createNewChatThread();
-              },
-            );
-
-            return SafeArea(
-              top: true,
-              bottom: false,
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AiChatColors.background,
-                      AiChatColors.background,
-                      AiChatColors.surfaceTint,
-                      AiChatColors.backgroundBlue,
-                    ],
-                    stops: [0.0, 0.58, 0.78, 1.0],
+              return SafeArea(
+                top: true,
+                bottom: false,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AiChatColors.background,
+                        AiChatColors.background,
+                        AiChatColors.surfaceTint,
+                        AiChatColors.backgroundBlue,
+                      ],
+                      stops: [0.0, 0.58, 0.78, 1.0],
+                    ),
                   ),
-                ),
-                child: Stack(
-                  children: [
-                    Row(
-                      children: [
-                        if (showDesktopSidebar)
-                          SizedBox(
-                            width: 300,
+                  child: Stack(
+                    children: [
+                      Row(
+                        children: [
+                          if (showDesktopSidebar)
+                            SizedBox(
+                              width: 300,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  12,
+                                  8,
+                                  12,
+                                ),
+                                child: sidebar,
+                              ),
+                            ),
+                          Expanded(child: messagePane()),
+                        ],
+                      ),
+                      if (!showDesktopSidebar && _showMobileSidebar)
+                        Positioned.fill(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _showMobileSidebar = false;
+                              });
+                            },
+                            child: Container(
+                              color: Colors.black.withValues(alpha: 0.2),
+                            ),
+                          ),
+                        ),
+                      if (!showDesktopSidebar && _showMobileSidebar)
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          child: SizedBox(
+                            width: 296,
                             child: Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+                              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
                               child: sidebar,
                             ),
                           ),
-                        Expanded(child: messagePane()),
-                      ],
-                    ),
-                    if (!showDesktopSidebar && _showMobileSidebar)
-                      Positioned.fill(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _showMobileSidebar = false;
-                            });
-                          },
-                          child: Container(
-                            color: Colors.black.withValues(alpha: 0.2),
-                          ),
                         ),
-                      ),
-                    if (!showDesktopSidebar && _showMobileSidebar)
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        child: SizedBox(
-                          width: 296,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-                            child: sidebar,
-                          ),
-                        ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );
@@ -597,14 +636,13 @@ class _AssistantEmptyState extends StatelessWidget {
   }
 }
 
-class _AssistantLiveStage extends StatelessWidget {
+class _AssistantLiveStage extends StatefulWidget {
   const _AssistantLiveStage({
     required this.patientName,
     required this.isListening,
     required this.isSpeaking,
     required this.isBusy,
     required this.latestAssistantText,
-    required this.onAttach,
     required this.onInterrupt,
     required this.onStopLive,
   });
@@ -614,15 +652,46 @@ class _AssistantLiveStage extends StatelessWidget {
   final bool isSpeaking;
   final bool isBusy;
   final String? latestAssistantText;
-  final VoidCallback onAttach;
   final VoidCallback onInterrupt;
   final VoidCallback onStopLive;
 
   @override
+  State<_AssistantLiveStage> createState() => _AssistantLiveStageState();
+}
+
+class _AssistantLiveStageState extends State<_AssistantLiveStage> {
+  final ScrollController _liveTextScrollController = ScrollController();
+
+  @override
+  void didUpdateWidget(covariant _AssistantLiveStage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSpeaking &&
+        widget.latestAssistantText != oldWidget.latestAssistantText) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_liveTextScrollController.hasClients) return;
+        _liveTextScrollController.animateTo(
+          _liveTextScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _liveTextScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final displayText = isSpeaking && (latestAssistantText ?? '').isNotEmpty
-        ? latestAssistantText!
-        : 'Hi $patientName, how can I help?';
+    final isSpeaking = widget.isSpeaking;
+    final isListening = widget.isListening;
+    final displayText =
+        isSpeaking && (widget.latestAssistantText ?? '').isNotEmpty
+        ? widget.latestAssistantText!
+        : 'Hi ${widget.patientName}, how can I help?';
 
     return Stack(
       children: [
@@ -632,43 +701,30 @@ class _AssistantLiveStage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const _GeminiSparkle(size: 58),
-                const SizedBox(height: 40),
-                Text(
-                  displayText,
-                  textAlign: isSpeaking ? TextAlign.start : TextAlign.center,
-                  maxLines: isSpeaking ? 7 : 2,
-                  overflow: TextOverflow.fade,
-                  style: GoogleFonts.manrope(
-                    color: AiChatColors.textPrimary,
-                    fontSize: isSpeaking ? 36 : 40,
-                    height: isSpeaking ? 1.18 : 1.1,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: -1.7,
-                  ),
+                _LiveStatusOrb(
+                  isListening: isListening,
+                  isSpeaking: isSpeaking,
+                  isBusy: widget.isBusy,
                 ),
-                if (isSpeaking || isBusy) ...[
-                  const SizedBox(height: 34),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 11,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AiChatColors.surfaceTint,
-                      border: Border.all(color: AiChatColors.border),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
+                const SizedBox(height: 40),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _liveTextScrollController,
                     child: Text(
-                      isSpeaking ? 'Tap to interrupt' : 'Thinking...',
+                      displayText,
+                      textAlign: isSpeaking
+                          ? TextAlign.start
+                          : TextAlign.center,
                       style: GoogleFonts.manrope(
-                        color: AiChatColors.primary,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
+                        color: AiChatColors.textPrimary,
+                        fontSize: isSpeaking ? 32 : 40,
+                        height: isSpeaking ? 1.18 : 1.1,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -1.5,
                       ),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -680,9 +736,8 @@ class _AssistantLiveStage extends StatelessWidget {
           child: _LiveControlsDock(
             isListening: isListening,
             isSpeaking: isSpeaking,
-            onAttach: onAttach,
-            onInterrupt: onInterrupt,
-            onStopLive: onStopLive,
+            onInterrupt: widget.onInterrupt,
+            onStopLive: widget.onStopLive,
           ),
         ),
       ],
@@ -694,14 +749,12 @@ class _LiveControlsDock extends StatelessWidget {
   const _LiveControlsDock({
     required this.isListening,
     required this.isSpeaking,
-    required this.onAttach,
     required this.onInterrupt,
     required this.onStopLive,
   });
 
   final bool isListening;
   final bool isSpeaking;
-  final VoidCallback onAttach;
   final VoidCallback onInterrupt;
   final VoidCallback onStopLive;
 
@@ -711,16 +764,62 @@ class _LiveControlsDock extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _RoundLiveButton(icon: Icons.videocam_outlined, onTap: () {}),
-        _RoundLiveButton(icon: Icons.upload_rounded, onTap: onAttach),
-        const _LiveOrb(),
+        _LiveOrb(isListening: isListening, isSpeaking: isSpeaking),
         _RoundLiveButton(
-          icon: Icons.mic_none_rounded,
+          icon: Icons.stop_rounded,
           onTap: isSpeaking ? onInterrupt : () {},
-          highlighted: isListening,
+          highlighted: isSpeaking,
         ),
         _RoundLiveButton(icon: Icons.close_rounded, onTap: onStopLive),
       ],
+    );
+  }
+}
+
+class _LiveStatusOrb extends StatelessWidget {
+  const _LiveStatusOrb({
+    required this.isListening,
+    required this.isSpeaking,
+    required this.isBusy,
+  });
+
+  final bool isListening;
+  final bool isSpeaking;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = isSpeaking
+        ? const [Color(0xFF1B4D3E), Color(0xFF35D399), Color(0xFF9EF3D1)]
+        : isListening
+        ? const [Color(0xFF0F3A7A), Color(0xFF5A88F1), Color(0xFFAFC7FF)]
+        : isBusy
+        ? const [Color(0xFF6B4E16), Color(0xFFF0B429), Color(0xFFFFE4A3)]
+        : const [Color(0xFF2E8B57), Color(0xFF35D399), Color(0xFF1B4D3E)];
+
+    return Container(
+      width: 78,
+      height: 78,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colors[1].withValues(alpha: 0.42),
+            blurRadius: 24,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.graphic_eq_rounded,
+        color: Colors.white,
+        size: 38,
+      ),
     );
   }
 }
@@ -759,29 +858,49 @@ class _RoundLiveButton extends StatelessWidget {
 }
 
 class _LiveOrb extends StatelessWidget {
-  const _LiveOrb();
+  const _LiveOrb({required this.isListening, required this.isSpeaking});
+
+  final bool isListening;
+  final bool isSpeaking;
 
   @override
   Widget build(BuildContext context) {
+    final colors = isSpeaking
+        ? const [Color(0xFF0D2A22), Color(0xFF1B4D3E), Color(0xFF35D399)]
+        : isListening
+        ? const [Color(0xFF102A52), Color(0xFF2C5DB6), Color(0xFF5A88F1)]
+        : const [Color(0xFF0D2A22), Color(0xFF1B4D3E), Color(0xFF35D399)];
+    final icon = isSpeaking
+        ? Icons.volume_up_rounded
+        : isListening
+        ? Icons.hearing_rounded
+        : Icons.graphic_eq_rounded;
+
     return Container(
       width: 118,
       height: 82,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(40),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF0D2A22), Color(0xFF1B4D3E), Color(0xFF35D399)],
+          colors: colors,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x802E8B57),
+            color: colors.last.withValues(alpha: 0.5),
             blurRadius: 34,
             offset: Offset(0, 14),
           ),
         ],
       ),
-      child: CustomPaint(painter: _OrbPainter()),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(painter: _OrbPainter()),
+          Icon(icon, color: Colors.white, size: 32),
+        ],
+      ),
     );
   }
 }

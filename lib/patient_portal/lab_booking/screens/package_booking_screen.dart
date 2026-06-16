@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../core/models/patient_models.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../core/widgets/booking_success_screen.dart';
@@ -535,8 +536,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
         address: _collectionType == 'home'
             ? (_address.isEmpty ? null : _address)
             : null,
-        amount: (widget.package.discountedPrice ?? widget.package.basePrice)
-            .toDouble(),
+        amount: amount.toDouble(),
         paymentStatus: 'pending',
         patientNameSnapshot: _selectedPatient?.name,
         patientAgeSnapshot: _selectedPatient?.age,
@@ -554,6 +554,44 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
             subtitle:
                 'Your health package has been successfully scheduled. Our team will contact you for confirmation.',
             imagePath: 'assets/images/lab-test-booking.png',
+            summaryTitle: widget.package.name,
+            summarySubtitle:
+                '${widget.package.totalTests ?? widget.package.includedTests.length} tests • $collectionLabel',
+            summaryImageUrl: packageImageUrl,
+            summaryImageAsset: 'assets/images/lab-test-booking.png',
+            details: [
+              BookingSuccessDetail(
+                icon: Icons.calendar_today_rounded,
+                label: 'Date',
+                value: bookingDate,
+              ),
+              BookingSuccessDetail(
+                icon: Icons.access_time_rounded,
+                label: 'Time',
+                value: _selectedSlot ?? 'To be confirmed',
+              ),
+              BookingSuccessDetail(
+                icon: Icons.person_rounded,
+                label: 'Patient',
+                value: _selectedPatient?.name ?? 'Self',
+              ),
+              BookingSuccessDetail(
+                icon: Icons.place_rounded,
+                label: 'Collection',
+                value: collectionLabel,
+              ),
+              BookingSuccessDetail(
+                icon: Icons.payments_rounded,
+                label: 'Amount',
+                value: '₹$amount',
+              ),
+              if (_collectionType == 'home' && _address.trim().isNotEmpty)
+                BookingSuccessDetail(
+                  icon: Icons.home_rounded,
+                  label: 'Address',
+                  value: _address.trim(),
+                ),
+            ],
           ),
         ),
       );
@@ -570,6 +608,16 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
         });
       }
     }
+  }
+
+  String _resolveBookingImageUrl(String? url, String apiBase) {
+    if (url == null || url.trim().isEmpty) return '';
+    final cleanValue = url.trim();
+    if (cleanValue.startsWith('http')) return cleanValue;
+    final cleanUrl = cleanValue.startsWith('/')
+        ? cleanValue.substring(1)
+        : cleanValue;
+    return '$apiBase/$cleanUrl';
   }
 
   @override

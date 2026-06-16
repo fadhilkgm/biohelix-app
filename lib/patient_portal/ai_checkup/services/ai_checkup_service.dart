@@ -63,6 +63,17 @@ class AiCheckupService {
 
   const AiCheckupService({required this.apiBaseUrl, required this.authToken});
 
+  static String _dioMessage(DioException error) {
+    final data = error.response?.data;
+    if (data is Map) {
+      return data['error']?.toString() ??
+          data['message']?.toString() ??
+          error.message ??
+          'Request failed';
+    }
+    return data?.toString() ?? error.message ?? 'Request failed';
+  }
+
   Future<Map<String, dynamic>> getNextQuestion({
     required List<Map<String, dynamic>> messages,
     String? step,
@@ -79,15 +90,20 @@ class AiCheckupService {
       ),
     );
 
-    final response = await dio.post<Map<String, dynamic>>(
-      '/patient/ai-checkup',
-      data: {
-        'messages': messages,
-        'step': step ?? 'questions',
-        'patientInfo': patientInfo,
-        'language': language ?? 'en',
-      },
-    );
+    final Response<Map<String, dynamic>> response;
+    try {
+      response = await dio.post<Map<String, dynamic>>(
+        '/patient/ai-checkup',
+        data: {
+          'messages': messages,
+          'step': step ?? 'questions',
+          'patientInfo': patientInfo,
+          'language': language ?? 'en',
+        },
+      );
+    } on DioException catch (error) {
+      throw Exception(_dioMessage(error));
+    }
 
     final reply = response.data!['reply'];
 
@@ -126,10 +142,15 @@ class AiCheckupService {
       ),
     );
 
-    final response = await dio.post<Map<String, dynamic>>(
-      '/patient/ai-health-assessment',
-      data: {'answers': answers, 'language': language ?? 'en'},
-    );
+    final Response<Map<String, dynamic>> response;
+    try {
+      response = await dio.post<Map<String, dynamic>>(
+        '/patient/ai-health-assessment',
+        data: {'answers': answers, 'language': language ?? 'en'},
+      );
+    } on DioException catch (error) {
+      throw Exception(_dioMessage(error));
+    }
 
     if (response.statusCode != 200 || response.data == null) {
       throw Exception('AI service error: ${response.statusCode}');
@@ -149,7 +170,12 @@ class AiCheckupService {
       ),
     );
 
-    final response = await dio.get<List>('/patient/ai-history');
+    final Response<List<dynamic>> response;
+    try {
+      response = await dio.get<List<dynamic>>('/patient/ai-history');
+    } on DioException catch (error) {
+      throw Exception(_dioMessage(error));
+    }
 
     if (response.statusCode != 200 || response.data == null) {
       throw Exception('Failed to fetch AI history: ${response.statusCode}');
