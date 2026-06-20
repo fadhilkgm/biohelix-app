@@ -526,6 +526,12 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
       _isSubmitting = true;
     });
 
+    final amount = widget.package.discountedPrice ?? widget.package.basePrice;
+    final collectionLabel =
+        _collectionType == 'home' ? 'Home Collection' : 'Lab Visit';
+    final packageImageUrl = widget.package.imageUrl ?? '';
+    final bookingDate = DateFormat('dd MMM yyyy').format(_selectedDate);
+
     try {
       final confirmation = await portal.createLabPackageOrder(
         labPackageId: widget.package.id,
@@ -608,16 +614,6 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
         });
       }
     }
-  }
-
-  String _resolveBookingImageUrl(String? url, String apiBase) {
-    if (url == null || url.trim().isEmpty) return '';
-    final cleanValue = url.trim();
-    if (cleanValue.startsWith('http')) return cleanValue;
-    final cleanUrl = cleanValue.startsWith('/')
-        ? cleanValue.substring(1)
-        : cleanValue;
-    return '$apiBase/$cleanUrl';
   }
 
   @override

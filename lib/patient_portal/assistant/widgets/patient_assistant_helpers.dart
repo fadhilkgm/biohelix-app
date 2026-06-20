@@ -461,14 +461,14 @@ extension _AssistantActions on _AssistantTabState {
 
       try {
         await speechToText.listen(
-          localeId: _speechLocaleId,
-          listenFor: const Duration(seconds: 60),
-          pauseFor: isLiveVoiceMode
-              ? const Duration(seconds: 3)
-              : const Duration(seconds: 6),
           listenOptions: SpeechListenOptions(
             partialResults: true,
             cancelOnError: true,
+            localeId: _speechLocaleId,
+            listenFor: const Duration(seconds: 60),
+            pauseFor: isLiveVoiceMode
+                ? const Duration(seconds: 3)
+                : const Duration(seconds: 6),
           ),
           onResult: (result) {
             if (!mounted) return;

@@ -96,7 +96,7 @@ class VoiceManager {
       if (currentChunk.isEmpty) {
         currentChunk = cleanSentence;
       } else if ((currentChunk.length + cleanSentence.length + 1) <= maxChars) {
-        currentChunk += ' ' + cleanSentence;
+        currentChunk += ' $cleanSentence';
       } else {
         chunks.add(currentChunk);
         currentChunk = cleanSentence;
@@ -117,7 +117,7 @@ class VoiceManager {
           if (subChunk.isEmpty) {
             subChunk = word;
           } else if ((subChunk.length + word.length + 1) <= maxChars) {
-            subChunk += ' ' + word;
+            subChunk += ' $word';
           } else {
             finalChunks.add(subChunk);
             subChunk = word;
@@ -143,7 +143,6 @@ class VoiceManager {
     ));
 
     final tempDir = await getTemporaryDirectory();
-    final List<File> audioFiles = [];
 
     // Fetch all chunks in parallel for ultra-fast generation
     final futures = chunks.asMap().entries.map((entry) async {
@@ -183,11 +182,9 @@ class VoiceManager {
 
     if (validResults.isEmpty) return;
 
-    final playlist = ConcatenatingAudioSource(
-      children: validResults.map((r) => AudioSource.file(r.value.path)).toList(),
+    await _audioPlayer.setAudioSources(
+      validResults.map((r) => AudioSource.file(r.value.path)).toList(),
     );
-
-    await _audioPlayer.setAudioSource(playlist);
     await _audioPlayer.play();
     await _audioPlayer.playerStateStream.firstWhere(
       (state) =>
@@ -263,10 +260,16 @@ class VoiceManager {
     required Function(SpeechRecognitionResult) onResult,
   }) async {
     await _nativeStt.listen(
-      localeId: localeId,
-      listenFor: listenFor,
-      pauseFor: pauseFor,
-      listenOptions: listenOptions,
+      listenOptions: SpeechListenOptions(
+        localeId: localeId,
+        listenFor: listenFor,
+        pauseFor: pauseFor,
+        partialResults: listenOptions.partialResults,
+        cancelOnError: listenOptions.cancelOnError,
+        onDevice: listenOptions.onDevice,
+        autoPunctuation: listenOptions.autoPunctuation,
+        enableHapticFeedback: listenOptions.enableHapticFeedback,
+      ),
       onResult: onResult,
     );
   }

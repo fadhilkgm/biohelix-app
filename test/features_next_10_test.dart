@@ -17,14 +17,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  const patient = PatientIdentity(
-    id: 108,
-    name: 'Amina Patient',
-    phone: '9998887777',
-    registrationNumber: 'BHRC-108',
-    uuid: 'patient-108',
-  );
-
   setUp(() {
     SharedPreferences.setMockInitialValues(const {});
     GoogleFonts.config.allowRuntimeFetching = false;

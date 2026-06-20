@@ -8,109 +8,279 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('doctor booking posts v1 payload and returns booking number', () async {
-    final adapter = _BookingAdapter({
-      'id': 14,
-      'booking_number': 'BKG-20260613-0044',
-    });
+  test('doctor booking posts mobile payload to /bookings', () async {
+    final adapter = _BookingAdapter({'success': true, 'bookingId': 42});
     final repository = _repository(adapter);
 
     final confirmation = await repository.createBooking(
       doctorId: 1,
-      scheduleId: 7,
-      bookingDate: '2026-06-15',
-      timeslot: '10:30',
+      bookingDate: '2026-06-25',
+      timeslot: '09:00-09:15',
       notes: 'First consultation.',
     );
 
-    expect(adapter.lastPath, '/bookings/doctors');
+    expect(adapter.lastPath, '/bookings');
     expect(adapter.lastData, {
-      'doctor_id': 1,
-      'schedule_id': 7,
-      'booking_date': '2026-06-15',
-      'booking_time': '10:30',
+      'doctorId': 1,
+      'bookingDate': '2026-06-25',
+      'timeslot': '09:00-09:15',
       'notes': 'First consultation.',
     });
-    expect(confirmation.reference, 'BKG-20260613-0044');
+    expect(confirmation.reference, 'BKG-42');
+    expect(confirmation.id, 42);
   });
 
-  test('doctor booking accepts 12-hour AM PM labels', () async {
-    final adapter = _BookingAdapter({
-      'id': 15,
-      'booking_number': 'BKG-20260613-0045',
-    });
+  test('doctor booking omits notes when empty', () async {
+    final adapter = _BookingAdapter({'success': true, 'bookingId': 43});
     final repository = _repository(adapter);
 
     await repository.createBooking(
-      doctorId: 1,
-      scheduleId: 7,
-      bookingDate: '2026-06-15',
-      timeslot: '1:30 PM',
+      doctorId: 2,
+      bookingDate: '2026-06-26',
+      timeslot: '10:00-10:15',
     );
 
     expect(adapter.lastData, {
-      'doctor_id': 1,
-      'schedule_id': 7,
-      'booking_date': '2026-06-15',
-      'booking_time': '13:30',
+      'doctorId': 2,
+      'bookingDate': '2026-06-26',
+      'timeslot': '10:00-10:15',
     });
   });
 
+  test('lab order posts camelCase payload to /patient/lab-orders', () async {
+    final adapter = _BookingAdapter({
+      'success': true,
+      'batchId': '4a7b53cc-cd21-4f11-8e9a-4122d2ee5bb2',
+    });
+    final repository = _repository(adapter);
+
+    final confirmation = await repository.createLabOrder(
+      labTestIds: [1, 2],
+      date: '2026-06-25',
+      slot: '08:30',
+      notes: 'Fasting sample.',
+    );
+
+    expect(adapter.lastPath, '/patient/lab-orders');
+    expect(adapter.lastData, {
+      'labTestIds': [1, 2],
+      'date': '2026-06-25',
+      'slot': '08:30',
+      'notes': 'Fasting sample.',
+    });
+    expect(confirmation.reference, '4a7b53cc-cd21-4f11-8e9a-4122d2ee5bb2');
+    expect(confirmation.batchId, '4a7b53cc-cd21-4f11-8e9a-4122d2ee5bb2');
+  });
+
+  test('lab order with single test id sends correct payload', () async {
+    final adapter = _BookingAdapter({
+      'success': true,
+      'batchId': 'aaa-bbb-ccc',
+    });
+    final repository = _repository(adapter);
+
+    await repository.createLabOrder(
+      labTestId: 5,
+      date: '2026-06-25',
+      slot: '09:00',
+    );
+
+    expect(adapter.lastData, {
+      'labTestIds': [5],
+      'date': '2026-06-25',
+      'slot': '09:00',
+    });
+  });
+
+  test('lab order omits slot when not provided', () async {
+    final adapter = _BookingAdapter({'success': true, 'batchId': 'x-y-z'});
+    final repository = _repository(adapter);
+
+    await repository.createLabOrder(
+      labTestIds: [3],
+      date: '2026-06-25',
+    );
+
+    expect((adapter.lastData as Map).containsKey('slot'), isFalse);
+  });
+
+  test('lab package order posts camelCase payload to /patient/lab-package-orders',
+      () async {
+    final adapter = _BookingAdapter({'success': true, 'bookingId': 60});
+    final repository = _repository(adapter);
+
+    final confirmation = await repository.createLabPackageOrder(
+      labPackageId: 1,
+      date: '2026-06-25',
+      slot: '08:30',
+      notes: 'Morning preferred.',
+    );
+
+    expect(adapter.lastPath, '/patient/lab-package-orders');
+    expect(adapter.lastData, {
+      'packageId': 1,
+      'date': '2026-06-25',
+      'slot': '08:30',
+      'notes': 'Morning preferred.',
+    });
+    expect(confirmation.reference, 'BKG-60');
+    expect(confirmation.id, 60);
+  });
+
+  test('cancel booking calls correct PATCH path', () async {
+    final adapter = _BookingAdapter({'success': true});
+    final repository = _repository(adapter);
+
+    await repository.cancelBooking(7);
+
+    expect(adapter.lastPath, '/patients/bookings/7/cancel');
+    expect(adapter.lastMethod, 'PATCH');
+  });
+
+  test('cancel lab order sends status=cancelled to /patient/lab-orders/{id}',
+      () async {
+    final adapter = _BookingAdapter({'success': true});
+    final repository = _repository(adapter);
+
+    await repository.cancelLabOrder(3);
+
+    expect(adapter.lastPath, '/patient/lab-orders/3');
+    expect(adapter.lastMethod, 'PATCH');
+    expect(adapter.lastData, {'status': 'cancelled'});
+  });
+
   test(
-    'test batch booking posts multiple test ids with normalized slot',
-    () async {
-      final adapter = _BookingAdapter({
-        'batch_id': '4a7b53cc-cd21-4f11-8e9a-4122d2ee5bb2',
-        'bookings': [
-          {'id': 13, 'booking_number': 'BKG-20260613-0043'},
-        ],
-      });
-      final repository = _repository(adapter);
+      'cancel lab package order sends status=cancelled to /patient/lab-package-orders/{id}',
+      () async {
+    final adapter = _BookingAdapter({'success': true});
+    final repository = _repository(adapter);
 
-      final confirmation = await repository.createLabOrder(
-        labTestIds: [1, 2],
-        date: '2026-06-15',
-        slot: '08:00 - 09:00 AM',
-        notes: 'Fasting sample.',
-      );
+    await repository.cancelLabPackageOrder(8);
 
-      expect(adapter.lastPath, '/bookings/tests');
-      expect(adapter.lastData, {
-        'test_ids': [1, 2],
-        'booking_date': '2026-06-15',
-        'booking_time': '08:00',
-        'notes': 'Fasting sample.',
-      });
-      expect(confirmation.reference, '4a7b53cc-cd21-4f11-8e9a-4122d2ee5bb2');
-    },
-  );
+    expect(adapter.lastPath, '/patient/lab-package-orders/8');
+    expect(adapter.lastMethod, 'PATCH');
+    expect(adapter.lastData, {'status': 'cancelled'});
+  });
 
-  test(
-    'package booking posts v1 payload with normalized afternoon slot',
-    () async {
-      final adapter = _BookingAdapter({
-        'id': 12,
-        'booking_number': 'BKG-20260613-0042',
-      });
-      final repository = _repository(adapter);
+  test('reschedule booking calls /patients/bookings/{id}/reschedule', () async {
+    final adapter = _BookingAdapter({'success': true});
+    final repository = _repository(adapter);
 
-      final confirmation = await repository.createLabPackageOrder(
-        labPackageId: 1,
-        date: '2026-06-15',
-        slot: '01:00 - 02:00 PM',
-        notes: 'Morning slot preferred.',
-      );
+    await repository.rescheduleBooking(
+      bookingId: 5,
+      bookingDate: '2026-06-28',
+      timeslot: '10:00-10:15',
+    );
 
-      expect(adapter.lastPath, '/bookings/packages');
-      expect(adapter.lastData, {
-        'package_id': 1,
-        'booking_date': '2026-06-15',
-        'booking_time': '13:00',
-        'notes': 'Morning slot preferred.',
-      });
-      expect(confirmation.reference, 'BKG-20260613-0042');
-    },
-  );
+    expect(adapter.lastPath, '/patients/bookings/5/reschedule');
+    expect(adapter.lastMethod, 'PATCH');
+    expect(adapter.lastData, {
+      'bookingDate': '2026-06-28',
+      'timeslot': '10:00-10:15',
+    });
+  });
+
+  test('reschedule lab order calls /patient/lab-orders/{id}', () async {
+    final adapter = _BookingAdapter({'success': true});
+    final repository = _repository(adapter);
+
+    await repository.rescheduleLabOrder(
+      orderId: 3,
+      date: '2026-06-28',
+      slot: '09:30',
+    );
+
+    expect(adapter.lastPath, '/patient/lab-orders/3');
+    expect(adapter.lastMethod, 'PATCH');
+    expect(adapter.lastData, {'date': '2026-06-28', 'slot': '09:30'});
+  });
+
+  test('get lab tests calls /patient/lab-tests', () async {
+    final adapter = _BookingAdapter({
+      'tests': [
+        {
+          'id': 5,
+          'testName': '10% KOH MOUNT',
+          'status': true,
+          'basePrice': 0,
+          'bodyPoints': [],
+        }
+      ]
+    });
+    final repository = _repository(adapter);
+
+    final tests = await repository.getLabTests();
+
+    expect(adapter.lastPath, '/patient/lab-tests');
+    expect(adapter.lastMethod, 'GET');
+    expect(tests.length, 1);
+    expect(tests.first.testName, '10% KOH MOUNT');
+  });
+
+  test('get lab packages calls /patient/lab-packages', () async {
+    final adapter = _BookingAdapter({
+      'packages': [
+        {
+          'id': 1,
+          'name': 'Basic Health Package',
+          'slug': 'basic-health-package',
+          'status': true,
+          'basePrice': 1200,
+          'totalTests': 2,
+          'includedTests': [
+            {'testName': 'CBC'}
+          ],
+        }
+      ]
+    });
+    final repository = _repository(adapter);
+
+    final packages = await repository.getLabPackages();
+
+    expect(adapter.lastPath, '/patient/lab-packages');
+    expect(adapter.lastMethod, 'GET');
+    expect(packages.length, 1);
+    expect(packages.first.name, 'Basic Health Package');
+  });
+
+  test('BookingConfirmation parses legacy booking_number response', () {
+    final c = BookingConfirmation.fromBookingResponse({
+      'id': 14,
+      'booking_number': 'BKG-20260613-0044',
+    });
+    expect(c.reference, 'BKG-20260613-0044');
+    expect(c.id, 14);
+  });
+
+  test('BookingConfirmation parses mobile bookingId response', () {
+    final c = BookingConfirmation.fromBookingResponse({
+      'success': true,
+      'bookingId': 42,
+    });
+    expect(c.reference, 'BKG-42');
+    expect(c.id, 42);
+  });
+
+  test('BookingConfirmation.fromTestBatchResponse parses mobile batchId', () {
+    final c = BookingConfirmation.fromTestBatchResponse({
+      'success': true,
+      'batchId': '9d0dbd83-c4e2-49a1-b8bc-2e2b8bf49d88',
+    });
+    expect(c.reference, '9d0dbd83-c4e2-49a1-b8bc-2e2b8bf49d88');
+    expect(c.batchId, '9d0dbd83-c4e2-49a1-b8bc-2e2b8bf49d88');
+  });
+
+  test('BookingConfirmation.fromTestBatchResponse parses legacy batch_id', () {
+    final c = BookingConfirmation.fromTestBatchResponse({
+      'batch_id': 'aaa-bbb-ccc',
+      'bookings': [
+        {'id': 52, 'booking_number': 'BKG-000052'},
+      ],
+    });
+    expect(c.reference, 'aaa-bbb-ccc');
+    expect(c.batchId, 'aaa-bbb-ccc');
+    expect(c.id, 52);
+  });
 }
 
 PatientRepository _repository(_BookingAdapter adapter) {
@@ -131,6 +301,7 @@ class _BookingAdapter implements HttpClientAdapter {
 
   final Map<String, dynamic> response;
   String? lastPath;
+  String? lastMethod;
   Object? lastData;
 
   @override
@@ -140,10 +311,11 @@ class _BookingAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     lastPath = options.path;
+    lastMethod = options.method;
     lastData = options.data;
     return ResponseBody.fromString(
       jsonEncode(response),
-      201,
+      200,
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],
       },

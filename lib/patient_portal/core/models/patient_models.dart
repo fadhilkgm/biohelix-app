@@ -1011,7 +1011,7 @@ class ChatThreadSummary {
 
   factory ChatThreadSummary.fromJson(Map<String, dynamic> json) {
     return ChatThreadSummary(
-      id: json['id'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
       title: json['title'] as String? ?? 'New chat',
       messageCount: (json['messageCount'] as num?)?.toInt() ?? 0,
       lastMessagePreview:

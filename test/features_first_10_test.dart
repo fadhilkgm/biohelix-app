@@ -281,7 +281,7 @@ void main() {
     await portal.loadPortal();
 
     await tester.pumpWidget(_shellSubject(session: session, portal: portal));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
 
     expect(find.text('Home'), findsWidgets);
     expect(find.text('Reports'), findsOneWidget);

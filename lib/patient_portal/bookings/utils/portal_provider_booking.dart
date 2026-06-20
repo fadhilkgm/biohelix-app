@@ -3,7 +3,6 @@ part of 'package:biohelix_app/patient_portal/core/providers/patient_portal_provi
 extension PatientPortalBookingMixin on PatientPortalProvider {
   Future<BookingConfirmation> createBooking({
     required int doctorId,
-    required int scheduleId,
     required String bookingDate,
     required String timeslot,
     String? notes,
@@ -19,7 +18,6 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     try {
       final confirmation = await _repository.createBooking(
         doctorId: doctorId,
-        scheduleId: scheduleId,
         bookingDate: bookingDate,
         timeslot: timeslot,
         notes: notes,

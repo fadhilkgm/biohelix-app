@@ -478,16 +478,8 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
     }
 
     try {
-      final scheduleId = _scheduleIdForDateAndSlot(date, slot);
-      if (scheduleId == null) {
-        throw StateError(
-          'This doctor does not have a schedule for the selected time.',
-        );
-      }
-
       final confirmation = await portal.createBooking(
         doctorId: widget.doctor.id,
-        scheduleId: scheduleId,
         bookingDate: DateFormat('yyyy-MM-dd').format(date),
         timeslot: slot,
         notes: 'Booked from BioHelix patient app.',

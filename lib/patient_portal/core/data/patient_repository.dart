@@ -96,17 +96,20 @@ class BookingConfirmation {
   final Map<String, dynamic> raw;
 
   factory BookingConfirmation.fromBookingResponse(Map<String, dynamic> json) {
-    final id = (json['id'] as num?)?.toInt();
+    // Mobile API returns bookingId (camelCase); legacy API returns id + booking_number
+    final id = (json['bookingId'] as num?)?.toInt() ??
+        (json['id'] as num?)?.toInt();
     final bookingNumber = json['booking_number']?.toString();
     return BookingConfirmation(
-      reference: (bookingNumber ?? (id == null ? 'BKG-PENDING' : 'BKG-$id')),
+      reference: bookingNumber ?? (id == null ? 'BKG-PENDING' : 'BKG-$id'),
       id: id,
       raw: json,
     );
   }
 
   factory BookingConfirmation.fromTestBatchResponse(Map<String, dynamic> json) {
-    final batchId = json['batch_id']?.toString();
+    // Mobile API returns batchId (camelCase); legacy API returns batch_id + bookings[]
+    final batchId = json['batchId']?.toString() ?? json['batch_id']?.toString();
     final bookings = json['bookings'] as List<dynamic>? ?? const [];
     final first = bookings.isNotEmpty ? _map(bookings.first) : null;
     final bookingNumber = first?['booking_number']?.toString();
@@ -450,18 +453,16 @@ class PatientRepository {
 
   Future<BookingConfirmation> createBooking({
     required int doctorId,
-    required int scheduleId,
     required String bookingDate,
     required String timeslot,
     String? notes,
   }) async {
     final response = await _apiClient.postJson(
-      '/bookings/doctors',
+      '/bookings',
       data: {
-        'doctor_id': doctorId,
-        'schedule_id': scheduleId,
-        'booking_date': bookingDate,
-        'booking_time': _normalizeBookingTime(timeslot),
+        'doctorId': doctorId,
+        'bookingDate': bookingDate,
+        'timeslot': timeslot,
         if ((notes ?? '').trim().isNotEmpty) 'notes': notes!.trim(),
       },
     );
@@ -469,7 +470,7 @@ class PatientRepository {
   }
 
   Future<void> cancelBooking(int bookingId) async {
-    await _apiClient.patchJson('/bookings/doctors/$bookingId/cancel');
+    await _apiClient.patchJson('/patients/bookings/$bookingId/cancel');
   }
 
   Future<void> checkInBooking(int bookingId) async {
@@ -524,7 +525,7 @@ class PatientRepository {
   }
 
   Future<List<LabTestItem>> getLabTests() async {
-    final response = await _apiClient.getJson('/lab/tests');
+    final response = await _apiClient.getJson('/patient/lab-tests');
     final tests =
         response['tests'] as List<dynamic>? ??
         response['data'] as List<dynamic>? ??
@@ -561,7 +562,7 @@ class PatientRepository {
   }
 
   Future<List<LabPackageItem>> getLabPackages() async {
-    final response = await _apiClient.getJson('/lab/packages');
+    final response = await _apiClient.getJson('/patient/lab-packages');
     final packages =
         response['packages'] as List<dynamic>? ??
         response['data'] as List<dynamic>? ??
@@ -614,12 +615,11 @@ class PatientRepository {
     }
 
     final response = await _apiClient.postJson(
-      '/bookings/tests',
+      '/patient/lab-orders',
       data: {
-        'test_ids': resolvedTestIds,
-        'booking_date': date,
-        if ((trimmedSlot ?? '').isNotEmpty)
-          'booking_time': _normalizeBookingTime(trimmedSlot!),
+        'labTestIds': resolvedTestIds,
+        'date': date,
+        if ((trimmedSlot ?? '').isNotEmpty) 'slot': trimmedSlot,
         if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
       },
     );
@@ -627,7 +627,10 @@ class PatientRepository {
   }
 
   Future<void> cancelLabOrder(int orderId) async {
-    await _apiClient.patchJson('/bookings/tests/$orderId/cancel');
+    await _apiClient.patchJson(
+      '/patient/lab-orders/$orderId',
+      data: {'status': 'cancelled'},
+    );
   }
 
   Future<void> rescheduleLabOrder({
@@ -665,16 +668,15 @@ class PatientRepository {
     final trimmedNotes = notes?.trim();
 
     final data = {
-      'package_id': labPackageId,
-      'booking_date': date,
-      if ((trimmedSlot ?? '').isNotEmpty)
-        'booking_time': _normalizeBookingTime(trimmedSlot!),
+      'packageId': labPackageId,
+      'date': date,
+      if ((trimmedSlot ?? '').isNotEmpty) 'slot': trimmedSlot,
       if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
     };
 
     try {
       final response = await _apiClient.postJson(
-        '/bookings/packages',
+        '/patient/lab-package-orders',
         data: data,
       );
       return BookingConfirmation.fromBookingResponse(response);
@@ -685,7 +687,10 @@ class PatientRepository {
   }
 
   Future<void> cancelLabPackageOrder(int orderId) async {
-    await _apiClient.patchJson('/bookings/packages/$orderId/cancel');
+    await _apiClient.patchJson(
+      '/patient/lab-package-orders/$orderId',
+      data: {'status': 'cancelled'},
+    );
   }
 
   Future<void> rescheduleLabPackageOrder({
@@ -709,7 +714,7 @@ class PatientRepository {
     final response = await _apiClient.postMultipart(
       '/patients/documents',
       data: FormData.fromMap({
-        'file': await MultipartFile.fromFile(
+        'document': await MultipartFile.fromFile(
           File(normalized).path,
           filename: fileName,
         ),
