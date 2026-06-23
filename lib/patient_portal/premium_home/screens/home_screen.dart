@@ -1107,12 +1107,14 @@ class _EmergencyStrip extends StatelessWidget {
     required this.emergencyNumber,
     required this.receptionNumber,
     this.onDark = false,
+    this.compact = false,
   });
 
   final String ambulanceNumber;
   final String emergencyNumber;
   final String receptionNumber;
   final bool onDark;
+  final bool compact;
 
   Future<void> _call(BuildContext context, String number) async {
     final ok = await EmergencyCallLauncher.call(number);
