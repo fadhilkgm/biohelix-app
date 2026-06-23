@@ -337,7 +337,7 @@ extension _AssistantActions on _AssistantTabState {
             }
           }
         },
-      );
+      ).timeout(const Duration(seconds: 8), onTimeout: () => false);
 
       await _configureTtsLanguage();
       await voiceManager.awaitSpeakCompletion(true);

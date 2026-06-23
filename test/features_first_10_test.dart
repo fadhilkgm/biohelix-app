@@ -18,6 +18,7 @@ import 'package:biohelix_app/patient_portal/core/providers/patient_portal_provid
 import 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -36,6 +37,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(const {});
     GoogleFonts.config.allowRuntimeFetching = false;
+    _mockVoiceChannels();
   });
 
   testWidgets('1. splash screen shows BioHelix branding', (tester) async {
@@ -289,6 +291,36 @@ void main() {
     expect(find.text('Checkup'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
   });
+}
+
+void _mockVoiceChannels() {
+  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  // flutter_tts
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('flutter_tts'),
+    (call) async => null,
+  );
+  // speech_to_text on Windows
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('speech_to_text_windows'),
+    (call) async {
+      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      return null;
+    },
+  );
+  // speech_to_text cross-platform channel
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('plugin.csdcorp.com/speech_to_text'),
+    (call) async {
+      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      return null;
+    },
+  );
+  // audio_session used by just_audio
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('com.ryanheise.audio_session'),
+    (call) async => null,
+  );
 }
 
 Widget _authSubject(SessionProvider session) {

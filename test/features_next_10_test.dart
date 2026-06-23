@@ -11,6 +11,7 @@ import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 import 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
 import 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +21,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(const {});
     GoogleFonts.config.allowRuntimeFetching = false;
+    _mockVoiceChannels();
   });
 
   testWidgets('11. pull-to-refresh reloads portal data', (tester) async {
@@ -177,6 +179,32 @@ Future<_ShellHarness> _buildHarness() async {
       ],
       child: const MaterialApp(home: PatientAppShell()),
     ),
+  );
+}
+
+void _mockVoiceChannels() {
+  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('flutter_tts'),
+    (call) async => null,
+  );
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('speech_to_text_windows'),
+    (call) async {
+      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      return null;
+    },
+  );
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('plugin.csdcorp.com/speech_to_text'),
+    (call) async {
+      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      return null;
+    },
+  );
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('com.ryanheise.audio_session'),
+    (call) async => null,
   );
 }
 

@@ -122,7 +122,6 @@ class _AssistantTabState extends State<_AssistantTab> {
     _voiceManager = VoiceManager(
       sarvamApiKey: AppConfig.fromEnvironment().sarvamApiKey,
     );
-    _initializeVoiceFeatures();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<PatientPortalProvider>().initializeChatThreads();

@@ -5,8 +5,8 @@ import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/providers/language_provider.dart';
+import '../../emergency/widgets/emergency_call_launcher.dart';
 import '../utils/home_header_content_mapper.dart';
-import '../widgets/home_health_alert_widget.dart';
 import '../widgets/home_hero_header_widget.dart';
 import '../widgets/offers_and_appointments_section_widget.dart';
 
@@ -36,6 +36,9 @@ class HomeScreen extends StatefulWidget {
     required this.onActionTap,
     this.isLoading = false,
     this.departments = const [],
+    this.ambulanceNumber = '+91 7510210222',
+    this.emergencyNumber = '108',
+    this.receptionNumber = '+91 7510210224',
   });
 
   final List<HomeBannerItem> banners;
@@ -61,6 +64,9 @@ class HomeScreen extends StatefulWidget {
   final Future<void> Function(HomeOfferItem item) onOfferTap;
   final ValueChanged<String> onActionTap;
   final bool isLoading;
+  final String ambulanceNumber;
+  final String emergencyNumber;
+  final String receptionNumber;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -162,15 +168,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       patientName: headerContent.displayName,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: HomeHealthAlertWidget(
-                      title: headerContent.healthTipTitle,
-                      message: headerContent.healthTipMessage,
+                    child: _EmergencyStrip(
+                      ambulanceNumber: widget.ambulanceNumber,
+                      emergencyNumber: widget.emergencyNumber,
+                      receptionNumber: widget.receptionNumber,
+                      onDark: true,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   // Ticker Messages (Replacing Banners/Search)
                   if (widget.tickerMessages.isNotEmpty)
                     SizedBox(
@@ -1091,6 +1099,224 @@ IconData _getSpecialtyIcon(String spec) {
   if (s.contains('physio')) return Icons.fitness_center_rounded;
   if (s.contains('general')) return Icons.medical_information_outlined;
   return Icons.health_and_safety_outlined;
+}
+
+class _EmergencyStrip extends StatelessWidget {
+  const _EmergencyStrip({
+    required this.ambulanceNumber,
+    required this.emergencyNumber,
+    required this.receptionNumber,
+    this.onDark = false,
+  });
+
+  final String ambulanceNumber;
+  final String emergencyNumber;
+  final String receptionNumber;
+  final bool onDark;
+
+  Future<void> _call(BuildContext context, String number) async {
+    final ok = await EmergencyCallLauncher.call(number);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not start a call to $number')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Primary emergency call card
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _call(context, emergencyNumber),
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFE53935), Color(0xFFD32F2F)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE53935).withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.emergency_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Medical Emergency?',
+                          style: GoogleFonts.manrope(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '24/7 Casualty & Ambulance helpline',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.call_rounded,
+                          color: Color(0xFFE53935),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Call',
+                          style: GoogleFonts.manrope(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFFE53935),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Secondary quick-call chips
+        Row(
+          children: [
+            _EmergencyQuickCall(
+              label: 'Ambulance',
+              icon: Icons.local_taxi_rounded,
+              color: const Color(0xFFE53935),
+              onDark: onDark,
+              onTap: () => _call(context, ambulanceNumber),
+            ),
+            const SizedBox(width: 12),
+            _EmergencyQuickCall(
+              label: 'Reception',
+              icon: Icons.local_hospital_rounded,
+              color: const Color(0xFF234996),
+              onDark: onDark,
+              onTap: () => _call(context, receptionNumber),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _EmergencyQuickCall extends StatelessWidget {
+  const _EmergencyQuickCall({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.onDark = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final bool onDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = onDark ? Colors.white : color;
+    final textColor = onDark ? Colors.white : const Color(0xFF192233);
+    final bgColor = onDark
+        ? Colors.white.withValues(alpha: 0.14)
+        : color.withValues(alpha: 0.06);
+    final borderColor = onDark
+        ? Colors.white.withValues(alpha: 0.25)
+        : color.withValues(alpha: 0.15);
+
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: borderColor, width: 1.2),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: iconColor, size: 18),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.manrope(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _QuickLink extends StatelessWidget {
