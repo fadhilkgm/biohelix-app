@@ -1,12 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../core/models/patient_models.dart';
-import '../../core/providers/patient_portal_provider.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../../lab_booking/screens/package_booking_screen.dart';
 import '../services/ai_checkup_service.dart';
@@ -24,6 +21,18 @@ AiCheckupService _defaultAiCheckupServiceFactory(BuildContext context) {
   );
 }
 
+const _kInk = Color(0xFF192233);
+const _kAccent = Color(0xFF5A88F1);
+const _kBg = Color(0xFFF8F9FB);
+
+int _parsePrice(String? raw) {
+  if (raw == null) return 0;
+  return double.tryParse(raw)?.round() ?? int.tryParse(raw) ?? 0;
+}
+
+/// AI Health Checkup, backed by the documented `/health-assessment` flow:
+/// start a session -> answer the generated multiple-choice questions ->
+/// submit for evaluation -> view risk level, insights and recommendations.
 class AiCheckupTab extends StatefulWidget {
   const AiCheckupTab({super.key, this.serviceFactory});
 
@@ -34,159 +43,135 @@ class AiCheckupTab extends StatefulWidget {
 }
 
 class _AiCheckupTabState extends State<AiCheckupTab> {
-  String _step = 'history';
+  String _step = 'language';
   String _language = 'en';
-  bool _loadingHistory = true;
-  AiHealthAssessmentResponse? _result;
-  List<Map<String, dynamic>> _history = [];
 
-  final _answers = <String, dynamic>{};
-  final List<Map<String, dynamic>> _messages = [];
+  AssessmentSession? _session;
+  int _currentIndex = 0;
+  final Map<String, String> _answers = {};
+  AssessmentResults? _results;
+  String? _error;
 
-  // Controllers for basic details
-  final _nameCtrl = TextEditingController();
-  final _ageCtrl = TextEditingController();
-  final _weightCtrl = TextEditingController();
-  final _heightCtrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    final portal = context.read<PatientPortalProvider>();
-    final p = portal.dashboard?.patient;
-    if (p != null) {
-      _nameCtrl.text = p.name;
-      _ageCtrl.text = p.age?.toString() ?? '';
-      _answers['gender'] = p.gender ?? 'unknown';
-    }
-    _fetchHistory();
-  }
+  AiCheckupService get _service =>
+      (widget.serviceFactory ?? _defaultAiCheckupServiceFactory)(context);
 
   void _reset() {
     setState(() {
-      _step = 'history';
-      _result = null;
-      _answers.clear();
-      _messages.clear();
+      _step = 'language';
       _language = 'en';
+      _session = null;
+      _currentIndex = 0;
+      _answers.clear();
+      _results = null;
+      _error = null;
     });
-    _fetchHistory();
   }
 
-  Future<void> _fetchHistory() async {
-    setState(() => _loadingHistory = true);
+  Future<void> _start() async {
+    setState(() {
+      _step = 'starting';
+      _error = null;
+    });
     try {
-      final service =
-          (widget.serviceFactory ?? _defaultAiCheckupServiceFactory)(context);
-      final history = await service.getHistory();
+      final session = await _service.startAssessment();
+      if (!mounted) return;
+      if (session.questions.isEmpty) {
+        setState(() {
+          _step = 'welcome';
+          _error = 'No questions are available right now. Please try again.';
+        });
+        return;
+      }
+      setState(() {
+        _session = session;
+        _currentIndex = 0;
+        _answers.clear();
+        _step = 'questions';
+      });
+    } catch (error) {
       if (!mounted) return;
       setState(() {
-        _history = history;
-        _loadingHistory = false;
+        _step = 'welcome';
+        _error = error.toString();
       });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _loadingHistory = false);
     }
   }
 
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _ageCtrl.dispose();
-    _weightCtrl.dispose();
-    _heightCtrl.dispose();
-    super.dispose();
+  void _answer(AssessmentQuestion question, String optionKey) {
+    _answers[question.id.toString()] = optionKey;
+    final isLast = _currentIndex >= (_session!.questions.length - 1);
+    if (isLast) {
+      _submit();
+    } else {
+      setState(() => _currentIndex++);
+    }
   }
 
-  void _next(String nextStep) => setState(() => _step = nextStep);
-
-  void _startAiChat() {
-    _answers['name'] = _nameCtrl.text.trim();
-    _answers['age'] = int.tryParse(_ageCtrl.text.trim()) ?? 30;
-    _answers['weight'] = _weightCtrl.text.trim();
-    _answers['height'] = _heightCtrl.text.trim();
-
-    // Initial message to AI to start questioning
-    _messages.clear();
-    _messages.add({
-      'role': 'user',
-      'content':
-          'I am starting my health checkup. My details: ${_answers.toString()}. Please ask me some questions to assess my health risks.',
-    });
-
-    setState(() => _step = 'ai_chat');
+  void _back() {
+    if (_currentIndex > 0) {
+      setState(() => _currentIndex--);
+    }
   }
 
-  Future<void> _analyze() async {
-    setState(() {
-      _step = 'analyzing';
-    });
-
+  Future<void> _submit() async {
+    setState(() => _step = 'analyzing');
     try {
-      final service =
-          (widget.serviceFactory ?? _defaultAiCheckupServiceFactory)(context);
-
-      final response = await service.analyzeHealth(
+      final results = await _service.submitAnswers(
+        sessionToken: _session!.sessionToken,
         answers: _answers,
-        language: _language,
       );
       if (!mounted) return;
-
       setState(() {
-        _result = response;
+        _results = results;
         _step = 'results';
       });
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
-      setState(() {
-        _step = 'ai_chat';
-      });
+      setState(() => _step = 'questions');
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Analysis failed: $e')));
+      ).showSnackBar(SnackBar(content: Text('Analysis failed: $error')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: _kBg,
       appBar: AppBar(
         title: Text(
           'AI Health Checkup',
           style: GoogleFonts.manrope(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF192233),
+            color: _kInk,
           ),
         ),
-        backgroundColor: const Color(0xFFF8F9FB),
-        foregroundColor: const Color(0xFF192233),
+        backgroundColor: _kBg,
+        foregroundColor: _kInk,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         toolbarHeight: 72,
-        leading: _step != 'history'
+        leading: _step != 'language'
             ? IconButton(
                 tooltip: 'Back',
-                icon: const Icon(
-                  Icons.arrow_back_rounded,
-                  color: Color(0xFF192233),
-                ),
+                icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
                 onPressed: () {
                   if (_step == 'results' || _step == 'analyzing') {
                     _reset();
                     return;
                   }
+                  if (_step == 'questions' && _currentIndex > 0) {
+                    _back();
+                    return;
+                  }
                   setState(() {
                     _step = switch (_step) {
-                      'language' => 'history',
                       'welcome' => 'language',
-                      'basic' => 'welcome',
-                      'ai_chat' => 'basic',
-                      _ => 'history',
+                      'questions' => 'welcome',
+                      _ => 'language',
                     };
                   });
                 },
@@ -194,70 +179,47 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
             : null,
       ),
       body: switch (_step) {
-        'history' => _HistoryScreen(
-          loading: _loadingHistory,
-          history: _history,
-          onStartNew: () => setState(() => _step = 'language'),
-          onSelect: (item) {
-            try {
-              final assessment = Map<String, dynamic>.from(
-                jsonDecode(item['assessmentJson'] as String),
-              );
-              setState(() {
-                _result = AiHealthAssessmentResponse.fromJson(assessment);
-                _step = 'results';
-              });
-            } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Failed to load assessment result'),
-                ),
-              );
-            }
-          },
-        ),
         'language' => _LanguageSelectionScreen(
-          onSelect: (lang) {
-            setState(() {
-              _language = lang;
-              _step = 'welcome';
-            });
-          },
-          onReset: _reset,
+          onSelect: (lang) => setState(() {
+            _language = lang;
+            _step = 'welcome';
+          }),
         ),
         'welcome' => _WelcomeScreen(
           language: _language,
-          onStart: () => _next('basic'),
+          error: _error,
+          onStart: _start,
         ),
-        'basic' => _BasicDetailsScreen(
+        'starting' => _LoadingScreen(
           language: _language,
-          nameCtrl: _nameCtrl,
-          ageCtrl: _ageCtrl,
-          weightCtrl: _weightCtrl,
-          heightCtrl: _heightCtrl,
-          onNext: _startAiChat,
+          message: _language == 'ml'
+              ? 'നിങ്ങൾക്കായി ചോദ്യങ്ങൾ തയ്യാറാക്കുന്നു...'
+              : 'Preparing your questions...',
         ),
-        'ai_chat' => _AiChatScreen(
+        'questions' =>
+          _session == null
+              ? const SizedBox.shrink()
+              : _QuestionScreen(
+                  language: _language,
+                  question: _session!.questions[_currentIndex],
+                  index: _currentIndex,
+                  total: _session!.questions.length,
+                  selectedKey:
+                      _answers[_session!.questions[_currentIndex].id.toString()],
+                  onAnswer: _answer,
+                  onBack: _currentIndex > 0 ? _back : null,
+                ),
+        'analyzing' => _LoadingScreen(
           language: _language,
-          messages: _messages,
-          patientInfo: {
-            'age': int.tryParse(_ageCtrl.text) ?? 30,
-            'gender': _answers['gender'] ?? 'unknown',
-          },
-          onComplete: (allAnswers) {
-            _answers.addAll(allAnswers);
-            _analyze();
-          },
-          serviceFactory:
-              widget.serviceFactory ?? _defaultAiCheckupServiceFactory,
+          message: _language == 'ml'
+              ? 'നിങ്ങളുടെ ഉത്തരങ്ങൾ വിശകലനം ചെയ്യുന്നു...'
+              : 'Analyzing your answers...',
         ),
-        'analyzing' => _AnalyzingScreen(language: _language),
         'results' =>
-          _result != null
+          _results != null
               ? _ResultsScreen(
                   language: _language,
-                  result: _result!,
-                  onRetake: _reset,
+                  results: _results!,
                   onReset: _reset,
                 )
               : const SizedBox.shrink(),
@@ -268,12 +230,9 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
 }
 
 class _LanguageSelectionScreen extends StatelessWidget {
+  const _LanguageSelectionScreen({required this.onSelect});
+
   final ValueChanged<String> onSelect;
-  final VoidCallback onReset;
-  const _LanguageSelectionScreen({
-    required this.onSelect,
-    required this.onReset,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +246,7 @@ class _LanguageSelectionScreen extends StatelessWidget {
             style: GoogleFonts.manrope(
               fontSize: 24,
               fontWeight: FontWeight.w900,
-              color: const Color(0xFF192233),
+              color: _kInk,
             ),
           ),
           const SizedBox(height: 12),
@@ -296,175 +255,15 @@ class _LanguageSelectionScreen extends StatelessWidget {
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
               fontSize: 15,
-              color: const Color(0xFF192233).withValues(alpha: 0.6),
+              color: _kInk.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 40),
           _OptionCard(label: 'English', onTap: () => onSelect('en')),
-          _OptionCard(label: 'മലയാളം (Malayalam)', onTap: () => onSelect('ml')),
-          const SizedBox(height: 20),
-          TextButton(onPressed: onReset, child: const Text('Back to History')),
-        ],
-      ),
-    );
-  }
-}
-
-class _HistoryScreen extends StatelessWidget {
-  final bool loading;
-  final List<Map<String, dynamic>> history;
-  final VoidCallback onStartNew;
-  final Function(Map<String, dynamic> item) onSelect;
-
-  const _HistoryScreen({
-    required this.loading,
-    required this.history,
-    required this.onStartNew,
-    required this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Health Checkup History',
-            style: GoogleFonts.manrope(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: const Color(0xFF192233),
-            ),
+          _OptionCard(
+            label: 'മലയാളം (Malayalam)',
+            onTap: () => onSelect('ml'),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'View your previous AI health assessments or start a new one.',
-            style: GoogleFonts.manrope(
-              fontSize: 15,
-              color: const Color(0xFF192233).withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 32),
-          Expanded(
-            child: loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF5A88F1)),
-                  )
-                : history.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.history_rounded,
-                          size: 64,
-                          color: const Color(0xFF192233).withValues(alpha: 0.1),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No previous assessments found',
-                          style: GoogleFonts.manrope(
-                            color: const Color(
-                              0xFF192233,
-                            ).withValues(alpha: 0.4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: history.length,
-                    itemBuilder: (context, index) {
-                      final item = history[index];
-                      final dateStr = item['createdAt'] as String;
-                      final score = item['healthScore'] as int;
-
-                      String displayDate = dateStr;
-                      try {
-                        // SQLite datetime('now') returns UTC.
-                        // We replace space with T and append Z to make it a valid UTC ISO string
-                        final isoStr = dateStr.contains('T')
-                            ? dateStr
-                            : '${dateStr.replaceFirst(' ', 'T')}Z';
-                        final dt = DateTime.parse(isoStr).toLocal();
-                        displayDate = DateFormat(
-                          'dd MMM yyyy, hh:mm a',
-                        ).format(dt);
-                      } catch (e) {
-                        displayDate = dateStr;
-                      }
-
-                      return Material(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        clipBehavior: Clip.antiAlias,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE5E9F0)),
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 8,
-                            ),
-                            onTap: () => onSelect(item),
-                            title: Text(
-                              displayDate,
-                              style: GoogleFonts.manrope(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                              ),
-                            ),
-                            subtitle: Text('Health Score: $score%'),
-                            trailing: const Icon(
-                              Icons.chevron_right_rounded,
-                              color: Color(0xFF5A88F1),
-                            ),
-                            leading: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF4F7FF),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.analytics_rounded,
-                                color: Color(0xFF5A88F1),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onStartNew,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5A88F1),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                'Start New Assessment',
-                style: GoogleFonts.manrope(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
         ],
       ),
     );
@@ -472,9 +271,15 @@ class _HistoryScreen extends StatelessWidget {
 }
 
 class _WelcomeScreen extends StatelessWidget {
+  const _WelcomeScreen({
+    required this.language,
+    required this.onStart,
+    this.error,
+  });
+
   final String language;
   final VoidCallback onStart;
-  const _WelcomeScreen({required this.language, required this.onStart});
+  final String? error;
 
   @override
   Widget build(BuildContext context) {
@@ -484,17 +289,19 @@ class _WelcomeScreen extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 32),
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F7FF),
-              borderRadius: BorderRadius.circular(32),
-            ),
-            child: const Icon(
-              Icons.health_and_safety_rounded,
-              size: 56,
-              color: Color(0xFF5A88F1),
+          Center(
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F7FF),
+                borderRadius: BorderRadius.circular(32),
+              ),
+              child: const Icon(
+                Icons.health_and_safety_rounded,
+                size: 56,
+                color: _kAccent,
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -504,43 +311,36 @@ class _WelcomeScreen extends StatelessWidget {
             style: GoogleFonts.manrope(
               fontSize: 28,
               fontWeight: FontWeight.w900,
-              color: const Color(0xFF192233),
+              color: _kInk,
             ),
           ),
           const SizedBox(height: 12),
           Text(
             isMl
-                ? 'നിങ്ങളുടെ ജീവിതശൈലിയെയും ആരോഗ്യത്തെയും കുറിച്ച് കുറച്ച് ചോദ്യങ്ങൾക്ക് മറുപടി നൽകുക. നിങ്ങളുടെ ഉത്തരങ്ങൾ വിലയിരുത്തി അനുയോജ്യമായ പരിശോധനകൾ നിർദ്ദേശിക്കും.'
-                : 'Answer a few questions about your lifestyle and health. Our AI will analyze your responses and suggest preventive lab tests tailored for you.',
+                ? 'കുറച്ച് ചോദ്യങ്ങൾക്ക് മറുപടി നൽകുക. നിങ്ങളുടെ ഉത്തരങ്ങൾ വിലയിരുത്തി അനുയോജ്യമായ പരിശോധനകൾ നിർദ്ദേശിക്കും.'
+                : 'Answer a few questions about your health. Our AI will assess your risk and suggest preventive lab tests tailored for you.',
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
               fontSize: 15,
-              color: const Color(0xFF192233).withValues(alpha: 0.6),
+              color: _kInk.withValues(alpha: 0.6),
               height: 1.5,
             ),
           ),
-          const SizedBox(height: 40),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onStart,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5A88F1),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                isMl ? 'പരിശോധന ആരംഭിക്കുക' : 'Start Assessment',
-                style: GoogleFonts.manrope(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                ),
+          if (error != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              error!,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.manrope(
+                fontSize: 13,
+                color: const Color(0xFFDB4C4C),
               ),
             ),
+          ],
+          const SizedBox(height: 40),
+          _PrimaryButton(
+            label: isMl ? 'പരിശോധന ആരംഭിക്കുക' : 'Start Assessment',
+            onPressed: onStart,
           ),
           const SizedBox(height: 32),
         ],
@@ -549,290 +349,62 @@ class _WelcomeScreen extends StatelessWidget {
   }
 }
 
-class _BasicDetailsScreen extends StatelessWidget {
+class _LoadingScreen extends StatelessWidget {
+  const _LoadingScreen({required this.language, required this.message});
+
   final String language;
-  final TextEditingController nameCtrl, ageCtrl, weightCtrl, heightCtrl;
-  final VoidCallback onNext;
-  const _BasicDetailsScreen({
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(strokeWidth: 4, color: _kAccent),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.manrope(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: _kInk,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuestionScreen extends StatelessWidget {
+  const _QuestionScreen({
     required this.language,
-    required this.nameCtrl,
-    required this.ageCtrl,
-    required this.weightCtrl,
-    required this.heightCtrl,
-    required this.onNext,
+    required this.question,
+    required this.index,
+    required this.total,
+    required this.selectedKey,
+    required this.onAnswer,
+    required this.onBack,
   });
+
+  final String language;
+  final AssessmentQuestion question;
+  final int index;
+  final int total;
+  final String? selectedKey;
+  final void Function(AssessmentQuestion question, String optionKey) onAnswer;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
     final isMl = language == 'ml';
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text(
-          isMl ? 'വിവരങ്ങൾ നൽകുക' : 'Please Enter Your Details',
-          style: GoogleFonts.manrope(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: const Color(0xFF192233),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          width: 60,
-          height: 4,
-          decoration: BoxDecoration(
-            color: const Color(0xFF5A88F1),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(height: 32),
-        _TextField(
-          label: isMl ? 'പൂർണ്ണനാമം' : 'Full Name',
-          controller: nameCtrl,
-        ),
-        const SizedBox(height: 16),
-        _TextField(
-          label: isMl ? 'പ്രായം' : 'Age',
-          controller: ageCtrl,
-          keyboardType: TextInputType.number,
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _TextField(
-                label: isMl ? 'ഭാരം (kg)' : 'Weight (kg)',
-                controller: weightCtrl,
-                keyboardType: TextInputType.number,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _TextField(
-                label: isMl ? 'ഉയരം (ft/inch)' : 'Height (ft/inch)',
-                controller: heightCtrl,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 40),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: onNext,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5A88F1),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  isMl ? 'തുടരുക' : 'Continue',
-                  style: GoogleFonts.manrope(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_rounded),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TextField extends StatelessWidget {
-  final String label;
-  final TextEditingController controller;
-  final TextInputType? keyboardType;
-  const _TextField({
-    required this.label,
-    required this.controller,
-    this.keyboardType,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.manrope(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF192233),
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-          ),
-          style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w700),
-        ),
-      ],
-    );
-  }
-}
-
-class _AiChatScreen extends StatefulWidget {
-  final String language;
-  final List<Map<String, dynamic>> messages;
-  final Map<String, dynamic> patientInfo;
-  final Function(Map<String, dynamic> answers) onComplete;
-  final AiCheckupServiceFactory serviceFactory;
-
-  const _AiChatScreen({
-    required this.language,
-    required this.messages,
-    required this.patientInfo,
-    required this.onComplete,
-    required this.serviceFactory,
-  });
-
-  @override
-  State<_AiChatScreen> createState() => _AiChatScreenState();
-}
-
-class _AiChatScreenState extends State<_AiChatScreen> {
-  bool _loading = true;
-  String? _question;
-  List<String> _options = [];
-  final Map<String, dynamic> _chatAnswers = {};
-  int _questionCount = 0;
-  final int _maxQuestions = 10;
-  final List<({String? question, List<String> options})> _history = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchNextQuestion();
-  }
-
-  Future<void> _fetchNextQuestion() async {
-    setState(() => _loading = true);
-    try {
-      final service = widget.serviceFactory(context);
-
-      final result = await service.getNextQuestion(
-        messages: widget.messages,
-        patientInfo: widget.patientInfo,
-        step: 'questions',
-        language: widget.language,
-      );
-      if (!mounted) return;
-
-      final reply = result['reply'];
-      if (reply is Map &&
-          (reply.containsKey('question') || reply.containsKey('options'))) {
-        final newQuestion = reply['question'] as String?;
-        final newOptions = List<String>.from(reply['options'] ?? []);
-
-        setState(() {
-          _question = newQuestion;
-          _options = newOptions;
-          _history.add((question: newQuestion, options: newOptions));
-          _loading = false;
-        });
-
-        // Add AI response to message history
-        widget.messages.add({'role': 'assistant', 'content': _question ?? ''});
-      } else if (reply is Map && reply['finished'] == true) {
-        widget.onComplete(_chatAnswers);
-      } else {
-        // AI returned something unexpected but we'll try to treat it as a final summary or fallback
-        if (reply is String && reply.length > 50) {
-          widget.onComplete(_chatAnswers);
-        } else {
-          setState(() => _loading = false);
-          throw Exception('AI returned an invalid response format.');
-        }
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to get next question: $e')),
-      );
-    }
-  }
-
-  void _onAnswer(String answer) {
-    _chatAnswers['q${_questionCount + 1}'] = {
-      'question': _question,
-      'answer': answer,
-    };
-
-    widget.messages.add({'role': 'user', 'content': answer});
-
-    _questionCount++;
-    if (_questionCount >= _maxQuestions) {
-      widget.onComplete(_chatAnswers);
-    } else {
-      _fetchNextQuestion();
-    }
-  }
-
-  void _goBack() {
-    if (_questionCount > 0 &&
-        widget.messages.length >= 2 &&
-        _history.length >= 2) {
-      setState(() {
-        // Remove current question from history
-        _history.removeLast();
-
-        // Restore previous question
-        final previous = _history.last;
-        _question = previous.question;
-        _options = previous.options;
-
-        // Remove last user answer and last AI question from message history
-        widget.messages.removeLast(); // AI Q(current)
-        widget.messages.removeLast(); // User A(previous)
-
-        _questionCount--;
-        // We keep the answer in _chatAnswers so it can be shown as selected
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isMl = widget.language == 'ml';
-    final progress = (_questionCount + 1) / _maxQuestions;
-
-    if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF5A88F1)),
-      );
-    }
-
-    final currentAnswer = _chatAnswers['q${_questionCount + 1}']?['answer'];
+    final progress = (index + 1) / total;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -845,7 +417,7 @@ class _AiChatScreenState extends State<_AiChatScreen> {
               value: progress,
               minHeight: 8,
               backgroundColor: const Color(0xFFEBEDF2),
-              color: const Color(0xFF5A88F1),
+              color: _kAccent,
             ),
           ),
           const SizedBox(height: 32),
@@ -853,18 +425,16 @@ class _AiChatScreenState extends State<_AiChatScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isMl
-                    ? 'ചോദ്യം ${_questionCount + 1}'
-                    : 'Question ${_questionCount + 1}',
+                isMl ? 'ചോദ്യം ${index + 1}/$total' : 'Question ${index + 1}/$total',
                 style: GoogleFonts.manrope(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF5A88F1),
+                  color: _kAccent,
                 ),
               ),
-              if (_questionCount > 0)
+              if (onBack != null)
                 TextButton.icon(
-                  onPressed: _goBack,
+                  onPressed: onBack,
                   icon: const Icon(Icons.arrow_back_rounded, size: 16),
                   label: Text(
                     isMl ? 'തിരികെ' : 'Back',
@@ -884,71 +454,25 @@ class _AiChatScreenState extends State<_AiChatScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            _question ?? '',
+            question.question,
             style: GoogleFonts.manrope(
               fontSize: 22,
               fontWeight: FontWeight.w900,
-              color: const Color(0xFF192233),
+              color: _kInk,
             ),
           ),
           const SizedBox(height: 24),
           Expanded(
             child: ListView(
-              children: [
-                ..._options.map(
-                  (opt) => _OptionCard(
-                    label: opt,
-                    isSelected: currentAnswer == opt,
-                    onTap: () => _onAnswer(opt),
-                  ),
-                ),
-                if (currentAnswer != null) ...[
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _onAnswer(currentAnswer),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5A88F1),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            isMl ? 'തുടരുക' : 'Continue',
-                            style: GoogleFonts.manrope(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.arrow_forward_rounded, size: 20),
-                        ],
-                      ),
+              children: question.options
+                  .map(
+                    (option) => _OptionCard(
+                      label: option.text,
+                      isSelected: selectedKey == option.key,
+                      onTap: () => onAnswer(question, option.key),
                     ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
-              onPressed: () => widget.onComplete(_chatAnswers),
-              child: Text(
-                isMl ? 'വിശകലനം ചെയ്യുക' : 'Skip & Analyze Now',
-                style: GoogleFonts.manrope(
-                  color: const Color(0xFF8DA0BA),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+                  )
+                  .toList(),
             ),
           ),
         ],
@@ -958,14 +482,15 @@ class _AiChatScreenState extends State<_AiChatScreen> {
 }
 
 class _OptionCard extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
   const _OptionCard({
     required this.label,
     this.isSelected = false,
     required this.onTap,
   });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -982,9 +507,7 @@ class _OptionCard extends StatelessWidget {
               color: isSelected ? const Color(0xFFF4F7FF) : Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected
-                    ? const Color(0xFF5A88F1)
-                    : const Color(0xFFE5E9F0),
+                color: isSelected ? _kAccent : const Color(0xFFE5E9F0),
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -995,13 +518,8 @@ class _OptionCard extends StatelessWidget {
                   height: 22,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSelected
-                        ? const Color(0xFF5A88F1)
-                        : Colors.transparent,
-                    border: Border.all(
-                      color: const Color(0xFF5A88F1),
-                      width: 2,
-                    ),
+                    color: isSelected ? _kAccent : Colors.transparent,
+                    border: Border.all(color: _kAccent, width: 2),
                   ),
                   child: isSelected
                       ? const Icon(Icons.check, size: 14, color: Colors.white)
@@ -1014,17 +532,13 @@ class _OptionCard extends StatelessWidget {
                     style: GoogleFonts.manrope(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: isSelected
-                          ? const Color(0xFF5A88F1)
-                          : const Color(0xFF192233),
+                      color: isSelected ? _kAccent : _kInk,
                     ),
                   ),
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: isSelected
-                      ? const Color(0xFF5A88F1)
-                      : const Color(0xFF8DA0BA),
+                  color: isSelected ? _kAccent : const Color(0xFF8DA0BA),
                 ),
               ],
             ),
@@ -1035,249 +549,112 @@ class _OptionCard extends StatelessWidget {
   }
 }
 
-class _AnalyzingScreen extends StatelessWidget {
+class _ResultsScreen extends StatelessWidget {
+  const _ResultsScreen({
+    required this.language,
+    required this.results,
+    required this.onReset,
+  });
+
   final String language;
-  const _AnalyzingScreen({required this.language});
+  final AssessmentResults results;
+  final VoidCallback onReset;
+
+  ({Color color, String label}) _risk(String level) {
+    final isMl = language == 'ml';
+    switch (level.toLowerCase()) {
+      case 'high':
+        return (
+          color: const Color(0xFFFF5C5C),
+          label: isMl ? 'ഉയർന്ന അപകടസാധ്യത' : 'High Risk',
+        );
+      case 'moderate':
+        return (
+          color: const Color(0xFFF5A623),
+          label: isMl ? 'മിതമായ അപകടസാധ്യത' : 'Moderate Risk',
+        );
+      default:
+        return (
+          color: const Color(0xFF1F9A6D),
+          label: isMl ? 'കുറഞ്ഞ അപകടസാധ്യത' : 'Low Risk',
+        );
+    }
+  }
+
+  void _bookPackage(BuildContext context, int id, String name, String? price) {
+    final package = LabPackageItem(
+      id: id,
+      name: name,
+      slug: '',
+      status: true,
+      basePrice: _parsePrice(price),
+    );
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => PackageBookingScreen(package: package)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final isMl = language == 'ml';
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(
-            width: 60,
-            height: 60,
-            child: CircularProgressIndicator(
-              strokeWidth: 4,
-              color: Color(0xFF5A88F1),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            isMl
-                ? 'നിങ്ങളുടെ ഉത്തരങ്ങൾ വിശകലനം ചെയ്യുന്നു...'
-                : 'Analyzing your answers...',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF192233),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isMl
-                ? 'നിങ്ങളുടെ വിവരങ്ങൾ പരിശോധിച്ചുകൊണ്ടിരിക്കുന്നു.'
-                : 'Our AI is reviewing your lifestyle and health history.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
-              fontSize: 14,
-              color: const Color(0xFF192233).withValues(alpha: 0.5),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+    final risk = _risk(results.riskLevel);
 
-class _ResultsScreen extends StatefulWidget {
-  final String language;
-  final AiHealthAssessmentResponse result;
-  final VoidCallback onRetake;
-  final VoidCallback onReset;
-  const _ResultsScreen({
-    required this.language,
-    required this.result,
-    required this.onRetake,
-    required this.onReset,
-  });
-
-  @override
-  State<_ResultsScreen> createState() => _ResultsScreenState();
-}
-
-class _ResultsScreenState extends State<_ResultsScreen> {
-  int _page = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return _page == 0 ? _buildIssuesPage(context) : _buildPackagesPage(context);
-  }
-
-  Widget _buildIssuesPage(BuildContext context) {
-    final score = widget.result.healthScore;
-    final scoreColor = score >= 70
-        ? const Color(0xFF1F9A6D)
-        : score >= 40
-        ? const Color(0xFFF5A623)
-        : const Color(0xFFFF5C5C);
-
-    final isMl = widget.language == 'ml';
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        _buildScoreCard(score, scoreColor),
-        if (widget.result.risks.isNotEmpty) ...[
-          const SizedBox(height: 32),
-          Text(
-            isMl ? 'കണ്ടെത്തിയ ആരോഗ്യ പ്രശ്നങ്ങൾ' : 'Suggested Issues',
-            style: GoogleFonts.manrope(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF192233),
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildRisksCard(),
+        _RiskCard(risk: risk, summary: results.summary, language: language),
+        if (results.insights.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          _SectionTitle(isMl ? 'പ്രധാന നിർദ്ദേശങ്ങൾ' : 'Key Insights'),
+          const SizedBox(height: 12),
+          _InsightsCard(insights: results.insights),
         ],
-        if (widget.result.matchedPackages.isNotEmpty) ...[
-          const SizedBox(height: 32),
-          Text(
-            isMl ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Recommended Packages',
-            style: GoogleFonts.manrope(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF192233),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...widget.result.matchedPackages.map(
-            (pkg) => _PackageResultCard(
-              pkg: pkg,
-              isAvailable: true,
-              onBook: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PackageBookingScreen(
-                      package: LabPackageItem.fromJson(pkg),
-                    ),
-                  ),
-                );
-              },
+        if (results.recommendedPackages.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          _SectionTitle(isMl ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Recommended Packages'),
+          const SizedBox(height: 12),
+          ...results.recommendedPackages.map(
+            (pkg) => _PackageCard(
+              title: pkg.packageName,
+              price: pkg.price,
+              testCount: pkg.tests.length,
+              onBook: () =>
+                  _bookPackage(context, pkg.id, pkg.packageName, pkg.price),
             ),
           ),
         ],
-        const SizedBox(height: 32),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => setState(() => _page = 1),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5A88F1),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    isMl ? 'പാക്കേജുകൾ കാണുക' : 'View Packages',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_rounded),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 40),
-      ],
-    );
-  }
-
-  Widget _buildPackagesPage(BuildContext context) {
-    final isMl = widget.language == 'ml';
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Row(
-          children: [
-            IconButton(
-              onPressed: () => setState(() => _page = 0),
-              icon: const Icon(
-                Icons.arrow_back_rounded,
-                color: Color(0xFF5A88F1),
-              ),
-            ),
-            Expanded(
-              child: Text(
-                isMl ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Suggested Packages',
-                style: GoogleFonts.manrope(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF192233),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (widget.result.matchedPackages.isNotEmpty)
-          ...widget.result.matchedPackages.map(
-            (pkg) => _PackageResultCard(
-              pkg: pkg,
-              isAvailable: true,
-              onBook: () => _bookPackage(context, pkg),
-            ),
-          ),
-        if (widget.result.unmatchedPackages.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          Text(
-            isMl ? 'മറ്റ് നിർദ്ദേശങ്ങൾ' : 'Also Recommended',
-            style: GoogleFonts.manrope(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF192233),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...widget.result.unmatchedPackages.map(
-            (pkg) => _PackageResultCard(pkg: pkg, isAvailable: false),
+        if (results.customPackage != null) ...[
+          const SizedBox(height: 28),
+          _SectionTitle(isMl ? 'നിങ്ങൾക്കായുള്ള പാക്കേജ്' : 'Tailored For You'),
+          const SizedBox(height: 12),
+          _PackageCard(
+            title: results.customPackage!.name,
+            subtitle: results.customPackage!.reason,
+            price: results.customPackage!.price,
+            testCount: results.customPackage!.tests.length,
           ),
         ],
-        if (widget.result.testRecommendations.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          Text(
+        if (results.recommendedTests.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          _SectionTitle(
             isMl ? 'നിർദ്ദേശിച്ച പരിശോധനകൾ' : 'Suggested Individual Tests',
-            style: GoogleFonts.manrope(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF192233),
-            ),
           ),
-          const SizedBox(height: 16),
-          _buildTestsCard(),
+          const SizedBox(height: 12),
+          _TestsCard(tests: results.recommendedTests),
         ],
-        const SizedBox(height: 24),
+        const SizedBox(height: 28),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: widget.onRetake,
+            onPressed: onReset,
             icon: const Icon(Icons.replay_rounded),
             label: Text(
               isMl ? 'വീണ്ടും പരിശോധിക്കുക' : 'Retake Assessment',
               style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
             ),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF5A88F1),
-              side: const BorderSide(color: Color(0xFF5A88F1)),
+              foregroundColor: _kAccent,
+              side: const BorderSide(color: _kAccent),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -1290,25 +667,23 @@ class _ResultsScreenState extends State<_ResultsScreen> {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: () {
-              widget.onReset();
+              onReset();
               PatientAppShell.of(context).goHome();
             },
             icon: Icon(
               Icons.home_rounded,
               size: 20,
-              color: const Color(0xFF192233).withValues(alpha: 0.6),
+              color: _kInk.withValues(alpha: 0.6),
             ),
             label: Text(
               isMl ? 'ഹോമിലേക്ക് മടങ്ങുക' : 'Back to Home',
               style: GoogleFonts.manrope(
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF192233).withValues(alpha: 0.6),
+                color: _kInk.withValues(alpha: 0.6),
               ),
             ),
             style: OutlinedButton.styleFrom(
-              side: BorderSide(
-                color: const Color(0xFF192233).withValues(alpha: 0.12),
-              ),
+              side: BorderSide(color: _kInk.withValues(alpha: 0.12)),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -1320,9 +695,21 @@ class _ResultsScreenState extends State<_ResultsScreen> {
       ],
     );
   }
+}
 
-  Widget _buildScoreCard(int score, Color scoreColor) {
-    final isMl = widget.language == 'ml';
+class _RiskCard extends StatelessWidget {
+  const _RiskCard({
+    required this.risk,
+    required this.summary,
+    required this.language,
+  });
+
+  final ({Color color, String label}) risk;
+  final String summary;
+  final String language;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -1337,56 +724,38 @@ class _ResultsScreenState extends State<_ResultsScreen> {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            isMl ? 'നിങ്ങളുടെ ആരോഗ്യ സ്കോർ' : 'Your Health Score',
-            style: GoogleFonts.manrope(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF192233),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: risk.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
             ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: 140,
-            height: 140,
-            child: Stack(
-              fit: StackFit.expand,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(
-                  value: score / 100,
-                  strokeWidth: 12,
-                  backgroundColor: const Color(0xFFF4F7FF),
-                  valueColor: AlwaysStoppedAnimation(scoreColor),
-                ),
-                Center(
-                  child: Text(
-                    '$score%',
-                    style: GoogleFonts.manrope(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF192233),
-                    ),
+                Icon(Icons.shield_rounded, size: 18, color: risk.color),
+                const SizedBox(width: 8),
+                Text(
+                  risk.label,
+                  style: GoogleFonts.manrope(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: risk.color,
                   ),
                 ),
               ],
             ),
           ),
-          if (widget.result.peerComparison.isNotEmpty) ...[
+          if (summary.trim().isNotEmpty) ...[
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF8F0),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                widget.result.peerComparison,
-                style: GoogleFonts.manrope(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFFF5A623),
-                ),
+            Text(
+              summary.trim(),
+              style: GoogleFonts.manrope(
+                fontSize: 14,
+                height: 1.6,
+                color: _kInk.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -1394,9 +763,15 @@ class _ResultsScreenState extends State<_ResultsScreen> {
       ),
     );
   }
+}
 
-  Widget _buildRisksCard() {
-    final isMl = widget.language == 'ml';
+class _InsightsCard extends StatelessWidget {
+  const _InsightsCard({required this.insights});
+
+  final List<String> insights;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1411,230 +786,60 @@ class _ResultsScreenState extends State<_ResultsScreen> {
         ],
       ),
       child: Column(
-        children: widget.result.risks.map((risk) {
-          final name = risk['name'] ?? '';
-          final reason = risk['reason'] ?? '';
-          final precaution = risk['precaution'] ?? '';
-          return Container(
-            margin: const EdgeInsets.only(bottom: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        children: insights
+            .map(
+              (insight) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF4F4),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.warning_amber_rounded,
-                        size: 20,
-                        color: Color(0xFFFF5C5C),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.lightbulb_outline_rounded,
+                        size: 18,
+                        color: _kAccent,
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: GoogleFonts.manrope(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF192233),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          if (reason.isNotEmpty)
-                            Text(
-                              reason,
-                              style: GoogleFonts.manrope(
-                                fontSize: 13,
-                                height: 1.5,
-                                color: const Color(
-                                  0xFF192233,
-                                ).withValues(alpha: 0.7),
-                              ),
-                            ),
-                        ],
+                      child: Text(
+                        insight,
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          height: 1.5,
+                          color: _kInk.withValues(alpha: 0.78),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                if (precaution.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F7FF),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFF5A88F1).withValues(alpha: 0.1),
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.lightbulb_outline_rounded,
-                          size: 16,
-                          color: Color(0xFF5A88F1),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            "${isMl ? 'മുൻകരുതൽ' : 'Precaution'}: $precaution",
-                            style: GoogleFonts.manrope(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF5A88F1),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                if (widget.result.risks.indexOf(risk) <
-                    widget.result.risks.length - 1) ...[
-                  const SizedBox(height: 20),
-                  Divider(
-                    color: const Color(0xFFE5E9F0).withValues(alpha: 0.5),
-                  ),
-                ],
-              ],
-            ),
-          );
-        }).toList(),
+              ),
+            )
+            .toList(),
       ),
     );
-  }
-
-  Widget _buildTestsCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: widget.result.testRecommendations.map((t) {
-          final name = t['name'] as String? ?? '';
-          final reason = t['reason'] as String? ?? '';
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF4F7FF),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.biotech_outlined,
-                    color: Color(0xFF5A88F1),
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: GoogleFonts.manrope(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF192233),
-                        ),
-                      ),
-                      if (reason.isNotEmpty)
-                        Text(
-                          reason,
-                          style: GoogleFonts.manrope(
-                            fontSize: 12,
-                            color: const Color(
-                              0xFF192233,
-                            ).withValues(alpha: 0.5),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  void _bookPackage(BuildContext context, Map<String, dynamic> pkg) {
-    final package = LabPackageItem(
-      id: (pkg['id'] as num?)?.toInt() ?? 0,
-      name: pkg['name'] as String? ?? 'Package',
-      slug: pkg['slug'] as String? ?? '',
-      status: true,
-      basePrice: _parseInt(pkg['basePrice'] ?? pkg['base_price']),
-      description: pkg['description'] as String?,
-      category: pkg['category'] as String?,
-      imageUrl: pkg['imageUrl'] as String? ?? pkg['image_url'] as String?,
-      totalTests: (pkg['totalTests'] as num?)?.toInt(),
-      discountedPrice:
-          pkg['discountedPrice'] != null || pkg['discounted_price'] != null
-          ? _parseInt(pkg['discountedPrice'] ?? pkg['discounted_price'])
-          : null,
-    );
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => PackageBookingScreen(package: package)),
-    );
-  }
-
-  int _parseInt(dynamic v) {
-    if (v == null) return 0;
-    if (v is num) return v.toInt();
-    if (v is String) return int.tryParse(v) ?? 0;
-    return 0;
   }
 }
 
-class _PackageResultCard extends StatelessWidget {
-  final Map<String, dynamic> pkg;
-  final bool isAvailable;
-  final VoidCallback? onBook;
-  const _PackageResultCard({
-    required this.pkg,
-    required this.isAvailable,
+class _PackageCard extends StatelessWidget {
+  const _PackageCard({
+    required this.title,
+    this.subtitle,
+    this.price,
+    this.testCount = 0,
     this.onBook,
   });
 
+  final String title;
+  final String? subtitle;
+  final String? price;
+  final int testCount;
+  final VoidCallback? onBook;
+
   @override
   Widget build(BuildContext context) {
-    final name =
-        pkg['name'] as String? ??
-        pkg['package']?['name'] as String? ??
-        'Package';
-    final reason =
-        pkg['reason'] as String? ?? pkg['package']?['reason'] as String? ?? '';
-    final basePrice = (pkg['basePrice'] ?? pkg['base_price'] ?? 0) as num;
-    final discountedPrice = pkg['discountedPrice'] ?? pkg['discounted_price'];
-
+    final priceValue = _parsePrice(price);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -1663,7 +868,7 @@ class _PackageResultCard extends StatelessWidget {
                 ),
                 child: const Icon(
                   Icons.inventory_2_outlined,
-                  color: Color(0xFF5A88F1),
+                  color: _kAccent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1672,21 +877,34 @@ class _PackageResultCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name,
+                      title,
                       style: GoogleFonts.manrope(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF192233),
+                        color: _kInk,
                       ),
                     ),
-                    if (reason.isNotEmpty)
-                      Text(
-                        reason,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(
-                          fontSize: 12,
-                          color: const Color(0xFF192233).withValues(alpha: 0.5),
+                    if ((subtitle ?? '').trim().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          subtitle!.trim(),
+                          style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            color: _kInk.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                    if (testCount > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '$testCount tests',
+                          style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _kInk.withValues(alpha: 0.4),
+                          ),
                         ),
                       ),
                   ],
@@ -1694,81 +912,178 @@ class _PackageResultCard extends StatelessWidget {
               ),
             ],
           ),
-          if (isAvailable) ...[
+          if (priceValue > 0 || onBook != null) ...[
             const SizedBox(height: 12),
             Row(
               children: [
-                if (discountedPrice != null) ...[
+                if (priceValue > 0)
                   Text(
-                    '\u20B9${(discountedPrice as num).toInt()}',
+                    '₹$priceValue',
                     style: GoogleFonts.manrope(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFF5A88F1),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '\u20B9${basePrice.toInt()}',
-                    style: GoogleFonts.manrope(
-                      fontSize: 13,
-                      decoration: TextDecoration.lineThrough,
-                      color: const Color(0xFF192233).withValues(alpha: 0.3),
-                    ),
-                  ),
-                ] else
-                  Text(
-                    '\u20B9${basePrice.toInt()}',
-                    style: GoogleFonts.manrope(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF5A88F1),
+                      color: _kAccent,
                     ),
                   ),
                 const Spacer(),
-                ElevatedButton(
-                  onPressed: onBook,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5A88F1),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
+                if (onBook != null)
+                  ElevatedButton(
+                    onPressed: onBook,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _kAccent,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    child: Text(
+                      'Book Now',
+                      style: GoogleFonts.manrope(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'Book Now',
-                    style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
               ],
-            ),
-          ] else ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F7FF),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Not available in our lab yet',
-                style: GoogleFonts.manrope(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF5A88F1),
-                ),
-              ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _TestsCard extends StatelessWidget {
+  const _TestsCard({required this.tests});
+
+  final List<AssessmentRecommendedTest> tests;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: tests.map((test) {
+          final priceValue = _parsePrice(test.price);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4F7FF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.biotech_outlined,
+                    color: _kAccent,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        test.testName,
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: _kInk,
+                        ),
+                      ),
+                      if ((test.category ?? '').trim().isNotEmpty)
+                        Text(
+                          test.category!.trim(),
+                          style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            color: _kInk.withValues(alpha: 0.5),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (priceValue > 0)
+                  Text(
+                    '₹$priceValue',
+                    style: GoogleFonts.manrope(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: _kAccent,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: GoogleFonts.manrope(
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        color: _kInk,
+      ),
+    );
+  }
+}
+
+class _PrimaryButton extends StatelessWidget {
+  const _PrimaryButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _kAccent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18),
+        ),
       ),
     );
   }

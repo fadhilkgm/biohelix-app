@@ -39,6 +39,7 @@ import '../core/widgets/booking_success_screen.dart';
 import '../premium_home/screens/home_screen.dart' as premium_home;
 import 'widgets/bottom_nav_bar_widget.dart';
 import '../ai_checkup/screens/ai_checkup_tab.dart';
+import '../health_profile/screens/health_profile_screen.dart';
 import '../my_club/screens/patient_loyalty_panel.dart';
 
 part 'package:biohelix_app/patient_portal/assistant/widgets/patient_assistant_attachment_widget.dart';

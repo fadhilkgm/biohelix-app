@@ -35,6 +35,7 @@ class HomeOfferItem {
     required this.id,
     required this.title,
     this.subtitle,
+    this.imageUrl,
     required this.gradientFrom,
     required this.gradientTo,
     required this.buttonBorderColor,
@@ -47,6 +48,7 @@ class HomeOfferItem {
   final int id;
   final String title;
   final String? subtitle;
+  final String? imageUrl;
   final String gradientFrom;
   final String gradientTo;
   final String buttonBorderColor;
@@ -60,6 +62,7 @@ class HomeOfferItem {
       id: (json['id'] as num?)?.toInt() ?? 0,
       title: json['title'] as String? ?? '',
       subtitle: json['subtitle'] as String?,
+      imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
       gradientFrom:
           json['gradientFrom'] as String? ??
           json['gradient_from'] as String? ??

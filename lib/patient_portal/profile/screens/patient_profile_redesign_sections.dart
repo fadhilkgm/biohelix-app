@@ -51,6 +51,18 @@ class _ProfileSettingsCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Column(
         children: [
+          _ProfileInfoTile(
+            icon: Icons.favorite_outline_rounded,
+            label: 'Health Profile',
+            value: 'Conditions, medications and allergies',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const HealthProfileScreen(),
+                ),
+              );
+            },
+          ),
           // const _ProfileInfoTile(
           //   icon: Icons.notifications_none_rounded,
           //   label: 'Notifications',

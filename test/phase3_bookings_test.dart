@@ -66,6 +66,9 @@ void main() {
       'labTestIds': [1, 2],
       'date': '2026-06-25',
       'slot': '08:30',
+      'paymentStatus': 'pending',
+      'collectionType': 'home',
+      'urgency': 'routine',
       'notes': 'Fasting sample.',
     });
     expect(confirmation.reference, '4a7b53cc-cd21-4f11-8e9a-4122d2ee5bb2');
@@ -89,6 +92,9 @@ void main() {
       'labTestIds': [5],
       'date': '2026-06-25',
       'slot': '09:00',
+      'paymentStatus': 'pending',
+      'collectionType': 'home',
+      'urgency': 'routine',
     });
   });
 
@@ -121,6 +127,9 @@ void main() {
       'packageId': 1,
       'date': '2026-06-25',
       'slot': '08:30',
+      'paymentStatus': 'pending',
+      'collectionType': 'home',
+      'urgency': 'routine',
       'notes': 'Morning preferred.',
     });
     expect(confirmation.reference, 'BKG-60');

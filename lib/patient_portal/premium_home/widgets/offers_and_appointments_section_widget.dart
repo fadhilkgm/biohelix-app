@@ -79,6 +79,7 @@ class OffersAndAppointmentsSectionWidget extends StatelessWidget {
           (offer) => _OfferItem(
             title: offer.title,
             subtitle: offer.subtitle ?? '',
+            imageUrl: offer.imageUrl,
             colors: [
               _parseHexColor(offer.gradientFrom, const Color(0xFF0C2C6D)),
               _parseHexColor(offer.gradientTo, const Color(0xFF1A6EAA)),
@@ -236,68 +237,103 @@ class _OfferCard extends StatelessWidget {
                 ),
               ],
             ),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: GoogleFonts.manrope(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  item.subtitle,
-                  style: GoogleFonts.manrope(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                children: [
+                  if (item.imageUrl != null)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 140,
+                      child: ShaderMask(
+                        shaderCallback: (rect) => LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [item.colors.last, Colors.transparent],
+                        ).createShader(rect),
+                        blendMode: BlendMode.dstOut,
+                        child: Image.network(
+                          item.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox(),
+                        ),
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item.buttonLabel,
-                          style: GoogleFonts.manrope(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
+                        SizedBox(
+                          width: item.imageUrl != null ? 180 : double.infinity,
+                          child: Text(
+                            item.title,
+                            style: GoogleFonts.manrope(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        const Icon(
-                          Icons.arrow_forward_rounded,
-                          color: Colors.white,
-                          size: 14,
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          width: item.imageUrl != null ? 180 : double.infinity,
+                          child: Text(
+                            item.subtitle,
+                            style: GoogleFonts.manrope(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const Spacer(),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  item.buttonLabel,
+                                  style: GoogleFonts.manrope(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -310,6 +346,7 @@ class _OfferItem {
   const _OfferItem({
     required this.title,
     required this.subtitle,
+    this.imageUrl,
     required this.colors,
     required this.buttonBorder,
     required this.buttonLabel,
@@ -319,6 +356,7 @@ class _OfferItem {
 
   final String title;
   final String subtitle;
+  final String? imageUrl;
   final List<Color> colors;
   final Color buttonBorder;
   final String buttonLabel;

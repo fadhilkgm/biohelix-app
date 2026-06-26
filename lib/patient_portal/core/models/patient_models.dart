@@ -860,7 +860,11 @@ class ChatMessage {
   final List<LabTestItem> suggestedTests;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
-    final parsed = ChatMessageCodec.decode(json['content'] as String? ?? '');
+    // Documented chat endpoints expose the body under `message`; older payloads
+    // (and locally-built messages) use `content`.
+    final rawContent =
+        json['content'] as String? ?? json['message'] as String? ?? '';
+    final parsed = ChatMessageCodec.decode(rawContent);
     final pkgsRaw = json['suggestedPackages'] as List<dynamic>? ?? const [];
     final testsRaw = json['suggestedTests'] as List<dynamic>? ?? const [];
     return ChatMessage(
@@ -1475,6 +1479,80 @@ class DocumentAnalysisResult {
       cached: json['cached'] as bool? ?? false,
     );
   }
+}
+
+/// A single timestamped health-profile snapshot.
+///
+/// Mirrors the `/patients/me/health-profile` API contract. The API exposes
+/// snake_case fields; camelCase fallbacks are kept for resilience.
+class HealthProfileSnapshot {
+  const HealthProfileSnapshot({
+    required this.id,
+    required this.recordedAt,
+    required this.source,
+    this.chronicConditions = const [],
+    this.currentMedications = const [],
+    this.allergies = const [],
+    this.symptoms,
+    this.lifestyleNotes,
+    this.notes,
+  });
+
+  final int id;
+  final String recordedAt;
+
+  /// `self_reported`, `assessment_derived`, or `document_derived`.
+  final String source;
+  final List<String> chronicConditions;
+  final List<String> currentMedications;
+  final List<String> allergies;
+  final String? symptoms;
+  final String? lifestyleNotes;
+  final String? notes;
+
+  static List<String> _stringList(dynamic raw) {
+    if (raw is List) {
+      return raw
+          .map((item) => item?.toString() ?? '')
+          .where((value) => value.trim().isNotEmpty)
+          .toList();
+    }
+    if (raw is String && raw.trim().isNotEmpty) {
+      return [raw.trim()];
+    }
+    return const [];
+  }
+
+  factory HealthProfileSnapshot.fromJson(Map<String, dynamic> json) {
+    return HealthProfileSnapshot(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      recordedAt:
+          json['recorded_at'] as String? ??
+          json['recordedAt'] as String? ??
+          '',
+      source:
+          json['source'] as String? ??
+          json['sourceType'] as String? ??
+          'self_reported',
+      chronicConditions: _stringList(
+        json['chronic_conditions'] ?? json['chronicConditions'],
+      ),
+      currentMedications: _stringList(
+        json['current_medications'] ?? json['currentMedications'],
+      ),
+      allergies: _stringList(json['allergies']),
+      symptoms: json['symptoms'] as String?,
+      lifestyleNotes:
+          json['lifestyle_notes'] as String? ??
+          json['lifestyleNotes'] as String?,
+      notes: json['notes'] as String?,
+    );
+  }
+
+  bool get hasClinicalData =>
+      chronicConditions.isNotEmpty ||
+      currentMedications.isNotEmpty ||
+      allergies.isNotEmpty;
 }
 
 class PatientDashboard {

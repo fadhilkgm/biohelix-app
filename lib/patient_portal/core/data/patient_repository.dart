@@ -294,6 +294,56 @@ class PatientRepository {
     return PatientIdentity.fromJson(_map(response['patient']));
   }
 
+  /// Most recent health-profile snapshot containing clinical data (falls back
+  /// to the latest snapshot of any kind). Returns null when none exist yet.
+  Future<HealthProfileSnapshot?> getHealthProfile() async {
+    final response = await _apiClient.getJson('/patients/me/health-profile');
+    final data = response['data'];
+    if (data is Map) {
+      return HealthProfileSnapshot.fromJson(_map(data));
+    }
+    return null;
+  }
+
+  /// Creates a new (timestamped) health-profile snapshot. Existing snapshots are
+  /// not overwritten. All fields are optional.
+  Future<HealthProfileSnapshot> saveHealthProfile({
+    List<String>? chronicConditions,
+    List<String>? currentMedications,
+    List<String>? allergies,
+    String? symptoms,
+    String? lifestyleNotes,
+    String source = 'self_reported',
+  }) async {
+    final trimmedSymptoms = symptoms?.trim();
+    final trimmedLifestyle = lifestyleNotes?.trim();
+    final response = await _apiClient.postJson(
+      '/patients/me/health-profile',
+      data: {
+        'chronic_conditions': ?chronicConditions,
+        'current_medications': ?currentMedications,
+        'allergies': ?allergies,
+        if ((trimmedSymptoms ?? '').isNotEmpty) 'symptoms': trimmedSymptoms,
+        if ((trimmedLifestyle ?? '').isNotEmpty)
+          'lifestyle_notes': trimmedLifestyle,
+        'source': source,
+      },
+    );
+    return HealthProfileSnapshot.fromJson(_map(response['data']));
+  }
+
+  /// Paginated list of all snapshots, newest first (self-reported plus
+  /// auto-generated assessment/document derived entries).
+  Future<List<HealthProfileSnapshot>> getHealthProfileHistory() async {
+    final response = await _apiClient.getJson(
+      '/patients/me/health-profile/history',
+    );
+    final data = response['data'] as List<dynamic>? ?? const [];
+    return data
+        .map((item) => HealthProfileSnapshot.fromJson(_map(item)))
+        .toList();
+  }
+
   Future<PatientDashboard> getDashboard() async {
     final response = await _apiClient.getJson('/patients/me/dashboard');
     return PatientDashboard.fromJson(response);
@@ -417,7 +467,10 @@ class PatientRepository {
       '/patients/me/vitals',
       data: input.toJson(),
     );
-    return VitalRecord.fromJson(_map(response['vitals']));
+    // Documented response wraps the saved record under the singular `vital` key.
+    return VitalRecord.fromJson(
+      _map(response['vital'] ?? response['vitals']),
+    );
   }
 
   Future<List<DoctorListing>> getDoctors() async {
@@ -520,7 +573,11 @@ class PatientRepository {
     final response = await _apiClient.getJson(
       '/patients/chat/global/threads/$threadId',
     );
-    final history = response['history'] as List<dynamic>? ?? const [];
+    // Documented "Show Thread" response returns the message list under `messages`.
+    final history =
+        response['messages'] as List<dynamic>? ??
+        response['history'] as List<dynamic>? ??
+        const [];
     return history.map((item) => ChatMessage.fromJson(_map(item))).toList();
   }
 
@@ -614,12 +671,29 @@ class PatientRepository {
       throw StateError('Select at least one lab test.');
     }
 
+    final trimmedAddress = address?.trim();
+    final trimmedBookingRef = bookingRef?.trim();
     final response = await _apiClient.postJson(
       '/patient/lab-orders',
       data: {
         'labTestIds': resolvedTestIds,
         'date': date,
+        'doctorId': ?doctorId,
         if ((trimmedSlot ?? '').isNotEmpty) 'slot': trimmedSlot,
+        'paymentStatus': paymentStatus,
+        'collectionType': collectionType,
+        if ((trimmedAddress ?? '').isNotEmpty) 'address': trimmedAddress,
+        'amount': ?amount,
+        if ((patientNameSnapshot ?? '').trim().isNotEmpty)
+          'patientNameSnapshot': patientNameSnapshot!.trim(),
+        'patientAgeSnapshot': ?patientAgeSnapshot,
+        if ((patientGenderSnapshot ?? '').trim().isNotEmpty)
+          'patientGenderSnapshot': patientGenderSnapshot!.trim(),
+        if ((patientPhoneSnapshot ?? '').trim().isNotEmpty)
+          'patientPhoneSnapshot': patientPhoneSnapshot!.trim(),
+        if ((trimmedBookingRef ?? '').isNotEmpty)
+          'bookingRef': trimmedBookingRef,
+        'urgency': urgency,
         if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
       },
     );
@@ -666,11 +740,29 @@ class PatientRepository {
   }) async {
     final trimmedSlot = slot?.trim();
     final trimmedNotes = notes?.trim();
+    final trimmedAddress = address?.trim();
+    final trimmedBookingRef = bookingRef?.trim();
 
     final data = {
       'packageId': labPackageId,
       'date': date,
+      'doctorId': ?doctorId,
       if ((trimmedSlot ?? '').isNotEmpty) 'slot': trimmedSlot,
+      if ((paymentStatus ?? '').trim().isNotEmpty)
+        'paymentStatus': paymentStatus!.trim(),
+      if ((collectionType ?? '').trim().isNotEmpty)
+        'collectionType': collectionType!.trim(),
+      if ((trimmedAddress ?? '').isNotEmpty) 'address': trimmedAddress,
+      'amount': ?amount,
+      if ((patientNameSnapshot ?? '').trim().isNotEmpty)
+        'patientNameSnapshot': patientNameSnapshot!.trim(),
+      'patientAgeSnapshot': ?patientAgeSnapshot,
+      if ((patientGenderSnapshot ?? '').trim().isNotEmpty)
+        'patientGenderSnapshot': patientGenderSnapshot!.trim(),
+      if ((patientPhoneSnapshot ?? '').trim().isNotEmpty)
+        'patientPhoneSnapshot': patientPhoneSnapshot!.trim(),
+      if ((trimmedBookingRef ?? '').isNotEmpty) 'bookingRef': trimmedBookingRef,
+      'urgency': urgency,
       if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
     };
 
@@ -748,7 +840,11 @@ class PatientRepository {
     final response = await _apiClient.getJson(
       '/patients/documents/$documentId/chat',
     );
-    final history = response['history'] as List<dynamic>? ?? const [];
+    // Documented response returns the message list under `messages`.
+    final history =
+        response['messages'] as List<dynamic>? ??
+        response['history'] as List<dynamic>? ??
+        const [];
     return history.map((item) => ChatMessage.fromJson(_map(item))).toList();
   }
 
@@ -760,9 +856,22 @@ class PatientRepository {
       '/patients/documents/$documentId/chat',
       data: {'message': message},
     );
+    final pkgsRaw = response['suggestedPackages'] as List<dynamic>? ?? const [];
+    final suggestedPackages = pkgsRaw
+        .map((item) => LabPackageItem.fromJson(_map(item)))
+        .toList();
+    final testsRaw = response['suggestedTests'] as List<dynamic>? ?? const [];
+    final suggestedTests = testsRaw
+        .map((item) => LabTestItem.fromJson(_map(item)))
+        .toList();
     return ChatMessage(
       role: 'ai',
-      content: response['reply'] as String? ?? 'No response',
+      content:
+          response['reply'] as String? ??
+          response['content'] as String? ??
+          'No response',
+      suggestedPackages: suggestedPackages,
+      suggestedTests: suggestedTests,
     );
   }
 
