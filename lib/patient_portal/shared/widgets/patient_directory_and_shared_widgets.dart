@@ -1,7 +1,34 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
-class _DoctorsDirectoryPage extends StatelessWidget {
+class _DoctorsDirectoryPage extends StatefulWidget {
   const _DoctorsDirectoryPage();
+
+  @override
+  State<_DoctorsDirectoryPage> createState() => _DoctorsDirectoryPageState();
+}
+
+class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
+  late TextEditingController _searchController;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.toLowerCase();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +60,21 @@ class _DoctorsDirectoryPage extends StatelessWidget {
       body: Consumer<PatientPortalProvider>(
         builder: (context, portal, _) {
           final doctors = portal.doctors;
+
+          // Filter doctors based on search query
+          final filteredDoctors = _searchQuery.isEmpty
+              ? doctors
+              : doctors.where((doctor) {
+                  final name = doctor.name.toLowerCase();
+                  final specialization = doctor.specialization.toLowerCase();
+                  final department = (doctor.departmentName ?? '').toLowerCase();
+                  return name.contains(_searchQuery) ||
+                      specialization.contains(_searchQuery) ||
+                      department.contains(_searchQuery);
+                }).toList();
+
           final doctorsByDepartment = <String, List<DoctorListing>>{};
-          for (final doctor in doctors) {
+          for (final doctor in filteredDoctors) {
             final department = (doctor.departmentName ?? '').trim().isEmpty
                 ? 'General'
                 : doctor.departmentName!.trim();
@@ -54,13 +94,13 @@ class _DoctorsDirectoryPage extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 20),
               children: [
-                // Header Search-like area
+                // Search Input
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
-                      vertical: 16,
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF5A88F1),
@@ -73,37 +113,62 @@ class _DoctorsDirectoryPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.search_rounded,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Search for doctors...',
-                              style: GoogleFonts.manrope(
-                                color: Colors.white.withValues(alpha: 0.7),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                    child: TextField(
+                      controller: _searchController,
+                      style: GoogleFonts.manrope(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Search for doctors...',
+                        hintStyle: GoogleFonts.manrope(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
-                      ],
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.clear_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged();
+                                },
+                              )
+                            : null,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 0,
+                        ),
+                      ),
+                      cursorColor: Colors.white,
                     ),
                   ),
                 ),
                 const SizedBox(height: 32),
-                if (doctors.isEmpty)
-                  const Center(
+                if (filteredDoctors.isEmpty)
+                  Center(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 80),
-                      child: Text('No doctors available right now.'),
+                      padding: const EdgeInsets.symmetric(vertical: 80),
+                      child: Text(
+                        _searchQuery.isEmpty
+                            ? 'No doctors available right now.'
+                            : 'No doctors found matching "$_searchQuery"',
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          color: const Color(0xFF192233).withValues(alpha: 0.6),
+                        ),
+                      ),
                     ),
                   )
                 else
