@@ -450,159 +450,249 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
         }).toList();
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF8F9FB),
+          backgroundColor: const Color(0xFFF4F7FF),
+          extendBodyBehindAppBar: true,
           appBar: AppBar(
-            title: const Text('Health Packages'),
-            backgroundColor: const Color(0xFFF8F9FB),
+            title: Text(
+              'Health Packages',
+              style: GoogleFonts.manrope(
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+                color: const Color(0xFF192233),
+                letterSpacing: -0.5,
+              ),
+            ),
+            backgroundColor: Colors.transparent,
             elevation: 0,
             centerTitle: true,
+            iconTheme: const IconThemeData(color: Color(0xFF192233)),
           ),
-          body: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-            itemCount: packages.length,
-            itemBuilder: (context, index) {
-              final pkg = packages[index];
-              final pkgImageUrl = resolveImageUrl(pkg.imageUrl);
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFEBF0FF), Color(0xFFF8F9FB)],
+                stops: [0.0, 0.3],
+              ),
+            ),
+            child: SafeArea(
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                itemCount: packages.length,
+                itemBuilder: (context, index) {
+                  final pkg = packages[index];
+                  final pkgImageUrl = resolveImageUrl(pkg.imageUrl);
 
-              return GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => _BannerPackageLandingPage(
-                      packageTarget: pkg.slug,
-                      isSpecific: true,
-                      package: pkg,
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF5A88F1).withValues(alpha: 0.08),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        width: 2,
+                      ),
                     ),
-                  ),
-                ),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.horizontal(
-                          left: Radius.circular(20),
-                        ),
-                        child: SizedBox(
-                          width: 110,
-                          height: 120,
-                          child: pkgImageUrl.isNotEmpty
-                              ? Image.network(
-                                  pkgImageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) =>
-                                      _fallbackPackageImage(),
-                                )
-                              : _fallbackPackageImage(),
-                        ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 14,
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(24),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(24),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => _BannerPackageLandingPage(
+                              packageTarget: pkg.slug,
+                              isSpecific: true,
+                              package: pkg,
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
                             children: [
-                              Text(
-                                pkg.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.manrope(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF192233),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
+                                width: 110,
+                                height: 130,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF4F7FF),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '${pkg.totalTests ?? pkg.includedTests.length} Tests included',
-                                  style: GoogleFonts.manrope(
-                                    fontSize: 11,
-                                    color: const Color(0xFF5A88F1),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '₹${pkg.discountedPrice ?? pkg.basePrice}',
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w900,
-                                      color: const Color(0xFF5A88F1),
+                                  borderRadius: BorderRadius.circular(18),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.03),
+                                      blurRadius: 8,
+                                      offset: const Offset(2, 4),
                                     ),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).push(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) =>
-                                            _BannerPackageLandingPage(
-                                          packageTarget: pkg.slug,
-                                          isSpecific: true,
-                                          package: pkg,
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      pkgImageUrl.isNotEmpty
+                                          ? Image.network(
+                                              pkgImageUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  _fallbackPackageImage(),
+                                            )
+                                          : _fallbackPackageImage(),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.centerLeft,
+                                            end: Alignment.centerRight,
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withValues(alpha: 0.02),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF5A88F1),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Book',
-                                      style: GoogleFonts.manrope(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 12,
-                                      ),
-                                    ),
+                                    ],
                                   ),
-                                ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      pkg.name,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF1A1A1A),
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF4F7FF),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: const Color(0xFF5A88F1)
+                                              .withValues(alpha: 0.1),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.biotech_rounded,
+                                            size: 14,
+                                            color: Color(0xFF5A88F1),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${pkg.totalTests ?? pkg.includedTests.length} Tests',
+                                            style: GoogleFonts.manrope(
+                                              fontSize: 12,
+                                              color: const Color(0xFF5A88F1),
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          '₹${pkg.discountedPrice ?? pkg.basePrice}',
+                                          style: GoogleFonts.manrope(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w900,
+                                            color: const Color(0xFF192233),
+                                          ),
+                                        ),
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                Color(0xFF5A88F1),
+                                                Color(0xFF3B66D4),
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(14),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(0xFF5A88F1)
+                                                    .withValues(alpha: 0.3),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ElevatedButton(
+                                            onPressed: () =>
+                                                Navigator.of(context).push(
+                                              MaterialPageRoute<void>(
+                                                builder: (_) =>
+                                                    _BannerPackageLandingPage(
+                                                  packageTarget: pkg.slug,
+                                                  isSpecific: true,
+                                                  package: pkg,
+                                                ),
+                                              ),
+                                            ),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.transparent,
+                                              shadowColor: Colors.transparent,
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 24,
+                                                vertical: 12,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'Book',
+                                              style: GoogleFonts.manrope(
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 15,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              );
-            },
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         );
       },
@@ -611,12 +701,32 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
 
   Widget _fallbackPackageImage() {
     return Container(
-      color: const Color(0xFFF4F7FF),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFE8EFFF), Color(0xFFD4E1FF)],
+        ),
+      ),
       child: Center(
-        child: Icon(
-          Icons.health_and_safety_outlined,
-          size: 80,
-          color: const Color(0xFF5A88F1).withValues(alpha: 0.2),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.6),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF5A88F1).withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.health_and_safety_rounded,
+            size: 40,
+            color: Color(0xFF5A88F1),
+          ),
         ),
       ),
     );

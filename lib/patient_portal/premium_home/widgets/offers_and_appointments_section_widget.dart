@@ -239,64 +239,37 @@ class _OfferCard extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Stack(
-                children: [
-                  if (item.imageUrl != null)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 140,
-                      child: ShaderMask(
-                        shaderCallback: (rect) => LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [item.colors.last, Colors.transparent],
-                        ).createShader(rect),
-                        blendMode: BlendMode.dstOut,
-                        child: Image.network(
-                          item.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox(),
-                        ),
-                      ),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: item.imageUrl != null ? 180 : double.infinity,
-                          child: Text(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
                             item.title,
                             style: GoogleFonts.manrope(
                               color: Colors.white,
-                              fontSize: 18,
+                              fontSize: 17,
                               fontWeight: FontWeight.w900,
                             ),
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        SizedBox(
-                          width: item.imageUrl != null ? 180 : double.infinity,
-                          child: Text(
+                          const SizedBox(height: 4),
+                          Text(
                             item.subtitle,
                             style: GoogleFonts.manrope(
                               color: Colors.white.withValues(alpha: 0.85),
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.w500,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        const Spacer(),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Container(
+                          const Spacer(),
+                          Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 8,
@@ -328,11 +301,24 @@ class _OfferCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    if (item.imageUrl != null) ...[
+                      const SizedBox(width: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          item.imageUrl!,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox(),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
