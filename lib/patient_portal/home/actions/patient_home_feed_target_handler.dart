@@ -48,18 +48,13 @@ class _HomeFeedTargetHandler {
       return;
     }
 
-    final normalized = raw.toLowerCase();
+    final effectiveRaw = raw.startsWith('/') ? raw.substring(1) : raw;
+    final normalized = effectiveRaw.toLowerCase();
     if (_openDirectoryTarget(normalized)) return;
-    if (await _openExternalTarget(raw, normalized)) return;
-    if (_openDoctorTarget(raw)) return;
-    if (_openLabTestTarget(raw)) return;
-    if (_openPackageTarget(raw, normalized)) return;
-    if (raw.startsWith('/')) {
-      _showMessage(
-        'Web route targets are not supported in mobile. Use doctors, lab-tests, packages, or a full URL.',
-      );
-      return;
-    }
+    if (await _openExternalTarget(effectiveRaw, normalized)) return;
+    if (_openDoctorTarget(effectiveRaw)) return;
+    if (_openLabTestTarget(effectiveRaw)) return;
+    if (_openPackageTarget(effectiveRaw, normalized)) return;
 
     _showMessage(
       'Unknown target "$raw". Supported: doctors, lab-tests, doctor:id, test:id, packages, package:key, or https://...',
