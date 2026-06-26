@@ -97,62 +97,61 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                 // Search Input
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 4,
+                  child: TextField(
+                    controller: _searchController,
+                    style: GoogleFonts.manrope(
+                      color: const Color(0xFF192233),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF5A88F1),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF5A88F1).withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      style: GoogleFonts.manrope(
-                        color: Colors.white,
+                    decoration: InputDecoration(
+                      hintText: 'Search for doctors...',
+                      hintStyle: GoogleFonts.manrope(
+                        color: const Color(0xFF192233).withValues(alpha: 0.4),
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Search for doctors...',
-                        hintStyle: GoogleFonts.manrope(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.search_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.clear_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _onSearchChanged();
-                                },
-                              )
-                            : null,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 0,
+                      filled: true,
+                      fillColor: const Color(0xFFF0F2F7),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF192233),
+                        size: 20,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.clear_rounded,
+                                color: Color(0xFF192233),
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
+                                _onSearchChanged();
+                              },
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF5A88F1),
+                          width: 1.5,
                         ),
                       ),
-                      cursorColor: Colors.white,
                     ),
+                    cursorColor: const Color(0xFF192233),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -296,9 +295,9 @@ class _DoctorShortCard extends StatelessWidget {
                             imageUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
-                                _fallbackImage(),
+                                _buildFallbackImage(),
                           )
-                        : _fallbackImage(),
+                        : _buildFallbackImage(),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -375,12 +374,15 @@ class _DoctorShortCard extends StatelessWidget {
     );
   }
 
-  Widget _fallbackImage() {
-    return Center(
-      child: Image.asset(
-        'assets/images/doctor-vector.png',
-        fit: BoxFit.contain,
-        alignment: Alignment.bottomCenter,
+  Widget _buildFallbackImage() {
+    return Container(
+      color: const Color(0xFFF4F7FF),
+      child: Center(
+        child: Icon(
+          Icons.person_outline_rounded,
+          size: 50,
+          color: const Color(0xFF5A88F1),
+        ),
       ),
     );
   }
