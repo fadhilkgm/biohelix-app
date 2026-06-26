@@ -108,11 +108,13 @@ class _FakeAiCheckupService extends AiCheckupService {
 
   int startCallCount = 0;
   int submitCallCount = 0;
+  String? lastLanguage;
   Map<String, String> lastAnswers = const {};
 
   @override
-  Future<AssessmentSession> startAssessment() async {
+  Future<AssessmentSession> startAssessment({String language = 'en'}) async {
     startCallCount++;
+    lastLanguage = language;
     return AssessmentSession.fromJson(const {
       'session_token': 'test-token',
       'status': 'questions_ready',

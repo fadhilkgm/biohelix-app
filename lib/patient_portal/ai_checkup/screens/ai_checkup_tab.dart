@@ -73,7 +73,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       _error = null;
     });
     try {
-      final session = await _service.startAssessment();
+      final session = await _service.startAssessment(language: _language);
       if (!mounted) return;
       if (session.questions.isEmpty) {
         setState(() {

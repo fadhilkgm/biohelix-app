@@ -248,10 +248,14 @@ class AiCheckupService {
   }
 
   /// Starts a new assessment session and returns its (personalised) questions.
-  Future<AssessmentSession> startAssessment() async {
+  ///
+  /// [language] (`en` or `ml`) controls the language of the generated
+  /// questions and the final evaluation.
+  Future<AssessmentSession> startAssessment({String language = 'en'}) async {
     try {
       final response = await _dio().post<Map<String, dynamic>>(
         '/health-assessment/start',
+        data: {'language': language},
       );
       return AssessmentSession.fromJson(response.data ?? const {});
     } on DioException catch (error) {
