@@ -60,6 +60,7 @@ abstract class LocalizedStrings {
   String get assistantInterruptAi;
   String get assistantPreviousChats;
   String get assistantNewChat;
+  String get assistantBack;
   String get assistantRenameChat;
   String get assistantDeleteChat;
   String get assistantUploadingAttachment;
@@ -163,6 +164,8 @@ class _EnStrings extends LocalizedStrings {
   String get assistantPreviousChats => 'Previous Chats';
   @override
   String get assistantNewChat => 'New chat';
+  @override
+  String get assistantBack => 'Back';
   @override
   String get assistantRenameChat => 'Rename chat';
   @override
@@ -285,6 +288,8 @@ class _MlStrings extends LocalizedStrings {
   String get assistantPreviousChats => 'മുൻ ചാറ്റുകൾ';
   @override
   String get assistantNewChat => 'പുതിയ ചാറ്റ്';
+  @override
+  String get assistantBack => 'പിന്നോട്ട്';
   @override
   String get assistantRenameChat => 'ചാറ്റ് പേര് മാറ്റുക';
   @override

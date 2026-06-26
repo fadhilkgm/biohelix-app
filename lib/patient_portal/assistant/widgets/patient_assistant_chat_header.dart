@@ -2,6 +2,7 @@ part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class ChatHeaderWidget extends StatelessWidget {
   const ChatHeaderWidget({
+    required this.onBack,
     required this.onToggleThreads,
     required this.showToggleThreads,
     required this.onNewChat,
@@ -12,6 +13,7 @@ class ChatHeaderWidget extends StatelessWidget {
     super.key,
   });
 
+  final VoidCallback onBack;
   final VoidCallback onToggleThreads;
   final bool showToggleThreads;
   final VoidCallback onNewChat;
@@ -28,15 +30,12 @@ class ChatHeaderWidget extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
       child: Row(
         children: [
-          if (showToggleThreads)
-            _HeaderIconButton(
-              onPressed: onToggleThreads,
-              icon: Icons.menu_rounded,
-              tooltip: strings.assistantPreviousChats,
-            )
-          else
-            const SizedBox(width: 48),
-          const SizedBox(width: 18),
+          _HeaderIconButton(
+            onPressed: onBack,
+            icon: Icons.arrow_back_rounded,
+            tooltip: strings.assistantBack,
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               strings.assistantTitle,
@@ -59,6 +58,16 @@ class ChatHeaderWidget extends StatelessWidget {
                 ? strings.assistantInterruptAi
                 : strings.assistantNewChat,
           ),
+          // History (previous chats) lives at the right end on compact layouts;
+          // on wide layouts the threads sidebar is always visible instead.
+          if (showToggleThreads) ...[
+            const SizedBox(width: 2),
+            _HeaderIconButton(
+              onPressed: onToggleThreads,
+              icon: Icons.history_rounded,
+              tooltip: strings.assistantPreviousChats,
+            ),
+          ],
         ],
       ),
     );

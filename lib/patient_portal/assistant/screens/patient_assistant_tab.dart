@@ -224,6 +224,13 @@ class _AssistantTabState extends State<_AssistantTab> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
                       child: ChatHeaderWidget(
+                        onBack: () {
+                          if (_isLiveVoiceMode) {
+                            _toggleLiveVoiceMode(portal);
+                            return;
+                          }
+                          Navigator.of(context).maybePop();
+                        },
                         onToggleThreads: () {
                           setState(() {
                             _showMobileSidebar = !_showMobileSidebar;
