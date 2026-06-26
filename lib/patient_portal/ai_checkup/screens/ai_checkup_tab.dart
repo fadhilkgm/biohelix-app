@@ -113,6 +113,35 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     }
   }
 
+  void _openHistory() {
+    setState(() {
+      _step = 'history';
+      _error = null;
+    });
+  }
+
+  Future<void> _openHistoryItem(AssessmentHistoryItem item) async {
+    setState(() {
+      _language = item.language;
+      _step = 'analyzing';
+      _error = null;
+    });
+    try {
+      final results = await _service.getResults(item.sessionToken);
+      if (!mounted) return;
+      setState(() {
+        _results = results;
+        _step = 'results';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _step = 'history');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not load result: $error')),
+      );
+    }
+  }
+
   Future<void> _submit() async {
     setState(() => _step = 'analyzing');
     try {
@@ -177,6 +206,14 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
                 },
               )
             : null,
+        actions: [
+          if (_step == 'language' || _step == 'welcome')
+            IconButton(
+              tooltip: _language == 'ml' ? 'ചരിത്രം' : 'History',
+              icon: const Icon(Icons.history_rounded, color: _kInk),
+              onPressed: _openHistory,
+            ),
+        ],
       ),
       body: switch (_step) {
         'language' => _LanguageSelectionScreen(
@@ -214,6 +251,12 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
           message: _language == 'ml'
               ? 'നിങ്ങളുടെ ഉത്തരങ്ങൾ വിശകലനം ചെയ്യുന്നു...'
               : 'Analyzing your answers...',
+        ),
+        'history' => _HistoryScreen(
+          language: _language,
+          loadHistory: _service.listHistory,
+          onOpen: _openHistoryItem,
+          onStartNew: () => setState(() => _step = 'language'),
         ),
         'results' =>
           _results != null
@@ -377,6 +420,266 @@ class _LoadingScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HistoryScreen extends StatefulWidget {
+  const _HistoryScreen({
+    required this.language,
+    required this.loadHistory,
+    required this.onOpen,
+    required this.onStartNew,
+  });
+
+  final String language;
+  final Future<List<AssessmentHistoryItem>> Function() loadHistory;
+  final ValueChanged<AssessmentHistoryItem> onOpen;
+  final VoidCallback onStartNew;
+
+  @override
+  State<_HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<_HistoryScreen> {
+  late Future<List<AssessmentHistoryItem>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = widget.loadHistory();
+  }
+
+  void _retry() {
+    setState(() => _future = widget.loadHistory());
+  }
+
+  ({Color color, String label}) _risk(String level) {
+    final isMl = widget.language == 'ml';
+    switch (level.toLowerCase()) {
+      case 'high':
+      case 'critical':
+        return (
+          color: const Color(0xFFFF5C5C),
+          label: isMl ? 'ഉയർന്നത്' : 'High',
+        );
+      case 'moderate':
+        return (
+          color: const Color(0xFFF5A623),
+          label: isMl ? 'മിതം' : 'Moderate',
+        );
+      default:
+        return (color: const Color(0xFF1F9A6D), label: isMl ? 'കുറവ്' : 'Low');
+    }
+  }
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return '';
+    final h = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final m = date.minute.toString().padLeft(2, '0');
+    final ap = date.hour < 12 ? 'AM' : 'PM';
+    return '${date.day} ${_months[date.month - 1]} ${date.year}, $h:$m $ap';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMl = widget.language == 'ml';
+    return FutureBuilder<List<AssessmentHistoryItem>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: _kAccent),
+          );
+        }
+        if (snapshot.hasError) {
+          return _HistoryMessage(
+            icon: Icons.error_outline_rounded,
+            title: isMl ? 'ചരിത്രം ലോഡ് ചെയ്യാനായില്ല' : 'Could not load history',
+            subtitle: snapshot.error.toString(),
+            actionLabel: isMl ? 'വീണ്ടും ശ്രമിക്കുക' : 'Retry',
+            onAction: _retry,
+          );
+        }
+        final items = snapshot.data ?? const [];
+        if (items.isEmpty) {
+          return _HistoryMessage(
+            icon: Icons.history_toggle_off_rounded,
+            title: isMl ? 'ചരിത്രമൊന്നുമില്ല' : 'No assessments yet',
+            subtitle: isMl
+                ? 'നിങ്ങൾ പൂർത്തിയാക്കുന്ന പരിശോധനകൾ ഇവിടെ കാണാം.'
+                : 'Assessments you complete will appear here.',
+            actionLabel: isMl ? 'പുതിയത് ആരംഭിക്കുക' : 'Start New Assessment',
+            onAction: widget.onStartNew,
+          );
+        }
+        return RefreshIndicator(
+          color: _kAccent,
+          onRefresh: () async => _retry(),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(24),
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final item = items[i];
+              final risk = _risk(item.riskLevel);
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => widget.onOpen(item),
+                    child: Ink(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE5E9F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: risk.color.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.shield_rounded,
+                                      size: 14,
+                                      color: risk.color,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      risk.label,
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: risk.color,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                _formatDate(item.createdAt),
+                                style: GoogleFonts.manrope(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: _kInk.withValues(alpha: 0.45),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (item.summary.trim().isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              item.summary.trim(),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.manrope(
+                                fontSize: 13,
+                                height: 1.5,
+                                color: _kInk.withValues(alpha: 0.78),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                isMl ? 'വിശദാംശങ്ങൾ കാണുക' : 'View details',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: _kAccent,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: _kAccent,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HistoryMessage extends StatelessWidget {
+  const _HistoryMessage({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: _kInk.withValues(alpha: 0.25)),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.manrope(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: _kInk,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.manrope(
+                fontSize: 14,
+                color: _kInk.withValues(alpha: 0.55),
+              ),
+            ),
+            const SizedBox(height: 24),
+            _PrimaryButton(label: actionLabel, onPressed: onAction),
+          ],
+        ),
       ),
     );
   }

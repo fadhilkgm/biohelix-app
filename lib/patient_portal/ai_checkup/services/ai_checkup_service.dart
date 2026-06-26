@@ -204,6 +204,34 @@ class AssessmentResults {
   }
 }
 
+/// A summary row for a previously completed assessment, shown in History.
+class AssessmentHistoryItem {
+  const AssessmentHistoryItem({
+    required this.sessionToken,
+    required this.language,
+    required this.riskLevel,
+    required this.summary,
+    this.createdAt,
+  });
+
+  final String sessionToken;
+  final String language;
+  final String riskLevel;
+  final String summary;
+  final DateTime? createdAt;
+
+  factory AssessmentHistoryItem.fromJson(Map<String, dynamic> json) {
+    return AssessmentHistoryItem(
+      sessionToken: json['session_token']?.toString() ?? '',
+      language: json['language']?.toString() ?? 'en',
+      riskLevel: json['risk_level']?.toString() ?? 'low',
+      summary: json['summary']?.toString() ?? '',
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '')
+          ?.toLocal(),
+    );
+  }
+}
+
 Map<String, dynamic> _map(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) return Map<String, dynamic>.from(value);
@@ -258,6 +286,21 @@ class AiCheckupService {
         data: {'language': language},
       );
       return AssessmentSession.fromJson(response.data ?? const {});
+    } on DioException catch (error) {
+      throw Exception(_dioMessage(error));
+    }
+  }
+
+  /// Lists the authenticated patient's past evaluated assessments.
+  Future<List<AssessmentHistoryItem>> listHistory() async {
+    try {
+      final response = await _dio().get<Map<String, dynamic>>(
+        '/health-assessment/history',
+      );
+      final raw = response.data?['history'] as List<dynamic>? ?? const [];
+      return raw
+          .map((item) => AssessmentHistoryItem.fromJson(_map(item)))
+          .toList();
     } on DioException catch (error) {
       throw Exception(_dioMessage(error));
     }

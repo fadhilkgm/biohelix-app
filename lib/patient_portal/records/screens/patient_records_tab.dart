@@ -29,6 +29,18 @@ class _RecordsTabState extends State<_RecordsTab> {
     );
   }
 
+  Future<void> _openRecordDetail({required MedicalRecordItem record}) {
+    return showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => _RecordDetailSheet(record: record),
+    );
+  }
+
   Future<void> _openDocument(String documentPath) async {
     final trimmed = documentPath.trim();
     if (trimmed.isEmpty) return;
@@ -203,12 +215,14 @@ class _RecordsTabState extends State<_RecordsTab> {
                 ? () => _openPrescriptionDetail(record: record)
                 : (record.documentPath ?? '').trim().isNotEmpty
                 ? () => _openDocument(record.documentPath!)
+                : (record.summary ?? '').trim().isNotEmpty
+                ? () => _openRecordDetail(record: record)
                 : null,
           ),
         )
         .toList();
 
-    items.sort((a, b) => b.meta.compareTo(a.meta));
+    // Records arrive already sorted by date (newest first) from the API.
     return items;
   }
 
@@ -888,6 +902,127 @@ class _PrescriptionMedicineCard extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RecordDetailSheet extends StatelessWidget {
+  const _RecordDetailSheet({required this.record});
+
+  final MedicalRecordItem record;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isSummary = record.category == 'summary';
+    final accent = isSummary
+        ? const Color(0xFFEA580C)
+        : const Color(0xFF2563EB);
+    final background = isSummary
+        ? const Color(0xFFFFF7ED)
+        : const Color(0xFFEFF6FF);
+    final icon = isSummary
+        ? Icons.description_rounded
+        : Icons.science_rounded;
+
+    final details = <String>[
+      if ((record.doctorName ?? '').trim().isNotEmpty)
+        'Doctor: ${record.doctorName!.trim()}',
+      if (record.time != null && record.time!.trim().isNotEmpty)
+        'Time: ${record.time!.trim()}',
+      'Type: ${record.kindLabel}',
+      'Status: ${_toTitleCaseValue(record.status)}',
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: accent, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      record.title.trim().isEmpty
+                          ? record.recordType
+                          : record.title,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatSheetDate(record.date),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF64748B),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _SheetInfoCard(lines: details),
+          if ((record.summary ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 18),
+            Text(
+              isSummary ? 'Summary' : 'Details',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                record.summary!.trim(),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF334155),
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF123A87),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              child: const Text('Close'),
+            ),
+          ),
         ],
       ),
     );

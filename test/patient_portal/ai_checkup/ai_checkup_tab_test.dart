@@ -71,6 +71,36 @@ void main() {
     );
     expect(find.text('Comprehensive Health Package'), findsOneWidget);
   });
+
+  testWidgets('opens a past result from History', (tester) async {
+    service.historyItems = [
+      AssessmentHistoryItem.fromJson(const {
+        'session_token': 'old-token',
+        'language': 'en',
+        'risk_level': 'low',
+        'summary': 'Previous assessment summary.',
+        'created_at': '2026-06-20T10:30:00Z',
+      }),
+    ];
+
+    await tester.pumpWidget(_buildSubject(service));
+    await tester.pumpAndSettle();
+
+    // History button is on the language screen.
+    await tester.tap(find.byTooltip('History'));
+    await tester.pumpAndSettle();
+
+    expect(service.historyCallCount, 1);
+    expect(find.textContaining('Previous assessment summary.'), findsWidgets);
+
+    // Open the past result.
+    await tester.tap(find.text('View details'));
+    await tester.pumpAndSettle();
+
+    expect(service.lastResultsToken, 'old-token');
+    expect(find.text('Low Risk'), findsOneWidget);
+    expect(find.text('Stay hydrated.'), findsOneWidget);
+  });
 }
 
 Widget _buildSubject(_FakeAiCheckupService service) {
@@ -108,8 +138,30 @@ class _FakeAiCheckupService extends AiCheckupService {
 
   int startCallCount = 0;
   int submitCallCount = 0;
+  int historyCallCount = 0;
   String? lastLanguage;
+  String? lastResultsToken;
   Map<String, String> lastAnswers = const {};
+  List<AssessmentHistoryItem> historyItems = const [];
+
+  @override
+  Future<List<AssessmentHistoryItem>> listHistory() async {
+    historyCallCount++;
+    return historyItems;
+  }
+
+  @override
+  Future<AssessmentResults> getResults(String sessionToken) async {
+    lastResultsToken = sessionToken;
+    return AssessmentResults.fromJson(const {
+      'risk_level': 'low',
+      'summary': 'Previous assessment summary.',
+      'insights': ['Stay hydrated.'],
+      'recommended_packages': [],
+      'recommended_tests': [],
+      'custom_package': null,
+    });
+  }
 
   @override
   Future<AssessmentSession> startAssessment({String language = 'en'}) async {
