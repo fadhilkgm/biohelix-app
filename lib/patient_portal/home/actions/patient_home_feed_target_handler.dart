@@ -38,6 +38,18 @@ class _HomeFeedTargetHandler {
   }
 
   Future<void> openOffer(HomeOfferItem item) {
+    // Try to match offer to a package by name first (same as Health Packages "Book" button)
+    final titleNorm = item.title.toLowerCase().trim();
+    try {
+      final matched = portal.labPackages.firstWhere(
+        (p) =>
+            p.name.toLowerCase().trim() == titleNorm ||
+            p.slug.toLowerCase().trim() == titleNorm.replaceAll(' ', '-'),
+      );
+      openPackageLanding(matched.slug, true);
+      return Future.value();
+    } catch (_) {}
+    // Fall back to ctaTarget routing
     return openTarget(item.ctaTarget ?? '');
   }
 
