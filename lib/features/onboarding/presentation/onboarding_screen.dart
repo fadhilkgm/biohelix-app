@@ -1,4 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
+import '../../../core/widgets/custom_button.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, required this.onCompleted});
@@ -26,86 +30,110 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(AppLanguage.en);
+    final mediaQuery = MediaQuery.of(context);
+    final size = mediaQuery.size;
+    final isShortScreen = size.height < 760;
+    final horizontalPadding = size.width < 360 ? 24.0 : 28.0;
+    final heroHeight = size.height * (isShortScreen ? 0.58 : 0.64);
+    final titleSize = size.width < 360 ? 30.0 : 34.0;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Light Gradient
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFFF0F4FF),
-                    Color(0xFFFFFFFF),
-                  ],
+                  colors: [Color(0xFFF0F4FF), Color(0xFFFFFFFF)],
                 ),
               ),
             ),
           ),
-          
-          // Doctor Image with Dissolve Effect
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            height: MediaQuery.of(context).size.height * 0.55, // Reduced space
-            child: SafeArea(
-              bottom: false,
-              child: ShaderMask(
-                shaderCallback: (rect) {
-                  return const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.black, Colors.transparent],
-                    stops: [0.75, 1.0], // Dissolves at the bottom
-                  ).createShader(rect);
-                },
-                blendMode: BlendMode.dstIn,
-                child: Image.asset(
-                  'assets/images/doctors-image.png',
-                  fit: BoxFit.contain,
-                  alignment: Alignment.bottomCenter,
+            height: heroHeight,
+            child: ShaderMask(
+              shaderCallback: (rect) {
+                return const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black, Colors.black, Colors.transparent],
+                  stops: [0.0, 0.68, 1.0],
+                ).createShader(rect);
+              },
+              blendMode: BlendMode.dstIn,
+              child: Image.asset(
+                'assets/images/onboarding-realistic-doctor.png',
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0),
+                    Colors.white.withValues(alpha: 0),
+                    Colors.white.withValues(alpha: 0.92),
+                    Colors.white,
+                  ],
+                  stops: const [0.0, 0.48, 0.66, 0.82],
                 ),
               ),
             ),
           ),
-
-          // Content Area (Bottom Section)
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(28, 0, 28, 48),
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                0,
+                horizontalPadding,
+                mediaQuery.padding.bottom + (isShortScreen ? 24 : 34),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start, // Left aligned
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Your Smart Health Partner',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF192233),
-                      height: 1.1,
-                      letterSpacing: -1.0,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
                   Text(
-                    'Connect instantly with trusted doctors, book visits online, and manage your health anytime.',
+                    strings.onboardingTitle,
                     style: TextStyle(
-                      fontSize: 16,
-                      color: const Color(0xFF192233).withValues(alpha: 0.7),
-                      height: 1.5,
-                      fontWeight: FontWeight.w500,
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF192233),
+                      height: 1.05,
+                      letterSpacing: 0,
                     ),
                   ),
-                  const SizedBox(height: 40),
-                  _SwipeToStartSlider(
-                    onCompleted: _completeOnboarding,
-                    isCompleting: _isCompleting,
+                  const SizedBox(height: 14),
+                  Text(
+                    strings.onboardingDescription,
+                    style: TextStyle(
+                      fontSize: size.width < 360 ? 15 : 17,
+                      color: const Color(0xFF192233).withValues(alpha: 0.7),
+                      height: 1.45,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                  SizedBox(height: isShortScreen ? 28 : 38),
+                  CustomButton(
+                    onPressed: _completeOnboarding,
+                    text: strings.getStarted,
+                    isLoading: _isCompleting,
+                    color: const Color(0xFF537DE8),
                   ),
                 ],
               ),
@@ -116,138 +144,3 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 }
-
-class _SwipeToStartSlider extends StatefulWidget {
-  final VoidCallback onCompleted;
-  final bool isCompleting;
-
-  const _SwipeToStartSlider({
-    required this.onCompleted,
-    required this.isCompleting,
-  });
-
-  @override
-  State<_SwipeToStartSlider> createState() => _SwipeToStartSliderState();
-}
-
-class _SwipeToStartSliderState extends State<_SwipeToStartSlider> {
-  double _dragValue = 0.0;
-  final double _handleSize = 72.0;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalWidth = constraints.maxWidth;
-        final maxDrag = totalWidth - _handleSize - 16; // 8px padding on each side
-
-        return Container(
-          width: double.infinity,
-          height: 88,
-          decoration: BoxDecoration(
-            color: const Color(0xFF537DE8),
-            borderRadius: BorderRadius.circular(44),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF537DE8).withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Swipe to Start Text
-              Opacity(
-                opacity: (1.0 - (_dragValue / maxDrag)).clamp(0.1, 1.0),
-                child: const Text(
-                  'Swipe to Start',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              
-              // Animated Indicator Arrows
-              Positioned(
-                left: 32,
-                child: Opacity(
-                  opacity: (1.0 - (_dragValue / (maxDrag * 0.2))).clamp(0.0, 0.4),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.chevron_right, color: Colors.white, size: 24),
-                      Icon(Icons.chevron_right, color: Colors.white, size: 24),
-                    ],
-                  ),
-                ),
-              ),
-
-              // draggable handle
-              AnimatedPositioned(
-                duration: Duration(milliseconds: (_dragValue == 0 || _dragValue == maxDrag) ? 350 : 0),
-                curve: Curves.easeOutCubic,
-                left: _dragValue + 8,
-                top: 8,
-                bottom: 8,
-                child: GestureDetector(
-                  onHorizontalDragUpdate: (details) {
-                    if (widget.isCompleting) return;
-                    setState(() {
-                      _dragValue += details.delta.dx;
-                      _dragValue = _dragValue.clamp(0.0, maxDrag);
-                    });
-                  },
-                  onHorizontalDragEnd: (details) {
-                    if (widget.isCompleting) return;
-                    if (_dragValue >= maxDrag * 0.7) {
-                      setState(() => _dragValue = maxDrag);
-                      widget.onCompleted();
-                    } else {
-                      setState(() => _dragValue = 0.0);
-                    }
-                  },
-                  child: Container(
-                    width: _handleSize,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: widget.isCompleting
-                        ? const Center(
-                            child: SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3.5,
-                                valueColor: AlwaysStoppedAnimation(Color(0xFF537DE8)),
-                              ),
-                            ),
-                          )
-                        : const Icon(
-                            Icons.chevron_right_rounded,
-                            color: Color(0xFF537DE8),
-                            size: 40,
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart' show AppLanguage;
 import '../../session/providers/session_provider.dart';
 import 'widgets/auth_form_widgets.dart';
 
@@ -16,12 +18,12 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
   final _dobController = TextEditingController();
   final _emailController = TextEditingController();
-  final _genderController = TextEditingController();
-  final _bloodGroupController = TextEditingController();
+  String? _selectedGender;
+  String? _selectedBloodGroup;
+  final Map<String, String> _fieldErrors = {};
   bool _isSignup = false;
   bool _obscurePassword = true;
 
@@ -29,27 +31,107 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _phoneController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
     _nameController.dispose();
     _dobController.dispose();
     _emailController.dispose();
-    _genderController.dispose();
-    _bloodGroupController.dispose();
     super.dispose();
   }
 
+  List<AuthDropdownOption> _genderOptions(LocalizedStrings strings) {
+    final labels = strings.genderOptions;
+    return [
+      AuthDropdownOption(value: 'female', label: labels[0]),
+      AuthDropdownOption(value: 'male', label: labels[1]),
+      AuthDropdownOption(value: 'other', label: labels[2]),
+    ];
+  }
+
+  List<AuthDropdownOption> _bloodGroupOptions(LocalizedStrings strings) {
+    return strings.bloodGroupOptions
+        .map((group) => AuthDropdownOption(value: group, label: group))
+        .toList();
+  }
+
+  String _formatDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
+  }
+
+  Future<void> _pickDateOfBirth(LocalizedStrings strings) async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: DateTime(now.year - 25, now.month, now.day),
+      firstDate: DateTime(1900),
+      lastDate: now,
+      helpText: strings.chooseDateOfBirth,
+      cancelText: strings.cancel,
+    );
+    if (selected == null) return;
+    setState(() {
+      _dobController.text = _formatDate(selected);
+      _fieldErrors.remove('dob');
+    });
+  }
+
+  bool _validate(LocalizedStrings strings) {
+    final errors = <String, String>{};
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text;
+    final email = _emailController.text.trim();
+
+    if (phone.isEmpty) {
+      errors['phone'] = strings.fieldRequired;
+    }
+    if (password.isEmpty) {
+      errors['password'] = strings.fieldRequired;
+    } else if (_isSignup && password.length < 8) {
+      errors['password'] = strings.passwordMinLength;
+    }
+
+    if (_isSignup) {
+      if (_nameController.text.trim().isEmpty) {
+        errors['name'] = strings.fieldRequired;
+      }
+      if (_dobController.text.trim().isEmpty) {
+        errors['dob'] = strings.fieldRequired;
+      }
+      if ((_selectedGender ?? '').isEmpty) {
+        errors['gender'] = strings.fieldRequired;
+      }
+      if ((_selectedBloodGroup ?? '').isEmpty) {
+        errors['bloodGroup'] = strings.fieldRequired;
+      }
+      if (email.isNotEmpty && !email.contains('@')) {
+        errors['email'] = strings.enterValidEmail;
+      }
+    }
+
+    setState(() {
+      _fieldErrors
+        ..clear()
+        ..addAll(errors);
+    });
+
+    return errors.isEmpty;
+  }
+
   Future<void> _submit() async {
+    final strings = AppStrings.of(AppLanguage.en);
+    if (!_validate(strings)) return;
+
     final session = context.read<SessionProvider>();
     if (_isSignup) {
       await session.register(
         phone: _phoneController.text,
         password: _passwordController.text,
-        passwordConfirmation: _confirmPasswordController.text,
+        passwordConfirmation: _passwordController.text,
         fullName: _nameController.text,
         dateOfBirth: _dobController.text,
         email: _emailController.text,
-        gender: _genderController.text,
-        bloodGroup: _bloodGroupController.text,
+        gender: _selectedGender,
+        bloodGroup: _selectedBloodGroup,
       );
     } else {
       await session.login(
@@ -61,6 +143,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(AppLanguage.en);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -96,10 +180,10 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Biohelix',
+                      Text(
+                        strings.biohelix,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF192233),
@@ -107,10 +191,10 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'Health And Research Center\nPonnani, Malappuram',
+                      Text(
+                        strings.hospitalLocation,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: Colors.black45,
@@ -124,7 +208,9 @@ class _LoginPageState extends State<LoginPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _isSignup ? 'Create account' : 'Login',
+                              _isSignup
+                                  ? strings.createAccountTitle
+                                  : strings.loginTitle,
                               style: const TextStyle(
                                 fontSize: 38,
                                 fontWeight: FontWeight.w900,
@@ -135,8 +221,8 @@ class _LoginPageState extends State<LoginPage> {
                             const SizedBox(height: 12),
                             Text(
                               _isSignup
-                                  ? 'Register your patient profile and start booking doctors, lab tests, and health packages.'
-                                  : 'Sign in with your mobile number and password to continue.',
+                                  ? strings.registerSubtitle
+                                  : strings.loginSubtitle,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: const Color(
@@ -150,28 +236,31 @@ class _LoginPageState extends State<LoginPage> {
                             if (_isSignup) ...[
                               AuthTextField(
                                 controller: _nameController,
-                                label: 'Full Name',
-                                hint: 'Aisha Rahman',
+                                label: strings.fullName,
+                                hint: strings.fullNameHint,
                                 keyboardType: TextInputType.name,
                                 prefixIcon: Icons.person_outline_rounded,
+                                errorText: _fieldErrors['name'],
                               ),
                               const SizedBox(height: 18),
                             ],
                             AuthTextField(
                               controller: _phoneController,
-                              label: 'Mobile Number',
-                              hint: '+919876543210',
+                              label: strings.mobileNumber,
+                              hint: strings.mobileNumberHint,
                               keyboardType: TextInputType.phone,
                               prefixIcon: Icons.phone_android_rounded,
+                              errorText: _fieldErrors['phone'],
                             ),
                             const SizedBox(height: 18),
                             AuthTextField(
                               controller: _passwordController,
-                              label: 'Password',
-                              hint: 'Enter password',
+                              label: strings.password,
+                              hint: strings.passwordHint,
                               obscureText: _obscurePassword,
                               keyboardType: TextInputType.visiblePassword,
                               prefixIcon: Icons.lock_outline_rounded,
+                              errorText: _fieldErrors['password'],
                               suffixIcon: IconButton(
                                 onPressed: () => setState(
                                   () => _obscurePassword = !_obscurePassword,
@@ -186,49 +275,58 @@ class _LoginPageState extends State<LoginPage> {
                             if (_isSignup) ...[
                               const SizedBox(height: 18),
                               AuthTextField(
-                                controller: _confirmPasswordController,
-                                label: 'Confirm Password',
-                                hint: 'Re-enter password',
-                                obscureText: _obscurePassword,
-                                keyboardType: TextInputType.visiblePassword,
-                                prefixIcon: Icons.verified_user_outlined,
-                              ),
-                              const SizedBox(height: 18),
-                              AuthTextField(
                                 controller: _dobController,
-                                label: 'Date of Birth',
-                                hint: '1994-04-12',
+                                label: strings.dateOfBirth,
+                                hint: strings.dateOfBirthHint,
                                 keyboardType: TextInputType.datetime,
                                 prefixIcon: Icons.calendar_today_rounded,
+                                suffixIcon: const Icon(
+                                  Icons.event_available_rounded,
+                                  color: Color(0xFF537DE8),
+                                ),
+                                errorText: _fieldErrors['dob'],
+                                readOnly: true,
+                                onTap: () => _pickDateOfBirth(strings),
                               ),
                               const SizedBox(height: 18),
                               AuthTextField(
                                 controller: _emailController,
-                                label: 'Email',
-                                hint: 'aisha.rahman@example.com',
+                                label: strings.email,
+                                hint: strings.emailHint,
                                 keyboardType: TextInputType.emailAddress,
                                 prefixIcon: Icons.email_outlined,
+                                errorText: _fieldErrors['email'],
                               ),
                               const SizedBox(height: 18),
                               Row(
                                 children: [
                                   Expanded(
-                                    child: AuthTextField(
-                                      controller: _genderController,
-                                      label: 'Gender',
-                                      hint: 'female',
-                                      keyboardType: TextInputType.text,
+                                    child: AuthDropdownField(
+                                      value: _selectedGender,
+                                      label: strings.gender,
+                                      hint: strings.genderHint,
+                                      items: _genderOptions(strings),
                                       prefixIcon: Icons.wc_rounded,
+                                      errorText: _fieldErrors['gender'],
+                                      onChanged: (value) => setState(() {
+                                        _selectedGender = value;
+                                        _fieldErrors.remove('gender');
+                                      }),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
-                                    child: AuthTextField(
-                                      controller: _bloodGroupController,
-                                      label: 'Blood Group',
-                                      hint: 'O+',
-                                      keyboardType: TextInputType.text,
+                                    child: AuthDropdownField(
+                                      value: _selectedBloodGroup,
+                                      label: strings.bloodGroup,
+                                      hint: strings.bloodGroupHint,
+                                      items: _bloodGroupOptions(strings),
                                       prefixIcon: Icons.bloodtype_outlined,
+                                      errorText: _fieldErrors['bloodGroup'],
+                                      onChanged: (value) => setState(() {
+                                        _selectedBloodGroup = value;
+                                        _fieldErrors.remove('bloodGroup');
+                                      }),
                                     ),
                                   ),
                                 ],
@@ -238,7 +336,9 @@ class _LoginPageState extends State<LoginPage> {
                               AuthErrorText(message: session.errorMessage!),
                             const SizedBox(height: 32),
                             AuthPrimaryButton(
-                              label: _isSignup ? 'Register' : 'Login',
+                              label: _isSignup
+                                  ? strings.register
+                                  : strings.login,
                               isLoading: session.isSubmittingAuth,
                               onPressed: _submit,
                             ),
@@ -251,12 +351,15 @@ class _LoginPageState extends State<LoginPage> {
                                         context
                                             .read<SessionProvider>()
                                             .cancelPendingOtp();
-                                        setState(() => _isSignup = !_isSignup);
+                                        setState(() {
+                                          _isSignup = !_isSignup;
+                                          _fieldErrors.clear();
+                                        });
                                       },
                                 child: Text(
                                   _isSignup
-                                      ? 'Already registered? Login'
-                                      : 'New patient? Register',
+                                      ? strings.alreadyRegisteredLogin
+                                      : strings.newPatientRegister,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF537DE8),
@@ -266,8 +369,8 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             AuthDemoHint(
                               text: _isSignup
-                                  ? 'Registration returns a secure patient token from BHRC.'
-                                  : 'Use the phone and password created in the hospital system.',
+                                  ? strings.registerDemoHint
+                                  : strings.loginDemoHint,
                             ),
                           ],
                         ),

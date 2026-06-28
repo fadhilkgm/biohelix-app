@@ -38,6 +38,44 @@ abstract class LocalizedStrings {
   String get defaultHealthTipMessage;
   String get defaultAnnouncement;
   String get noUpcomingAppointments;
+  String get onboardingTitle;
+  String get onboardingDescription;
+  String get getStarted;
+  String get biohelix;
+  String get hospitalLocation;
+  String get loginTitle;
+  String get createAccountTitle;
+  String get loginSubtitle;
+  String get registerSubtitle;
+  String get fullName;
+  String get fullNameHint;
+  String get mobileNumber;
+  String get mobileNumberHint;
+  String get password;
+  String get passwordHint;
+  String get dateOfBirth;
+  String get dateOfBirthHint;
+  String get email;
+  String get emailHint;
+  String get gender;
+  String get genderHint;
+  String get bloodGroup;
+  String get bloodGroupHint;
+  String get register;
+  String get login;
+  String get alreadyRegisteredLogin;
+  String get newPatientRegister;
+  String get registerDemoHint;
+  String get loginDemoHint;
+  String get chooseDateOfBirth;
+  String get cancel;
+  String get fieldRequired;
+  String get enterNamePhonePassword;
+  String get enterPhonePassword;
+  String get enterValidEmail;
+  String get passwordMinLength;
+  List<String> get genderOptions;
+  List<String> get bloodGroupOptions;
   String get assistantFabLabel;
   String get assistantTitle;
   String get assistantReady;
@@ -117,6 +155,98 @@ class _EnStrings extends LocalizedStrings {
   String get defaultAnnouncement => 'Eid Mubarak! Happy Onam...';
   @override
   String get noUpcomingAppointments => 'No upcoming appointments right now.';
+  @override
+  String get onboardingTitle => 'Your Smart Health Partner';
+  @override
+  String get onboardingDescription =>
+      'Connect instantly with trusted doctors, book visits online, and manage your health anytime.';
+  @override
+  String get getStarted => 'Get Started';
+  @override
+  String get biohelix => 'Biohelix';
+  @override
+  String get hospitalLocation =>
+      'Health And Research Center\nPonnani, Malappuram';
+  @override
+  String get loginTitle => 'Login';
+  @override
+  String get createAccountTitle => 'Create account';
+  @override
+  String get loginSubtitle =>
+      'Sign in with your mobile number and password to continue.';
+  @override
+  String get registerSubtitle =>
+      'Register your patient profile and start booking doctors, lab tests, and health packages.';
+  @override
+  String get fullName => 'Full Name';
+  @override
+  String get fullNameHint => 'Aisha Rahman';
+  @override
+  String get mobileNumber => 'Mobile Number';
+  @override
+  String get mobileNumberHint => '+919876543210';
+  @override
+  String get password => 'Password';
+  @override
+  String get passwordHint => 'Enter password';
+  @override
+  String get dateOfBirth => 'Date of Birth';
+  @override
+  String get dateOfBirthHint => 'Select date';
+  @override
+  String get email => 'Email';
+  @override
+  String get emailHint => 'aisha.rahman@example.com';
+  @override
+  String get gender => 'Gender';
+  @override
+  String get genderHint => 'Select gender';
+  @override
+  String get bloodGroup => 'Blood Group';
+  @override
+  String get bloodGroupHint => 'Select blood group';
+  @override
+  String get register => 'Register';
+  @override
+  String get login => 'Login';
+  @override
+  String get alreadyRegisteredLogin => 'Already registered? Login';
+  @override
+  String get newPatientRegister => 'New patient? Register';
+  @override
+  String get registerDemoHint =>
+      'Registration returns a secure patient token from BHRC.';
+  @override
+  String get loginDemoHint =>
+      'Use the phone and password created in the hospital system.';
+  @override
+  String get chooseDateOfBirth => 'Choose date of birth';
+  @override
+  String get cancel => 'Cancel';
+  @override
+  String get fieldRequired => 'This field is required.';
+  @override
+  String get enterNamePhonePassword =>
+      'Enter your name, phone number, and password.';
+  @override
+  String get enterPhonePassword => 'Enter your phone number and password.';
+  @override
+  String get enterValidEmail => 'Enter a valid email address.';
+  @override
+  String get passwordMinLength => 'Password must be at least 8 characters.';
+  @override
+  List<String> get genderOptions => const ['Female', 'Male', 'Other'];
+  @override
+  List<String> get bloodGroupOptions => const [
+    'A+',
+    'A-',
+    'B+',
+    'B-',
+    'AB+',
+    'AB-',
+    'O+',
+    'O-',
+  ];
   @override
   String get assistantFabLabel => 'Health AI';
   @override
@@ -240,6 +370,98 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get noUpcomingAppointments =>
       'ഇപ്പോൾ വരാനിരിക്കുന്ന അപ്പോയിന്റ്മെന്റുകൾ ഇല്ല.';
+  @override
+  String get onboardingTitle => 'നിങ്ങളുടെ സ്മാർട്ട് ആരോഗ്യ പങ്കാളി';
+  @override
+  String get onboardingDescription =>
+      'വിശ്വസനീയമായ ഡോക്ടർമാരുമായി ഉടൻ ബന്ധപ്പെടൂ, ഓൺലൈനായി സന്ദർശനം ബുക്ക് ചെയ്യൂ, ആരോഗ്യ വിവരങ്ങൾ എപ്പോൾ വേണമെങ്കിലും നിയന്ത്രിക്കൂ.';
+  @override
+  String get getStarted => 'തുടങ്ങുക';
+  @override
+  String get biohelix => 'ബയോഹെലിക്സ്';
+  @override
+  String get hospitalLocation =>
+      'ഹെൽത്ത് ആൻഡ് റിസർച്ച് സെന്റർ\nപൊന്നാനി, മലപ്പുറം';
+  @override
+  String get loginTitle => 'ലോഗിൻ';
+  @override
+  String get createAccountTitle => 'അക്കൗണ്ട് സൃഷ്ടിക്കുക';
+  @override
+  String get loginSubtitle =>
+      'തുടരാൻ നിങ്ങളുടെ മൊബൈൽ നമ്പറും പാസ്‌വേഡും ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്യുക.';
+  @override
+  String get registerSubtitle =>
+      'നിങ്ങളുടെ രോഗി പ്രൊഫൈൽ രജിസ്റ്റർ ചെയ്ത് ഡോക്ടർമാർ, ലാബ് ടെസ്റ്റുകൾ, ഹെൽത്ത് പാക്കേജുകൾ എന്നിവ ബുക്ക് ചെയ്യൂ.';
+  @override
+  String get fullName => 'പൂർണ്ണ പേര്';
+  @override
+  String get fullNameHint => 'ആയിഷ റഹ്മാൻ';
+  @override
+  String get mobileNumber => 'മൊബൈൽ നമ്പർ';
+  @override
+  String get mobileNumberHint => '+919876543210';
+  @override
+  String get password => 'പാസ്‌വേഡ്';
+  @override
+  String get passwordHint => 'പാസ്‌വേഡ് നൽകുക';
+  @override
+  String get dateOfBirth => 'ജനന തീയതി';
+  @override
+  String get dateOfBirthHint => 'തീയതി തിരഞ്ഞെടുക്കുക';
+  @override
+  String get email => 'ഇമെയിൽ';
+  @override
+  String get emailHint => 'aisha.rahman@example.com';
+  @override
+  String get gender => 'ലിംഗം';
+  @override
+  String get genderHint => 'ലിംഗം തിരഞ്ഞെടുക്കുക';
+  @override
+  String get bloodGroup => 'രക്ത ഗ്രൂപ്പ്';
+  @override
+  String get bloodGroupHint => 'രക്ത ഗ്രൂപ്പ് തിരഞ്ഞെടുക്കുക';
+  @override
+  String get register => 'രജിസ്റ്റർ';
+  @override
+  String get login => 'ലോഗിൻ';
+  @override
+  String get alreadyRegisteredLogin => 'ഇതിനകം രജിസ്റ്റർ ചെയ്തിട്ടുണ്ടോ? ലോഗിൻ';
+  @override
+  String get newPatientRegister => 'പുതിയ രോഗിയാണോ? രജിസ്റ്റർ';
+  @override
+  String get registerDemoHint =>
+      'രജിസ്ട്രേഷൻ BHRC-യിൽ നിന്ന് സുരക്ഷിത രോഗി ടോക്കൺ തിരികെ നൽകും.';
+  @override
+  String get loginDemoHint =>
+      'ഹോസ്പിറ്റൽ സിസ്റ്റത്തിൽ സൃഷ്ടിച്ച ഫോൺ നമ്പറും പാസ്‌വേഡും ഉപയോഗിക്കുക.';
+  @override
+  String get chooseDateOfBirth => 'ജനന തീയതി തിരഞ്ഞെടുക്കുക';
+  @override
+  String get cancel => 'റദ്ദാക്കുക';
+  @override
+  String get fieldRequired => 'ഈ ഫീൽഡ് നിർബന്ധമാണ്.';
+  @override
+  String get enterNamePhonePassword =>
+      'നിങ്ങളുടെ പേര്, ഫോൺ നമ്പർ, പാസ്‌വേഡ് എന്നിവ നൽകുക.';
+  @override
+  String get enterPhonePassword => 'നിങ്ങളുടെ ഫോൺ നമ്പറും പാസ്‌വേഡും നൽകുക.';
+  @override
+  String get enterValidEmail => 'ശരിയായ ഇമെയിൽ വിലാസം നൽകുക.';
+  @override
+  String get passwordMinLength => 'പാസ്‌വേഡ് കുറഞ്ഞത് 8 അക്ഷരമെങ്കിലും വേണം.';
+  @override
+  List<String> get genderOptions => const ['സ്ത്രീ', 'പുരുഷൻ', 'മറ്റുള്ളവ'];
+  @override
+  List<String> get bloodGroupOptions => const [
+    'A+',
+    'A-',
+    'B+',
+    'B-',
+    'AB+',
+    'AB-',
+    'O+',
+    'O-',
+  ];
   @override
   String get assistantFabLabel => 'ഹെൽത്ത് AI';
   @override

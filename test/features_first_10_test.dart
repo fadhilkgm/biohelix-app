@@ -48,27 +48,28 @@ void main() {
     expect(find.text('Health and Research Center'), findsOneWidget);
   });
 
-  testWidgets('2. onboarding swipe completes the start flow', (tester) async {
+  testWidgets('2. onboarding button completes the start flow', (tester) async {
     var completed = false;
+    final languageProvider = LanguageProvider();
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: OnboardingScreen(
-          onCompleted: () async {
-            completed = true;
-          },
+      ChangeNotifierProvider<LanguageProvider>.value(
+        value: languageProvider,
+        child: MaterialApp(
+          home: OnboardingScreen(
+            onCompleted: () async {
+              completed = true;
+            },
+          ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Your Smart Health Partner'), findsOneWidget);
-    expect(find.text('Swipe to Start'), findsOneWidget);
+    expect(find.text('Get Started'), findsOneWidget);
 
-    await tester.drag(
-      find.byIcon(Icons.chevron_right_rounded),
-      const Offset(500, 0),
-    );
+    await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
 
     expect(completed, isTrue);
@@ -125,20 +126,29 @@ void main() {
       find.widgetWithText(TextField, 'Enter password'),
       'password123',
     );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Re-enter password'),
-      'password123',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, '1994-04-12'),
-      '1990-01-02',
-    );
+    final now = DateTime.now();
+    final selectedDob = DateTime(now.year - 25, now.month, now.day);
+    final selectedDobText =
+        '${selectedDob.year}-${selectedDob.month.toString().padLeft(2, '0')}-${selectedDob.day.toString().padLeft(2, '0')}';
+    await tester.tap(find.widgetWithText(TextField, 'Select date'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, 'aisha.rahman@example.com'),
       'new@example.test',
     );
-    await tester.enterText(find.widgetWithText(TextField, 'female'), 'female');
-    await tester.enterText(find.widgetWithText(TextField, 'O+'), 'A+');
+    final dropdowns = find.byType(DropdownButtonFormField<String>);
+    await tester.ensureVisible(dropdowns.first);
+    await tester.tap(dropdowns.first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Female').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(dropdowns.last);
+    await tester.tap(dropdowns.last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('A+').last);
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Register').last);
     await tester.tap(find.text('Register').last);
     await tester.pumpAndSettle();
@@ -151,7 +161,7 @@ void main() {
       'lastName': 'Patient',
       'gender': 'female',
       'email': 'new@example.test',
-      'dateOfBirth': '1990-01-02',
+      'dateOfBirth': selectedDobText,
       'bloodGroup': 'A+',
     });
     expect(session.isAuthenticated, isTrue);
@@ -294,7 +304,8 @@ void main() {
 }
 
 void _mockVoiceChannels() {
-  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   // flutter_tts
   messenger.setMockMethodCallHandler(
     const MethodChannel('flutter_tts'),
@@ -304,7 +315,8 @@ void _mockVoiceChannels() {
   messenger.setMockMethodCallHandler(
     const MethodChannel('speech_to_text_windows'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      if (call.method == 'initialize' || call.method == 'hasPermission')
+        return true;
       return null;
     },
   );
@@ -312,7 +324,8 @@ void _mockVoiceChannels() {
   messenger.setMockMethodCallHandler(
     const MethodChannel('plugin.csdcorp.com/speech_to_text'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      if (call.method == 'initialize' || call.method == 'hasPermission')
+        return true;
       return null;
     },
   );
@@ -324,10 +337,13 @@ void _mockVoiceChannels() {
 }
 
 Widget _authSubject(SessionProvider session) {
+  final languageProvider = LanguageProvider();
+
   return MultiProvider(
     providers: [
       Provider<AppConfig>.value(value: _testConfig(showDevOtp: true)),
       ChangeNotifierProvider<SessionProvider>.value(value: session),
+      ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
     ],
     child: const MaterialApp(home: PatientAuthFlow()),
   );

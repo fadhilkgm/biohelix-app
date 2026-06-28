@@ -37,6 +37,9 @@ class AuthTextField extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.obscureText = false,
+    this.errorText,
+    this.readOnly = false,
+    this.onTap,
   });
 
   final TextEditingController controller;
@@ -46,6 +49,9 @@ class AuthTextField extends StatelessWidget {
   final IconData? prefixIcon;
   final Widget? suffixIcon;
   final bool obscureText;
+  final String? errorText;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -66,9 +72,12 @@ class AuthTextField extends StatelessWidget {
           controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
+          readOnly: readOnly,
+          onTap: onTap,
           style: const TextStyle(fontSize: 15, color: Color(0xFF111827)),
           decoration: InputDecoration(
             hintText: hint,
+            errorText: errorText,
             hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon, size: 18, color: const Color(0xFF9CA3AF))
@@ -92,11 +101,114 @@ class AuthTextField extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: Color(0xFF0B2867), width: 2),
             ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFEF4444)),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
+            ),
           ),
         ),
       ],
     );
   }
+}
+
+class AuthDropdownField extends StatelessWidget {
+  const AuthDropdownField({
+    super.key,
+    required this.label,
+    required this.hint,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    this.prefixIcon,
+    this.errorText,
+  });
+
+  final String label;
+  final String hint;
+  final String? value;
+  final List<AuthDropdownOption> items;
+  final ValueChanged<String?> onChanged;
+  final IconData? prefixIcon;
+  final String? errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: value,
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          items: items
+              .map(
+                (item) => DropdownMenuItem<String>(
+                  value: item.value,
+                  child: Text(item.label, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(),
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            hintText: hint,
+            errorText: errorText,
+            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+            prefixIcon: prefixIcon != null
+                ? Icon(prefixIcon, size: 18, color: const Color(0xFF9CA3AF))
+                : null,
+            filled: true,
+            fillColor: const Color(0xFFF3F4F6),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF0B2867), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFEF4444)),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class AuthDropdownOption {
+  const AuthDropdownOption({required this.value, required this.label});
+
+  final String value;
+  final String label;
 }
 
 // Full-width dark-navy primary button used on auth screens.

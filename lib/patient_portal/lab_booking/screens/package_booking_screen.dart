@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../core/models/patient_models.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../core/widgets/booking_success_screen.dart';
@@ -23,7 +22,7 @@ class PackageBookingScreen extends StatefulWidget {
 
 class _PackageBookingScreenState extends State<PackageBookingScreen> {
   PatientProfile? _selectedPatient;
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  DateTime _selectedDate = DateTime.now();
   String? _selectedSlot;
   String _collectionType = 'home';
   String _address = '';
@@ -527,8 +526,9 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
     });
 
     final amount = widget.package.discountedPrice ?? widget.package.basePrice;
-    final collectionLabel =
-        _collectionType == 'home' ? 'Home Collection' : 'Lab Visit';
+    final collectionLabel = _collectionType == 'home'
+        ? 'Home Collection'
+        : 'Lab Visit';
     final packageImageUrl = widget.package.imageUrl ?? '';
     final bookingDate = DateFormat('dd MMM yyyy').format(_selectedDate);
 
@@ -1123,10 +1123,7 @@ class _HorizontalDatePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final dates = List.generate(
-      30,
-      (index) => now.add(Duration(days: index + 1)),
-    );
+    final dates = List.generate(30, (index) => now.add(Duration(days: index)));
 
     return SizedBox(
       height: 90,
