@@ -313,7 +313,7 @@ class _OfferCard extends StatelessWidget {
                           width: 100,
                           height: 100,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox(),
+                          errorBuilder: (_, _, _) => const SizedBox(),
                         ),
                       ),
                     ],

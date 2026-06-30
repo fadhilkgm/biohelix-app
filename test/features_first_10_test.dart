@@ -315,8 +315,9 @@ void _mockVoiceChannels() {
   messenger.setMockMethodCallHandler(
     const MethodChannel('speech_to_text_windows'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission')
+      if (call.method == 'initialize' || call.method == 'hasPermission') {
         return true;
+      }
       return null;
     },
   );
@@ -324,8 +325,9 @@ void _mockVoiceChannels() {
   messenger.setMockMethodCallHandler(
     const MethodChannel('plugin.csdcorp.com/speech_to_text'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission')
+      if (call.method == 'initialize' || call.method == 'hasPermission') {
         return true;
+      }
       return null;
     },
   );

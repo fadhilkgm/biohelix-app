@@ -1107,8 +1107,7 @@ class _EmergencyStrip extends StatelessWidget {
     required this.emergencyNumber,
     required this.receptionNumber,
     this.onDark = false,
-    this.compact = false,
-  });
+  }) : compact = false;
 
   final String ambulanceNumber;
   final String emergencyNumber;
