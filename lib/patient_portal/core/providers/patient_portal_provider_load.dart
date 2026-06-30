@@ -88,7 +88,9 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
 
     _dashboard = dashboardResult ?? _buildFallbackDashboard();
     _homeBanners = results[0] as List<HomeBannerItem>? ?? const [];
-    _bookings = results[1] as List<BookingItem>? ?? const [];
+    _bookings = (results[1] as List<BookingItem>? ?? const [])
+        .where((booking) => booking.isDoctorAppointment)
+        .toList();
     _prescriptions = results[2] as List<PrescriptionRecord>? ?? const [];
     _medicalRecords = results[3] as List<MedicalRecordItem>? ?? const [];
     _documents = results[4] as List<DocumentRecord>? ?? const [];

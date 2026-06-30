@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:biohelix_app/core/config/app_config.dart';
 import 'package:biohelix_app/core/network/api_client.dart';
 import 'package:biohelix_app/patient_portal/core/data/patient_repository.dart';
+import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -289,6 +290,32 @@ void main() {
     expect(c.reference, 'aaa-bbb-ccc');
     expect(c.batchId, 'aaa-bbb-ccc');
     expect(c.id, 52);
+  });
+
+  test('BookingItem excludes lab test bookings from doctor appointments', () {
+    final doctorBooking = BookingItem.fromJson({
+      'id': 1,
+      'bookingDate': '2026-06-22',
+      'timeslot': '09:00-09:15',
+      'status': 'pending',
+      'type': 'doctor',
+      'doctorId': 1,
+      'doctorName': 'Dr. Sarah Paul',
+      'doctorSpecialization': 'Cardiology',
+    });
+    final labBooking = BookingItem.fromJson({
+      'id': 2,
+      'bookingDate': '2026-06-22',
+      'timeslot': '08:30',
+      'status': 'pending',
+      'type': 'test',
+      'testName': 'Complete Blood Count',
+      'doctorId': 1,
+      'doctorName': 'Dr. Sarah Paul',
+    });
+
+    expect(doctorBooking.isDoctorAppointment, isTrue);
+    expect(labBooking.isDoctorAppointment, isFalse);
   });
 }
 

@@ -208,6 +208,9 @@ class BookingItem {
     required this.doctorId,
     required this.doctorName,
     this.doctorSpecialization,
+    this.bookingType,
+    this.testName,
+    this.packageName,
   });
 
   final int id;
@@ -217,16 +220,37 @@ class BookingItem {
   final int doctorId;
   final String doctorName;
   final String? doctorSpecialization;
+  final String? bookingType;
+  final String? testName;
+  final String? packageName;
+
+  bool get isDoctorAppointment {
+    final type = (bookingType ?? '').trim().toLowerCase();
+    if (type == 'test' || type == 'package' || type == 'lab') {
+      return false;
+    }
+    if (type == 'doctor') {
+      return true;
+    }
+    if ((testName ?? '').trim().isNotEmpty) return false;
+    if ((packageName ?? '').trim().isNotEmpty) return false;
+    return true;
+  }
 
   factory BookingItem.fromJson(Map<String, dynamic> json) {
     final doctor = _map(json['doctor']);
     final test = _map(json['test']);
     final package = _map(json['package']);
-    final bookingType = json['booking_type'] as String?;
+    final bookingType =
+        json['booking_type'] as String? ?? json['type'] as String?;
+    final testName =
+        json['testName'] as String? ?? test['test_name'] as String?;
+    final packageName =
+        json['packageName'] as String? ?? package['package_name'] as String?;
     final nameFromRelation =
         doctor['name'] as String? ??
-        test['test_name'] as String? ??
-        package['package_name'] as String?;
+        testName ??
+        packageName;
     return BookingItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
       bookingDate:
@@ -250,7 +274,10 @@ class BookingItem {
               : 'BHRC Doctor'),
       doctorSpecialization:
           json['doctorSpecialization'] as String? ??
-          json['booking_type'] as String?,
+          doctor['specialization'] as String?,
+      bookingType: bookingType,
+      testName: testName,
+      packageName: packageName,
     );
   }
 }

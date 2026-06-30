@@ -25,6 +25,7 @@ class _DashboardTab extends StatelessWidget {
     final doctorById = <int, DoctorListing>{};
 
     for (final booking in sourceBookings) {
+      if (!booking.isDoctorAppointment) continue;
       doctorById.putIfAbsent(
         booking.doctorId,
         () => DoctorListing(
@@ -99,7 +100,11 @@ class _DashboardTab extends StatelessWidget {
           doctors: homeDoctors,
           labTests: portal.labTests,
           labPackages: portal.labPackages,
-          bookings: dashboard.recentBookings,
+          bookings: portal.bookings.isNotEmpty
+              ? portal.bookings
+              : dashboard.recentBookings
+                    .where((booking) => booking.isDoctorAppointment)
+                    .toList(),
           tickerMessages: portal.tickerMessages,
           homeOffers: portal.homeOffers,
           onBannerTap: targetHandler.openBanner,
