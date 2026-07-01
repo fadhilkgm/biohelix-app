@@ -223,7 +223,9 @@ class _FakePortalRepository extends PatientRepository {
   }) async => const ['09:00 AM - 09:30 AM', '10:00 AM - 10:30 AM'];
 
   @override
-  Future<String?> sendOtp({required String phone, String? mrn}) async => '123456';
+  Future<OtpSendResult> sendOtp({required String phone, String? mrn}) async {
+    return const OtpSendResult(devOtp: '123456', message: 'OTP sent to your WhatsApp');
+  }
   @override
   Future<OtpSession> verifyOtp({required String phone, required String otp}) async =>
       const OtpSession(token: 'portal-token', patient: _patient);

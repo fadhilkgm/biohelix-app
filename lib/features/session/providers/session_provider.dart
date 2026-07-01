@@ -40,6 +40,7 @@ class SessionProvider extends ChangeNotifier {
   String? _pendingSignupPlace;
   String? _pendingSignupEmail;
   String? _pendingSignupGender;
+  String? _pendingSignupBloodGroup;
   String? _devOtp;
   String? _otpStatusMessage;
   List<SavedPatientProfile> _familyProfiles = const [];
@@ -143,6 +144,7 @@ class SessionProvider extends ChangeNotifier {
     required String place,
     String? email,
     String? gender,
+    String? bloodGroup,
   }) async {
     final normalizedPhone = normalizePatientPhone(phone);
     if (normalizedPhone.isEmpty || name.trim().isEmpty || place.trim().isEmpty) {
@@ -174,6 +176,7 @@ class SessionProvider extends ChangeNotifier {
       _pendingSignupPlace = place.trim();
       _pendingSignupEmail = email?.trim();
       _pendingSignupGender = gender?.trim();
+      _pendingSignupBloodGroup = bloodGroup?.trim();
       _state = SessionState.signedOut;
     } catch (error) {
       _errorMessage = error.toString();
@@ -199,6 +202,7 @@ class SessionProvider extends ChangeNotifier {
         place: _pendingSignupPlace!,
         email: _pendingSignupEmail,
         gender: _pendingSignupGender,
+        bloodGroup: _pendingSignupBloodGroup,
       );
       return;
     }
@@ -334,6 +338,7 @@ class SessionProvider extends ChangeNotifier {
     _pendingSignupPlace = null;
     _pendingSignupEmail = null;
     _pendingSignupGender = null;
+    _pendingSignupBloodGroup = null;
   }
 
   Future<void> verifyOtp({required String otp}) async {
@@ -349,6 +354,8 @@ class SessionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final wasSignup = isPendingSignupOtp;
+      final pendingBloodGroup = _pendingSignupBloodGroup;
       final session = await _patientRepository.verifyOtp(
         phone: phone!,
         otp: otp.trim(),
@@ -357,6 +364,11 @@ class SessionProvider extends ChangeNotifier {
       await _authStorage.writeToken(session.token);
       _apiClient.updateAuthToken(session.token);
       _patient = session.patient;
+      if (wasSignup && (pendingBloodGroup ?? '').isNotEmpty) {
+        _patient = await _patientRepository.updatePatientProfile(
+          _patient!.copyWith(bloodGroup: pendingBloodGroup),
+        );
+      }
       await _saveFamilyProfile(token: session.token, patient: _patient!);
       _state = SessionState.signedIn;
       _devOtp = null;

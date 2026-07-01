@@ -61,8 +61,12 @@ abstract class LocalizedStrings {
   String get genderHint;
   String get bloodGroup;
   String get bloodGroupHint;
+  String get cityLocation;
+  String get cityLocationHint;
   String get register;
   String get login;
+  String get sendWhatsAppOtp;
+  String get registerWithWhatsAppOtp;
   String get alreadyRegisteredLogin;
   String get newPatientRegister;
   String get registerDemoHint;
@@ -173,10 +177,10 @@ class _EnStrings extends LocalizedStrings {
   String get createAccountTitle => 'Create account';
   @override
   String get loginSubtitle =>
-      'Sign in with your mobile number and password to continue.';
+      'Enter your mobile number and we will send a WhatsApp OTP.';
   @override
   String get registerSubtitle =>
-      'Register your patient profile and start booking doctors, lab tests, and health packages.';
+      'Complete your patient profile. We will verify your number with a WhatsApp OTP.';
   @override
   String get fullName => 'Full Name';
   @override
@@ -206,19 +210,27 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get bloodGroupHint => 'Select blood group';
   @override
+  String get cityLocation => 'City / Location';
+  @override
+  String get cityLocationHint => 'Ponnani, Kerala';
+  @override
   String get register => 'Register';
   @override
   String get login => 'Login';
+  @override
+  String get sendWhatsAppOtp => 'Send WhatsApp OTP';
+  @override
+  String get registerWithWhatsAppOtp => 'Register & send WhatsApp OTP';
   @override
   String get alreadyRegisteredLogin => 'Already registered? Login';
   @override
   String get newPatientRegister => 'New patient? Register';
   @override
   String get registerDemoHint =>
-      'Registration returns a secure patient token from BHRC.';
+      'We will send a WhatsApp OTP to verify your number before creating your account.';
   @override
   String get loginDemoHint =>
-      'Use the phone and password created in the hospital system.';
+      'Existing patients can sign in with a WhatsApp OTP sent to their registered number.';
   @override
   String get chooseDateOfBirth => 'Choose date of birth';
   @override
@@ -388,10 +400,10 @@ class _MlStrings extends LocalizedStrings {
   String get createAccountTitle => 'അക്കൗണ്ട് സൃഷ്ടിക്കുക';
   @override
   String get loginSubtitle =>
-      'തുടരാൻ നിങ്ങളുടെ മൊബൈൽ നമ്പറും പാസ്‌വേഡും ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്യുക.';
+      'തുടരാൻ നിങ്ങളുടെ മൊബൈൽ നമ്പർ നൽകുക, ഞങ്ങൾ വാട്സ്ആപ്പ് OTP അയയ്ക്കും.';
   @override
   String get registerSubtitle =>
-      'നിങ്ങളുടെ രോഗി പ്രൊഫൈൽ രജിസ്റ്റർ ചെയ്ത് ഡോക്ടർമാർ, ലാബ് ടെസ്റ്റുകൾ, ഹെൽത്ത് പാക്കേജുകൾ എന്നിവ ബുക്ക് ചെയ്യൂ.';
+      'നിങ്ങളുടെ രോഗി പ്രൊഫൈൽ പൂർത്തിയാക്കുക. നമ്പർ വാട്സ്ആപ്പ് OTP വഴി സ്ഥിരീകരിക്കും.';
   @override
   String get fullName => 'പൂർണ്ണ പേര്';
   @override
@@ -421,19 +433,27 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get bloodGroupHint => 'രക്ത ഗ്രൂപ്പ് തിരഞ്ഞെടുക്കുക';
   @override
+  String get cityLocation => 'നഗരം / സ്ഥലം';
+  @override
+  String get cityLocationHint => 'പൊന്നാനി, കേരളം';
+  @override
   String get register => 'രജിസ്റ്റർ';
   @override
   String get login => 'ലോഗിൻ';
+  @override
+  String get sendWhatsAppOtp => 'വാട്സ്ആപ്പ് OTP അയയ്ക്കുക';
+  @override
+  String get registerWithWhatsAppOtp => 'രജിസ്റ്റർ ചെയ്ത് വാട്സ്ആപ്പ് OTP അയയ്ക്കുക';
   @override
   String get alreadyRegisteredLogin => 'ഇതിനകം രജിസ്റ്റർ ചെയ്തിട്ടുണ്ടോ? ലോഗിൻ';
   @override
   String get newPatientRegister => 'പുതിയ രോഗിയാണോ? രജിസ്റ്റർ';
   @override
   String get registerDemoHint =>
-      'രജിസ്ട്രേഷൻ BHRC-യിൽ നിന്ന് സുരക്ഷിത രോഗി ടോക്കൺ തിരികെ നൽകും.';
+      'അക്കൗണ്ട് സൃഷ്ടിക്കുന്നതിന് മുമ്പ് നിങ്ങളുടെ നമ്പർ സ്ഥിരീകരിക്കാൻ വാട്സ്ആപ്പ് OTP അയയ്ക്കും.';
   @override
   String get loginDemoHint =>
-      'ഹോസ്പിറ്റൽ സിസ്റ്റത്തിൽ സൃഷ്ടിച്ച ഫോൺ നമ്പറും പാസ്‌വേഡും ഉപയോഗിക്കുക.';
+      'രജിസ്റ്റർ ചെയ്ത രോഗികൾക്ക് അവരുടെ നമ്പറിലേക്ക് അയയ്ക്കുന്ന വാട്സ്ആപ്പ് OTP ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്യാം.';
   @override
   String get chooseDateOfBirth => 'ജനന തീയതി തിരഞ്ഞെടുക്കുക';
   @override
