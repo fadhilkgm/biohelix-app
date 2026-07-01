@@ -7,6 +7,7 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../core/data/patient_repository.dart';
 import '../../core/models/patient_models.dart';
+import '../../core/providers/patient_portal_provider.dart';
 
 /// Self-reported health profile: view the latest snapshot, edit and save a new
 /// one, and browse the full history (including AI-derived snapshots).
@@ -103,6 +104,15 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
         symptoms: _symptomsCtrl.text,
         lifestyleNotes: _lifestyleCtrl.text,
       );
+      if (!mounted) return;
+      try {
+        // Best-effort: chronic conditions feed into the health-score
+        // heuristic, so refresh the snapshot after a profile save (mirrors
+        // the same pattern used after saving vitals).
+        await context.read<PatientPortalProvider>().refreshHealthSnapshot();
+      } catch (_) {
+        // Non-fatal — the profile save itself already succeeded.
+      }
       if (!mounted) return;
       final strings = AppStrings.of(context.read<LanguageProvider>().language);
       ScaffoldMessenger.of(context).showSnackBar(

@@ -98,12 +98,21 @@ Base URL: `{{base_url}}/api/v1`
 
 ---
 
-## Health Snapshot *(added 2026-06-30)*
+## Health Snapshot *(added 2026-06-30, updated 2026-07-02)*
 
-- [ ] `GET /patients/me/health-snapshot` — returns computed health snapshot; auto-generates if none exists
-  - Verify fields: `bmi`, `health_score`, `risk_score`, `latest_vitals`, `ai_summary`, `generated_at`
-  - Verify `health_score` is 0–100 and `risk_score` = `100 - health_score`
-- [ ] `POST /patients/me/health-snapshot/refresh` — recomputes snapshot from latest vitals + profile; verify `generated_at` updates
+- [x] `GET /patients/me/health-snapshot` — returns computed health snapshot; auto-generates if none exists
+  - Verify fields: `snapshot_date`, `bmi`, `health_score`, `risk_score`, `blood_sugar`, `cholesterol`, `other_conditions`, `latest_vitals`, `latest_results` (reserved, currently always `null`), `ai_summary`, `generated_at`
+  - Verify `health_score` is 0–100 (decimal) and `risk_score` = `100 - health_score`
+  - Verify `latest_vitals` uses a combined `"bp": "128/82"` string plus `temperature`/`oxygen_saturation` keys — a different shape than the regular vitals endpoint (`bp_systolic`/`bp_diastolic`/`body_temperature`/`spo2`)
+  - Verify response is upserted by `(patient_id, snapshot_date)` — one row per day
+- [x] `POST /patients/me/health-snapshot/refresh` — recomputes snapshot from latest vitals + profile; verify `generated_at` updates; verify it upserts today's row rather than creating a duplicate
+- [x] `POST /patients/me/health-snapshot` — manual entry ("add" button); all fields optional
+  - Body (camelCase): `bloodPressureSystolic` (50–300), `bloodPressureDiastolic` (30–200), `bloodSugar` (0–1000), `cholesterol` (0–1000), `weight` (1–500), `otherConditions` (max 1000 chars)
+  - Verify `201` response with `message: "Health snapshot recorded."` and the same `snapshot` shape as `GET`
+  - Verify calling it again the same day overwrites today's entry (upsert-by-day) instead of creating a duplicate
+- [x] `GET /patients/me/health-snapshot/history` — paginated list of past snapshots, newest first, one entry per day
+  - Query param: `page`
+  - Verify `meta` block: `current_page`, `last_page`, `total`
 
 ---
 
@@ -168,5 +177,6 @@ Base URL: `{{base_url}}/api/v1`
 - Token format: Sanctum Bearer token — store securely, send as `Authorization: Bearer <token>`
 - After login/signup, always store and reuse the token; do not re-authenticate on each request
 - Health snapshot auto-generates on first `GET` — no need to call `/refresh` proactively; call it after the patient records new vitals or updates their health profile
+- Health snapshot manual entry (`POST /patients/me/health-snapshot`) and `/refresh` both upsert the same day's row — never create more than one row per patient per day
 - Assessment session tokens expire — check `expires_at` and redirect to start a new session if expired (API returns `410 Gone`)
 - Recommended packages from assessment results can be booked directly via `POST /bookings/packages`

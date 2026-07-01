@@ -42,6 +42,12 @@ class PatientPortalProvider extends ChangeNotifier {
   List<LabPackageOrderItem> _labPackageOrders = const [];
   List<DepartmentItem> _departments = const [];
   HealthSnapshot? _healthSnapshot;
+  List<HealthSnapshot> _healthSnapshotHistory = const [];
+  int _healthSnapshotHistoryPage = 1;
+  int _healthSnapshotHistoryLastPage = 1;
+  bool _isLoadingHealthSnapshotHistory = false;
+  bool _isLoadingMoreHealthSnapshotHistory = false;
+  bool _isSubmittingHealthSnapshot = false;
   List<AiSuggestionItem> _aiSuggestions = const [];
   MyClubSummary? _myClub;
   List<ChatThreadSummary> _chatThreads = const [];
@@ -82,6 +88,13 @@ class PatientPortalProvider extends ChangeNotifier {
   List<LabPackageOrderItem> get labPackageOrders => _labPackageOrders;
   List<DepartmentItem> get departments => _departments;
   HealthSnapshot? get healthSnapshot => _healthSnapshot;
+  List<HealthSnapshot> get healthSnapshotHistory => _healthSnapshotHistory;
+  bool get isLoadingHealthSnapshotHistory => _isLoadingHealthSnapshotHistory;
+  bool get isLoadingMoreHealthSnapshotHistory =>
+      _isLoadingMoreHealthSnapshotHistory;
+  bool get hasMoreHealthSnapshotHistory =>
+      _healthSnapshotHistoryPage < _healthSnapshotHistoryLastPage;
+  bool get isSubmittingHealthSnapshot => _isSubmittingHealthSnapshot;
   List<AiSuggestionItem> get aiSuggestions => _aiSuggestions;
   MyClubSummary? get myClub =>
       _myClub ??
@@ -160,6 +173,12 @@ class PatientPortalProvider extends ChangeNotifier {
     _labPackageOrders = const [];
     _departments = const [];
     _healthSnapshot = null;
+    _healthSnapshotHistory = const [];
+    _healthSnapshotHistoryPage = 1;
+    _healthSnapshotHistoryLastPage = 1;
+    _isLoadingHealthSnapshotHistory = false;
+    _isLoadingMoreHealthSnapshotHistory = false;
+    _isSubmittingHealthSnapshot = false;
     _aiSuggestions = const [];
     _myClub = null;
     _chatThreads = const [];

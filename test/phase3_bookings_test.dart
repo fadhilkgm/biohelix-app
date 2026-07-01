@@ -355,6 +355,150 @@ void main() {
     expect(snapshot.bmi, closeTo(24.2, 0.01));
   });
 
+  test(
+    'HealthSnapshot parses full documented payload incl. manual fields and '
+    'combined-bp latest_vitals',
+    () {
+      final snapshot = HealthSnapshot.fromJson({
+        'success': true,
+        'snapshot': {
+          'snapshot_date': '2026-07-02',
+          'bmi': 24.3,
+          'blood_sugar': 110.0,
+          'cholesterol': 205.0,
+          'risk_score': 45.0,
+          'health_score': 55.0,
+          'latest_vitals': {
+            'bp': '128/82',
+            'heart_rate': null,
+            'temperature': 37.1,
+            'weight': 74.5,
+            'height': 172,
+            'bmi': 24.3,
+            'oxygen_saturation': 98,
+            'recorded_at': '2026-07-01T09:00:00+00:00',
+          },
+          'latest_results': null,
+          'other_conditions': 'Mild fever since yesterday, sore throat',
+          'ai_summary': 'Health score: 55/100. Key findings: ...',
+          'generated_at': '2026-07-02T10:20:00+00:00',
+        },
+      });
+
+      expect(snapshot.snapshotDate, '2026-07-02');
+      expect(snapshot.healthScore, 55.0);
+      expect(snapshot.riskScore, 45.0);
+      expect(snapshot.bloodSugar, 110.0);
+      expect(snapshot.cholesterol, 205.0);
+      expect(
+        snapshot.otherConditions,
+        'Mild fever since yesterday, sore throat',
+      );
+      expect(snapshot.latestResults, isNull);
+      expect(snapshot.isEmpty, isFalse);
+
+      final vitals = snapshot.latestVitals;
+      expect(vitals, isNotNull);
+      expect(vitals!.bloodPressureSystolic, 128);
+      expect(vitals.bloodPressureDiastolic, 82);
+      expect(vitals.bodyTemperature, closeTo(37.1, 0.01));
+      expect(vitals.oxygenSaturation, 98);
+      expect(vitals.weight, closeTo(74.5, 0.01));
+      expect(vitals.heartRate, isNull);
+    },
+  );
+
+  test('HealthSnapshot.isEmpty is true when no data has been recorded', () {
+    const snapshot = HealthSnapshot();
+    expect(snapshot.isEmpty, isTrue);
+  });
+
+  test('HealthSnapshotHistoryPage parses snapshots list and meta', () {
+    final page = HealthSnapshotHistoryPage.fromJson({
+      'success': true,
+      'snapshots': [
+        {'snapshot_date': '2026-07-02', 'health_score': 55.0},
+        {'snapshot_date': '2026-07-01', 'health_score': 70.0},
+      ],
+      'meta': {'current_page': 1, 'last_page': 3, 'total': 62},
+    });
+
+    expect(page.items, hasLength(2));
+    expect(page.items.first.snapshotDate, '2026-07-02');
+    expect(page.items.first.healthScore, 55.0);
+    expect(page.currentPage, 1);
+    expect(page.lastPage, 3);
+    expect(page.total, 62);
+    expect(page.hasMore, isTrue);
+  });
+
+  test(
+    'submitHealthSnapshot posts camelCase body to /patients/me/health-snapshot',
+    () async {
+      final adapter = _BookingAdapter({
+        'success': true,
+        'snapshot': {
+          'snapshot_date': '2026-07-02',
+          'health_score': 60.0,
+          'risk_score': 40.0,
+          'other_conditions': 'Sore throat',
+        },
+        'message': 'Health snapshot recorded.',
+      });
+      final repository = _repository(adapter);
+
+      final snapshot = await repository.submitHealthSnapshot(
+        const HealthSnapshotInput(
+          bloodPressureSystolic: 128,
+          bloodPressureDiastolic: 82,
+          bloodSugar: 110,
+          cholesterol: 205,
+          weight: 74.5,
+          otherConditions: 'Sore throat',
+        ),
+      );
+
+      expect(adapter.lastPath, '/patients/me/health-snapshot');
+      expect(adapter.lastMethod, 'POST');
+      expect(adapter.lastData, {
+        'bloodPressureSystolic': 128,
+        'bloodPressureDiastolic': 82,
+        'bloodSugar': 110.0,
+        'cholesterol': 205.0,
+        'weight': 74.5,
+        'otherConditions': 'Sore throat',
+      });
+      expect(snapshot.healthScore, 60.0);
+      expect(snapshot.otherConditions, 'Sore throat');
+    },
+  );
+
+  test('HealthSnapshotInput.toJson omits null fields', () {
+    const input = HealthSnapshotInput(otherConditions: 'Mild fever');
+    expect(input.toJson(), {'otherConditions': 'Mild fever'});
+  });
+
+  test(
+    'getHealthSnapshotHistory requests the given page and parses the response',
+    () async {
+      final adapter = _BookingAdapter({
+        'success': true,
+        'snapshots': [
+          {'snapshot_date': '2026-06-20', 'health_score': 65.0},
+        ],
+        'meta': {'current_page': 2, 'last_page': 2, 'total': 21},
+      });
+      final repository = _repository(adapter);
+
+      final page = await repository.getHealthSnapshotHistory(page: 2);
+
+      expect(adapter.lastPath, '/patients/me/health-snapshot/history');
+      expect(page.items, hasLength(1));
+      expect(page.currentPage, 2);
+      expect(page.hasMore, isFalse);
+    },
+  );
+
   test('AiSuggestionItem parses recommendation payload', () {
     final item = AiSuggestionItem.fromJson({
       'id': 9,

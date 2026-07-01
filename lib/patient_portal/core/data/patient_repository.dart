@@ -205,6 +205,43 @@ class VitalInput {
   }
 }
 
+/// Manual health-snapshot entry ("add/update today's readings"). All fields
+/// are optional per the API contract — a patient can submit just one field.
+class HealthSnapshotInput {
+  const HealthSnapshotInput({
+    this.bloodPressureSystolic,
+    this.bloodPressureDiastolic,
+    this.bloodSugar,
+    this.cholesterol,
+    this.weight,
+    this.otherConditions,
+  });
+
+  /// 50–300.
+  final int? bloodPressureSystolic;
+  /// 30–200.
+  final int? bloodPressureDiastolic;
+  /// 0–1000 mg/dL.
+  final double? bloodSugar;
+  /// 0–1000 mg/dL.
+  final double? cholesterol;
+  /// 1–500 (kg).
+  final double? weight;
+  /// Max 1000 chars.
+  final String? otherConditions;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'bloodPressureSystolic': bloodPressureSystolic,
+      'bloodPressureDiastolic': bloodPressureDiastolic,
+      'bloodSugar': bloodSugar,
+      'cholesterol': cholesterol,
+      'weight': weight,
+      'otherConditions': otherConditions,
+    }..removeWhere((key, value) => value == null);
+  }
+}
+
 class PatientRepository {
   PatientRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
@@ -536,9 +573,7 @@ class PatientRepository {
   Future<HealthSnapshot?> getHealthSnapshot() async {
     final response = await _apiClient.getJson('/patients/me/health-snapshot');
     final snapshot = HealthSnapshot.fromJson(response);
-    if (snapshot.healthScore == null &&
-        snapshot.bmi == null &&
-        (snapshot.aiSummary ?? '').isEmpty) {
+    if (snapshot.isEmpty) {
       return null;
     }
     return snapshot;
@@ -549,6 +584,28 @@ class PatientRepository {
       '/patients/me/health-snapshot/refresh',
     );
     return HealthSnapshot.fromJson(response);
+  }
+
+  /// Manual entry ("add" button) — upserts today's snapshot row. Calling
+  /// this again on the same day overwrites today's entry.
+  Future<HealthSnapshot> submitHealthSnapshot(HealthSnapshotInput input) async {
+    final response = await _apiClient.postJson(
+      '/patients/me/health-snapshot',
+      data: input.toJson(),
+    );
+    return HealthSnapshot.fromJson(response);
+  }
+
+  /// Paginated list of past snapshots ("history" button), newest first, one
+  /// entry per day.
+  Future<HealthSnapshotHistoryPage> getHealthSnapshotHistory({
+    int page = 1,
+  }) async {
+    final response = await _apiClient.getJson(
+      '/patients/me/health-snapshot/history',
+      queryParameters: {'page': page},
+    );
+    return HealthSnapshotHistoryPage.fromJson(response);
   }
 
   Future<List<AiSuggestionItem>> getAiSuggestions() async {

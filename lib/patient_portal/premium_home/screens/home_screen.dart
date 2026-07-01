@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 import 'package:biohelix_app/core/widgets/app_logo.dart';
@@ -8,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../emergency/widgets/emergency_call_launcher.dart';
+import '../../health_profile/screens/health_snapshot_screen.dart';
 import '../utils/home_header_content_mapper.dart';
 import '../widgets/home_hero_header_widget.dart';
 import '../widgets/offers_and_appointments_section_widget.dart';
@@ -1408,14 +1410,46 @@ class _HealthSnapshotCard extends StatelessWidget {
 
   final HealthSnapshot snapshot;
 
+  String? _formatGeneratedAt(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    try {
+      return DateFormat(
+        'dd MMM yyyy, hh:mm a',
+      ).format(DateTime.parse(raw).toLocal());
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  String? _formatSnapshotDate(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    try {
+      return DateFormat('dd MMM yyyy').format(DateTime.parse(raw).toLocal());
+    } catch (_) {
+      return raw;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final score = snapshot.healthScore;
     final risk = snapshot.riskScore;
-    final summary =
-        (snapshot.aiSummary ?? '').trim().isNotEmpty
-            ? snapshot.aiSummary!.trim()
+    final summary = (snapshot.aiSummary ?? '').trim().isNotEmpty
+        ? snapshot.aiSummary!.trim()
+        : snapshot.isEmpty
+            ? 'No readings recorded yet — add today\'s readings to get your score.'
             : 'Your health snapshot is ready.';
+    final generatedLabel = _formatGeneratedAt(snapshot.generatedAt);
+    final snapshotDateLabel = _formatSnapshotDate(snapshot.snapshotDate);
+
+    final extraFacts = <String>[
+      if (snapshot.bloodSugar != null)
+        'Blood sugar ${snapshot.bloodSugar!.toStringAsFixed(0)} mg/dL',
+      if (snapshot.cholesterol != null)
+        'Cholesterol ${snapshot.cholesterol!.toStringAsFixed(0)} mg/dL',
+      if ((snapshot.otherConditions ?? '').trim().isNotEmpty)
+        snapshot.otherConditions!.trim(),
+    ];
 
     return Container(
       width: double.infinity,
@@ -1429,23 +1463,60 @@ class _HealthSnapshotCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Health Snapshot',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                child: Text(
+                  'Health Snapshot',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+              _CardIconButton(
+                icon: Icons.history_rounded,
+                tooltip: 'View history',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const HealthSnapshotHistoryScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+              _CardIconButton(
+                icon: Icons.add_rounded,
+                tooltip: "Add/update today's readings",
+                onTap: () => showHealthSnapshotEntrySheet(context),
+              ),
+            ],
           ),
+          if (snapshotDateLabel != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'For $snapshotDateLabel',
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
               if (score != null)
-                _SnapshotMetric(label: 'Health', value: '$score'),
+                _SnapshotMetric(
+                  label: 'Health',
+                  value: score.toStringAsFixed(0),
+                ),
               if (risk != null) ...[
                 const SizedBox(width: 16),
-                _SnapshotMetric(label: 'Risk', value: '$risk'),
+                _SnapshotMetric(
+                  label: 'Risk',
+                  value: risk.toStringAsFixed(0),
+                ),
               ],
               if (snapshot.bmi != null) ...[
                 const SizedBox(width: 16),
@@ -1466,9 +1537,82 @@ class _HealthSnapshotCard extends StatelessWidget {
               height: 1.4,
             ),
           ),
+          if (extraFacts.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...extraFacts.map(
+              (fact) => Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  fact,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          if (snapshot.isEmpty) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => showHealthSnapshotEntrySheet(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white54),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  "Add Today's Readings",
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ] else if (generatedLabel != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Updated $generatedLabel',
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+          ],
         ],
       ),
     );
+  }
+}
+
+class _CardIconButton extends StatelessWidget {
+  const _CardIconButton({
+    required this.icon,
+    required this.onTap,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.18),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: 18),
+      ),
+    );
+    if (tooltip == null) return button;
+    return Tooltip(message: tooltip!, child: button);
   }
 }
 

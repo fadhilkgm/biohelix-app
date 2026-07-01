@@ -537,6 +537,54 @@ class VitalRecord {
       notes: json['notes'] as String?,
     );
   }
+
+  /// Parses the compact `latest_vitals` shape embedded in a health-snapshot
+  /// payload, which differs from the regular vitals endpoint: BP is a single
+  /// combined `"128/82"` string and some keys use different names
+  /// (`temperature`, `oxygen_saturation`) than the vitals API
+  /// (`body_temperature`, `spo2`).
+  factory VitalRecord.fromSnapshotJson(Map<String, dynamic> json) {
+    int? systolic;
+    int? diastolic;
+    final bpRaw = json['bp'] as String? ?? json['blood_pressure'] as String?;
+    if (bpRaw != null && bpRaw.contains('/')) {
+      final parts = bpRaw.split('/');
+      systolic = int.tryParse(parts[0].trim());
+      if (parts.length > 1) {
+        diastolic = int.tryParse(parts[1].trim());
+      }
+    }
+    systolic ??=
+        (json['bp_systolic'] as num?)?.toInt() ??
+        (json['bloodPressureSystolic'] as num?)?.toInt();
+    diastolic ??=
+        (json['bp_diastolic'] as num?)?.toInt() ??
+        (json['bloodPressureDiastolic'] as num?)?.toInt();
+
+    return VitalRecord(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      recordedAt:
+          json['recorded_at'] as String? ?? json['recordedAt'] as String? ?? '',
+      height: (json['height'] as num?)?.toDouble(),
+      weight: (json['weight'] as num?)?.toDouble(),
+      bmi: (json['bmi'] as num?)?.toDouble(),
+      bloodPressureSystolic: systolic,
+      bloodPressureDiastolic: diastolic,
+      heartRate:
+          (json['heart_rate'] as num?)?.toInt() ??
+          (json['heartRate'] as num?)?.toInt(),
+      bodyTemperature:
+          (json['temperature'] as num?)?.toDouble() ??
+          (json['body_temperature'] as num?)?.toDouble(),
+      oxygenSaturation:
+          (json['oxygen_saturation'] as num?)?.toInt() ??
+          (json['spo2'] as num?)?.toInt(),
+      respiratoryRate:
+          (json['respiratory_rate'] as num?)?.toInt() ??
+          (json['respiratoryRate'] as num?)?.toInt(),
+      notes: json['notes'] as String?,
+    );
+  }
 }
 
 class MyClubTransaction {
@@ -1615,30 +1663,57 @@ class HealthProfileSnapshot {
 
 class HealthSnapshot {
   const HealthSnapshot({
+    this.snapshotDate,
     this.bmi,
     this.healthScore,
     this.riskScore,
+    this.bloodSugar,
+    this.cholesterol,
+    this.otherConditions,
     this.aiSummary,
     this.generatedAt,
     this.latestVitals,
+    this.latestResults,
   });
 
+  /// One row per patient per day (`YYYY-MM-DD`), upserted on the backend.
+  final String? snapshotDate;
   final double? bmi;
-  final int? healthScore;
-  final int? riskScore;
+  // API may return either an int or a decimal(5,2); always parsed as double.
+  final double? healthScore;
+  final double? riskScore;
+  // Manual-entry only fields (mg/dL).
+  final double? bloodSugar;
+  final double? cholesterol;
+  final String? otherConditions;
   final String? aiSummary;
   final String? generatedAt;
   final VitalRecord? latestVitals;
+  /// Reserved for lab results; currently always `null` per the API contract.
+  /// Kept as `dynamic` and parsed defensively since its shape isn't defined.
+  final dynamic latestResults;
 
   factory HealthSnapshot.fromJson(Map<String, dynamic> json) {
     final snapshot = _map(json['snapshot'] ?? json['data'] ?? json);
     final vitalsRaw = snapshot['latest_vitals'] ?? snapshot['latestVitals'];
     return HealthSnapshot(
+      snapshotDate:
+          snapshot['snapshot_date'] as String? ??
+          snapshot['snapshotDate'] as String?,
       bmi: (snapshot['bmi'] as num?)?.toDouble(),
-      healthScore: (snapshot['health_score'] as num?)?.toInt() ??
-          (snapshot['healthScore'] as num?)?.toInt(),
-      riskScore: (snapshot['risk_score'] as num?)?.toInt() ??
-          (snapshot['riskScore'] as num?)?.toInt(),
+      healthScore:
+          (snapshot['health_score'] as num?)?.toDouble() ??
+          (snapshot['healthScore'] as num?)?.toDouble(),
+      riskScore:
+          (snapshot['risk_score'] as num?)?.toDouble() ??
+          (snapshot['riskScore'] as num?)?.toDouble(),
+      bloodSugar:
+          (snapshot['blood_sugar'] as num?)?.toDouble() ??
+          (snapshot['bloodSugar'] as num?)?.toDouble(),
+      cholesterol: (snapshot['cholesterol'] as num?)?.toDouble(),
+      otherConditions:
+          snapshot['other_conditions'] as String? ??
+          snapshot['otherConditions'] as String?,
       aiSummary:
           snapshot['ai_summary'] as String? ??
           snapshot['aiSummary'] as String?,
@@ -1646,8 +1721,53 @@ class HealthSnapshot {
           snapshot['generated_at'] as String? ??
           snapshot['generatedAt'] as String?,
       latestVitals: vitalsRaw is Map
-          ? VitalRecord.fromJson(_map(vitalsRaw))
+          ? VitalRecord.fromSnapshotJson(_map(vitalsRaw))
           : null,
+      latestResults: snapshot['latest_results'] ?? snapshot['latestResults'],
+    );
+  }
+
+  /// True when the snapshot carries no meaningful data yet (e.g. a brand new
+  /// patient with no clinical vitals and no manual entries).
+  bool get isEmpty =>
+      healthScore == null &&
+      riskScore == null &&
+      bmi == null &&
+      bloodSugar == null &&
+      cholesterol == null &&
+      (otherConditions ?? '').trim().isEmpty &&
+      (aiSummary ?? '').trim().isEmpty;
+}
+
+/// One page of `GET /patients/me/health-snapshot/history` results.
+class HealthSnapshotHistoryPage {
+  const HealthSnapshotHistoryPage({
+    required this.items,
+    required this.currentPage,
+    required this.lastPage,
+    required this.total,
+  });
+
+  final List<HealthSnapshot> items;
+  final int currentPage;
+  final int lastPage;
+  final int total;
+
+  bool get hasMore => currentPage < lastPage;
+
+  factory HealthSnapshotHistoryPage.fromJson(Map<String, dynamic> json) {
+    final rawItems =
+        json['snapshots'] as List<dynamic>? ??
+        json['data'] as List<dynamic>? ??
+        const [];
+    final meta = _map(json['meta']);
+    return HealthSnapshotHistoryPage(
+      items: rawItems
+          .map((item) => HealthSnapshot.fromJson(_map(item)))
+          .toList(),
+      currentPage: (meta['current_page'] as num?)?.toInt() ?? 1,
+      lastPage: (meta['last_page'] as num?)?.toInt() ?? 1,
+      total: (meta['total'] as num?)?.toInt() ?? rawItems.length,
     );
   }
 }
