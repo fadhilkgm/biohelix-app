@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 
 import '../config/app_config.dart';
@@ -9,9 +10,11 @@ class ApiClient {
     required AppConfig config,
     Logger? logger,
     HttpClientAdapter? httpClientAdapter,
+    VoidCallback? onUnauthorized,
   })
     : _logger = logger ?? Logger(),
       _config = config,
+      _onUnauthorized = onUnauthorized,
       _dio = Dio(
         BaseOptions(
           baseUrl: config.apiBaseUrl,
@@ -59,6 +62,9 @@ class ApiClient {
           if (error.response?.data != null) {
             _logger.e('ERR RES BODY ${_stringify(error.response?.data)}');
           }
+          if (error.response?.statusCode == 401) {
+            _onUnauthorized?.call();
+          }
           handler.next(error);
         },
       ),
@@ -68,7 +74,12 @@ class ApiClient {
   final AppConfig _config;
   final Dio _dio;
   final Logger _logger;
+  VoidCallback? _onUnauthorized;
   static const int _maxLogLength = 1200;
+
+  void setOnUnauthorized(VoidCallback? callback) {
+    _onUnauthorized = callback;
+  }
 
   static String _stringify(Object? data) {
     final raw = data?.toString() ?? 'null';

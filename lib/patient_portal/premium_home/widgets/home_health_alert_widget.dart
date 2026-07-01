@@ -72,6 +72,6 @@ class HomeHealthAlertWidget extends StatelessWidget {
         ),
       ),
     );
-}
+  }
 }
 

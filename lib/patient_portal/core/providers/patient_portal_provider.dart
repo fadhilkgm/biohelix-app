@@ -11,6 +11,7 @@ part '../../assistant/utils/patient_portal_provider_chat.dart';
 part '../../records/utils/patient_portal_provider_documents.dart';
 part 'patient_portal_provider_load.dart';
 part '../../profile/utils/patient_portal_provider_profile.dart';
+part 'patient_portal_provider_health.dart';
 
 class PatientPortalProvider extends ChangeNotifier {
   PatientPortalProvider({
@@ -40,6 +41,9 @@ class PatientPortalProvider extends ChangeNotifier {
   List<LabPackageItem> _labPackages = const [];
   List<LabPackageOrderItem> _labPackageOrders = const [];
   List<DepartmentItem> _departments = const [];
+  HealthSnapshot? _healthSnapshot;
+  List<AiSuggestionItem> _aiSuggestions = const [];
+  MyClubSummary? _myClub;
   List<ChatThreadSummary> _chatThreads = const [];
   String? _activeChatThreadId;
   final Map<String, List<ChatMessage>> _chatHistories =
@@ -77,6 +81,11 @@ class PatientPortalProvider extends ChangeNotifier {
   List<LabPackageItem> get labPackages => _labPackages;
   List<LabPackageOrderItem> get labPackageOrders => _labPackageOrders;
   List<DepartmentItem> get departments => _departments;
+  HealthSnapshot? get healthSnapshot => _healthSnapshot;
+  List<AiSuggestionItem> get aiSuggestions => _aiSuggestions;
+  MyClubSummary? get myClub =>
+      _myClub ??
+      _dashboard?.myClub;
   List<ChatThreadSummary> get chatThreads => _chatThreads;
   String? get activeChatThreadId => _activeChatThreadId;
   List<ChatMessage> get chatMessages {
@@ -150,6 +159,9 @@ class PatientPortalProvider extends ChangeNotifier {
     _labPackages = const [];
     _labPackageOrders = const [];
     _departments = const [];
+    _healthSnapshot = null;
+    _aiSuggestions = const [];
+    _myClub = null;
     _chatThreads = const [];
     _activeChatThreadId = null;
     _chatHistories.clear();

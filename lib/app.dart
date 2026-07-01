@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -37,6 +39,11 @@ class _BioHelixAppState extends State<BioHelixApp> {
     _config = AppConfig.fromEnvironment();
     _authStorage = AuthStorage();
     _apiClient = ApiClient(config: _config);
+    _apiClient.setOnUnauthorized(() {
+      if (_sessionProvider.isAuthenticated) {
+        unawaited(_sessionProvider.signOut());
+      }
+    });
     _patientRepository = PatientRepository(apiClient: _apiClient);
     _sessionProvider = SessionProvider(
       authStorage: _authStorage,

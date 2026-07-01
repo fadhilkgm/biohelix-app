@@ -36,6 +36,9 @@ class HomeScreen extends StatefulWidget {
     required this.onActionTap,
     this.isLoading = false,
     this.departments = const [],
+    this.healthSnapshot,
+    this.aiSuggestions = const [],
+    this.onAcceptSuggestion,
     this.ambulanceNumber = '+91 7510210222',
     this.emergencyNumber = '108',
     this.receptionNumber = '+91 7510210224',
@@ -64,6 +67,9 @@ class HomeScreen extends StatefulWidget {
   final Future<void> Function(HomeOfferItem item) onOfferTap;
   final ValueChanged<String> onActionTap;
   final bool isLoading;
+  final HealthSnapshot? healthSnapshot;
+  final List<AiSuggestionItem> aiSuggestions;
+  final Future<void> Function(int suggestionId)? onAcceptSuggestion;
   final String ambulanceNumber;
   final String emergencyNumber;
   final String receptionNumber;
@@ -262,6 +268,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 32),
+              if (widget.healthSnapshot != null)
+                _HealthSnapshotCard(snapshot: widget.healthSnapshot!),
+              if (widget.healthSnapshot != null) const SizedBox(height: 24),
+              if (widget.aiSuggestions.isNotEmpty)
+                _AiSuggestionsSection(
+                  suggestions: widget.aiSuggestions,
+                  onAccept: widget.onAcceptSuggestion,
+                ),
+              if (widget.aiSuggestions.isNotEmpty) const SizedBox(height: 24),
               // Banners Carousel
               if (widget.banners.isNotEmpty)
                 _buildBannerCarousel(context)
@@ -1385,6 +1400,179 @@ class _QuickLink extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _HealthSnapshotCard extends StatelessWidget {
+  const _HealthSnapshotCard({required this.snapshot});
+
+  final HealthSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final score = snapshot.healthScore;
+    final risk = snapshot.riskScore;
+    final summary =
+        (snapshot.aiSummary ?? '').trim().isNotEmpty
+            ? snapshot.aiSummary!.trim()
+            : 'Your health snapshot is ready.';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1F9A6D), Color(0xFF12A0C7)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Health Snapshot',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              if (score != null)
+                _SnapshotMetric(label: 'Health', value: '$score'),
+              if (risk != null) ...[
+                const SizedBox(width: 16),
+                _SnapshotMetric(label: 'Risk', value: '$risk'),
+              ],
+              if (snapshot.bmi != null) ...[
+                const SizedBox(width: 16),
+                _SnapshotMetric(
+                  label: 'BMI',
+                  value: snapshot.bmi!.toStringAsFixed(1),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            summary,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SnapshotMetric extends StatelessWidget {
+  const _SnapshotMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AiSuggestionsSection extends StatelessWidget {
+  const _AiSuggestionsSection({
+    required this.suggestions,
+    this.onAccept,
+  });
+
+  final List<AiSuggestionItem> suggestions;
+  final Future<void> Function(int suggestionId)? onAccept;
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = suggestions.where((item) => !item.isAccepted).toList();
+    if (pending.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'AI Recommendations',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF192233),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...pending.take(3).map((item) {
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F7FB),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE1E8F2)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.itemName ??
+                            item.recommendationType.replaceAll('_', ' '),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF192233),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.reason,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 13,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (onAccept != null)
+                  TextButton(
+                    onPressed: () => onAccept!(item.id),
+                    child: const Text('Accept'),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 }

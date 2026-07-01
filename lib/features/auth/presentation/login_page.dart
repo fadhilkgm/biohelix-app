@@ -20,11 +20,13 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   final _dobController = TextEditingController();
+  final _placeController = TextEditingController();
   final _emailController = TextEditingController();
   String? _selectedGender;
   String? _selectedBloodGroup;
   final Map<String, String> _fieldErrors = {};
   bool _isSignup = false;
+  bool _whatsappSignup = false;
   bool _obscurePassword = true;
 
   @override
@@ -33,6 +35,7 @@ class _LoginPageState extends State<LoginPage> {
     _passwordController.dispose();
     _nameController.dispose();
     _dobController.dispose();
+    _placeController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -84,9 +87,9 @@ class _LoginPageState extends State<LoginPage> {
     if (phone.isEmpty) {
       errors['phone'] = strings.fieldRequired;
     }
-    if (password.isEmpty) {
+    if (!_whatsappSignup && password.isEmpty) {
       errors['password'] = strings.fieldRequired;
-    } else if (_isSignup && password.length < 8) {
+    } else if (_isSignup && !_whatsappSignup && password.length < 8) {
       errors['password'] = strings.passwordMinLength;
     }
 
@@ -97,11 +100,16 @@ class _LoginPageState extends State<LoginPage> {
       if (_dobController.text.trim().isEmpty) {
         errors['dob'] = strings.fieldRequired;
       }
-      if ((_selectedGender ?? '').isEmpty) {
-        errors['gender'] = strings.fieldRequired;
+      if (_whatsappSignup && _placeController.text.trim().isEmpty) {
+        errors['place'] = strings.fieldRequired;
       }
-      if ((_selectedBloodGroup ?? '').isEmpty) {
-        errors['bloodGroup'] = strings.fieldRequired;
+      if (!_whatsappSignup) {
+        if ((_selectedGender ?? '').isEmpty) {
+          errors['gender'] = strings.fieldRequired;
+        }
+        if ((_selectedBloodGroup ?? '').isEmpty) {
+          errors['bloodGroup'] = strings.fieldRequired;
+        }
       }
       if (email.isNotEmpty && !email.contains('@')) {
         errors['email'] = strings.enterValidEmail;
@@ -122,6 +130,17 @@ class _LoginPageState extends State<LoginPage> {
     if (!_validate(strings)) return;
 
     final session = context.read<SessionProvider>();
+    if (_isSignup && _whatsappSignup) {
+      await session.signUp(
+        phone: _phoneController.text,
+        name: _nameController.text,
+        dob: _dobController.text,
+        place: _placeController.text,
+        email: _emailController.text,
+        gender: _selectedGender,
+      );
+      return;
+    }
     if (_isSignup) {
       await session.register(
         phone: _phoneController.text,
@@ -139,6 +158,17 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text,
       );
     }
+  }
+
+  Future<void> _loginWithOtp() async {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      setState(() {
+        _fieldErrors['phone'] = AppStrings.of(AppLanguage.en).fieldRequired;
+      });
+      return;
+    }
+    await context.read<SessionProvider>().sendOtp(phone: phone);
   }
 
   @override
@@ -253,25 +283,27 @@ class _LoginPageState extends State<LoginPage> {
                               errorText: _fieldErrors['phone'],
                             ),
                             const SizedBox(height: 18),
-                            AuthTextField(
-                              controller: _passwordController,
-                              label: strings.password,
-                              hint: strings.passwordHint,
-                              obscureText: _obscurePassword,
-                              keyboardType: TextInputType.visiblePassword,
-                              prefixIcon: Icons.lock_outline_rounded,
-                              errorText: _fieldErrors['password'],
-                              suffixIcon: IconButton(
-                                onPressed: () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
+                            if (!_whatsappSignup) ...[
+                              AuthTextField(
+                                controller: _passwordController,
+                                label: strings.password,
+                                hint: strings.passwordHint,
+                                obscureText: _obscurePassword,
+                                keyboardType: TextInputType.visiblePassword,
+                                prefixIcon: Icons.lock_outline_rounded,
+                                errorText: _fieldErrors['password'],
+                                suffixIcon: IconButton(
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                             if (_isSignup) ...[
                               const SizedBox(height: 18),
                               AuthTextField(
@@ -288,7 +320,19 @@ class _LoginPageState extends State<LoginPage> {
                                 readOnly: true,
                                 onTap: () => _pickDateOfBirth(strings),
                               ),
+                            ],
+                            if (_isSignup && _whatsappSignup) ...[
                               const SizedBox(height: 18),
+                              AuthTextField(
+                                controller: _placeController,
+                                label: 'City / Location',
+                                hint: 'Ponnani, Kerala',
+                                keyboardType: TextInputType.streetAddress,
+                                prefixIcon: Icons.location_on_outlined,
+                                errorText: _fieldErrors['place'],
+                              ),
+                            ],
+                            if (_isSignup && !_whatsappSignup) ...[
                               AuthTextField(
                                 controller: _emailController,
                                 label: strings.email,
@@ -337,11 +381,52 @@ class _LoginPageState extends State<LoginPage> {
                             const SizedBox(height: 32),
                             AuthPrimaryButton(
                               label: _isSignup
-                                  ? strings.register
+                                  ? (_whatsappSignup
+                                        ? 'Send WhatsApp OTP'
+                                        : strings.register)
                                   : strings.login,
                               isLoading: session.isSubmittingAuth,
                               onPressed: _submit,
                             ),
+                            if (!_isSignup) ...[
+                              const SizedBox(height: 12),
+                              Center(
+                                child: TextButton(
+                                  onPressed: session.isSendingOtp
+                                      ? null
+                                      : _loginWithOtp,
+                                  child: const Text(
+                                    'Login with WhatsApp OTP',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF537DE8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (_isSignup) ...[
+                              const SizedBox(height: 12),
+                              Center(
+                                child: TextButton(
+                                  onPressed: session.isSubmittingAuth
+                                      ? null
+                                      : () => setState(() {
+                                          _whatsappSignup = !_whatsappSignup;
+                                          _fieldErrors.clear();
+                                        }),
+                                  child: Text(
+                                    _whatsappSignup
+                                        ? 'Register with password instead'
+                                        : 'Register with WhatsApp OTP',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF537DE8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 18),
                             Center(
                               child: TextButton(
@@ -353,6 +438,7 @@ class _LoginPageState extends State<LoginPage> {
                                             .cancelPendingOtp();
                                         setState(() {
                                           _isSignup = !_isSignup;
+                                          _whatsappSignup = false;
                                           _fieldErrors.clear();
                                         });
                                       },

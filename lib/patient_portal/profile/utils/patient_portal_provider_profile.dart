@@ -40,6 +40,11 @@ extension PatientPortalProfileMixin on PatientPortalProvider {
     try {
       await _repository.saveVitals(input);
       await loadPortal();
+      try {
+        _healthSnapshot = await _repository.refreshHealthSnapshot();
+      } catch (_) {
+        // Snapshot refresh is best-effort after vitals save.
+      }
     } catch (error) {
       _errorMessage = error.toString();
       rethrow;

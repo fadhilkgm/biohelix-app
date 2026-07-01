@@ -397,8 +397,12 @@ class SummaryRecord {
   factory SummaryRecord.fromJson(Map<String, dynamic> json) {
     return SummaryRecord(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      date: json['date'] as String? ?? '',
-      type: json['type'] as String? ?? 'summary',
+      date:
+          json['date'] as String? ??
+          json['createdAt'] as String? ??
+          json['created_at'] as String? ??
+          '',
+      type: json['type'] as String? ?? json['title'] as String? ?? 'summary',
       summary: json['summary'] as String? ?? '',
     );
   }
@@ -441,21 +445,32 @@ class MedicalRecordItem {
 
   factory MedicalRecordItem.fromJson(Map<String, dynamic> json) {
     final medicinesJson = json['medicines'] as List<dynamic>? ?? const [];
+    final data = _map(json['data']);
+    final apiType = json['type'] as String? ?? data['type'] as String?;
+    final category =
+        json['category'] as String? ??
+        apiType ??
+        'lab';
+    final documentPath =
+        json['documentPath'] as String? ??
+        data['fileUrl'] as String? ??
+        data['file_url'] as String? ??
+        data['documentPath'] as String?;
 
     return MedicalRecordItem(
-      id: json['id'] as String? ?? '',
-      sourceType: json['sourceType'] as String? ?? 'document',
-      category: json['category'] as String? ?? 'lab',
-      recordType: json['recordType'] as String? ?? 'Record',
+      id: json['id']?.toString() ?? '',
+      sourceType: json['sourceType'] as String? ?? apiType ?? 'document',
+      category: category,
+      recordType: json['recordType'] as String? ?? apiType ?? 'Record',
       title: json['title'] as String? ?? 'Medical Record',
       subtitle: json['subtitle'] as String? ?? '',
       status: json['status'] as String? ?? 'available',
       date: json['date'] as String? ?? '',
-      kindLabel: json['kindLabel'] as String? ?? 'Record',
+      kindLabel: json['kindLabel'] as String? ?? apiType ?? 'Record',
       time: json['time'] as String?,
       summary: json['summary'] as String?,
       doctorName: json['doctorName'] as String?,
-      documentPath: json['documentPath'] as String?,
+      documentPath: documentPath,
       hasAnalysis: json['hasAnalysis'] as bool? ?? false,
       medicines: medicinesJson
           .map((item) => MedicineItem.fromJson(_map(item)))
@@ -588,13 +603,29 @@ class MyClubSummary {
   final List<String> benefits;
 
   factory MyClubSummary.fromJson(Map<String, dynamic> json) {
+    final membership = _map(json['membership']);
     final transactionJson = json['transactions'] as List<dynamic>? ?? const [];
     final benefitsJson = json['benefits'] as List<dynamic>? ?? const [];
+    final pointsBalance = json['pointsBalance'] ?? json['points_balance'];
     return MyClubSummary(
-      patientId: (json['patientId'] as num?)?.toInt() ?? 0,
-      points: (json['points'] as num?)?.toInt() ?? 0,
-      currencyValue: (json['currencyValue'] as num?)?.toDouble() ?? 0,
-      tier: json['tier'] as String? ?? 'Classic',
+      patientId:
+          (json['patientId'] as num?)?.toInt() ??
+          (membership['patientId'] as num?)?.toInt() ??
+          (membership['patient_id'] as num?)?.toInt() ??
+          0,
+      points:
+          (json['points'] as num?)?.toInt() ??
+          (pointsBalance as num?)?.toInt() ??
+          0,
+      currencyValue:
+          (json['currencyValue'] as num?)?.toDouble() ??
+          (json['currency_value'] as num?)?.toDouble() ??
+          0,
+      tier:
+          json['tier'] as String? ??
+          membership['tier'] as String? ??
+          membership['name'] as String? ??
+          'Classic',
       nextTierName: json['nextTierName'] as String?,
       pointsToNextTier: (json['pointsToNextTier'] as num?)?.toInt() ?? 0,
       progressPercent: (json['progressPercent'] as num?)?.toInt() ?? 0,
@@ -1580,6 +1611,103 @@ class HealthProfileSnapshot {
       chronicConditions.isNotEmpty ||
       currentMedications.isNotEmpty ||
       allergies.isNotEmpty;
+}
+
+class HealthSnapshot {
+  const HealthSnapshot({
+    this.bmi,
+    this.healthScore,
+    this.riskScore,
+    this.aiSummary,
+    this.generatedAt,
+    this.latestVitals,
+  });
+
+  final double? bmi;
+  final int? healthScore;
+  final int? riskScore;
+  final String? aiSummary;
+  final String? generatedAt;
+  final VitalRecord? latestVitals;
+
+  factory HealthSnapshot.fromJson(Map<String, dynamic> json) {
+    final snapshot = _map(json['snapshot'] ?? json['data'] ?? json);
+    final vitalsRaw = snapshot['latest_vitals'] ?? snapshot['latestVitals'];
+    return HealthSnapshot(
+      bmi: (snapshot['bmi'] as num?)?.toDouble(),
+      healthScore: (snapshot['health_score'] as num?)?.toInt() ??
+          (snapshot['healthScore'] as num?)?.toInt(),
+      riskScore: (snapshot['risk_score'] as num?)?.toInt() ??
+          (snapshot['riskScore'] as num?)?.toInt(),
+      aiSummary:
+          snapshot['ai_summary'] as String? ??
+          snapshot['aiSummary'] as String?,
+      generatedAt:
+          snapshot['generated_at'] as String? ??
+          snapshot['generatedAt'] as String?,
+      latestVitals: vitalsRaw is Map
+          ? VitalRecord.fromJson(_map(vitalsRaw))
+          : null,
+    );
+  }
+}
+
+class AiSuggestionItem {
+  const AiSuggestionItem({
+    required this.id,
+    required this.recommendationType,
+    required this.reason,
+    required this.score,
+    required this.isAccepted,
+    this.itemType,
+    this.itemName,
+    this.labTestId,
+    this.packageId,
+  });
+
+  final int id;
+  final String recommendationType;
+  final String reason;
+  final double score;
+  final bool isAccepted;
+  final String? itemType;
+  final String? itemName;
+  final int? labTestId;
+  final int? packageId;
+
+  bool get isLabTest => itemType == 'lab_test';
+  bool get isLabPackage => itemType == 'lab_package';
+
+  factory AiSuggestionItem.fromJson(Map<String, dynamic> json) {
+    final item = _map(json['item']);
+    final itemType = item['type'] as String?;
+    return AiSuggestionItem(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      recommendationType:
+          json['recommendation_type'] as String? ??
+          json['recommendationType'] as String? ??
+          '',
+      reason: json['reason'] as String? ?? '',
+      score: (json['score'] as num?)?.toDouble() ?? 0,
+      isAccepted:
+          json['is_accepted'] as bool? ?? json['isAccepted'] as bool? ?? false,
+      itemType: itemType,
+      itemName:
+          item['test_name'] as String? ??
+          item['testName'] as String? ??
+          item['package_name'] as String? ??
+          item['packageName'] as String? ??
+          item['name'] as String?,
+      labTestId:
+          (item['lab_test_id'] as num?)?.toInt() ??
+          (item['labTestId'] as num?)?.toInt() ??
+          (item['id'] as num?)?.toInt(),
+      packageId:
+          (item['package_id'] as num?)?.toInt() ??
+          (item['packageId'] as num?)?.toInt() ??
+          (itemType == 'lab_package' ? item['id'] as num? : null)?.toInt(),
+    );
+  }
 }
 
 class PatientDashboard {

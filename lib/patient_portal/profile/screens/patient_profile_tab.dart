@@ -1308,6 +1308,7 @@ class _ProfileTabState extends State<_ProfileTab> {
               barcodeValue: patient.registrationNumber,
             );
         final myClub =
+            portal.myClub ??
             dashboard?.myClub ??
             MyClubSummary(
               patientId: patient.id,

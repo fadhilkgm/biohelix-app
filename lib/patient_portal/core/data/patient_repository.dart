@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/utils/phone_utils.dart';
 import '../models/home_feed_models.dart';
 import '../models/patient_models.dart';
 
@@ -73,6 +75,24 @@ class OtpSession {
 
   final String token;
   final PatientIdentity patient;
+}
+
+class OtpSendResult {
+  const OtpSendResult({this.devOtp, this.message = 'OTP sent successfully'});
+
+  final String? devOtp;
+  final String message;
+
+  factory OtpSendResult.fromJson(Map<String, dynamic> json) {
+    return OtpSendResult(
+      devOtp: json['dev_otp']?.toString(),
+      message:
+          json['message'] as String? ??
+          (json['success'] == true
+              ? 'OTP sent to your WhatsApp'
+              : 'OTP sent successfully'),
+    );
+  }
 }
 
 class PatientAuthSession {
@@ -190,12 +210,20 @@ class PatientRepository {
 
   final ApiClient _apiClient;
 
-  Future<String?> sendOtp({required String phone, String? mrn}) async {
+  Future<OtpSendResult> sendOtp({required String phone, String? mrn}) async {
     final response = await _apiClient.postJson(
       '/auth/otp/send',
-      data: {'phone': phone, 'mrn': mrn},
+      data: {
+        'phone': normalizePatientPhone(phone),
+        if ((mrn ?? '').trim().isNotEmpty) 'mrn': mrn!.trim(),
+      },
     );
-    return response['dev_otp']?.toString();
+    if (response['success'] == false) {
+      throw ApiException(
+        response['message']?.toString() ?? 'Failed to send OTP.',
+      );
+    }
+    return OtpSendResult.fromJson(response);
   }
 
   Future<PatientAuthSession> registerPatient({
@@ -212,7 +240,7 @@ class PatientRepository {
     final response = await _apiClient.postJson(
       '/auth/register',
       data: {
-        'phone': phone.trim(),
+        'phone': normalizePatientPhone(phone),
         'password': password,
         'password_confirmation': passwordConfirmation,
         'first_name': firstName.trim(),
@@ -226,8 +254,16 @@ class PatientRepository {
       },
     );
 
+    return _authSessionFromResponse(response);
+  }
+
+  PatientAuthSession _authSessionFromResponse(Map<String, dynamic> response) {
+    final token = response['token'] as String? ?? '';
+    if (token.trim().isEmpty) {
+      throw ApiException('Authentication token missing from server response.');
+    }
     return PatientAuthSession(
-      token: response['token'] as String? ?? '',
+      token: token,
       patient: PatientIdentity.fromJson(_map(response['patient'])),
     );
   }
@@ -238,26 +274,37 @@ class PatientRepository {
   }) async {
     final response = await _apiClient.postJson(
       '/auth/login',
-      data: {'phone': phone.trim(), 'password': password},
+      data: {'phone': normalizePatientPhone(phone), 'password': password},
     );
 
-    return PatientAuthSession(
-      token: response['token'] as String? ?? '',
-      patient: PatientIdentity.fromJson(_map(response['patient'])),
-    );
+    return _authSessionFromResponse(response);
   }
 
-  Future<String?> signUp({
+  Future<OtpSendResult> signUp({
     required String phone,
     required String name,
     required String dob,
     required String place,
+    String? email,
+    String? gender,
   }) async {
     final response = await _apiClient.postJson(
       '/auth/signup',
-      data: {'phone': phone, 'name': name, 'dob': dob, 'place': place},
+      data: {
+        'phone': normalizePatientPhone(phone),
+        'name': name.trim(),
+        'dob': dob.trim(),
+        'place': place.trim(),
+        if ((email ?? '').trim().isNotEmpty) 'email': email!.trim(),
+        if ((gender ?? '').trim().isNotEmpty) 'gender': gender!.trim(),
+      },
     );
-    return response['dev_otp']?.toString();
+    if (response['success'] == false) {
+      throw ApiException(
+        response['message']?.toString() ?? 'Failed to send signup OTP.',
+      );
+    }
+    return OtpSendResult.fromJson(response);
   }
 
   Future<OtpSession> verifyOtp({
@@ -266,19 +313,46 @@ class PatientRepository {
   }) async {
     final response = await _apiClient.postJson(
       '/auth/otp/verify',
-      data: {'phone': phone, 'otp': otp},
+      data: {'phone': normalizePatientPhone(phone), 'otp': otp.trim()},
     );
 
+    final token = response['token'] as String? ?? '';
+    if (token.trim().isEmpty) {
+      throw ApiException('Authentication token missing from server response.');
+    }
     return OtpSession(
-      token: response['token'] as String? ?? '',
+      token: token,
       patient: PatientIdentity.fromJson(_map(response['patient'])),
     );
   }
 
   Future<PatientIdentity> getCurrentPatient() async {
+    try {
+      final response = await _apiClient.getJson('/patients/me');
+      final patientJson = response.containsKey('patient')
+          ? _map(response['patient'])
+          : response;
+      if (patientJson.isNotEmpty) {
+        return PatientIdentity.fromJson(patientJson);
+      }
+    } catch (_) {
+      // Fall back to legacy profile endpoint.
+    }
+
     final response = await _apiClient.getJson('/auth/profile');
     return PatientIdentity.fromJson(
       response.containsKey('patient') ? _map(response['patient']) : response,
+    );
+  }
+
+  Future<void> sendVerification() async {
+    await _apiClient.postJson('/auth/verification/send');
+  }
+
+  Future<void> verifyEmailOtp(String otp) async {
+    await _apiClient.postJson(
+      '/auth/verification/otp',
+      data: {'otp': otp.trim()},
     );
   }
 
@@ -453,7 +527,47 @@ class PatientRepository {
 
   Future<MyClubSummary> getMyClub() async {
     final response = await _apiClient.getJson('/patients/me/myclub');
-    return MyClubSummary.fromJson(_map(response['myClub']));
+    if (response.containsKey('myClub')) {
+      return MyClubSummary.fromJson(_map(response['myClub']));
+    }
+    return MyClubSummary.fromJson(_map(response));
+  }
+
+  Future<HealthSnapshot?> getHealthSnapshot() async {
+    final response = await _apiClient.getJson('/patients/me/health-snapshot');
+    final snapshot = HealthSnapshot.fromJson(response);
+    if (snapshot.healthScore == null &&
+        snapshot.bmi == null &&
+        (snapshot.aiSummary ?? '').isEmpty) {
+      return null;
+    }
+    return snapshot;
+  }
+
+  Future<HealthSnapshot> refreshHealthSnapshot() async {
+    final response = await _apiClient.postJson(
+      '/patients/me/health-snapshot/refresh',
+    );
+    return HealthSnapshot.fromJson(response);
+  }
+
+  Future<List<AiSuggestionItem>> getAiSuggestions() async {
+    final response = await _apiClient.getJson('/patients/me/ai-suggestions');
+    final suggestions =
+        response['suggestions'] as List<dynamic>? ??
+        response['data'] as List<dynamic>? ??
+        const [];
+    return suggestions
+        .map((item) => AiSuggestionItem.fromJson(_map(item)))
+        .toList();
+  }
+
+  Future<AiSuggestionItem> acceptAiSuggestion(int suggestionId) async {
+    final response = await _apiClient.patchJson(
+      '/patients/me/ai-suggestions/$suggestionId/accept',
+    );
+    final suggestion = response['suggestion'] ?? response['data'] ?? response;
+    return AiSuggestionItem.fromJson(_map(suggestion));
   }
 
   Future<List<VitalRecord>> getVitalTrend() async {

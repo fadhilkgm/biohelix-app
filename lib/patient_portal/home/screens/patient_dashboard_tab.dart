@@ -94,7 +94,7 @@ class _DashboardTab extends StatelessWidget {
           registrationNumber: dashboard.idCard.registrationNumber,
           membershipTier: dashboard.idCard.membershipTier,
           bloodGroup: dashboard.idCard.bloodGroup,
-          points: dashboard.myClub.points,
+          points: (portal.myClub ?? dashboard.myClub).points,
           banners: portal.homeBanners,
           departments: portal.departments,
           doctors: homeDoctors,
@@ -121,6 +121,9 @@ class _DashboardTab extends StatelessWidget {
           onSeeAllAppointments: () => onNavigate(2),
           onQuickActionTap: quickActionHandler.open,
           isLoading: portal.isLoading,
+          healthSnapshot: portal.healthSnapshot,
+          aiSuggestions: portal.aiSuggestions,
+          onAcceptSuggestion: (id) => portal.acceptAiSuggestion(id),
         );
       },
     );

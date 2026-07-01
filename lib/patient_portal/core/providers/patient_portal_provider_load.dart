@@ -84,6 +84,12 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
       safeLoad<List<HomeOfferItem>>(_repository.getHomeOffers, 'home offers'),
       safeLoad<List<DepartmentItem>>(_repository.getDepartments, 'departments'),
       safeLoad<List<BodyPointItem>>(_repository.getBodyPoints, 'body points'),
+      safeLoad<MyClubSummary>(_repository.getMyClub, 'my club'),
+      safeLoad<HealthSnapshot?>(_repository.getHealthSnapshot, 'health snapshot'),
+      safeLoad<List<AiSuggestionItem>>(
+        _repository.getAiSuggestions,
+        'ai suggestions',
+      ),
     ]);
 
     _dashboard = dashboardResult ?? _buildFallbackDashboard();
@@ -106,6 +112,24 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
     _homeOffers = results[14] as List<HomeOfferItem>? ?? const [];
     _departments = results[15] as List<DepartmentItem>? ?? const [];
     _bodyPoints = results[16] as List<BodyPointItem>? ?? const [];
+    _myClub = results[17] as MyClubSummary?;
+    _healthSnapshot = results[18] as HealthSnapshot?;
+    _aiSuggestions = results[19] as List<AiSuggestionItem>? ?? const [];
+
+    if (_myClub != null && _dashboard != null) {
+      _dashboard = PatientDashboard(
+        patient: _dashboard!.patient,
+        metrics: _dashboard!.metrics,
+        recentBookings: _dashboard!.recentBookings,
+        recentPrescriptions: _dashboard!.recentPrescriptions,
+        recentDocuments: _dashboard!.recentDocuments,
+        recentSummaries: _dashboard!.recentSummaries,
+        idCard: _dashboard!.idCard,
+        myClub: _myClub!,
+        emergencyContacts: _dashboard!.emergencyContacts,
+        latestVitals: _dashboard!.latestVitals,
+      );
+    }
 
     if (_chatThreads.isNotEmpty) {
       if (_activeChatThreadId == null ||

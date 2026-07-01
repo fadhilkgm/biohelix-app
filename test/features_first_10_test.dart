@@ -97,7 +97,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.lastLoginPayload, {
-      'phone': '9998887777',
+      'phone': '+919998887777',
       'password': 'password123',
     });
     expect(session.isAuthenticated, isTrue);
@@ -154,7 +154,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.lastSignupPayload, {
-      'phone': '8887776666',
+      'phone': '+918887776666',
       'password': 'password123',
       'passwordConfirmation': 'password123',
       'firstName': 'New',
@@ -293,7 +293,7 @@ void main() {
     await portal.loadPortal();
 
     await tester.pumpWidget(_shellSubject(session: session, portal: portal));
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Home'), findsWidgets);
     expect(find.text('Reports'), findsOneWidget);
@@ -408,25 +408,29 @@ class _FakePatientRepository extends PatientRepository {
   Map<String, String>? lastLoginPayload;
 
   @override
-  Future<String?> sendOtp({required String phone, String? mrn}) async {
+  Future<OtpSendResult> sendOtp({required String phone, String? mrn}) async {
     lastOtpPhone = phone;
-    return '123456';
+    return const OtpSendResult(devOtp: '123456', message: 'OTP sent to your WhatsApp');
   }
 
   @override
-  Future<String?> signUp({
+  Future<OtpSendResult> signUp({
     required String phone,
     required String name,
     required String dob,
     required String place,
+    String? email,
+    String? gender,
   }) async {
     lastSignupPayload = {
       'phone': phone,
       'name': name,
       'dob': dob,
       'place': place,
+      'email': email ?? '',
+      'gender': gender ?? '',
     };
-    return '123456';
+    return const OtpSendResult(devOtp: '123456', message: 'OTP sent to your WhatsApp');
   }
 
   @override
@@ -545,6 +549,20 @@ class _FakePatientRepository extends PatientRepository {
   Future<List<LabPackageOrderItem>> getLabPackageOrders() async => const [];
   @override
   Future<List<ChatThreadSummary>> getGlobalChatThreads() async => const [];
+  @override
+  Future<List<BodyPointItem>> getBodyPoints() async => const [];
+  @override
+  Future<MyClubSummary> getMyClub() async => MyClubSummary(
+    patientId: patient.id,
+    points: 0,
+    currencyValue: 0,
+    tier: 'Classic',
+    transactions: const [],
+  );
+  @override
+  Future<HealthSnapshot?> getHealthSnapshot() async => null;
+  @override
+  Future<List<AiSuggestionItem>> getAiSuggestions() async => const [];
 }
 
 class _RecordingAdapter implements HttpClientAdapter {

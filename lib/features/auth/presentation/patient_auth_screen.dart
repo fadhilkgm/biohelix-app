@@ -72,9 +72,9 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                         const SizedBox(height: 8),
                         Text(
                           showLoginForm
-                              ? (otpRequested
-                                  ? 'Enter the OTP sent to ${session.pendingPhone} to continue.'
-                                  : 'Sign in with your mobile number to access your records and appointments.')
+                                  ? (otpRequested
+                                      ? 'Enter the WhatsApp OTP sent to ${session.pendingPhone} to continue.'
+                                      : 'Sign in with your mobile number. We will send a WhatsApp OTP.')
                               : 'Track appointments, reports, and prescriptions from one place.',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
@@ -227,7 +227,7 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                                       content: Text(
                                                         showDevOtp
                                                             ? 'OTP sent. Check the dev OTP banner below.'
-                                                            : 'OTP sent successfully.',
+                                                            : 'OTP sent to your WhatsApp.',
                                                       ),
                                                     ),
                                                   );

@@ -2,6 +2,7 @@
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/utils/phone_utils.dart';
 import '../../session/providers/session_provider.dart';
 import 'widgets/auth_form_widgets.dart';
 import 'widgets/otp_input.dart';
@@ -27,13 +28,13 @@ class _OtpPageState extends State<OtpPage> {
 
   Future<void> _resend() async {
     final session = context.read<SessionProvider>();
-    final phone = session.pendingPhone ?? '';
-    if (phone.isEmpty) return;
-    await session.sendOtp(phone: phone);
+    if ((session.pendingPhone ?? '').isEmpty) return;
+    await session.resendPendingOtp();
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('OTP resent')));
+    final message = session.otpStatusMessage ?? 'OTP resent to your WhatsApp';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -71,7 +72,7 @@ class _OtpPageState extends State<OtpPage> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const Text(
-                            'Verify OTP',
+                            'Verify WhatsApp OTP',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 36,
@@ -93,7 +94,7 @@ class _OtpPageState extends State<OtpPage> {
                               ),
                               children: [
                                 const TextSpan(
-                                  text: 'A 6-digit code has been sent to ',
+                                  text: 'A 6-digit code has been sent on WhatsApp to ',
                                 ),
                                 TextSpan(
                                   text: widget.maskedPhone,

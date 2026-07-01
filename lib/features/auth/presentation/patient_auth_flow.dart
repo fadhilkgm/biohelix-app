@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/utils/phone_utils.dart';
 import '../../session/providers/session_provider.dart';
 import 'login_page.dart';
+import 'otp_page.dart';
 
 // Routes between LoginPage and OtpPage based on session state.
-// Shows LoginPage when no OTP is pending; OtpPage after OTP is sent.
 class PatientAuthFlow extends StatefulWidget {
   const PatientAuthFlow({super.key, this.onBackToOnboarding});
 
@@ -20,14 +21,23 @@ class _PatientAuthFlowState extends State<PatientAuthFlow> {
   Widget build(BuildContext context) {
     return Consumer<SessionProvider>(
       builder: (context, session, _) {
+        final pendingPhone = session.pendingPhone?.trim() ?? '';
+        final showOtp = pendingPhone.isNotEmpty;
+
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 260),
           transitionBuilder: (child, animation) =>
               FadeTransition(opacity: animation, child: child),
-          child: LoginPage(
-            key: const ValueKey('login_page'),
-            onBack: widget.onBackToOnboarding,
-          ),
+          child: showOtp
+              ? OtpPage(
+                  key: ValueKey('otp_$pendingPhone'),
+                  maskedPhone: maskPatientPhone(pendingPhone),
+                  onBack: session.cancelPendingOtp,
+                )
+              : LoginPage(
+                  key: const ValueKey('login_page'),
+                  onBack: widget.onBackToOnboarding,
+                ),
         );
       },
     );

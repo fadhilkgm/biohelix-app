@@ -25,6 +25,9 @@ class _DashboardDiscoverySections extends StatelessWidget {
     required this.onSeeAllAppointments,
     required this.onQuickActionTap,
     this.isLoading = false,
+    this.healthSnapshot,
+    this.aiSuggestions = const [],
+    this.onAcceptSuggestion,
   });
 
   final String patientName;
@@ -50,6 +53,9 @@ class _DashboardDiscoverySections extends StatelessWidget {
   final VoidCallback onSeeAllAppointments;
   final ValueChanged<String> onQuickActionTap;
   final bool isLoading;
+  final HealthSnapshot? healthSnapshot;
+  final List<AiSuggestionItem> aiSuggestions;
+  final Future<void> Function(int suggestionId)? onAcceptSuggestion;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +98,9 @@ class _DashboardDiscoverySections extends StatelessWidget {
       onViewAllLabTests: onViewAllLabTests,
       onViewAllPackages: onViewAllPackages,
       onSeeAllAppointments: onSeeAllAppointments,
+      healthSnapshot: healthSnapshot,
+      aiSuggestions: aiSuggestions,
+      onAcceptSuggestion: onAcceptSuggestion,
     );
   }
 }

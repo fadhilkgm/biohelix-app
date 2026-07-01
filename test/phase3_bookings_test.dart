@@ -317,6 +317,62 @@ void main() {
     expect(doctorBooking.isDoctorAppointment, isTrue);
     expect(labBooking.isDoctorAppointment, isFalse);
   });
+
+  test('SummaryRecord maps API title and createdAt fields', () {
+    final summary = SummaryRecord.fromJson({
+      'id': 3,
+      'title': 'Cardiology follow-up',
+      'createdAt': '2026-06-20',
+      'summary': 'Stable condition.',
+    });
+
+    expect(summary.type, 'Cardiology follow-up');
+    expect(summary.date, '2026-06-20');
+  });
+
+  test('MyClubSummary parses flat pointsBalance response', () {
+    final club = MyClubSummary.fromJson({
+      'membership': {'tier': 'Gold'},
+      'pointsBalance': 420,
+      'plans': [],
+    });
+
+    expect(club.points, 420);
+    expect(club.tier, 'Gold');
+  });
+
+  test('HealthSnapshot parses snake_case payload', () {
+    final snapshot = HealthSnapshot.fromJson({
+      'health_score': 82,
+      'risk_score': 18,
+      'bmi': 24.2,
+      'ai_summary': 'Looking good.',
+      'generated_at': '2026-06-30T10:00:00Z',
+    });
+
+    expect(snapshot.healthScore, 82);
+    expect(snapshot.riskScore, 18);
+    expect(snapshot.bmi, closeTo(24.2, 0.01));
+  });
+
+  test('AiSuggestionItem parses recommendation payload', () {
+    final item = AiSuggestionItem.fromJson({
+      'id': 9,
+      'recommendation_type': 'preventive_screening',
+      'reason': 'Based on your profile',
+      'score': 0.91,
+      'is_accepted': false,
+      'item': {
+        'type': 'lab_test',
+        'id': 12,
+        'test_name': 'Lipid Profile',
+      },
+    });
+
+    expect(item.isLabTest, isTrue);
+    expect(item.itemName, 'Lipid Profile');
+    expect(item.labTestId, 12);
+  });
 }
 
 PatientRepository _repository(_BookingAdapter adapter) {

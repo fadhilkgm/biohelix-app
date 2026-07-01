@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/auth_storage.dart';
+import '../../../core/utils/phone_utils.dart';
 import '../../../patient_portal/core/data/patient_repository.dart';
 import '../../../patient_portal/core/models/patient_models.dart';
 
@@ -34,7 +35,13 @@ class SessionProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _pendingPhone;
   String? _pendingMrn;
+  String? _pendingSignupName;
+  String? _pendingSignupDob;
+  String? _pendingSignupPlace;
+  String? _pendingSignupEmail;
+  String? _pendingSignupGender;
   String? _devOtp;
+  String? _otpStatusMessage;
   List<SavedPatientProfile> _familyProfiles = const [];
 
   SessionState get state => _state;
@@ -44,6 +51,8 @@ class SessionProvider extends ChangeNotifier {
   String? get pendingPhone => _pendingPhone;
   String? get pendingMrn => _pendingMrn;
   String? get devOtp => _devOtp;
+  String? get otpStatusMessage => _otpStatusMessage;
+  bool get isPendingSignupOtp => (_pendingSignupName ?? '').isNotEmpty;
   List<SavedPatientProfile> get familyProfiles =>
       List.unmodifiable(_familyProfiles);
 
@@ -91,26 +100,29 @@ class SessionProvider extends ChangeNotifier {
 
   Future<void> sendOtp({required String phone, String? mrn}) async {
     final wasAuthenticated = isAuthenticated;
-    final normalizedPhone = phone.trim();
+    final normalizedPhone = normalizePatientPhone(phone);
     final normalizedMrn = (mrn ?? '').trim();
     if (normalizedPhone.isEmpty) {
       _errorMessage = 'Enter a valid mobile number.';
       notifyListeners();
       return;
     }
-    // MRN is now optional, so no mandatory check here
 
     _state = SessionState.sendingOtp;
     _errorMessage = null;
+    _otpStatusMessage = null;
     notifyListeners();
 
     try {
-      _devOtp = await _patientRepository.sendOtp(
+      final result = await _patientRepository.sendOtp(
         phone: normalizedPhone,
-        mrn: normalizedMrn,
+        mrn: normalizedMrn.isEmpty ? null : normalizedMrn,
       );
+      _devOtp = result.devOtp;
+      _otpStatusMessage = result.message;
       _pendingPhone = normalizedPhone;
-      _pendingMrn = normalizedMrn;
+      _pendingMrn = normalizedMrn.isEmpty ? null : normalizedMrn;
+      _clearPendingSignupDetails();
       _state = wasAuthenticated
           ? SessionState.signedIn
           : SessionState.signedOut;
@@ -129,18 +141,104 @@ class SessionProvider extends ChangeNotifier {
     required String name,
     required String dob,
     required String place,
+    String? email,
+    String? gender,
   }) async {
-    await register(
-      phone: phone,
-      password: place,
-      passwordConfirmation: place,
-      fullName: name,
-      dateOfBirth: dob,
-    );
+    final normalizedPhone = normalizePatientPhone(phone);
+    if (normalizedPhone.isEmpty || name.trim().isEmpty || place.trim().isEmpty) {
+      _errorMessage = 'Enter your name, mobile number, and location.';
+      notifyListeners();
+      return;
+    }
+
+    _state = SessionState.sendingOtp;
+    _errorMessage = null;
+    _otpStatusMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _patientRepository.signUp(
+        phone: normalizedPhone,
+        name: name.trim(),
+        dob: dob.trim(),
+        place: place.trim(),
+        email: email,
+        gender: gender,
+      );
+      _devOtp = result.devOtp;
+      _otpStatusMessage = result.message;
+      _pendingPhone = normalizedPhone;
+      _pendingMrn = null;
+      _pendingSignupName = name.trim();
+      _pendingSignupDob = dob.trim();
+      _pendingSignupPlace = place.trim();
+      _pendingSignupEmail = email?.trim();
+      _pendingSignupGender = gender?.trim();
+      _state = SessionState.signedOut;
+    } catch (error) {
+      _errorMessage = error.toString();
+      _state = SessionState.signedOut;
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> resendPendingOtp() async {
+    final phone = _pendingPhone;
+    if ((phone ?? '').isEmpty) {
+      _errorMessage = 'Request an OTP first.';
+      notifyListeners();
+      return;
+    }
+
+    if (isPendingSignupOtp) {
+      await signUp(
+        phone: phone!,
+        name: _pendingSignupName!,
+        dob: _pendingSignupDob ?? '',
+        place: _pendingSignupPlace!,
+        email: _pendingSignupEmail,
+        gender: _pendingSignupGender,
+      );
+      return;
+    }
+
+    await sendOtp(phone: phone!, mrn: _pendingMrn);
+  }
+
+  Future<void> sendVerification() async {
+    if (!isAuthenticated) return;
+
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _patientRepository.sendVerification();
+    } catch (error) {
+      _errorMessage = error.toString();
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> verifyEmailOtp(String otp) async {
+    if (!isAuthenticated) return;
+
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _patientRepository.verifyEmailOtp(otp);
+      await refreshPatient();
+    } catch (error) {
+      _errorMessage = error.toString();
+    }
+
+    notifyListeners();
   }
 
   Future<void> login({required String phone, required String password}) async {
-    final normalizedPhone = phone.trim();
+    final normalizedPhone = normalizePatientPhone(phone);
     if (normalizedPhone.isEmpty || password.isEmpty) {
       _errorMessage = 'Enter your phone number and password.';
       notifyListeners();
@@ -175,7 +273,7 @@ class SessionProvider extends ChangeNotifier {
     String? dateOfBirth,
     String? bloodGroup,
   }) async {
-    final normalizedPhone = phone.trim();
+    final normalizedPhone = normalizePatientPhone(phone);
     final normalizedName = fullName.trim();
     if (normalizedPhone.isEmpty ||
         password.isEmpty ||
@@ -224,8 +322,18 @@ class SessionProvider extends ChangeNotifier {
     _pendingPhone = null;
     _pendingMrn = null;
     _devOtp = null;
+    _otpStatusMessage = null;
     _errorMessage = null;
+    _clearPendingSignupDetails();
     notifyListeners();
+  }
+
+  void _clearPendingSignupDetails() {
+    _pendingSignupName = null;
+    _pendingSignupDob = null;
+    _pendingSignupPlace = null;
+    _pendingSignupEmail = null;
+    _pendingSignupGender = null;
   }
 
   Future<void> verifyOtp({required String otp}) async {
@@ -252,8 +360,10 @@ class SessionProvider extends ChangeNotifier {
       await _saveFamilyProfile(token: session.token, patient: _patient!);
       _state = SessionState.signedIn;
       _devOtp = null;
+      _otpStatusMessage = null;
       _pendingPhone = null;
       _pendingMrn = null;
+      _clearPendingSignupDetails();
     } catch (error) {
       if (!isAuthenticated) {
         _apiClient.updateAuthToken(null);
@@ -354,6 +464,8 @@ class SessionProvider extends ChangeNotifier {
     _pendingPhone = null;
     _pendingMrn = null;
     _devOtp = null;
+    _otpStatusMessage = null;
+    _clearPendingSignupDetails();
     _state = SessionState.signedOut;
     notifyListeners();
   }
@@ -366,8 +478,10 @@ class SessionProvider extends ChangeNotifier {
     await _saveFamilyProfile(token: session.token, patient: _patient!);
     _state = SessionState.signedIn;
     _devOtp = null;
+    _otpStatusMessage = null;
     _pendingPhone = null;
     _pendingMrn = null;
+    _clearPendingSignupDetails();
   }
 
   Future<bool> _recoverFromStoredProfiles() async {
