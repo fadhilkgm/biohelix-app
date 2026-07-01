@@ -50,7 +50,14 @@ class _RecordsTabState extends State<_RecordsTab> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid report link.')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppStrings.of(context.read<LanguageProvider>().language)
+                .invalidReportLink,
+          ),
+        ),
+      );
       return;
     }
 
@@ -58,7 +65,14 @@ class _RecordsTabState extends State<_RecordsTab> {
     if (!opened && mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Could not open report.')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppStrings.of(context.read<LanguageProvider>().language)
+                .couldNotOpenReport,
+          ),
+        ),
+      );
     }
   }
 
@@ -805,7 +819,9 @@ class _PrescriptionDetailSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                 ),
               ),
-              child: const Text('Close'),
+              child: Text(
+                AppStrings.of(context.read<LanguageProvider>().language).close,
+              ),
             ),
           ),
         ],
@@ -1020,7 +1036,9 @@ class _RecordDetailSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                 ),
               ),
-              child: const Text('Close'),
+              child: Text(
+                AppStrings.of(context.read<LanguageProvider>().language).close,
+              ),
             ),
           ),
         ],

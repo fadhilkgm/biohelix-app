@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../design/app_colors.dart';
 import '../design/app_spacing.dart';
 import '../design/app_text_styles.dart';
@@ -10,16 +13,18 @@ class SectionHeaderWidget extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onViewAll,
-    this.viewAllLabel = 'View all',
+    this.viewAllLabel,
   });
 
   final String title;
   final String subtitle;
   final VoidCallback onViewAll;
-  final String viewAllLabel;
+  final String? viewAllLabel;
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
+    final label = viewAllLabel ?? strings.viewAll;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
@@ -48,7 +53,7 @@ class SectionHeaderWidget extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    viewAllLabel,
+                    label,
                     style: AppTextStyles.subText(context).copyWith(
                       color: AppColors.secondary,
                       fontWeight: FontWeight.w700,

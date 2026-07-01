@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../models/lab_booking_models.dart';
 import '../state/lab_booking_controller.dart';
 import '../widgets/address_card_widget.dart';
@@ -13,6 +15,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<LabBookingController>();
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -49,7 +52,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
                   TextButton.icon(
                     onPressed: () => _showAddPatientDialog(context, c),
                     icon: const Icon(Icons.add_circle_outline, size: 18),
-                    label: const Text('Add New'),
+                    label: Text(strings.addNew),
                   ),
                 ],
               ),
@@ -189,7 +192,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
                     TextButton.icon(
                       onPressed: () => _showAddAddressDialog(context, c),
                       icon: const Icon(Icons.add_circle_outline, size: 18),
-                      label: const Text('Add New'),
+                      label: Text(strings.addNew),
                     ),
                   ],
                 ),
@@ -261,6 +264,8 @@ class CheckoutDetailsScreen extends StatelessWidget {
   }
 
   Future<void> _showAddPatientDialog(BuildContext context, LabBookingController c) async {
+    final strings = AppStrings.of(context.read<LanguageProvider>().language);
+    final genderLabels = strings.genderOptions;
     final name = TextEditingController();
     final age = TextEditingController();
     String gender = 'Male';
@@ -268,7 +273,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Add New Patient'),
+        title: Text(strings.addNewPatient),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -285,11 +290,11 @@ class CheckoutDetailsScreen extends StatelessWidget {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: gender,
-              decoration: const InputDecoration(labelText: 'Gender'),
-              items: const [
-                DropdownMenuItem(value: 'Male', child: Text('Male')),
-                DropdownMenuItem(value: 'Female', child: Text('Female')),
-                DropdownMenuItem(value: 'Other', child: Text('Other')),
+              decoration: InputDecoration(labelText: strings.gender),
+              items: [
+                DropdownMenuItem(value: 'Male', child: Text(genderLabels[1])),
+                DropdownMenuItem(value: 'Female', child: Text(genderLabels[0])),
+                DropdownMenuItem(value: 'Other', child: Text(genderLabels[2])),
               ],
               onChanged: (v) => gender = v ?? 'Male',
             ),
@@ -298,7 +303,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(strings.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -308,7 +313,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
               }
               Navigator.pop(context);
             },
-            child: const Text('Save'),
+            child: Text(strings.save),
           ),
         ],
       ),
@@ -316,13 +321,14 @@ class CheckoutDetailsScreen extends StatelessWidget {
   }
 
   Future<void> _showAddAddressDialog(BuildContext context, LabBookingController c) async {
+    final strings = AppStrings.of(context.read<LanguageProvider>().language);
     final label = TextEditingController();
     final address = TextEditingController();
     await showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Add Address'),
+        title: Text(strings.addAddress),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -340,7 +346,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(strings.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -349,7 +355,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
               }
               Navigator.pop(context);
             },
-            child: const Text('Save'),
+            child: Text(strings.save),
           ),
         ],
       ),

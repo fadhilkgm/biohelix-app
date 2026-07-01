@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/widgets/app_logo.dart';
 import '../../session/providers/session_provider.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
@@ -57,11 +58,7 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Icon(
-                          Icons.local_hospital_rounded,
-                          size: 44,
-                          color: theme.colorScheme.primary,
-                        ),
+                        const AppLogo(size: 56),
                         const SizedBox(height: 16),
                         Text(
                           'Welcome to BioHelix',

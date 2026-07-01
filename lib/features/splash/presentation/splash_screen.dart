@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_logo.dart';
 import '../../home/presentation/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -144,15 +145,9 @@ class _SplashScreenState extends State<SplashScreen>
                             scale: _logoScale,
                             child: FadeTransition(
                               opacity: _logoOpacity,
-                              child: SizedBox(
+                              child: const AppLogo(
                                 width: 160,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: Image.asset(
-                                    'assets/images/bhrc-logo.jpg',
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
+                                borderRadius: 20,
                               ),
                             ),
                           ),

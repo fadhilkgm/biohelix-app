@@ -35,6 +35,9 @@ extension _BookingsTabSheetActions on _BookingsTab {
             ),
             child: StatefulBuilder(
               builder: (context, setState) {
+                final strings = AppStrings.of(
+                  context.read<LanguageProvider>().language,
+                );
                 return SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -87,7 +90,7 @@ extension _BookingsTabSheetActions on _BookingsTab {
                       const SizedBox(height: 12),
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Preferred date'),
+                        title: Text(strings.preferredDate),
                         subtitle: Text(
                           DateFormat(
                             'dd MMM yyyy',
@@ -132,12 +135,15 @@ extension _BookingsTabSheetActions on _BookingsTab {
                       ),
                       const SizedBox(height: 12),
                       SegmentedButton<String>(
-                        segments: const [
+                        segments: [
                           ButtonSegment(
                             value: 'routine',
-                            label: Text('Routine'),
+                            label: Text(strings.routine),
                           ),
-                          ButtonSegment(value: 'urgent', label: Text('Urgent')),
+                          ButtonSegment(
+                            value: 'urgent',
+                            label: Text(strings.urgent),
+                          ),
                         ],
                         selected: {urgency},
                         onSelectionChanged: (value) {

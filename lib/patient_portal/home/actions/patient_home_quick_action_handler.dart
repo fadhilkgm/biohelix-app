@@ -65,7 +65,12 @@ class _HomeQuickActionHandler {
         return;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unknown quick action: $actionId')),
+          SnackBar(
+            content: Text(
+              AppStrings.of(context.read<LanguageProvider>().language)
+                  .unknownQuickAction(actionId),
+            ),
+          ),
         );
     }
   }

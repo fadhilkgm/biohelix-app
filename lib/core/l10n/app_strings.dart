@@ -111,6 +111,107 @@ abstract class LocalizedStrings {
   String assistantUploadPending(String fileName);
   String assistantUploadedReady(String fileName);
   List<String> get assistantStarterPrompts;
+
+  // OTP
+  String get otpVerifyTitle;
+  String get otpSentPrefix;
+  String get otpEnterLabel;
+  String get otpVerifyButton;
+  String get otpDidntReceive;
+  String get otpResend;
+  String get otpDevLabel;
+  String get otpResentDefault;
+
+  // Navigation
+  String get navHome;
+  String get navReports;
+  String get navBookings;
+  String get navCheckup;
+  String get navProfile;
+
+  // App shell
+  String get exitAppTitle;
+  String get exitAppMessage;
+  String get stay;
+  String get exitApp;
+  String get testsTitle;
+
+  // Common actions
+  String get save;
+  String get delete;
+  String get close;
+  String get add;
+  String get openLabel;
+  String get switchProfile;
+  String get active;
+  String get accept;
+  String get back;
+
+  // Bookings
+  String get appointmentCancelled;
+  String get labBookingCancelled;
+  String get packageBookingCancelled;
+  String get doctorInfoMissing;
+  String get selectTimeSlot;
+  String get appointmentRescheduled;
+  String get labTestRescheduled;
+  String get packageRescheduled;
+  String get preferredDate;
+  String get routine;
+  String get urgent;
+
+  // Profile & reports
+  String get reportPreviewUnavailable;
+  String get couldNotPreviewImage;
+  String get deleteReportTitle;
+  String get reportDeleted;
+  String get familyMemberAdded;
+  String get profileUpdated;
+  String get vitalsSaved;
+  String get noUploadedReports;
+  String get invalidReportLink;
+  String get couldNotOpenReport;
+
+  // Health profile
+  String get healthProfileSaved;
+  String couldNotSave(String error);
+
+  // Home & discovery
+  String get noDoctorsInDepartment;
+  String couldNotStartCall(String number);
+
+  // Labs & tests
+  String get noLabTestsAvailable;
+  String get noTestsFoundForFilters;
+  String get viewHealthPackages;
+  String get noRecordsFound;
+
+  // Lab booking
+  String get addNew;
+  String get addNewPatient;
+  String get addAddress;
+
+  // Loyalty
+  String get rewardsWallet;
+  String tierLabel(String tier);
+
+  // Quick actions
+  String get aiPackageDesign;
+  String get browsePackages;
+  String bookAmount(String amount);
+  String unknownQuickAction(String actionId);
+
+  // AI checkup
+  String couldNotLoadResult(String error);
+  String analysisFailed(String error);
+
+  // Emergency
+  String couldNotStartCallTo(String phoneNumber);
+
+  // Errors & dates
+  String errorWithMessage(String error);
+  String get today;
+  String get yesterday;
 }
 
 class _EnStrings extends LocalizedStrings {
@@ -332,6 +433,188 @@ class _EnStrings extends LocalizedStrings {
     'What tests should I consider?',
     'Help me book a health package',
   ];
+
+  // OTP
+  @override
+  String get otpVerifyTitle => 'Verify WhatsApp OTP';
+  @override
+  String get otpSentPrefix =>
+      'A 6-digit code has been sent on WhatsApp to ';
+  @override
+  String get otpEnterLabel => 'ENTER OTP';
+  @override
+  String get otpVerifyButton => 'Verify OTP';
+  @override
+  String get otpDidntReceive => "Didn't receive? ";
+  @override
+  String get otpResend => 'Resend OTP';
+  @override
+  String get otpDevLabel => 'DEVELOPMENT OTP';
+  @override
+  String get otpResentDefault => 'OTP resent to your WhatsApp';
+
+  // Navigation
+  @override
+  String get navHome => 'Home';
+  @override
+  String get navReports => 'Reports';
+  @override
+  String get navBookings => 'Bookings';
+  @override
+  String get navCheckup => 'Checkup';
+  @override
+  String get navProfile => 'Profile';
+
+  // App shell
+  @override
+  String get exitAppTitle => 'Exit BioHelix?';
+  @override
+  String get exitAppMessage =>
+      'Press Stay to keep using the app, or Exit to close it.';
+  @override
+  String get stay => 'Stay';
+  @override
+  String get exitApp => 'Exit';
+  @override
+  String get testsTitle => 'Tests';
+
+  // Common actions
+  @override
+  String get save => 'Save';
+  @override
+  String get delete => 'Delete';
+  @override
+  String get close => 'Close';
+  @override
+  String get add => 'Add';
+  @override
+  String get openLabel => 'Open';
+  @override
+  String get switchProfile => 'Switch';
+  @override
+  String get active => 'Active';
+  @override
+  String get accept => 'Accept';
+  @override
+  String get back => 'Back';
+
+  // Bookings
+  @override
+  String get appointmentCancelled => 'Appointment cancelled.';
+  @override
+  String get labBookingCancelled => 'Lab booking cancelled.';
+  @override
+  String get packageBookingCancelled => 'Package booking cancelled.';
+  @override
+  String get doctorInfoMissing =>
+      'Doctor information is missing. Please refresh.';
+  @override
+  String get selectTimeSlot => 'Please select a time slot.';
+  @override
+  String get appointmentRescheduled =>
+      'Appointment rescheduled successfully.';
+  @override
+  String get labTestRescheduled => 'Lab test rescheduled successfully.';
+  @override
+  String get packageRescheduled =>
+      'Package rescheduled successfully.';
+  @override
+  String get preferredDate => 'Preferred date';
+  @override
+  String get routine => 'Routine';
+  @override
+  String get urgent => 'Urgent';
+
+  // Profile & reports
+  @override
+  String get reportPreviewUnavailable => 'Report preview unavailable.';
+  @override
+  String get couldNotPreviewImage => 'Could not preview this image.';
+  @override
+  String get deleteReportTitle => 'Delete report';
+  @override
+  String get reportDeleted => 'Report deleted.';
+  @override
+  String get familyMemberAdded => 'Family member added and switched.';
+  @override
+  String get profileUpdated => 'Profile updated.';
+  @override
+  String get vitalsSaved => 'Vitals saved.';
+  @override
+  String get noUploadedReports => 'No uploaded reports yet.';
+  @override
+  String get invalidReportLink => 'Invalid report link.';
+  @override
+  String get couldNotOpenReport => 'Could not open report.';
+
+  // Health profile
+  @override
+  String get healthProfileSaved => 'Health profile saved.';
+  @override
+  String couldNotSave(String error) => 'Could not save: $error';
+
+  // Home & discovery
+  @override
+  String get noDoctorsInDepartment =>
+      'No doctors found in this department.';
+  @override
+  String couldNotStartCall(String number) =>
+      'Could not start a call to $number';
+
+  // Labs & tests
+  @override
+  String get noLabTestsAvailable => 'No lab tests are available right now.';
+  @override
+  String get noTestsFoundForFilters =>
+      'No tests found for the selected filters.';
+  @override
+  String get viewHealthPackages => 'View health packages';
+  @override
+  String get noRecordsFound => 'No records found.';
+
+  // Lab booking
+  @override
+  String get addNew => 'Add New';
+  @override
+  String get addNewPatient => 'Add New Patient';
+  @override
+  String get addAddress => 'Add Address';
+
+  // Loyalty
+  @override
+  String get rewardsWallet => 'Rewards Wallet';
+  @override
+  String tierLabel(String tier) => 'Tier: $tier';
+
+  // Quick actions
+  @override
+  String get aiPackageDesign => 'AI Package Design';
+  @override
+  String get browsePackages => 'Browse packages';
+  @override
+  String bookAmount(String amount) => 'Book ₹$amount';
+  @override
+  String unknownQuickAction(String actionId) =>
+      'Unknown quick action: $actionId';
+
+  // AI checkup
+  @override
+  String couldNotLoadResult(String error) => 'Could not load result: $error';
+  @override
+  String analysisFailed(String error) => 'Analysis failed: $error';
+
+  // Emergency
+  @override
+  String couldNotStartCallTo(String phoneNumber) =>
+      'Could not start a call to $phoneNumber.';
+
+  // Errors & dates
+  @override
+  String errorWithMessage(String error) => 'Error: $error';
+  @override
+  String get today => 'Today';
+  @override
+  String get yesterday => 'Yesterday';
 }
 
 class _MlStrings extends LocalizedStrings {
@@ -557,4 +840,190 @@ class _MlStrings extends LocalizedStrings {
     'എന്തെല്ലാം ടെസ്റ്റുകൾ പരിഗണിക്കണം?',
     'ഒരു ഹെൽത്ത് പാക്കേജ് ബുക്ക് ചെയ്യാൻ സഹായിക്കൂ',
   ];
+
+  // OTP
+  @override
+  String get otpVerifyTitle => 'വാട്സ്ആപ്പ് OTP സ്ഥിരീകരിക്കുക';
+  @override
+  String get otpSentPrefix =>
+      'വാട്സ്ആപ്പിലേക്ക് 6 അക്ക കോഡ് അയച്ചിട്ടുണ്ട് ';
+  @override
+  String get otpEnterLabel => 'OTP നൽകുക';
+  @override
+  String get otpVerifyButton => 'OTP സ്ഥിരീകരിക്കുക';
+  @override
+  String get otpDidntReceive => 'ലഭിച്ചില്ലേ? ';
+  @override
+  String get otpResend => 'OTP വീണ്ടും അയയ്ക്കുക';
+  @override
+  String get otpDevLabel => 'ഡെവലപ്മെന്റ് OTP';
+  @override
+  String get otpResentDefault => 'OTP നിങ്ങളുടെ വാട്സ്ആപ്പിലേക്ക് വീണ്ടും അയച്ചു';
+
+  // Navigation
+  @override
+  String get navHome => 'ഹോം';
+  @override
+  String get navReports => 'റിപ്പോർട്ടുകൾ';
+  @override
+  String get navBookings => 'ബുക്കിംഗുകൾ';
+  @override
+  String get navCheckup => 'ചെക്കപ്പ്';
+  @override
+  String get navProfile => 'പ്രൊഫൈൽ';
+
+  // App shell
+  @override
+  String get exitAppTitle => 'ബയോഹെലിക്സ് അടയ്ക്കണോ?';
+  @override
+  String get exitAppMessage =>
+      'ആപ്പ് തുടരാൻ Stay അമർത്തുക, അടയ്ക്കാൻ Exit അമർത്തുക.';
+  @override
+  String get stay => 'തുടരുക';
+  @override
+  String get exitApp => 'അടയ്ക്കുക';
+  @override
+  String get testsTitle => 'ടെസ്റ്റുകൾ';
+
+  // Common actions
+  @override
+  String get save => 'സേവ്';
+  @override
+  String get delete => 'ഇല്ലാതാക്കുക';
+  @override
+  String get close => 'അടയ്ക്കുക';
+  @override
+  String get add => 'ചേർക്കുക';
+  @override
+  String get openLabel => 'തുറക്കുക';
+  @override
+  String get switchProfile => 'മാറ്റുക';
+  @override
+  String get active => 'സജീവം';
+  @override
+  String get accept => 'സ്വീകരിക്കുക';
+  @override
+  String get back => 'പിന്നോട്ട്';
+
+  // Bookings
+  @override
+  String get appointmentCancelled => 'അപ്പോയിന്റ്മെന്റ് റദ്ദാക്കി.';
+  @override
+  String get labBookingCancelled => 'ലാബ് ബുക്കിംഗ് റദ്ദാക്കി.';
+  @override
+  String get packageBookingCancelled => 'പാക്കേജ് ബുക്കിംഗ് റദ്ദാക്കി.';
+  @override
+  String get doctorInfoMissing =>
+      'ഡോക്ടർ വിവരങ്ങൾ ലഭ്യമല്ല. ദയവായി റിഫ്രഷ് ചെയ്യുക.';
+  @override
+  String get selectTimeSlot => 'ദയവായി ഒരു സമയ സ്ലോട്ട് തിരഞ്ഞെടുക്കുക.';
+  @override
+  String get appointmentRescheduled =>
+      'അപ്പോയിന്റ്മെന്റ് വിജയകരമായി പുനഃക്രമീകരിച്ചു.';
+  @override
+  String get labTestRescheduled =>
+      'ലാബ് ടെസ്റ്റ് വിജയകരമായി പുനഃക്രമീകരിച്ചു.';
+  @override
+  String get packageRescheduled =>
+      'പാക്കേജ് വിജയകരമായി പുനഃക്രമീകരിച്ചു.';
+  @override
+  String get preferredDate => 'തിരഞ്ഞെടുത്ത തീയതി';
+  @override
+  String get routine => 'സാധാരണ';
+  @override
+  String get urgent => 'അടിയന്തര';
+
+  // Profile & reports
+  @override
+  String get reportPreviewUnavailable => 'റിപ്പോർട്ട് പ്രിവ്യൂ ലഭ്യമല്ല.';
+  @override
+  String get couldNotPreviewImage => 'ഈ ചിത്രം പ്രിവ്യൂ ചെയ്യാൻ കഴിഞ്ഞില്ല.';
+  @override
+  String get deleteReportTitle => 'റിപ്പോർട്ട് ഇല്ലാതാക്കുക';
+  @override
+  String get reportDeleted => 'റിപ്പോർട്ട് ഇല്ലാതാക്കി.';
+  @override
+  String get familyMemberAdded =>
+      'കുടുംബാംഗത്തെ ചേർത്ത് മാറ്റി.';
+  @override
+  String get profileUpdated => 'പ്രൊഫൈൽ അപ്ഡേറ്റ് ചെയ്തു.';
+  @override
+  String get vitalsSaved => 'വൈറ്റൽസ് സേവ് ചെയ്തു.';
+  @override
+  String get noUploadedReports => 'അപ്ലോഡ് ചെയ്ത റിപ്പോർട്ടുകൾ ഇല്ല.';
+  @override
+  String get invalidReportLink => 'അസാധുവായ റിപ്പോർട്ട് ലിങ്ക്.';
+  @override
+  String get couldNotOpenReport => 'റിപ്പോർട്ട് തുറക്കാൻ കഴിഞ്ഞില്ല.';
+
+  // Health profile
+  @override
+  String get healthProfileSaved => 'ആരോഗ്യ പ്രൊഫൈൽ സേവ് ചെയ്തു.';
+  @override
+  String couldNotSave(String error) => 'സേവ് ചെയ്യാൻ കഴിഞ്ഞില്ല: $error';
+
+  // Home & discovery
+  @override
+  String get noDoctorsInDepartment =>
+      'ഈ വിഭാഗത്തിൽ ഡോക്ടർമാരെ കണ്ടെത്തിയില്ല.';
+  @override
+  String couldNotStartCall(String number) =>
+      '$number എന്ന നമ്പറിലേക്ക് കോൾ ആരംഭിക്കാൻ കഴിഞ്ഞില്ല';
+
+  // Labs & tests
+  @override
+  String get noLabTestsAvailable =>
+      'ഇപ്പോൾ ലാബ് ടെസ്റ്റുകൾ ലഭ്യമല്ല.';
+  @override
+  String get noTestsFoundForFilters =>
+      'തിരഞ്ഞെടുത്ത ഫിൽട്ടറുകൾക്ക് ടെസ്റ്റുകൾ കണ്ടെത്തിയില്ല.';
+  @override
+  String get viewHealthPackages => 'ഹെൽത്ത് പാക്കേജുകൾ കാണുക';
+  @override
+  String get noRecordsFound => 'റെക്കോർഡുകൾ കണ്ടെത്തിയില്ല.';
+
+  // Lab booking
+  @override
+  String get addNew => 'പുതിയത് ചേർക്കുക';
+  @override
+  String get addNewPatient => 'പുതിയ രോഗിയെ ചേർക്കുക';
+  @override
+  String get addAddress => 'വിലാസം ചേർക്കുക';
+
+  // Loyalty
+  @override
+  String get rewardsWallet => 'റിവാർഡ്സ് വാലറ്റ്';
+  @override
+  String tierLabel(String tier) => 'ടിയർ: $tier';
+
+  // Quick actions
+  @override
+  String get aiPackageDesign => 'AI പാക്കേജ് ഡിസൈൻ';
+  @override
+  String get browsePackages => 'പാക്കേജുകൾ ബ്രൗസ് ചെയ്യുക';
+  @override
+  String bookAmount(String amount) => 'ബുക്ക് ₹$amount';
+  @override
+  String unknownQuickAction(String actionId) =>
+      'അജ്ഞാത ദ്രുത പ്രവർത്തനം: $actionId';
+
+  // AI checkup
+  @override
+  String couldNotLoadResult(String error) =>
+      'ഫലം ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല: $error';
+  @override
+  String analysisFailed(String error) => 'വിശകലനം പരാജയപ്പെട്ടു: $error';
+
+  // Emergency
+  @override
+  String couldNotStartCallTo(String phoneNumber) =>
+      '$phoneNumber എന്ന നമ്പറിലേക്ക് കോൾ ആരംഭിക്കാൻ കഴിഞ്ഞില്ല.';
+
+  // Errors & dates
+  @override
+  String errorWithMessage(String error) => 'പിശക്: $error';
+  @override
+  String get today => 'ഇന്ന്';
+  @override
+  String get yesterday => 'ഇന്നലെ';
 }

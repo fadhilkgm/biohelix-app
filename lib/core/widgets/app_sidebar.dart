@@ -5,6 +5,7 @@ import '../providers/theme_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_shadows.dart';
 import '../theme/app_theme.dart';
+import 'app_logo.dart';
 import '../../features/session/providers/session_provider.dart';
 
 class SidebarItem {
@@ -86,17 +87,13 @@ class AppSidebar extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.local_hospital_rounded,
-                        color: Colors.white,
-                        size: 28,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: const AppLogo(
+                        width: 52,
+                        height: 52,
+                        fit: BoxFit.cover,
+                        backgroundColor: Colors.white,
                       ),
                     ),
                     const SizedBox(width: 14),

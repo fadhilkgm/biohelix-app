@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../../core/models/patient_models.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../core/widgets/booking_success_screen.dart';
@@ -51,6 +53,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   }
 
   void _showAddPatientDialog() {
+    final strings = AppStrings.of(context.read<LanguageProvider>().language);
     final loggedInPhone = context.read<SessionProvider>().patient?.phone ?? '';
     final name = TextEditingController();
     final age = TextEditingController();
@@ -131,7 +134,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text(strings.cancel),
               ),
               FilledButton(
                 onPressed: () {
@@ -152,7 +155,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                   }
                   Navigator.pop(context);
                 },
-                child: const Text('Save'),
+                child: Text(strings.save),
               ),
             ],
           );

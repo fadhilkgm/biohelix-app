@@ -75,7 +75,7 @@ void main() {
     expect(completed, isTrue);
   });
 
-  testWidgets('3. login authenticates with phone and password', (tester) async {
+  testWidgets('3. login sends OTP and authenticates', (tester) async {
     final repository = _FakePatientRepository(patient: patient);
     final session = _buildSession(repository);
 
@@ -84,26 +84,21 @@ void main() {
 
     expect(find.text('Login'), findsWidgets);
 
-    await tester.enterText(
-      find.widgetWithText(TextField, '+919876543210'),
-      '9998887777',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Enter password'),
-      'password123',
-    );
-    await tester.ensureVisible(find.text('Login').last);
-    await tester.tap(find.text('Login').last);
+    await tester.enterText(find.byType(TextField).first, '9998887777');
+    await tester.tap(find.text('Send WhatsApp OTP'));
     await tester.pumpAndSettle();
 
-    expect(repository.lastLoginPayload, {
-      'phone': '+919998887777',
-      'password': 'password123',
-    });
+    expect(repository.lastOtpPhone, isNotNull);
+    expect(session.pendingPhone, isNotEmpty);
+    expect(find.text('Verify OTP'), findsWidgets);
+
+    await session.verifyOtp(otp: '123456');
+    await tester.pumpAndSettle();
+
     expect(session.isAuthenticated, isTrue);
   });
 
-  testWidgets('4. register submits documented patient details', (tester) async {
+  testWidgets('4. register submits patient details and sends OTP', (tester) async {
     final repository = _FakePatientRepository(patient: patient);
     final session = _buildSession(repository);
 
@@ -115,16 +110,12 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.widgetWithText(TextField, '+919876543210'),
-      '8887776666',
-    );
-    await tester.enterText(
       find.widgetWithText(TextField, 'Aisha Rahman'),
       'New Patient',
     );
     await tester.enterText(
-      find.widgetWithText(TextField, 'Enter password'),
-      'password123',
+      find.widgetWithText(TextField, '+919876543210'),
+      '8887776666',
     );
     final now = DateTime.now();
     final selectedDob = DateTime(now.year - 25, now.month, now.day);
@@ -149,22 +140,23 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('A+').last);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Register').last);
-    await tester.tap(find.text('Register').last);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Ponnani, Kerala'),
+      'Ponnani',
+    );
+    await tester.ensureVisible(find.text('Register & send WhatsApp OTP'));
+    await tester.tap(find.text('Register & send WhatsApp OTP'));
     await tester.pumpAndSettle();
 
     expect(repository.lastSignupPayload, {
       'phone': '+918887776666',
-      'password': 'password123',
-      'passwordConfirmation': 'password123',
-      'firstName': 'New',
-      'lastName': 'Patient',
-      'gender': 'female',
+      'name': 'New Patient',
+      'dob': selectedDobText,
+      'place': 'Ponnani',
       'email': 'new@example.test',
-      'dateOfBirth': selectedDobText,
-      'bloodGroup': 'A+',
+      'gender': 'female',
     });
-    expect(session.isAuthenticated, isTrue);
+    expect(session.pendingPhone, isNotEmpty);
   });
 
   test('5. auth storage persists and clears the auth token', () async {

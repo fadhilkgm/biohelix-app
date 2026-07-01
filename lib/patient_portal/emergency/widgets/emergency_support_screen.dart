@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../../core/models/patient_models.dart';
 import 'emergency_call_launcher.dart';
 import 'emergency_support_content.dart';
@@ -92,8 +95,9 @@ class EmergencySupportScreen extends StatelessWidget {
       return;
     }
 
+    final strings = AppStrings.of(context.read<LanguageProvider>().language);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Could not start a call to $phoneNumber.')),
+      SnackBar(content: Text(strings.couldNotStartCallTo(phoneNumber))),
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../../core/models/patient_models.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../../lab_booking/screens/package_booking_screen.dart';
@@ -136,8 +138,9 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _step = 'history');
+      final strings = AppStrings.of(context.read<LanguageProvider>().language);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not load result: $error')),
+        SnackBar(content: Text(strings.couldNotLoadResult(error.toString()))),
       );
     }
   }
@@ -157,9 +160,12 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _step = 'questions');
+      final strings = AppStrings.of(context.read<LanguageProvider>().language);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Analysis failed: $error')));
+      ).showSnackBar(
+        SnackBar(content: Text(strings.analysisFailed(error.toString()))),
+      );
     }
   }
 

@@ -288,8 +288,9 @@ class _AssistantTabState extends State<_AssistantTab> {
                                 final date = _messageDate(message, index);
                                 final showDate =
                                     index == 0 ||
-                                    _dateLabel(date) !=
+                                    _dateLabel(_strings, date) !=
                                         _dateLabel(
+                                          _strings,
                                           _messageDate(
                                             messages[index - 1],
                                             index - 1,
@@ -310,7 +311,7 @@ class _AssistantTabState extends State<_AssistantTab> {
                                           bottom: AppSpacing.s12,
                                         ),
                                         child: _DateSeparator(
-                                          label: _dateLabel(date),
+                                          label: _dateLabel(_strings, date),
                                         ),
                                       ),
                                     _MessageBubbleWidget(

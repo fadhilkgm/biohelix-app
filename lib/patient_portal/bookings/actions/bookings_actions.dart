@@ -19,9 +19,10 @@ extension _BookingsTabActions on _BookingsTab {
     try {
       await portal.cancelBooking(booking.id);
       if (!context.mounted) return;
+      final strings = AppStrings.of(context.read<LanguageProvider>().language);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Appointment cancelled.')));
+      ).showSnackBar(SnackBar(content: Text(strings.appointmentCancelled)));
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -50,9 +51,10 @@ extension _BookingsTabActions on _BookingsTab {
     try {
       await portal.cancelLabOrder(order.id);
       if (!context.mounted) return;
+      final strings = AppStrings.of(context.read<LanguageProvider>().language);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Lab booking cancelled.')));
+      ).showSnackBar(SnackBar(content: Text(strings.labBookingCancelled)));
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -80,8 +82,9 @@ extension _BookingsTabActions on _BookingsTab {
     try {
       await portal.cancelLabPackageOrder(order.id);
       if (!context.mounted) return;
+      final strings = AppStrings.of(context.read<LanguageProvider>().language);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Package booking cancelled.')),
+        SnackBar(content: Text(strings.packageBookingCancelled)),
       );
     } catch (error) {
       if (!context.mounted) return;

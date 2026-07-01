@@ -226,15 +226,10 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                             ? Image.network(
                                 packageImageUrl,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => Image.asset(
-                                  'assets/images/lab.png',
-                                  fit: BoxFit.cover,
-                                ),
+                                errorBuilder: (_, _, _) =>
+                                    const AppLogoPlaceholder(padding: 32),
                               )
-                            : Image.asset(
-                                'assets/images/lab.png',
-                                fit: BoxFit.cover,
-                              ),
+                            : const AppLogoPlaceholder(padding: 32),
                         DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(

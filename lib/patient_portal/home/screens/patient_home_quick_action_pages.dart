@@ -61,8 +61,9 @@ class _AiPackageDesignPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     return Scaffold(
-      appBar: AppBar(title: const Text('AI Package Design')),
+      appBar: AppBar(title: Text(strings.aiPackageDesign)),
       body: Consumer2<SessionProvider, PatientPortalProvider>(
         builder: (context, session, portal, _) {
           final patient = session.patient;
@@ -381,6 +382,7 @@ class _RecommendedPackageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     final amount = (package.discountedPrice ?? package.basePrice)
         .toStringAsFixed(0);
     return Card(
@@ -397,7 +399,10 @@ class _RecommendedPackageCard extends StatelessWidget {
         subtitle: Text(
           package.description ?? package.category ?? 'Preventive package',
         ),
-        trailing: FilledButton(onPressed: onTap, child: Text('Book ₹$amount')),
+        trailing: FilledButton(
+          onPressed: onTap,
+          child: Text(strings.bookAmount(amount)),
+        ),
       ),
     );
   }
@@ -410,6 +415,7 @@ class _EmptyPackageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
@@ -428,7 +434,7 @@ class _EmptyPackageCard extends StatelessWidget {
             const SizedBox(height: 12),
             FilledButton(
               onPressed: onTap,
-              child: const Text('Browse packages'),
+              child: Text(strings.browsePackages),
             ),
           ],
         ),

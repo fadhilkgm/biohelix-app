@@ -1,7 +1,10 @@
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../core/models/patient_models.dart';
 
@@ -18,6 +21,7 @@ class PatientLoyaltyPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     final nextTierLabel = myClub.nextTierName ?? 'Top tier reached';
 
     return Column(
@@ -47,7 +51,7 @@ class PatientLoyaltyPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text('Tier: ${myClub.tier}', style: theme.textTheme.bodyMedium),
+                Text(strings.tierLabel(myClub.tier), style: theme.textTheme.bodyMedium),
                 const SizedBox(height: 4),
                 Text(
                   'Estimated value: ₹${myClub.currencyValue.toStringAsFixed(2)}',
@@ -131,8 +135,9 @@ class PatientLoyaltyDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     return Scaffold(
-      appBar: AppBar(title: const Text('Rewards Wallet')),
+      appBar: AppBar(title: Text(strings.rewardsWallet)),
       body: PatientLoyaltyDetailsContent(idCard: idCard, myClub: myClub),
     );
   }

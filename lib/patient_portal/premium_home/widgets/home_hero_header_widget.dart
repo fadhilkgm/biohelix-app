@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:biohelix_app/core/widgets/app_logo.dart';
 import 'home_language_toggle_widget.dart';
 
 class HomeHeroHeaderWidget extends StatelessWidget {
@@ -25,16 +26,11 @@ class HomeHeroHeaderWidget extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.2),
-                    ),
-                    child: const Icon(
-                      Icons.local_hospital_rounded,
-                      size: 14,
-                      color: Colors.white,
+                  ClipOval(
+                    child: AppLogo(
+                      size: 22,
+                      fit: BoxFit.cover,
+                      backgroundColor: Colors.white,
                     ),
                   ),
                   const SizedBox(width: 8),

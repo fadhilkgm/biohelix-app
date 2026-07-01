@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
+import 'package:biohelix_app/core/widgets/app_logo.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../emergency/widgets/emergency_call_launcher.dart';
 import '../utils/home_header_content_mapper.dart';
@@ -138,6 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final language = context.watch<LanguageProvider>().language;
+    final strings = AppStrings.of(language);
     final headerContent = HomeHeaderContentMapper.build(
       patientName: widget.patientName,
       banners: widget.banners,
@@ -317,10 +320,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 24),
               // Doctors Carousel
               if (_filteredDoctors.isEmpty)
-                const Center(
+                Center(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Text('No doctors found in this department.'),
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Text(strings.noDoctorsInDepartment),
                   ),
                 )
               else
@@ -995,15 +998,10 @@ class _DoctorCard extends StatelessWidget {
   }
 
   Widget _fallbackImage() {
-    return Container(
+    return const AppLogoPlaceholder(
       width: double.infinity,
       height: 240,
-      color: Colors.white,
-      child: Image.asset(
-        'assets/images/doctor-vector.png',
-        fit: BoxFit.contain,
-        alignment: Alignment.bottomCenter,
-      ),
+      padding: 48,
     );
   }
 }
@@ -1133,8 +1131,9 @@ class _EmergencyStrip extends StatelessWidget {
   Future<void> _call(BuildContext context, String number) async {
     final ok = await EmergencyCallLauncher.call(number);
     if (!ok && context.mounted) {
+      final strings = AppStrings.of(context.read<LanguageProvider>().language);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not start a call to $number')),
+        SnackBar(content: Text(strings.couldNotStartCall(number))),
       );
     }
   }
@@ -1512,6 +1511,7 @@ class _AiSuggestionsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     final pending = suggestions.where((item) => !item.isAccepted).toList();
     if (pending.isEmpty) return const SizedBox.shrink();
 
@@ -1566,7 +1566,7 @@ class _AiSuggestionsSection extends StatelessWidget {
                 if (onAccept != null)
                   TextButton(
                     onPressed: () => onAccept!(item.id),
-                    child: const Text('Accept'),
+                    child: Text(strings.accept),
                   ),
               ],
             ),

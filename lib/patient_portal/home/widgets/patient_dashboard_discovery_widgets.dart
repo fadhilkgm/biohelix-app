@@ -15,6 +15,7 @@ class _HomeSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,7 +44,7 @@ class _HomeSectionHeader extends StatelessWidget {
         TextButton.icon(
           onPressed: onViewAll,
           icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-          label: const Text('View all'),
+          label: Text(strings.viewAll),
         ),
       ],
     );

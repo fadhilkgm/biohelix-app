@@ -16,8 +16,11 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
 
     if (doctor == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Doctor information is missing. Please refresh.'),
+        SnackBar(
+          content: Text(
+            AppStrings.of(context.read<LanguageProvider>().language)
+                .doctorInfoMissing,
+          ),
         ),
       );
       return;
@@ -280,7 +283,13 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     )) ? null : () async {
                       if (selectedSlot == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please select a time slot.')),
+                          SnackBar(
+                            content: Text(
+                              AppStrings.of(
+                                context.read<LanguageProvider>().language,
+                              ).selectTimeSlot,
+                            ),
+                          ),
                         );
                         return;
                       }
@@ -294,8 +303,12 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                         if (!context.mounted) return;
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Appointment rescheduled successfully.'),
+                          SnackBar(
+                            content: Text(
+                              AppStrings.of(
+                                context.read<LanguageProvider>().language,
+                              ).appointmentRescheduled,
+                            ),
                             backgroundColor: Colors.green,
                           ),
                         );
@@ -566,7 +579,13 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     onPressed: () async {
                       if (selectedSlot == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please select a time slot.')),
+                          SnackBar(
+                            content: Text(
+                              AppStrings.of(
+                                context.read<LanguageProvider>().language,
+                              ).selectTimeSlot,
+                            ),
+                          ),
                         );
                         return;
                       }
@@ -580,8 +599,12 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                         if (!context.mounted) return;
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Lab test rescheduled successfully.'),
+                          SnackBar(
+                            content: Text(
+                              AppStrings.of(
+                                context.read<LanguageProvider>().language,
+                              ).labTestRescheduled,
+                            ),
                             backgroundColor: Colors.green,
                           ),
                         );
@@ -852,7 +875,13 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     onPressed: () async {
                       if (selectedSlot == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please select a time slot.')),
+                          SnackBar(
+                            content: Text(
+                              AppStrings.of(
+                                context.read<LanguageProvider>().language,
+                              ).selectTimeSlot,
+                            ),
+                          ),
                         );
                         return;
                       }
@@ -866,8 +895,12 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                         if (!context.mounted) return;
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Package rescheduled successfully.'),
+                          SnackBar(
+                            content: Text(
+                              AppStrings.of(
+                                context.read<LanguageProvider>().language,
+                              ).packageRescheduled,
+                            ),
                             backgroundColor: Colors.green,
                           ),
                         );

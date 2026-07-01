@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../../core/data/patient_repository.dart';
 import '../../core/models/patient_models.dart';
 
@@ -102,16 +104,18 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
         lifestyleNotes: _lifestyleCtrl.text,
       );
       if (!mounted) return;
+      final strings = AppStrings.of(context.read<LanguageProvider>().language);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Health profile saved.')),
+        SnackBar(content: Text(strings.healthProfileSaved)),
       );
       await _load();
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = error.toString());
+      final strings = AppStrings.of(context.read<LanguageProvider>().language);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Could not save: $error')));
+      ).showSnackBar(SnackBar(content: Text(strings.couldNotSave(error.toString()))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

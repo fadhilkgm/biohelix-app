@@ -153,7 +153,12 @@ class _ProfileTabState extends State<_ProfileTab> {
     final resolved = _resolveReportUrl(context, first);
     if (resolved.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Report preview unavailable.')),
+        SnackBar(
+          content: Text(
+            AppStrings.of(context.read<LanguageProvider>().language)
+                .reportPreviewUnavailable,
+          ),
+        ),
       );
       return;
     }
@@ -176,9 +181,12 @@ class _ProfileTabState extends State<_ProfileTab> {
                   if (Provider.of<SessionProvider>(context, listen: false).authToken != null)
                     'Authorization': 'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
                 },
-                errorBuilder: (_, _, _) => const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text('Could not preview this image.'),
+                errorBuilder: (_, _, _) => Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    AppStrings.of(context.read<LanguageProvider>().language)
+                        .couldNotPreviewImage,
+                  ),
                 ),
               ),
             ),
@@ -196,21 +204,22 @@ class _ProfileTabState extends State<_ProfileTab> {
     PatientPortalProvider portal,
     DocumentRecord document,
   ) async {
+    final strings = AppStrings.of(context.read<LanguageProvider>().language);
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete report'),
+        title: Text(strings.deleteReportTitle),
         content: const Text(
           'This report will be removed from your profile and will not be used in future chat context.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(strings.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
+            child: Text(strings.delete),
           ),
         ],
       ),
@@ -227,7 +236,7 @@ class _ProfileTabState extends State<_ProfileTab> {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Report deleted.')));
+      ).showSnackBar(SnackBar(content: Text(strings.reportDeleted)));
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -378,8 +387,9 @@ class _ProfileTabState extends State<_ProfileTab> {
     }
 
     if (!context.mounted) return;
+    final strings = AppStrings.of(context.read<LanguageProvider>().language);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Family member added and switched.')),
+      SnackBar(content: Text(strings.familyMemberAdded)),
     );
   }
 
@@ -692,6 +702,7 @@ class _ProfileTabState extends State<_ProfileTab> {
     final profiles = session.familyProfiles;
     final activePatientId = session.patient?.id;
     final theme = Theme.of(context);
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -725,7 +736,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                 FilledButton.icon(
                   onPressed: () => _showAddFamilyMemberDialog(context, portal),
                   icon: const Icon(Icons.person_add_alt_1_rounded),
-                  label: const Text('Add'),
+                  label: Text(strings.add),
                 ),
               ],
             ),
@@ -777,14 +788,14 @@ class _ProfileTabState extends State<_ProfileTab> {
                           ),
                         ),
                         if (isActive)
-                          const Chip(label: Text('Active'))
+                          Chip(label: Text(strings.active))
                         else
                           OutlinedButton(
                             onPressed: () => _switchFamilyProfile(
                               context,
                               profile.token,
                             ),
-                            child: const Text('Switch'),
+                            child: Text(strings.switchProfile),
                           ),
                       ],
                     ),
@@ -804,6 +815,7 @@ class _ProfileTabState extends State<_ProfileTab> {
   ) {
     final patient = session.patient!;
     final theme = Theme.of(context);
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
 
     _nameController.text = patient.name;
     _emailController.text = patient.email ?? '';
@@ -917,7 +929,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                       await portal.saveProfile(updated);
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Profile updated.')),
+                        SnackBar(content: Text(strings.profileUpdated)),
                       );
                     } catch (error) {
                       if (!context.mounted) return;
@@ -1024,7 +1036,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                       );
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Vitals saved.')),
+                        SnackBar(content: Text(strings.vitalsSaved)),
                       );
                     } catch (error) {
                       if (!context.mounted) return;
@@ -1049,6 +1061,7 @@ class _ProfileTabState extends State<_ProfileTab> {
     PatientPortalProvider portal,
   ) {
     final theme = Theme.of(context);
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     final documents = portal.documents;
 
     return Padding(
@@ -1112,9 +1125,9 @@ class _ProfileTabState extends State<_ProfileTab> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(22),
               ),
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.all(20),
-                child: Text('No uploaded reports yet.'),
+                child: Text(strings.noUploadedReports),
               ),
             )
           else
@@ -1254,7 +1267,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                               Icons.open_in_new_rounded,
                               size: 16,
                             ),
-                            label: const Text('Open'),
+                            label: Text(strings.openLabel),
                           ),
                           FilledButton.tonalIcon(
                             onPressed: isDeleting
@@ -1273,7 +1286,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                                     Icons.delete_outline_rounded,
                                     size: 16,
                                   ),
-                            label: const Text('Delete'),
+                            label: Text(strings.delete),
                           ),
                         ],
                       ),

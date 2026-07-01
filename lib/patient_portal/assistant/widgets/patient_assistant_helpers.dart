@@ -14,13 +14,13 @@ class _ChatAttachment {
   final bool isImage;
 }
 
-String _dateLabel(DateTime date) {
+String _dateLabel(LocalizedStrings strings, DateTime date) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final target = DateTime(date.year, date.month, date.day);
   final diff = today.difference(target).inDays;
-  if (diff == 0) return 'Today';
-  if (diff == 1) return 'Yesterday';
+  if (diff == 0) return strings.today;
+  if (diff == 1) return strings.yesterday;
   return DateFormat('dd MMM yyyy').format(date);
 }
 
@@ -212,18 +212,18 @@ extension _AssistantActions on _AssistantTabState {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete chat'),
+          title: Text(_strings.assistantDeleteChat),
           content: const Text(
             'This removes the chat from your current list. Continue?',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
+              child: Text(_strings.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Delete'),
+              child: Text(_strings.delete),
             ),
           ],
         );
@@ -252,7 +252,7 @@ extension _AssistantActions on _AssistantTabState {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Rename chat'),
+          title: Text(_strings.assistantRenameChat),
           content: TextField(
             controller: controller,
             autofocus: true,
@@ -262,11 +262,11 @@ extension _AssistantActions on _AssistantTabState {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: Text(_strings.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-              child: const Text('Save'),
+              child: Text(_strings.save),
             ),
           ],
         );

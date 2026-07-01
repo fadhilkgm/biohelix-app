@@ -2,7 +2,8 @@
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
-import '../../../core/utils/phone_utils.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../../session/providers/session_provider.dart';
 import 'widgets/auth_form_widgets.dart';
 import 'widgets/otp_input.dart';
@@ -28,10 +29,11 @@ class _OtpPageState extends State<OtpPage> {
 
   Future<void> _resend() async {
     final session = context.read<SessionProvider>();
+    final strings = AppStrings.of(context.read<LanguageProvider>().language);
     if ((session.pendingPhone ?? '').isEmpty) return;
     await session.resendPendingOtp();
     if (!mounted) return;
-    final message = session.otpStatusMessage ?? 'OTP resent to your WhatsApp';
+    final message = session.otpStatusMessage ?? strings.otpResentDefault;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
@@ -40,12 +42,12 @@ class _OtpPageState extends State<OtpPage> {
   @override
   Widget build(BuildContext context) {
     final showDevOtp = context.read<AppConfig>().showDevOtp;
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Light Gradient
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -57,8 +59,6 @@ class _OtpPageState extends State<OtpPage> {
               ),
             ),
           ),
-
-          // Main Scrollable Content
           SafeArea(
             child: Consumer<SessionProvider>(
               builder: (context, session, _) {
@@ -67,14 +67,13 @@ class _OtpPageState extends State<OtpPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // OTP Form (Centered)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Text(
-                            'Verify WhatsApp OTP',
+                          Text(
+                            strings.otpVerifyTitle,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.w900,
                               color: Color(0xFF192233),
@@ -88,14 +87,14 @@ class _OtpPageState extends State<OtpPage> {
                             text: TextSpan(
                               style: TextStyle(
                                 fontSize: 16,
-                                color: const Color(0xFF192233).withValues(alpha: 0.6),
+                                color: const Color(
+                                  0xFF192233,
+                                ).withValues(alpha: 0.6),
                                 height: 1.5,
                                 fontWeight: FontWeight.w500,
                               ),
                               children: [
-                                const TextSpan(
-                                  text: 'A 6-digit code has been sent on WhatsApp to ',
-                                ),
+                                TextSpan(text: strings.otpSentPrefix),
                                 TextSpan(
                                   text: widget.maskedPhone,
                                   style: const TextStyle(
@@ -107,9 +106,9 @@ class _OtpPageState extends State<OtpPage> {
                             ),
                           ),
                           const SizedBox(height: 50),
-                          const Text(
-                            'ENTER OTP',
-                            style: TextStyle(
+                          Text(
+                            strings.otpEnterLabel,
+                            style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 1.5,
@@ -135,14 +134,16 @@ class _OtpPageState extends State<OtpPage> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFFECFDF5),
                                 borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: const Color(0xFFA7F3D0)),
+                                border: Border.all(
+                                  color: const Color(0xFFA7F3D0),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  const Text(
-                                    'DEVELOPMENT OTP',
-                                    style: TextStyle(
+                                  Text(
+                                    strings.otpDevLabel,
+                                    style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 1.1,
@@ -171,7 +172,7 @@ class _OtpPageState extends State<OtpPage> {
                           SizedBox(
                             width: double.infinity,
                             child: AuthPrimaryButton(
-                              label: 'Verify OTP',
+                              label: strings.otpVerifyButton,
                               isLoading: session.isVerifyingOtp,
                               onPressed: _verify,
                             ),
@@ -181,18 +182,20 @@ class _OtpPageState extends State<OtpPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                "Didn't receive? ",
+                                strings.otpDidntReceive,
                                 style: TextStyle(
                                   fontSize: 15,
-                                  color: const Color(0xFF192233).withValues(alpha: 0.5),
+                                  color: const Color(
+                                    0xFF192233,
+                                  ).withValues(alpha: 0.5),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                               GestureDetector(
                                 onTap: session.isSendingOtp ? null : _resend,
-                                child: const Text(
-                                  'Resend OTP',
-                                  style: TextStyle(
+                                child: Text(
+                                  strings.otpResend,
+                                  style: const TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF537DE8),
@@ -209,8 +212,6 @@ class _OtpPageState extends State<OtpPage> {
               },
             ),
           ),
-
-          // Back Button
           Positioned(
             top: 50,
             left: 20,
@@ -237,4 +238,3 @@ class _OtpPageState extends State<OtpPage> {
     );
   }
 }
-

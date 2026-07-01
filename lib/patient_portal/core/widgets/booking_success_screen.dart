@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/widgets/app_logo.dart';
+
 class BookingSuccessDetail {
   const BookingSuccessDetail({
     required this.icon,
@@ -388,10 +390,9 @@ class _BookingFallbackImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: const Color(0xFFEAF0FF),
-      child: Image.asset(
-        imageAsset.isNotEmpty ? imageAsset : 'assets/images/doctor-vector.png',
-        fit: BoxFit.contain,
-      ),
+      child: imageAsset.isNotEmpty
+          ? Image.asset(imageAsset, fit: BoxFit.contain)
+          : const AppLogo(fit: BoxFit.contain),
     );
   }
 }

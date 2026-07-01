@@ -227,30 +227,12 @@ class _LabTestImagePlaceholder extends StatelessWidget {
         ),
       ),
       alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.3),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.biotech_rounded,
-              size: 32,
-              color: theme.colorScheme.onSecondaryContainer,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'TEST',
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.5),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.all(16),
+      child: AppLogo(
+        width: 72,
+        height: 72,
+        borderRadius: 12,
+        backgroundColor: Colors.white.withValues(alpha: 0.85),
       ),
     );
   }

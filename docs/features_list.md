@@ -5,7 +5,7 @@ This document lists the main user-facing and platform features present in the Fl
 ## App Entry And Session
 
 - Splash screen with BioHelix branding.
-- Onboarding screen with a swipe-to-start interaction.
+- Onboarding screen with a Get Started button.
 - Patient OTP login flow.
 - Patient sign-up support through session and repository APIs.
 - Stored authentication token support.

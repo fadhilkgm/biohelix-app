@@ -417,7 +417,7 @@ Padding: h12 v7 | borderRadius: 999 | bg: surfaceContainerHighest
 | Banner carousel auto-scroll | 450 ms | easeInOut |
 | Banner carousel timer | 4 s | — |
 | Nav item selection | 220 ms | easeInOut |
-| Onboarding page swipe | 280 ms | easeOut |
+| Onboarding CTA tap | 180 ms | default |
 | Button opacity (disabled) | 180 ms | default |
 | Dot indicators expand | 220 ms | default |
 | Snackbar auto-dismiss | 3 s | — |
@@ -445,10 +445,9 @@ For hero screens (Home tab): `extendBodyBehindAppBar: true`
 ## 15. Screen-by-Screen Reference
 
 ### Onboarding
-- Full-bleed background image + per-page gradient overlay
-- Dynamic glassmorphism CTA button
-- Skip: `TextButton`, white foreground
-- Animated pill dots at center
+- Full-bleed realistic doctor hero image with gradient fade
+- Primary CTA: `CustomButton` ("Get Started")
+- Bottom-aligned title and description over white gradient overlay
 
 ### Auth / Login
 - Gradient bg: `primary @8% → scaffold`

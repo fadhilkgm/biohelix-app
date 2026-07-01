@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../lab_booking/design/app_colors.dart';
 import '../../lab_booking/design/app_spacing.dart';
@@ -41,6 +43,7 @@ class _LabHomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<LabBookingController>();
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     return Scaffold(
       backgroundColor: AppColors.shellGradient.first,
       appBar: AppBar(
@@ -145,7 +148,7 @@ class _LabHomeContent extends StatelessWidget {
                 const Spacer(),
                 TextButton(
                   onPressed: () => _push(context, const TestListScreen()),
-                  child: const Text('View all'),
+                  child: Text(strings.viewAll),
                 ),
               ],
             ),

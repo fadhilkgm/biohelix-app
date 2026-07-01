@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/l10n/app_strings.dart';
-import '../../../core/providers/language_provider.dart' show AppLanguage;
+import '../../../core/providers/language_provider.dart';
+import '../../../core/widgets/app_logo.dart';
 import '../../session/providers/session_provider.dart';
 import 'widgets/auth_form_widgets.dart';
 
@@ -114,7 +115,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit() async {
-    final strings = AppStrings.of(AppLanguage.en);
+    final strings = AppStrings.of(context.read<LanguageProvider>().language);
     if (!_validate(strings)) return;
 
     final session = context.read<SessionProvider>();
@@ -136,7 +137,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final strings = AppStrings.of(AppLanguage.en);
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -161,16 +162,10 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      SizedBox(
+                      const AppLogo(
                         width: 180,
                         height: 80,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(5),
-                          child: Image.asset(
-                            'assets/images/bhrc-logo.jpg',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                        borderRadius: 5,
                       ),
                       const SizedBox(height: 16),
                       Text(

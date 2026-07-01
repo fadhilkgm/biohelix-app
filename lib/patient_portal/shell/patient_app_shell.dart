@@ -21,6 +21,7 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shadows.dart';
+import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/custom_bottom_bar.dart';
 import '../../core/widgets/custom_button.dart';
 import '../../features/session/providers/session_provider.dart';
@@ -102,36 +103,37 @@ class _PatientAppShellState extends State<PatientAppShell>
   final GlobalKey<_RecordsTabState> _recordsTabKey =
       GlobalKey<_RecordsTabState>();
 
-  static const _navItems = [
+  static List<BottomNavItem> _navItems(LocalizedStrings strings) => [
     BottomNavItem(
       icon: Icons.home_outlined,
       selectedIcon: Icons.home_rounded,
-      label: 'Home',
+      label: strings.navHome,
     ),
     BottomNavItem(
       icon: Icons.folder_outlined,
       selectedIcon: Icons.folder_rounded,
-      label: 'Reports',
+      label: strings.navReports,
     ),
     BottomNavItem(
       icon: Icons.calendar_month_outlined,
       selectedIcon: Icons.calendar_month_rounded,
-      label: 'Bookings',
+      label: strings.navBookings,
     ),
     BottomNavItem(
       icon: Icons.health_and_safety_outlined,
       selectedIcon: Icons.health_and_safety_rounded,
-      label: 'Checkup',
+      label: strings.navCheckup,
     ),
     BottomNavItem(
       icon: Icons.person_outline_rounded,
       selectedIcon: Icons.person_rounded,
-      label: 'Profile',
+      label: strings.navProfile,
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     final pages = [
       _DashboardTab(
         onNavigate: _setIndex,
@@ -202,7 +204,7 @@ class _PatientAppShellState extends State<PatientAppShell>
               bottomNavigationBar: BottomNavBarWidget(
                 selectedIndex: _selectedIndex,
                 onTap: _setIndex,
-                items: _navItems,
+                items: _navItems(strings),
               ),
               floatingActionButton: _selectedIndex == 0
                   ? _AssistantFab(onTap: _openAssistant)
@@ -241,21 +243,20 @@ class _PatientAppShellState extends State<PatientAppShell>
   }
 
   Future<bool> _showExitConfirmation() async {
+    final strings = AppStrings.of(context.read<LanguageProvider>().language);
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Exit BioHelix?'),
-        content: const Text(
-          'Press Stay to keep using the app, or Exit to close it.',
-        ),
+        title: Text(strings.exitAppTitle),
+        content: Text(strings.exitAppMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Stay'),
+            child: Text(strings.stay),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Exit'),
+            child: Text(strings.exitApp),
           ),
         ],
       ),
@@ -352,8 +353,9 @@ class _TestsHubPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     return Scaffold(
-      appBar: AppBar(title: const Text('Tests')),
+      appBar: AppBar(title: Text(strings.testsTitle)),
       body: const _TestsTab(),
     );
   }

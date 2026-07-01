@@ -522,7 +522,13 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(
+              AppStrings.of(context.read<LanguageProvider>().language)
+                  .errorWithMessage(e.toString()),
+            ),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -859,11 +865,10 @@ class _DoctorImageFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/doctor-vector.png',
+    return AppLogo(
       height: height,
       fit: BoxFit.contain,
-      alignment: Alignment.bottomCenter,
+      backgroundColor: const Color(0xFFF0F4FF),
     );
   }
 }

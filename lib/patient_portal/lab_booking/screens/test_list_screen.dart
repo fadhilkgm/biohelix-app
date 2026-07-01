@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../../core/models/patient_models.dart';
 import '../models/lab_booking_models.dart';
 import '../state/lab_booking_controller.dart';
@@ -19,6 +21,7 @@ class TestListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<LabBookingController>();
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       body: CustomScrollView(
@@ -145,9 +148,10 @@ class TestListScreen extends StatelessWidget {
             ),
           ),
           if (c.filteredTests.isEmpty)
-            const SliverFillRemaining(
+            SliverFillRemaining(
+              hasScrollBody: false,
               child: Center(
-                child: Text('No tests found for the selected filters.'),
+                child: Text(strings.noTestsFoundForFilters),
               ),
             )
           else

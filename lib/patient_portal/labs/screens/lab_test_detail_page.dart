@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/language_provider.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/widgets/app_logo.dart';
 import '../../core/models/patient_models.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../lab_booking/models/lab_booking_models.dart';
@@ -43,9 +46,10 @@ class LabTestDetailPage extends StatelessWidget {
       await portal.refresh();
       if (!context.mounted) return;
       if (portal.labTests.isEmpty) {
+        final strings = AppStrings.of(context.read<LanguageProvider>().language);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No lab tests are available right now.'),
+          SnackBar(
+            content: Text(strings.noLabTestsAvailable),
           ),
         );
         return;
@@ -111,9 +115,8 @@ class LabTestDetailPage extends StatelessWidget {
                     }
 
                     if (resolvedUrl.isEmpty) {
-                      return Image.asset(
-                        'assets/images/lab.png',
-                        fit: BoxFit.cover,
+                      return const AppLogoPlaceholder(
+                        padding: 32,
                       );
                     }
 
@@ -129,9 +132,8 @@ class LabTestDetailPage extends StatelessWidget {
                           ),
                         );
                       },
-                      errorBuilder: (_, _, _) => Image.asset(
-                        'assets/images/lab.png',
-                        fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const AppLogoPlaceholder(
+                        padding: 32,
                       ),
                     );
                   },

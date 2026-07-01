@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
@@ -30,7 +31,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final strings = AppStrings.of(AppLanguage.en);
+    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     final mediaQuery = MediaQuery.of(context);
     final size = mediaQuery.size;
     final isShortScreen = size.height < 760;

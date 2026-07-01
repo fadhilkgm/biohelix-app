@@ -215,7 +215,10 @@ class _TestsTabState extends State<_TestsTab> {
                         );
                       },
                       icon: const Icon(Icons.inventory_2_outlined),
-                      label: const Text('View health packages'),
+                      label: Text(
+                        AppStrings.of(context.watch<LanguageProvider>().language)
+                            .viewHealthPackages,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     SingleChildScrollView(
@@ -575,10 +578,13 @@ class _TestsTabState extends State<_TestsTab> {
             ),
             const SizedBox(height: 16),
             if (items.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.all(40),
-                  child: Text('No records found.'),
+                  padding: const EdgeInsets.all(40),
+                  child: Text(
+                    AppStrings.of(context.watch<LanguageProvider>().language)
+                        .noRecordsFound,
+                  ),
                 ),
               )
             else

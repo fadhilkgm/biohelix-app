@@ -48,7 +48,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Your Smart Health Partner'), findsOneWidget);
-    await tester.drag(find.byIcon(Icons.chevron_right_rounded), const Offset(500, 0));
+    await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
     expect(onboardingCompleted, isTrue);
 
@@ -67,12 +67,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Login'), findsOneWidget);
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Enter your mobile number'),
-      patient.phone,
-    );
-    await tester.ensureVisible(find.text('Continue'));
-    await tester.tap(find.text('Continue'));
+    await tester.enterText(find.byType(TextField).first, patient.phone);
+    await tester.ensureVisible(find.text('Send WhatsApp OTP'));
+    await tester.tap(find.text('Send WhatsApp OTP'));
     await tester.pumpAndSettle();
 
     expect(repository.otpRequestPhone, patient.phone);
