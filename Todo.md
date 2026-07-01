@@ -1,9 +1,7 @@
-change swipe login
-change onboarding page image to realestic dr image
-in register page remove confirm password and fix otp
-dob to calendar selector
-gender selection box or radio
-blood group selection box
-curresponding plce validation msg
-hospital look ui
-transalation whole app
+1 change swipe login to notmal button 
+
+2 in register page remove confirm password field , make dob to calendar selector , make gender selection box or radio whichever apt , make blood group selection box , validation msg show in curesponding place ,  
+
+3 transalation whole app
+
+4 change onboarding page image to realestic dr image

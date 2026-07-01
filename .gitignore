@@ -48,3 +48,5 @@ app.*.map.json
 /android/app/release
 
 /BHRC-Hospital
+/gitignore
+gitignore/

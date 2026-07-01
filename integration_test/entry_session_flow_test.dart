@@ -121,9 +121,12 @@ class _IntegrationPatientRepository extends PatientRepository {
   String? otpRequestPhone;
 
   @override
-  Future<String?> sendOtp({required String phone, String? mrn}) async {
+  Future<OtpSendResult> sendOtp({required String phone, String? mrn}) async {
     otpRequestPhone = phone;
-    return '123456';
+    return const OtpSendResult(
+      devOtp: '123456',
+      message: 'OTP sent to your WhatsApp',
+    );
   }
 
   @override
