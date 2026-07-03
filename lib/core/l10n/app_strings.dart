@@ -363,7 +363,7 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get assistantFabLabel => 'Health AI';
   @override
-  String get assistantTitle => 'Health AI Assistant';
+  String get assistantTitle => 'Health AI';
   @override
   String get assistantReady => 'Ready';
   @override
@@ -373,7 +373,7 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get assistantLiveModeActive => 'Live mode active';
   @override
-  String get assistantInputHint => 'Ask anything about your health report';
+  String get assistantInputHint => 'Ask about your health';
   @override
   String get assistantDisclaimer =>
       'AI can make mistakes. Always consult a doctor before taking action.';
@@ -438,8 +438,7 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get otpVerifyTitle => 'Verify WhatsApp OTP';
   @override
-  String get otpSentPrefix =>
-      'A 6-digit code has been sent on WhatsApp to ';
+  String get otpSentPrefix => 'A 6-digit code has been sent on WhatsApp to ';
   @override
   String get otpEnterLabel => 'ENTER OTP';
   @override
@@ -511,13 +510,11 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get selectTimeSlot => 'Please select a time slot.';
   @override
-  String get appointmentRescheduled =>
-      'Appointment rescheduled successfully.';
+  String get appointmentRescheduled => 'Appointment rescheduled successfully.';
   @override
   String get labTestRescheduled => 'Lab test rescheduled successfully.';
   @override
-  String get packageRescheduled =>
-      'Package rescheduled successfully.';
+  String get packageRescheduled => 'Package rescheduled successfully.';
   @override
   String get preferredDate => 'Preferred date';
   @override
@@ -555,8 +552,7 @@ class _EnStrings extends LocalizedStrings {
 
   // Home & discovery
   @override
-  String get noDoctorsInDepartment =>
-      'No doctors found in this department.';
+  String get noDoctorsInDepartment => 'No doctors found in this department.';
   @override
   String couldNotStartCall(String number) =>
       'Could not start a call to $number';
@@ -726,7 +722,8 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get sendWhatsAppOtp => 'വാട്സ്ആപ്പ് OTP അയയ്ക്കുക';
   @override
-  String get registerWithWhatsAppOtp => 'രജിസ്റ്റർ ചെയ്ത് വാട്സ്ആപ്പ് OTP അയയ്ക്കുക';
+  String get registerWithWhatsAppOtp =>
+      'രജിസ്റ്റർ ചെയ്ത് വാട്സ്ആപ്പ് OTP അയയ്ക്കുക';
   @override
   String get alreadyRegisteredLogin => 'ഇതിനകം രജിസ്റ്റർ ചെയ്തിട്ടുണ്ടോ? ലോഗിൻ';
   @override
@@ -768,7 +765,7 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get assistantFabLabel => 'ഹെൽത്ത് AI';
   @override
-  String get assistantTitle => 'ഹെൽത്ത് AI അസിസ്റ്റന്റ്';
+  String get assistantTitle => 'ഹെൽത്ത് AI';
   @override
   String get assistantReady => 'തയ്യാർ';
   @override
@@ -778,8 +775,7 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get assistantLiveModeActive => 'ലൈവ് മോഡ് പ്രവർത്തിക്കുന്നു';
   @override
-  String get assistantInputHint =>
-      'നിങ്ങളുടെ ആരോഗ്യ റിപ്പോർട്ടിനെ കുറിച്ച് ചോദിക്കൂ';
+  String get assistantInputHint => 'ആരോഗ്യം ചോദിക്കൂ';
   @override
   String get assistantDisclaimer =>
       'AI തെറ്റുകൾ ചെയ്യാം. നടപടി എടുക്കുന്നതിന് മുമ്പ് ഡോക്ടറെ സമീപിക്കുക.';
@@ -845,8 +841,7 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get otpVerifyTitle => 'വാട്സ്ആപ്പ് OTP സ്ഥിരീകരിക്കുക';
   @override
-  String get otpSentPrefix =>
-      'വാട്സ്ആപ്പിലേക്ക് 6 അക്ക കോഡ് അയച്ചിട്ടുണ്ട് ';
+  String get otpSentPrefix => 'വാട്സ്ആപ്പിലേക്ക് 6 അക്ക കോഡ് അയച്ചിട്ടുണ്ട് ';
   @override
   String get otpEnterLabel => 'OTP നൽകുക';
   @override
@@ -858,7 +853,8 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get otpDevLabel => 'ഡെവലപ്മെന്റ് OTP';
   @override
-  String get otpResentDefault => 'OTP നിങ്ങളുടെ വാട്സ്ആപ്പിലേക്ക് വീണ്ടും അയച്ചു';
+  String get otpResentDefault =>
+      'OTP നിങ്ങളുടെ വാട്സ്ആപ്പിലേക്ക് വീണ്ടും അയച്ചു';
 
   // Navigation
   @override
@@ -877,7 +873,7 @@ class _MlStrings extends LocalizedStrings {
   String get exitAppTitle => 'ബയോഹെലിക്സ് അടയ്ക്കണോ?';
   @override
   String get exitAppMessage =>
-      'ആപ്പ് തുടരാൻ Stay അമർത്തുക, അടയ്ക്കാൻ Exit അമർത്തുക.';
+      'ആപ്പ് തുടരാൻ "തുടരുക" അമർത്തുക, അടയ്ക്കാൻ "അടയ്ക്കുക" അമർത്തുക.';
   @override
   String get stay => 'തുടരുക';
   @override
@@ -887,7 +883,7 @@ class _MlStrings extends LocalizedStrings {
 
   // Common actions
   @override
-  String get save => 'സേവ്';
+  String get save => 'സംരക്ഷിക്കുക';
   @override
   String get delete => 'ഇല്ലാതാക്കുക';
   @override
@@ -921,11 +917,9 @@ class _MlStrings extends LocalizedStrings {
   String get appointmentRescheduled =>
       'അപ്പോയിന്റ്മെന്റ് വിജയകരമായി പുനഃക്രമീകരിച്ചു.';
   @override
-  String get labTestRescheduled =>
-      'ലാബ് ടെസ്റ്റ് വിജയകരമായി പുനഃക്രമീകരിച്ചു.';
+  String get labTestRescheduled => 'ലാബ് ടെസ്റ്റ് വിജയകരമായി പുനഃക്രമീകരിച്ചു.';
   @override
-  String get packageRescheduled =>
-      'പാക്കേജ് വിജയകരമായി പുനഃക്രമീകരിച്ചു.';
+  String get packageRescheduled => 'പാക്കേജ് വിജയകരമായി പുനഃക്രമീകരിച്ചു.';
   @override
   String get preferredDate => 'തിരഞ്ഞെടുത്ത തീയതി';
   @override
@@ -943,8 +937,7 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get reportDeleted => 'റിപ്പോർട്ട് ഇല്ലാതാക്കി.';
   @override
-  String get familyMemberAdded =>
-      'കുടുംബാംഗത്തെ ചേർത്ത് മാറ്റി.';
+  String get familyMemberAdded => 'കുടുംബാംഗത്തെ ചേർത്തു.';
   @override
   String get profileUpdated => 'പ്രൊഫൈൽ അപ്ഡേറ്റ് ചെയ്തു.';
   @override
@@ -964,16 +957,14 @@ class _MlStrings extends LocalizedStrings {
 
   // Home & discovery
   @override
-  String get noDoctorsInDepartment =>
-      'ഈ വിഭാഗത്തിൽ ഡോക്ടർമാരെ കണ്ടെത്തിയില്ല.';
+  String get noDoctorsInDepartment => 'ഈ വിഭാഗത്തിൽ ഡോക്ടർമാരെ കണ്ടെത്തിയില്ല.';
   @override
   String couldNotStartCall(String number) =>
       '$number എന്ന നമ്പറിലേക്ക് കോൾ ആരംഭിക്കാൻ കഴിഞ്ഞില്ല';
 
   // Labs & tests
   @override
-  String get noLabTestsAvailable =>
-      'ഇപ്പോൾ ലാബ് ടെസ്റ്റുകൾ ലഭ്യമല്ല.';
+  String get noLabTestsAvailable => 'ഇപ്പോൾ ലാബ് ടെസ്റ്റുകൾ ലഭ്യമല്ല.';
   @override
   String get noTestsFoundForFilters =>
       'തിരഞ്ഞെടുത്ത ഫിൽട്ടറുകൾക്ക് ടെസ്റ്റുകൾ കണ്ടെത്തിയില്ല.';

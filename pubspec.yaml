@@ -70,7 +70,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/logo/logo.jpg"
+  image_path: "assets/logo/logo.png"
   remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
@@ -85,7 +85,7 @@ flutter:
   uses-material-design: true
   assets:
     - .env
-    - assets/logo/
+    - assets/logo/logo.png
     - assets/images/body-organ-map.png
     - assets/images/human-body.png
     - assets/images/

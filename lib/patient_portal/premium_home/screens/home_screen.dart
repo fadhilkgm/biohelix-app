@@ -455,8 +455,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBannerCarousel(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width > 600;
+    const bannerRadius = 18.0;
+
     return SizedBox(
-      height: MediaQuery.of(context).size.width > 600 ? 320 : 200,
+      height: isWide ? 280 : 176,
       child: PageView.builder(
         itemCount: widget.banners.length,
         itemBuilder: (context, index) {
@@ -464,7 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
           return Container(
             margin: const EdgeInsets.only(right: 8),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(32),
+              borderRadius: BorderRadius.circular(bannerRadius),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -472,13 +475,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   Image.network(
                     _resolveImageUrl(banner.imageUrl),
                     fit: BoxFit.cover,
-                    alignment: Alignment.centerRight,
+                    alignment: Alignment.center,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
-                      return const _SkeletonPulse(
+                      return _SkeletonPulse(
                         width: double.infinity,
                         height: double.infinity,
-                        borderRadius: 32,
+                        borderRadius: bannerRadius,
                       );
                     },
                     errorBuilder: (context, error, stackTrace) {
@@ -504,67 +507,91 @@ class _HomeScreenState extends State<HomeScreen> {
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
                         colors: [
-                          Colors.black.withValues(alpha: 0.1),
-                          Colors.black.withValues(alpha: 0.75),
+                          Colors.black.withValues(alpha: 0.68),
+                          Colors.black.withValues(alpha: 0.08),
                         ],
                       ),
                     ),
                   ),
                   // Content
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          banner.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                          ),
+                    padding: EdgeInsets.fromLTRB(
+                      isWide ? 28 : 18,
+                      16,
+                      isWide ? 28 : 18,
+                      16,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: isWide ? 360 : 220,
                         ),
-                        if (banner.subtitle != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            banner.subtitle!,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                        if (banner.ctaLabel != null) ...[
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () => widget.onBannerTap(banner),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF5A88F1),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              banner.ctaLabel!,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              banner.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: isWide ? 22 : 19,
+                                height: 1.12,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
-                          ),
-                        ],
-                      ],
+                            if (banner.subtitle != null) ...[
+                              const SizedBox(height: 5),
+                              Text(
+                                banner.subtitle!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.84),
+                                  fontSize: isWide ? 14 : 12.5,
+                                  height: 1.25,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                            if (banner.ctaLabel != null) ...[
+                              const SizedBox(height: 12),
+                              ElevatedButton(
+                                onPressed: () => widget.onBannerTap(banner),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF5A88F1),
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size(0, 36),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  banner.ctaLabel!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -577,8 +604,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBannerSkeleton(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width > 600;
+
     return SizedBox(
-      height: MediaQuery.of(context).size.width > 600 ? 320 : 200,
+      height: isWide ? 280 : 176,
       child: PageView.builder(
         itemCount: 2,
         itemBuilder: (context, index) {
@@ -587,7 +616,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: const _SkeletonPulse(
               width: double.infinity,
               height: double.infinity,
-              borderRadius: 32,
+              borderRadius: 18,
             ),
           );
         },
@@ -900,12 +929,15 @@ class _DoctorCard extends StatelessWidget {
                 top: Radius.circular(31),
               ),
               child: SizedBox(
-                height: 240, // Increased room for text below
+                height: 252,
                 width: double.infinity,
                 child: resolvedImageUrl.isNotEmpty
                     ? Image.network(
                         resolvedImageUrl,
+                        width: double.infinity,
+                        height: double.infinity,
                         fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
                         errorBuilder: (_, _, _) => _fallbackImage(),
                       )
                     : _fallbackImage(),
@@ -1002,7 +1034,7 @@ class _DoctorCard extends StatelessWidget {
   Widget _fallbackImage() {
     return const AppLogoPlaceholder(
       width: double.infinity,
-      height: 240,
+      height: 252,
       padding: 48,
     );
   }
@@ -1375,13 +1407,6 @@ class _QuickLink extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: color,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Icon(icon, color: Colors.white, size: 24),
                 ),
@@ -1437,8 +1462,8 @@ class _HealthSnapshotCard extends StatelessWidget {
     final summary = (snapshot.aiSummary ?? '').trim().isNotEmpty
         ? snapshot.aiSummary!.trim()
         : snapshot.isEmpty
-            ? 'No readings recorded yet — add today\'s readings to get your score.'
-            : 'Your health snapshot is ready.';
+        ? 'No readings recorded yet — add today\'s readings to get your score.'
+        : 'Your health snapshot is ready.';
     final generatedLabel = _formatGeneratedAt(snapshot.generatedAt);
     final snapshotDateLabel = _formatSnapshotDate(snapshot.snapshotDate);
 
@@ -1453,33 +1478,101 @@ class _HealthSnapshotCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1F9A6D), Color(0xFF12A0C7)],
-        ),
-        borderRadius: BorderRadius.circular(24),
+        color: const Color(0xFF9BE1C8), // Solid vibrant green
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF70CFAD), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF192233).withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          children: [
+            // Top Right Vector Shape
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF72D3B2).withValues(alpha: 0.4),
+                ),
+              ),
+            ),
+            // Bottom Right Vector Shape
+            Positioned(
+              right: 60,
+              bottom: -60,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF72D3B2).withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+            // Bottom Left Vector Shape
+            Positioned(
+              left: -30,
+              bottom: -20,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF72D3B2).withValues(alpha: 0.2),
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.monitor_heart_rounded,
+                  color: Colors.black,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
               const Expanded(
-                child: Text(
-                  'Health Snapshot',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
+                child: Padding(
+                  padding: EdgeInsets.only(top: 7),
+                  child: Text(
+                    'Health Status',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ),
               ),
               _CardIconButton(
                 icon: Icons.history_rounded,
                 tooltip: 'View history',
+                accentColor: Color(0xFF134633),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -1492,6 +1585,7 @@ class _HealthSnapshotCard extends StatelessWidget {
               _CardIconButton(
                 icon: Icons.add_rounded,
                 tooltip: "Add/update today's readings",
+                accentColor: Color(0xFF134633),
                 onTap: () => showHealthSnapshotEntrySheet(context),
               ),
             ],
@@ -1500,7 +1594,7 @@ class _HealthSnapshotCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'For $snapshotDateLabel',
-              style: const TextStyle(color: Colors.white70, fontSize: 11),
+              style: const TextStyle(color: Color(0xFF1E6C50), fontSize: 11),
             ),
           ],
           const SizedBox(height: 12),
@@ -1510,12 +1604,14 @@ class _HealthSnapshotCard extends StatelessWidget {
                 _SnapshotMetric(
                   label: 'Health',
                   value: score.toStringAsFixed(0),
+                  accentColor: const Color(0xFF134633),
                 ),
               if (risk != null) ...[
                 const SizedBox(width: 16),
                 _SnapshotMetric(
                   label: 'Risk',
                   value: risk.toStringAsFixed(0),
+                  accentColor: const Color(0xFFD65C2B),
                 ),
               ],
               if (snapshot.bmi != null) ...[
@@ -1523,6 +1619,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                 _SnapshotMetric(
                   label: 'BMI',
                   value: snapshot.bmi!.toStringAsFixed(1),
+                  accentColor: const Color(0xFF2C63DF),
                 ),
               ],
             ],
@@ -1531,9 +1628,9 @@ class _HealthSnapshotCard extends StatelessWidget {
           Text(
             summary,
             style: const TextStyle(
-              color: Colors.white,
+              color: Color(0xFF134633),
               fontSize: 15,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               height: 1.4,
             ),
           ),
@@ -1545,9 +1642,10 @@ class _HealthSnapshotCard extends StatelessWidget {
                 child: Text(
                   fact,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Color(0xFF1E6C50),
                     fontSize: 13,
                     height: 1.4,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -1560,8 +1658,8 @@ class _HealthSnapshotCard extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: () => showHealthSnapshotEntrySheet(context),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white54),
+                  foregroundColor: const Color(0xFF134633),
+                  side: const BorderSide(color: Color(0xFF5CCB9E)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -1577,10 +1675,14 @@ class _HealthSnapshotCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Updated $generatedLabel',
-              style: const TextStyle(color: Colors.white70, fontSize: 11),
+              style: const TextStyle(color: Color(0xFF1E6C50), fontSize: 11),
             ),
           ],
-        ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1590,11 +1692,13 @@ class _CardIconButton extends StatelessWidget {
   const _CardIconButton({
     required this.icon,
     required this.onTap,
+    this.accentColor = Colors.white,
     this.tooltip,
   });
 
   final IconData icon;
   final VoidCallback onTap;
+  final Color accentColor;
   final String? tooltip;
 
   @override
@@ -1603,12 +1707,12 @@ class _CardIconButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(999),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(9),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.18),
+          color: accentColor.withValues(alpha: 0.16),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white, size: 18),
+        child: Icon(icon, color: accentColor, size: 22),
       ),
     );
     if (tooltip == null) return button;
@@ -1617,10 +1721,15 @@ class _CardIconButton extends StatelessWidget {
 }
 
 class _SnapshotMetric extends StatelessWidget {
-  const _SnapshotMetric({required this.label, required this.value});
+  const _SnapshotMetric({
+    required this.label,
+    required this.value,
+    this.accentColor = Colors.white,
+  });
 
   final String label;
   final String value;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1629,12 +1738,16 @@ class _SnapshotMetric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
+          style: const TextStyle(
+            color: Colors.black, 
+            fontSize: 11, 
+            fontWeight: FontWeight.w800,
+          ),
         ),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: accentColor,
             fontSize: 22,
             fontWeight: FontWeight.w900,
           ),
@@ -1645,10 +1758,7 @@ class _SnapshotMetric extends StatelessWidget {
 }
 
 class _AiSuggestionsSection extends StatelessWidget {
-  const _AiSuggestionsSection({
-    required this.suggestions,
-    this.onAccept,
-  });
+  const _AiSuggestionsSection({required this.suggestions, this.onAccept});
 
   final List<AiSuggestionItem> suggestions;
   final Future<void> Function(int suggestionId)? onAccept;

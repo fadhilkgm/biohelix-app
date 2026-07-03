@@ -96,15 +96,15 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
         Container(
           decoration: BoxDecoration(
             color: AiChatColors.inputSurface,
-            borderRadius: BorderRadius.circular(40),
+            borderRadius: BorderRadius.circular(28),
             border: Border.all(color: AiChatColors.border),
           ),
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+          padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _buildAttachButton(),
-              const SizedBox(width: 8),
+              const SizedBox(width: 5),
               Expanded(
                 child: widget.isListening
                     ? _AudioWaveform(soundLevel: widget.soundLevel)
@@ -113,10 +113,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                         minLines: 1,
                         maxLines: 4,
                         style: GoogleFonts.manrope(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.w400,
                           color: AiChatColors.textPrimary,
-                          letterSpacing: -0.2,
                         ),
                         cursorColor: AiChatColors.primary,
                         textInputAction: TextInputAction.send,
@@ -130,26 +129,16 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
+                            vertical: 9,
                             horizontal: 2,
                           ),
                         ),
                       ),
               ),
               _buildMicButton(strings),
-              const SizedBox(width: 8),
+              const SizedBox(width: 5),
               _buildSendButton(),
             ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          strings.assistantDisclaimer,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.manrope(
-            fontSize: 12,
-            color: const Color(0xFF8E8E93),
-            fontWeight: FontWeight.w400,
           ),
         ),
       ],
@@ -161,14 +150,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildAttachButton() {
     return SizedBox(
-      width: 48,
-      height: 48,
+      width: 38,
+      height: 38,
       child: Center(
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeInOutCubic,
-          width: 46,
-          height: 46,
+          width: 36,
+          height: 36,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.transparent,
@@ -189,7 +178,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                   padding: EdgeInsets.zero,
                   icon: const Icon(
                     Icons.add_rounded,
-                    size: 34,
+                    size: 27,
                     color: AiChatColors.primary,
                   ),
                 ),
@@ -217,8 +206,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
           final bool isSpeaking = widget.isSpeaking && !widget.isLiveMode;
 
           return SizedBox(
-            width: 42,
-            height: 48,
+            width: 36,
+            height: 38,
             child: Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.center,
@@ -231,8 +220,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 260),
                   curve: Curves.easeInOutCubic,
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: isRecording
@@ -243,10 +232,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                           )
                         : isSpeaking
                         ? const LinearGradient(
-                            colors: [
-                              AiChatColors.primary,
-                              AiChatColors.accent,
-                            ],
+                            colors: [AiChatColors.primary, AiChatColors.accent],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           )
@@ -276,7 +262,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                   color: isRecording || isSpeaking
                       ? Colors.white
                       : AiChatColors.primary,
-                  size: 31,
+                  size: 25,
                 ),
 
                 // ── REC badge ──
@@ -330,8 +316,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     return Transform.scale(
       scale: scale,
       child: Container(
-        width: 42,
-        height: 42,
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
@@ -352,8 +338,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
       builder: (context, child) {
         final hasText = widget.controller.text.trim().isNotEmpty;
         return Container(
-          width: 54,
-          height: 54,
+          width: 42,
+          height: 42,
           decoration: const BoxDecoration(
             gradient: AiChatColors.userBubbleGradient,
             shape: BoxShape.circle,
@@ -378,7 +364,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                         ? Icons.arrow_upward_rounded
                         : Icons.graphic_eq_rounded,
                     color: Colors.white,
-                    size: 31,
+                    size: 24,
                   ),
           ),
         );
@@ -421,9 +407,9 @@ class _AudioWaveformState extends State<_AudioWaveform>
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 48,
+      height: 38,
       alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.center,

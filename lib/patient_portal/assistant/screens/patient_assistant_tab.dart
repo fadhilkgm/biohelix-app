@@ -439,7 +439,7 @@ class _AssistantTabState extends State<_AssistantTab> {
                         ),
                       ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 46),
                       child: _isLiveVoiceMode
                           ? const SizedBox.shrink()
                           : ChatInputWidget(
@@ -579,22 +579,19 @@ class _AssistantEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 130, 24, 18),
       children: [
         const Center(child: _GeminiSparkle(size: 58)),
         const SizedBox(height: 38),
         Text(
-          'Hi $patientName, how can I help?',
+          'Hi, $patientName\nHow can I help?',
           textAlign: TextAlign.center,
           style: GoogleFonts.manrope(
             color: AiChatColors.textPrimary,
-            fontSize: 40,
-            height: 1.1,
-            fontWeight: FontWeight.w500,
-            letterSpacing: -1.8,
+            fontSize: 30,
+            height: 1.14,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 96),
@@ -628,16 +625,6 @@ class _AssistantEmptyState extends StatelessWidget {
               ),
             ),
           ),
-        const SizedBox(height: 16),
-        Text(
-          strings.assistantDisclaimer,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.manrope(
-            color: const Color(0xFF8E8E93),
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
       ],
     );
   }
@@ -698,7 +685,7 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
     final displayText =
         isSpeaking && (widget.latestAssistantText ?? '').isNotEmpty
         ? widget.latestAssistantText!
-        : 'Hi ${widget.patientName}, how can I help?';
+        : 'Hi, ${widget.patientName}\nHow can I help?';
 
     return Stack(
       children: [
@@ -724,10 +711,9 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
                           : TextAlign.center,
                       style: GoogleFonts.manrope(
                         color: AiChatColors.textPrimary,
-                        fontSize: isSpeaking ? 32 : 40,
-                        height: isSpeaking ? 1.18 : 1.1,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -1.5,
+                        fontSize: isSpeaking ? 32 : 30,
+                        height: isSpeaking ? 1.18 : 1.14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

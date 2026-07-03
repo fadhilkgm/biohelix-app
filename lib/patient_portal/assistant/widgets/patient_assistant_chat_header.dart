@@ -27,7 +27,7 @@ class ChatHeaderWidget extends StatelessWidget {
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
       child: Row(
         children: [
           _HeaderIconButton(
@@ -35,7 +35,7 @@ class ChatHeaderWidget extends StatelessWidget {
             icon: Icons.arrow_back_rounded,
             tooltip: strings.assistantBack,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               strings.assistantTitle,
@@ -43,9 +43,8 @@ class ChatHeaderWidget extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.manrope(
                 color: AiChatColors.textPrimary,
-                fontSize: 25,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.6,
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -88,12 +87,13 @@ class _HeaderIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 48,
-      height: 48,
+      width: 42,
+      height: 42,
       child: IconButton(
         onPressed: onPressed,
         tooltip: tooltip,
-        icon: Icon(icon, size: 31, color: AiChatColors.primary),
+        padding: EdgeInsets.zero,
+        icon: Icon(icon, size: 25, color: AiChatColors.primary),
         style: IconButton.styleFrom(
           backgroundColor: Colors.transparent,
           foregroundColor: AiChatColors.primary,

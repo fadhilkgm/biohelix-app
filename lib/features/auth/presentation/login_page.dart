@@ -114,6 +114,14 @@ class _LoginPageState extends State<LoginPage> {
     return errors.isEmpty;
   }
 
+  bool _looksLikeDuplicate(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains('already') ||
+        lower.contains('taken') ||
+        lower.contains('exist') ||
+        lower.contains('registered');
+  }
+
   Future<void> _submit() async {
     final strings = AppStrings.of(context.read<LanguageProvider>().language);
     if (!_validate(strings)) return;
@@ -129,10 +137,36 @@ class _LoginPageState extends State<LoginPage> {
         gender: _selectedGender,
         bloodGroup: _selectedBloodGroup,
       );
+
+      final error = session.errorMessage ?? '';
+      if (error.isNotEmpty && _looksLikeDuplicate(error)) {
+        final lower = error.toLowerCase();
+        setState(() {
+          if (lower.contains('email')) {
+            _fieldErrors['email'] = 'This email is already registered.';
+          } else if (lower.contains('phone') || lower.contains('mobile')) {
+            _fieldErrors['phone'] = 'This mobile number is already registered.';
+          } else {
+            _fieldErrors['phone'] = error;
+          }
+        });
+        session.clearError();
+      }
       return;
     }
 
     await session.sendOtp(phone: _phoneController.text);
+
+    final error = session.errorMessage ?? '';
+    if (error.isNotEmpty && mounted) {
+      final message = _looksLikeDuplicate(error) || error.toLowerCase().contains('not found')
+          ? 'This mobile number is not registered. Please register first.'
+          : error;
+      session.clearError();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   @override
@@ -158,7 +192,7 @@ class _LoginPageState extends State<LoginPage> {
             child: Consumer<SessionProvider>(
               builder: (context, session, _) {
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(28, 80, 28, 40),
+                  padding: EdgeInsets.fromLTRB(28, _isSignup ? 60 : 40, 28, 40),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -190,10 +224,10 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 48),
-                      Align(
-                        alignment: Alignment.centerLeft,
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 440),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
                               _isSignup
@@ -223,6 +257,7 @@ class _LoginPageState extends State<LoginPage> {
                             const SizedBox(height: 32),
                             if (_isSignup) ...[
                               AuthTextField(
+                                key: const ValueKey('field_name'),
                                 controller: _nameController,
                                 label: strings.fullName,
                                 hint: strings.fullNameHint,
@@ -233,6 +268,7 @@ class _LoginPageState extends State<LoginPage> {
                               const SizedBox(height: 18),
                             ],
                             AuthTextField(
+                              key: const ValueKey('field_phone'),
                               controller: _phoneController,
                               label: strings.mobileNumber,
                               hint: strings.mobileNumberHint,
@@ -243,6 +279,7 @@ class _LoginPageState extends State<LoginPage> {
                             if (_isSignup) ...[
                               const SizedBox(height: 18),
                               AuthTextField(
+                                key: const ValueKey('field_dob'),
                                 controller: _dobController,
                                 label: strings.dateOfBirth,
                                 hint: strings.dateOfBirthHint,
@@ -258,6 +295,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               const SizedBox(height: 18),
                               AuthTextField(
+                                key: const ValueKey('field_email'),
                                 controller: _emailController,
                                 label: strings.email,
                                 hint: strings.emailHint,
@@ -270,6 +308,7 @@ class _LoginPageState extends State<LoginPage> {
                                 children: [
                                   Expanded(
                                     child: AuthDropdownField(
+                                      key: const ValueKey('field_gender'),
                                       value: _selectedGender,
                                       label: strings.gender,
                                       hint: strings.genderHint,
@@ -285,6 +324,7 @@ class _LoginPageState extends State<LoginPage> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: AuthDropdownField(
+                                      key: const ValueKey('field_blood_group'),
                                       value: _selectedBloodGroup,
                                       label: strings.bloodGroup,
                                       hint: strings.bloodGroupHint,
@@ -301,6 +341,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               const SizedBox(height: 18),
                               AuthTextField(
+                                key: const ValueKey('field_place'),
                                 controller: _placeController,
                                 label: strings.cityLocation,
                                 hint: strings.cityLocationHint,
@@ -309,7 +350,7 @@ class _LoginPageState extends State<LoginPage> {
                                 errorText: _fieldErrors['place'],
                               ),
                             ],
-                            if ((session.errorMessage ?? '').isNotEmpty)
+                            if (_isSignup && (session.errorMessage ?? '').isNotEmpty)
                               AuthErrorText(message: session.errorMessage!),
                             const SizedBox(height: 32),
                             AuthPrimaryButton(

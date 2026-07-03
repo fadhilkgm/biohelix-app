@@ -25,22 +25,20 @@ class HomeHeroHeaderWidget extends StatelessWidget {
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ClipOval(
-                    child: AppLogo(
-                      size: 22,
-                      fit: BoxFit.cover,
-                      backgroundColor: Colors.white,
-                    ),
+                  AppLogo(
+                    size: 32,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     hospitalName,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 0.2,
+                      letterSpacing: 0.3,
                       height: 1,
                     ),
                   ),
