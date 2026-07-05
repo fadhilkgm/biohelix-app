@@ -26,15 +26,15 @@ class AppSidebar extends StatelessWidget {
 
   static const _items = [
     SidebarItem(icon: Icons.home_rounded, label: 'Home', tabIndex: 0),
-    SidebarItem(icon: Icons.folder_rounded, label: 'Records', tabIndex: 1),
     SidebarItem(
       icon: Icons.calendar_month_rounded,
       label: 'Bookings',
-      tabIndex: 2,
+      tabIndex: 1,
     ),
+    SidebarItem(icon: Icons.folder_rounded, label: 'Records', tabIndex: 2),
     SidebarItem(
-      icon: Icons.workspace_premium_rounded,
-      label: 'My Club',
+      icon: Icons.chat_bubble_rounded,
+      label: 'AI Assistant',
       tabIndex: 3,
     ),
     SidebarItem(icon: Icons.person_rounded, label: 'Profile', tabIndex: 4),

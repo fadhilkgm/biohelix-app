@@ -127,6 +127,7 @@ abstract class LocalizedStrings {
   String get navReports;
   String get navBookings;
   String get navCheckup;
+  String get navAssistant;
   String get navProfile;
 
   // App shell
@@ -268,7 +269,7 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get getStarted => 'Get Started';
   @override
-  String get biohelix => 'Biohelix';
+  String get biohelix => 'BHRC';
   @override
   String get hospitalLocation =>
       'Health And Research Center\nPonnani, Malappuram';
@@ -462,11 +463,13 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get navCheckup => 'Checkup';
   @override
+  String get navAssistant => 'AI Assistant';
+  @override
   String get navProfile => 'Profile';
 
   // App shell
   @override
-  String get exitAppTitle => 'Exit BioHelix?';
+  String get exitAppTitle => 'Exit BHRC?';
   @override
   String get exitAppMessage =>
       'Press Stay to keep using the app, or Exit to close it.';
@@ -669,7 +672,7 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get getStarted => 'തുടങ്ങുക';
   @override
-  String get biohelix => 'ബയോഹെലിക്സ്';
+  String get biohelix => 'BHRC';
   @override
   String get hospitalLocation =>
       'ഹെൽത്ത് ആൻഡ് റിസർച്ച് സെന്റർ\nപൊന്നാനി, മലപ്പുറം';
@@ -866,11 +869,13 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get navCheckup => 'ചെക്കപ്പ്';
   @override
+  String get navAssistant => 'AI അസിസ്റ്റന്റ്';
+  @override
   String get navProfile => 'പ്രൊഫൈൽ';
 
   // App shell
   @override
-  String get exitAppTitle => 'ബയോഹെലിക്സ് അടയ്ക്കണോ?';
+  String get exitAppTitle => 'BHRC അടയ്ക്കണോ?';
   @override
   String get exitAppMessage =>
       'ആപ്പ് തുടരാൻ "തുടരുക" അമർത്തുക, അടയ്ക്കാൻ "അടയ്ക്കുക" അമർത്തുക.';

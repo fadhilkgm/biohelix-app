@@ -159,7 +159,7 @@ class _SplashScreenState extends State<SplashScreen>
                               child: Column(
                                 children: [
                                   Text(
-                                    'BioHelix',
+                                    'BHRC',
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context)
                                         .textTheme

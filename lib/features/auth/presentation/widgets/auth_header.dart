@@ -28,7 +28,7 @@ class AuthHeader extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Biohelix Health & Research Center',
+            'BHRC Health & Research Center',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white,

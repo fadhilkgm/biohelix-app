@@ -44,7 +44,7 @@ class EmergencyContactCardData {
 const emergencyHospitalInfo = EmergencyHospitalInfo(
   name: 'BHRC Hospital Location',
   lines: [
-    'Biohelix Health & Research Center',
+    'BHRC Health & Research Center',
     'Medical College Road, Thiruvananthapuram',
   ],
   pinCode: 'Kerala - 695011',

@@ -110,19 +110,19 @@ class _PatientAppShellState extends State<PatientAppShell>
       label: strings.navHome,
     ),
     BottomNavItem(
-      icon: Icons.folder_outlined,
-      selectedIcon: Icons.folder_rounded,
-      label: strings.navReports,
-    ),
-    BottomNavItem(
       icon: Icons.calendar_month_outlined,
       selectedIcon: Icons.calendar_month_rounded,
       label: strings.navBookings,
     ),
     BottomNavItem(
-      icon: Icons.health_and_safety_outlined,
-      selectedIcon: Icons.health_and_safety_rounded,
-      label: strings.navCheckup,
+      icon: Icons.folder_outlined,
+      selectedIcon: Icons.folder_rounded,
+      label: strings.navReports,
+    ),
+    BottomNavItem(
+      icon: Icons.chat_bubble_outline_rounded,
+      selectedIcon: Icons.chat_bubble_rounded,
+      label: strings.navAssistant,
     ),
     BottomNavItem(
       icon: Icons.person_outline_rounded,
@@ -140,9 +140,9 @@ class _PatientAppShellState extends State<PatientAppShell>
         onOpenDoctorsDirectory: _openDoctorsDirectory,
         onOpenLabTestsDirectory: _openLabTestsDirectory,
       ),
-      _RecordsTab(key: _recordsTabKey),
       const _BookingsTab(),
-      const AiCheckupTab(),
+      _RecordsTab(key: _recordsTabKey),
+      const _AssistantTabView(),
       _ProfileTab(onOpenTestsHub: _openTestsHub),
     ];
 
@@ -267,7 +267,7 @@ class _PatientAppShellState extends State<PatientAppShell>
 
   @override
   void openRecords([String filter = 'all']) {
-    _setIndex(1);
+    _setIndex(2);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _recordsTabKey.currentState?.setFilter(filter);
     });
@@ -280,7 +280,9 @@ class _PatientAppShellState extends State<PatientAppShell>
 
   @override
   void openAiCheckup() {
-    _setIndex(3);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const AiCheckupTab()),
+    );
   }
 
   Future<void> _openAssistant() async {
@@ -406,6 +408,20 @@ PatientDashboard _fallbackDashboard(PatientIdentity? patient) {
     ],
     latestVitals: null,
   );
+}
+
+/// AI Assistant embedded as a bottom-nav tab (Home · Bookings · Reports ·
+/// AI Assistant · Profile). Reuses the shared assistant chat surface.
+class _AssistantTabView extends StatelessWidget {
+  const _AssistantTabView();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: AiChatColors.background,
+      body: _AssistantTab(),
+    );
+  }
 }
 
 class _AssistantPage extends StatelessWidget {

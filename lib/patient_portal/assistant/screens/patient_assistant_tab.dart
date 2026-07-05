@@ -439,7 +439,7 @@ class _AssistantTabState extends State<_AssistantTab> {
                         ),
                       ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 46),
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 15),
                       child: _isLiveVoiceMode
                           ? const SizedBox.shrink()
                           : ChatInputWidget(

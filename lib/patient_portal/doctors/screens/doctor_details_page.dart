@@ -492,7 +492,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
         doctorId: widget.doctor.id,
         bookingDate: DateFormat('yyyy-MM-dd').format(date),
         timeslot: slot,
-        notes: 'Booked from BioHelix patient app.',
+        notes: 'Booked from BHRC patient app.',
       );
       if (mounted) {
         final config = Provider.of<AppConfig>(context, listen: false);

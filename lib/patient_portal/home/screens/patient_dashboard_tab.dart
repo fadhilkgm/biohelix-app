@@ -77,7 +77,7 @@ class _DashboardTab extends StatelessWidget {
           },
           onOpenRecords: (filter) =>
               PatientAppShell.of(context).openRecords(filter),
-          onOpenBookings: () => onNavigate(2),
+          onOpenBookings: () => onNavigate(1),
           onOpenDoctorsDirectory: onOpenDoctorsDirectory,
           onOpenLabOrder: () {
             Navigator.of(context).push(
@@ -118,7 +118,7 @@ class _DashboardTab extends StatelessWidget {
           onPackageTap: (package) {
             targetHandler.openPackageLanding(package.slug, true);
           },
-          onSeeAllAppointments: () => onNavigate(2),
+          onSeeAllAppointments: () => onNavigate(1),
           onQuickActionTap: quickActionHandler.open,
           isLoading: portal.isLoading,
           healthSnapshot: portal.healthSnapshot,

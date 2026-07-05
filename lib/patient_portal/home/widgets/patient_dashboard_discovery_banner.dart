@@ -102,7 +102,7 @@ class _HomeBannerCarouselState extends State<_HomeBannerCarousel> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Stay connected with BioHelix Care',
+                          'Stay connected with BHRC Care',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,

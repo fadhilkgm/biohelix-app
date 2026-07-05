@@ -24,7 +24,7 @@ class AppConfig {
     const definedApiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
     return AppConfig(
-      appName: env['APP_NAME'] ?? 'Biohelix',
+      appName: env['APP_NAME'] ?? 'BHRC',
       apiBaseUrl: definedApiBaseUrl.isNotEmpty
           ? definedApiBaseUrl
           : (env['API_BASE_URL'] ?? 'https://www.bhrchospital.com/api/v1'),

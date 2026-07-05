@@ -61,7 +61,7 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                         const AppLogo(size: 56),
                         const SizedBox(height: 16),
                         Text(
-                          'Welcome to BioHelix',
+                          'Welcome to BHRC',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
