@@ -1004,6 +1004,22 @@ class ChatMessage {
   }
 }
 
+/// Reply from the server-side push-to-talk voice endpoint. Carries the
+/// transcribed user speech, the AI reply message, and an optional signed URL
+/// to a spoken (TTS) rendering of the reply. `audioUrl` is null when the
+/// server has no TTS model configured for the requested language.
+class GlobalChatVoiceReply {
+  const GlobalChatVoiceReply({
+    required this.transcript,
+    required this.reply,
+    this.audioUrl,
+  });
+
+  final String transcript;
+  final ChatMessage reply;
+  final String? audioUrl;
+}
+
 class ChatAttachment {
   const ChatAttachment({
     required this.name,

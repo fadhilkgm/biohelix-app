@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -17,6 +18,7 @@ class VoiceManager {
   final FlutterTts _nativeTts = FlutterTts();
   final SpeechToText _nativeStt = SpeechToText();
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final AudioRecorder _recorder = AudioRecorder();
 
   FlutterTts get nativeTts => _nativeTts;
   SpeechToText get nativeStt => _nativeStt;
@@ -203,6 +205,62 @@ class VoiceManager {
   Future<void> stopSpeaking() async {
     await _nativeTts.stop();
     await _audioPlayer.stop();
+  }
+
+  // --- Server-side voice (push-to-talk) ---
+  // Records a clip that is uploaded to the backend voice endpoint (which runs
+  // STT → LLM → TTS) and plays back the signed audio URL it returns.
+
+  /// Whether the microphone is currently capturing a push-to-talk clip.
+  Future<bool> get isRecording => _recorder.isRecording();
+
+  /// Requests mic permission and begins recording an AAC/m4a clip. Returns the
+  /// file path being written to, or null if permission was denied.
+  Future<String?> startRecording() async {
+    if (!await _recorder.hasPermission()) {
+      return null;
+    }
+    final tempDir = await getTemporaryDirectory();
+    final path =
+        '${tempDir.path}/voice_turn_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    await _recorder.start(
+      const RecordConfig(encoder: AudioEncoder.aacLc),
+      path: path,
+    );
+    return path;
+  }
+
+  /// Stops the current recording and returns the finished file path (or null).
+  Future<String?> stopRecording() async {
+    if (!await _recorder.isRecording()) return null;
+    return _recorder.stop();
+  }
+
+  /// Cancels and discards the current recording without producing a file.
+  Future<void> cancelRecording() async {
+    if (await _recorder.isRecording()) {
+      await _recorder.cancel();
+    }
+  }
+
+  /// Deletes a temporary recording file once it has been uploaded.
+  Future<void> deleteRecording(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    } catch (_) {}
+  }
+
+  /// Plays a remote (signed) audio URL returned by the voice endpoint and
+  /// completes when playback finishes.
+  Future<void> playRemoteAudio(String url) async {
+    await _audioPlayer.setUrl(url);
+    await _audioPlayer.play();
+    await _audioPlayer.playerStateStream.firstWhere(
+      (state) =>
+          state.processingState == ProcessingState.completed ||
+          state.processingState == ProcessingState.idle,
+    );
   }
 
   void setTtsStartHandler(void Function() handler) {

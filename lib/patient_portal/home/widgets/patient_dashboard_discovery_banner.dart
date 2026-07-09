@@ -153,7 +153,7 @@ class _HomeBannerCarouselState extends State<_HomeBannerCarousel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 190,
+          height: 240,
           child: PageView.builder(
             controller: _pageController,
             itemCount: widget.banners.length,

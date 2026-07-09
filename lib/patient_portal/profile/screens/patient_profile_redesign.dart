@@ -60,6 +60,19 @@ class _RedesignedProfileSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Text(
+                'Patient QR Code',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: _PatientQrCard(patient: patient),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Text(
                 'Personal Information',
                 style: Theme.of(
                   context,
@@ -314,6 +327,77 @@ class _PatientIdCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PatientQrCard extends StatelessWidget {
+  const _PatientQrCard({required this.patient});
+
+  final PatientIdentity patient;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final qrData = patient.uuid.isNotEmpty
+        ? patient.uuid
+        : patient.registrationNumber;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE6EBF2)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFEDF1F6)),
+            ),
+            child: BarcodeWidget(
+              data: qrData,
+              barcode: Barcode.qrCode(),
+              width: 180,
+              height: 180,
+              drawText: false,
+              color: const Color(0xFF192233),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            patient.name,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'MRN: ${patient.registrationNumber}',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Show this code at the reception or lab counter',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF8A94A6),
+            ),
+          ),
+        ],
       ),
     );
   }

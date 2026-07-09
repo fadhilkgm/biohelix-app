@@ -186,6 +186,71 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     }
   }
 
+  /// Uploads a recorded voice clip to the server-side voice endpoint. The
+  /// server transcribes it, generates an AI reply, and (when TTS is configured)
+  /// returns a signed audio URL. Both the transcribed user turn and the AI
+  /// reply are appended to the active thread. Returns the reply (including the
+  /// optional `audioUrl` for playback), or null on failure.
+  Future<GlobalChatVoiceReply?> sendChatVoiceMessage(
+    String audioFilePath, {
+    String? language,
+  }) async {
+    var threadId = _activeChatThreadId;
+    if ((threadId ?? '').isEmpty) {
+      await createNewChatThread();
+      threadId = _activeChatThreadId;
+      if ((threadId ?? '').isEmpty) {
+        return null;
+      }
+    }
+
+    final currentThreadId = threadId!;
+
+    _isSendingMessage = true;
+    _errorMessage = null;
+    _notify();
+
+    try {
+      final voiceReply = await _repository.sendGlobalChatVoiceMessage(
+        threadId: currentThreadId,
+        audioFilePath: audioFilePath,
+        language: language,
+      );
+
+      final existing = _chatHistories[currentThreadId] ?? const <ChatMessage>[];
+      final transcript = voiceReply.transcript.trim();
+      final userMessage = ChatMessage(
+        role: 'user',
+        content: transcript,
+      );
+      _chatHistories[currentThreadId] = [
+        ...existing,
+        if (transcript.isNotEmpty) userMessage,
+        voiceReply.reply,
+      ];
+      if (transcript.isNotEmpty) {
+        _touchThread(currentThreadId, transcript);
+      }
+      _touchThread(currentThreadId, voiceReply.reply.content);
+      return voiceReply;
+    } catch (error) {
+      _errorMessage = error.toString();
+      final updated = _chatHistories[currentThreadId] ?? const <ChatMessage>[];
+      _chatHistories[currentThreadId] = [
+        ...updated,
+        const ChatMessage(
+          role: 'ai',
+          content:
+              'I could not process that voice message right now. Please try again later or type your question instead.',
+        ),
+      ];
+      return null;
+    } finally {
+      _isSendingMessage = false;
+      _notify();
+    }
+  }
+
   void _touchThread(String threadId, String preview) {
     final nowIso = DateTime.now().toIso8601String();
     _chatThreads =

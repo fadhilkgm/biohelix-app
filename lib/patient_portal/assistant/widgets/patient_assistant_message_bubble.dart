@@ -101,8 +101,9 @@ class _MessageBubbleWidget extends StatelessWidget {
                       style: AppTextStyles.bubbleUser(context),
                     )
                   else
-                    MarkdownBody(
+                    _RevealingMarkdown(
                       data: message.content,
+                      animate: isSpeaking,
                       styleSheet:
                           MarkdownStyleSheet.fromTheme(
                             Theme.of(context),
@@ -185,6 +186,111 @@ class _MessageBubbleWidget extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Renders an AI reply as markdown, progressively revealing it word-by-word
+/// while [animate] is true (i.e. while the reply is being spoken aloud). When
+/// [animate] turns false the full text is shown immediately, so the reveal
+/// self-corrects to the actual speech duration.
+class _RevealingMarkdown extends StatefulWidget {
+  const _RevealingMarkdown({
+    required this.data,
+    required this.animate,
+    required this.styleSheet,
+    this.onTapLink,
+  });
+
+  final String data;
+  final bool animate;
+  final MarkdownStyleSheet styleSheet;
+  final void Function(String text, String? href, String? title)? onTapLink;
+
+  @override
+  State<_RevealingMarkdown> createState() => _RevealingMarkdownState();
+}
+
+class _RevealingMarkdownState extends State<_RevealingMarkdown> {
+  static const Duration _wordInterval = Duration(milliseconds: 190);
+
+  // End offsets of each word in `data`, used to reveal a growing prefix that
+  // keeps the original markdown/whitespace intact.
+  List<int> _wordEnds = const [];
+  int _revealed = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _computeWordEnds();
+    if (widget.animate) {
+      _revealed = 0;
+      _startTimer();
+    } else {
+      _revealed = _wordEnds.length;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _RevealingMarkdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.data != oldWidget.data) {
+      _computeWordEnds();
+      _revealed = widget.animate ? 0 : _wordEnds.length;
+    }
+    if (widget.animate && !oldWidget.animate) {
+      _revealed = 0;
+      _startTimer();
+    } else if (!widget.animate && oldWidget.animate) {
+      // Speech ended — snap to the full text.
+      _timer?.cancel();
+      _revealed = _wordEnds.length;
+    }
+  }
+
+  void _computeWordEnds() {
+    _wordEnds = RegExp(r'\S+')
+        .allMatches(widget.data)
+        .map((match) => match.end)
+        .toList(growable: false);
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    if (_wordEnds.isEmpty) return;
+    _timer = Timer.periodic(_wordInterval, (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_revealed >= _wordEnds.length) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _revealed++;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final shown =
+        (!widget.animate || _revealed >= _wordEnds.length || _wordEnds.isEmpty)
+        ? widget.data
+        : widget.data.substring(0, _wordEnds[_revealed - 1 < 0 ? 0 : _revealed - 1]);
+
+    return MarkdownBody(
+      data: _revealed == 0 && widget.animate ? '' : shown,
+      styleSheet: widget.styleSheet,
+      onTapLink: widget.onTapLink,
     );
   }
 }

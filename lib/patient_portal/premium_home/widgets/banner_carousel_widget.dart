@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter/material.dart';
@@ -64,7 +64,7 @@ class _BannerCarouselWidgetState extends State<BannerCarouselWidget> {
     return Column(
       children: [
         SizedBox(
-          height: 192,
+          height: 240,
           child: PageView.builder(
             controller: _controller,
             itemCount: widget.banners.length,

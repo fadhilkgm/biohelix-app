@@ -25,6 +25,11 @@ class _AssistantTabState extends State<_AssistantTab> {
   Timer? _liveAutoSendDebounce;
   String _lastLiveSentText = '';
   String? _lastLiveSpokenReply;
+  // Auto-speak (text mode): set when the user sends a text message so the
+  // arriving AI reply is spoken aloud automatically; `_lastAutoSpokenReply`
+  // tracks the fingerprint of the last reply we spoke to avoid repeats.
+  bool _pendingAutoSpeak = false;
+  String? _lastAutoSpokenReply;
   String? _configuredTtsLanguage;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
   bool _isAttachmentUploadInFlight = false;
@@ -114,6 +119,7 @@ class _AssistantTabState extends State<_AssistantTab> {
     _isAttachmentUploadInFlight = false;
     _uploadingAttachmentName = null;
     _isTapRecording = false;
+    _pendingAutoSpeak = false;
   }
 
   @override
@@ -170,6 +176,27 @@ class _AssistantTabState extends State<_AssistantTab> {
               if (!mounted || !_isLiveVoiceMode) return;
               _speakReplyThenResumeListening(last, portal);
             });
+          }
+        }
+
+        // Auto-speak newly-arrived AI replies in normal (non-live) mode. Only
+        // fires for a reply to a message the user just sent (`_pendingAutoSpeak`),
+        // never on history load or thread switches.
+        if (!_isLiveVoiceMode &&
+            !portal.isSendingMessage &&
+            messages.isNotEmpty) {
+          final last = messages.last;
+          final fingerprint =
+              '${last.createdAt ?? ''}:${last.content.hashCode}';
+          if (last.role != 'user' && _lastAutoSpokenReply != fingerprint) {
+            _lastAutoSpokenReply = fingerprint;
+            if (_pendingAutoSpeak && !_isSpeaking) {
+              _pendingAutoSpeak = false;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted || _isLiveVoiceMode) return;
+                _autoSpeakReply(last);
+              });
+            }
           }
         }
 

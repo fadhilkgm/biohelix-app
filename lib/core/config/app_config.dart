@@ -23,11 +23,21 @@ class AppConfig {
         : (_readBool(env['SHOW_DEV_OTP']) ?? !kReleaseMode);
     const definedApiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
+    String defaultBaseUrl = definedApiBaseUrl.isNotEmpty
+        ? definedApiBaseUrl
+        : (env['API_BASE_URL'] ?? 'https://www.bhrchospital.com/api/v1');
+
+    if (!kIsWeb && defaultBaseUrl.contains('localhost')) {
+      // In Flutter, if running on Android emulator, localhost points to the emulator.
+      // 10.0.2.2 is a special alias to the host loopback interface.
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        defaultBaseUrl = defaultBaseUrl.replaceAll('localhost', '10.0.2.2');
+      }
+    }
+
     return AppConfig(
       appName: env['APP_NAME'] ?? 'BHRC',
-      apiBaseUrl: definedApiBaseUrl.isNotEmpty
-          ? definedApiBaseUrl
-          : (env['API_BASE_URL'] ?? 'https://www.bhrchospital.com/api/v1'),
+      apiBaseUrl: defaultBaseUrl,
       healthEndpoint: env['HEALTH_ENDPOINT'] ?? '/health',
       showDevOtp: showDevOtp,
       sarvamApiKey: env['SARVAM_API_KEY'] ?? '',

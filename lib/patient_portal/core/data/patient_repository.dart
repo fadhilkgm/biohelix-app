@@ -1092,6 +1092,58 @@ class PatientRepository {
     );
   }
 
+  /// Push-to-talk voice turn. Uploads a recorded audio clip; the server runs
+  /// STT → LLM → TTS and returns the transcript, the AI reply, and an optional
+  /// signed URL to a spoken rendering of the reply.
+  Future<GlobalChatVoiceReply> sendGlobalChatVoiceMessage({
+    required String threadId,
+    required String audioFilePath,
+    String? language,
+  }) async {
+    final normalizedLanguage = (language ?? '').trim().toLowerCase();
+    final fileName = audioFilePath.split(RegExp(r'[\\/]')).last;
+    final response = await _apiClient.postMultipart(
+      '/patients/chat/global/threads/$threadId/voice',
+      data: FormData.fromMap({
+        'audio': await MultipartFile.fromFile(
+          File(audioFilePath).path,
+          filename: fileName,
+          contentType: DioMediaType('audio', 'mp4'),
+        ),
+        if (normalizedLanguage == 'en' || normalizedLanguage == 'ml')
+          'language': normalizedLanguage,
+      }),
+    );
+
+    final pkgsRaw = response['suggestedPackages'] as List<dynamic>? ?? const [];
+    final suggestedPackages = pkgsRaw
+        .map((item) => LabPackageItem.fromJson(_map(item)))
+        .toList();
+    final testsRaw = response['suggestedTests'] as List<dynamic>? ?? const [];
+    final suggestedTests = testsRaw
+        .map((item) => LabTestItem.fromJson(_map(item)))
+        .toList();
+
+    final rawAudioUrl = (response['audio_url'] as String? ?? '').trim();
+    final resolvedAudioUrl = rawAudioUrl.isEmpty
+        ? null
+        : _resolveApiMediaUrl(rawAudioUrl, _apiClient.baseUrl);
+
+    return GlobalChatVoiceReply(
+      transcript: (response['transcript'] as String? ?? '').trim(),
+      audioUrl: resolvedAudioUrl,
+      reply: ChatMessage(
+        role: 'ai',
+        content:
+            response['reply'] as String? ??
+            response['content'] as String? ??
+            'No response',
+        suggestedPackages: suggestedPackages,
+        suggestedTests: suggestedTests,
+      ),
+    );
+  }
+
   Future<ChatThreadSummary> renameGlobalChatThread({
     required String threadId,
     required String title,

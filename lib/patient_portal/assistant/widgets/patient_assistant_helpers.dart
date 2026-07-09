@@ -131,6 +131,8 @@ extension _AssistantActions on _AssistantTabState {
     inputController.clear();
     updateAssistantState(() {
       _pendingAttachments.clear();
+      // Speak the AI reply aloud automatically once it arrives.
+      _pendingAutoSpeak = true;
     });
 
     await portal.sendChatMessage(
@@ -139,6 +141,33 @@ extension _AssistantActions on _AssistantTabState {
       language: _assistantLanguageCode,
       mode: 'text',
     );
+  }
+
+  /// Speaks a freshly-arrived AI reply aloud (text mode). Manages `isSpeaking`
+  /// directly so it works whether or not the live-voice TTS handlers are set.
+  Future<void> _autoSpeakReply(ChatMessage message) async {
+    if (isLiveVoiceMode) return;
+    final toSpeak = _sanitizeSpeechText(message.content);
+    if (toSpeak.isEmpty) return;
+
+    // Flip `isSpeaking` first so the reply's word-by-word reveal starts right
+    // away, before any TTS setup latency.
+    updateAssistantState(() {
+      isSpeaking = true;
+    });
+    await _configureTtsLanguage();
+    await voiceManager.awaitSpeakCompletion(true);
+    if (!mounted) return;
+    try {
+      await voiceManager.speak(toSpeak, _ttsLanguageCode);
+    } catch (_) {
+    } finally {
+      if (mounted) {
+        updateAssistantState(() {
+          isSpeaking = false;
+        });
+      }
+    }
   }
 
   Future<void> _attachFile(PatientPortalProvider portal) async {
@@ -381,6 +410,10 @@ extension _AssistantActions on _AssistantTabState {
     }
   }
 
+  /// Push-to-talk: tap once to start recording, tap again to stop and send.
+  /// The recorded clip is uploaded to the server-side voice endpoint, which
+  /// transcribes it, generates a reply, and (when configured) returns spoken
+  /// audio that we play back. See `Health_AI_Chat_Voice_API.md` §5.
   Future<void> _toggleVoiceInput() async {
     final portal = context.read<PatientPortalProvider>();
 
@@ -388,25 +421,86 @@ extension _AssistantActions on _AssistantTabState {
       await _toggleLiveVoiceMode(portal);
     }
 
-    if (isListening || isTapRecording) {
-      // User explicitly pressed stop — clear the flag so auto-restart stops
+    // Currently recording — stop, upload and let the server handle STT/TTS.
+    if (isTapRecording) {
+      String? audioPath;
+      try {
+        audioPath = await voiceManager.stopRecording();
+      } catch (_) {}
       updateAssistantState(() {
         _isTapRecording = false;
         _isListening = false;
         _soundLevel = 0.0;
       });
-      try {
-        await speechToText.stop();
-      } catch (_) {}
+      if ((audioPath ?? '').isEmpty) return;
+      await _sendVoiceTurn(portal, audioPath!);
       return;
     }
 
-    // User pressed to start recording — set the flag
+    // Not recording — begin capturing a clip.
+    try {
+      final path = await voiceManager.startRecording();
+      if (path == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_strings.assistantLiveVoiceUnavailable)),
+        );
+        return;
+      }
+      updateAssistantState(() {
+        _isTapRecording = true;
+        _isListening = true;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      updateAssistantState(() {
+        _isTapRecording = false;
+        _isListening = false;
+        _soundLevel = 0.0;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${_strings.assistantUnableToListen}: $error')));
+    }
+  }
+
+  /// Uploads a recorded push-to-talk clip and plays back the spoken reply if
+  /// the server returned one.
+  Future<void> _sendVoiceTurn(
+    PatientPortalProvider portal,
+    String audioPath,
+  ) async {
+    // Voice turns play the server's spoken audio directly; don't also auto-speak.
     updateAssistantState(() {
-      _isTapRecording = true;
+      _pendingAutoSpeak = false;
     });
-    await _ensureVoiceReady();
-    await _startVoiceListening(portal);
+    final voiceReply = await portal.sendChatVoiceMessage(
+      audioPath,
+      language: _assistantLanguageCode,
+    );
+
+    // Clean up the temporary recording once uploaded.
+    unawaited(voiceManager.deleteRecording(audioPath));
+
+    if (!mounted || voiceReply == null) return;
+
+    final audioUrl = voiceReply.audioUrl;
+    if (audioUrl == null || audioUrl.isEmpty) return;
+
+    // Server returned spoken audio — play it back.
+    updateAssistantState(() {
+      isSpeaking = true;
+    });
+    try {
+      await voiceManager.playRemoteAudio(audioUrl);
+    } catch (_) {
+    } finally {
+      if (mounted) {
+        updateAssistantState(() {
+          isSpeaking = false;
+        });
+      }
+    }
   }
 
   Future<void> _toggleLiveVoiceMode(PatientPortalProvider portal) async {

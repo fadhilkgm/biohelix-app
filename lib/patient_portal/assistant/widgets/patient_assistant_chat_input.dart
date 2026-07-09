@@ -36,6 +36,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     with TickerProviderStateMixin {
   late final AnimationController _pulseCtrl;
   late final AnimationController _liveGlowCtrl;
+  final FocusNode _inputFocus = FocusNode();
+  bool _isFolded = false;
 
   @override
   void initState() {
@@ -83,7 +85,20 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   void dispose() {
     _pulseCtrl.dispose();
     _liveGlowCtrl.dispose();
+    _inputFocus.dispose();
     super.dispose();
+  }
+
+  void _toggleFold() {
+    setState(() => _isFolded = !_isFolded);
+    if (_isFolded) {
+      _inputFocus.unfocus();
+    } else {
+      // Re-open the keyboard when the composer is expanded again.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _inputFocus.requestFocus();
+      });
+    }
   }
 
   @override
@@ -93,22 +108,98 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            color: AiChatColors.inputSurface,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: AiChatColors.border),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SizeTransition(
+              sizeFactor: animation,
+              axisAlignment: -1,
+              child: child,
+            ),
           ),
-          padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _buildAttachButton(),
-              const SizedBox(width: 5),
-              Expanded(
-                child: widget.isListening
-                    ? _AudioWaveform(soundLevel: widget.soundLevel)
-                    : TextField(
+          child: (_isFolded && !widget.isListening)
+              ? _buildFoldedBar(strings)
+              : _buildComposer(strings),
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  Folded Bar — collapsed pill that reopens the composer on tap
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildFoldedBar(LocalizedStrings strings) {
+    return GestureDetector(
+      key: const ValueKey('folded'),
+      onTap: _toggleFold,
+      onVerticalDragEnd: (details) {
+        // Swipe up to expand the composer again.
+        if ((details.primaryVelocity ?? 0) < -60) _toggleFold();
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: AiChatColors.inputSurface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AiChatColors.border),
+        ),
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _buildAttachButton(),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
+                child: Text(
+                  strings.assistantInputHint,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.inputHint(context),
+                ),
+              ),
+            ),
+            _buildMicButton(strings),
+            const SizedBox(width: 5),
+            _buildSendButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  Composer — full input row
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildComposer(LocalizedStrings strings) {
+    return GestureDetector(
+      key: const ValueKey('composer'),
+      onVerticalDragEnd: widget.isListening
+          ? null
+          : (details) {
+              // Swipe down to fold/minimize the composer.
+              if ((details.primaryVelocity ?? 0) > 60) _toggleFold();
+            },
+      child: Container(
+        decoration: BoxDecoration(
+          color: AiChatColors.inputSurface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AiChatColors.border),
+        ),
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _buildAttachButton(),
+          const SizedBox(width: 5),
+          Expanded(
+            child: widget.isListening
+                ? _AudioWaveform(soundLevel: widget.soundLevel)
+                : TextField(
+                        focusNode: _inputFocus,
                         controller: widget.controller,
                         minLines: 1,
                         maxLines: 4,
@@ -134,14 +225,13 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                           ),
                         ),
                       ),
-              ),
-              _buildMicButton(strings),
-              const SizedBox(width: 5),
-              _buildSendButton(),
-            ],
-          ),
+            ),
+            _buildMicButton(strings),
+            const SizedBox(width: 5),
+            _buildSendButton(),
+          ],
         ),
-      ],
+      ),
     );
   }
 
