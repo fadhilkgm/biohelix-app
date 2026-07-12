@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -10,18 +11,36 @@ import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class VoiceManager {
-  VoiceManager({
-    this.sarvamApiKey = '',
-  });
+  VoiceManager({this.sarvamApiKey = ''}) {
+    _playerStateSubscription = _audioPlayer.playerStateStream.listen(
+      _handlePlayerState,
+    );
+  }
 
   final String sarvamApiKey;
   final FlutterTts _nativeTts = FlutterTts();
   final SpeechToText _nativeStt = SpeechToText();
   final AudioPlayer _audioPlayer = AudioPlayer();
   final AudioRecorder _recorder = AudioRecorder();
+  late final StreamSubscription<PlayerState> _playerStateSubscription;
+  void Function()? _ttsStartHandler;
+  void Function()? _ttsCompletionHandler;
+  bool _playerWasPlaying = false;
 
   FlutterTts get nativeTts => _nativeTts;
   SpeechToText get nativeStt => _nativeStt;
+  Stream<Amplitude> get amplitudeStream =>
+      _recorder.onAmplitudeChanged(const Duration(milliseconds: 90));
+
+  void _handlePlayerState(PlayerState state) {
+    if (state.playing && !_playerWasPlaying) {
+      _ttsStartHandler?.call();
+    }
+    if (state.processingState == ProcessingState.completed) {
+      _ttsCompletionHandler?.call();
+    }
+    _playerWasPlaying = state.playing;
+  }
 
   // Usage limit — 100 calls per day
   static const int _dailyLimit = 100;
@@ -29,8 +48,7 @@ class VoiceManager {
   static const String _dateKey = 'sarvam_usage_date';
 
   bool _isPremiumEnabled() =>
-      sarvamApiKey.isNotEmpty &&
-      sarvamApiKey != 'your_sarvam_api_key_here';
+      sarvamApiKey.isNotEmpty && sarvamApiKey != 'your_sarvam_api_key_here';
 
   Future<bool> _checkLimitAndIncrement() async {
     final prefs = await SharedPreferences.getInstance();
@@ -57,16 +75,22 @@ class VoiceManager {
     if (_isPremiumEnabled() && await _checkLimitAndIncrement()) {
       try {
         // ignore: avoid_print
-        print('🎙️ [VoiceManager] Using Premium Sarvam Voice! (Language: $languageCode)');
+        print(
+          '🎙️ [VoiceManager] Using Premium Sarvam Voice! (Language: $languageCode)',
+        );
         await _speakPremium(text, languageCode);
         return;
       } catch (e) {
         // ignore: avoid_print
-        print('🎙️ [VoiceManager] Premium TTS failed: $e. Falling back to native.');
+        print(
+          '🎙️ [VoiceManager] Premium TTS failed: $e. Falling back to native.',
+        );
       }
     } else {
       // ignore: avoid_print
-      print('🎙️ [VoiceManager] Using Native Free Voice (Limit reached or Premium Disabled).');
+      print(
+        '🎙️ [VoiceManager] Using Native Free Voice (Limit reached or Premium Disabled).',
+      );
     }
 
     // Fallback to Native TTS
@@ -89,12 +113,12 @@ class VoiceManager {
   List<String> _splitTextIntoChunks(String text, {int maxChars = 350}) {
     final List<String> chunks = [];
     final sentences = text.split(RegExp(r'(?<=[.!?|])\s+|\n+'));
-    
+
     String currentChunk = '';
     for (final sentence in sentences) {
       final cleanSentence = sentence.trim();
       if (cleanSentence.isEmpty) continue;
-      
+
       if (currentChunk.isEmpty) {
         currentChunk = cleanSentence;
       } else if ((currentChunk.length + cleanSentence.length + 1) <= maxChars) {
@@ -107,7 +131,7 @@ class VoiceManager {
     if (currentChunk.isNotEmpty) {
       chunks.add(currentChunk);
     }
-    
+
     final List<String> finalChunks = [];
     for (final chunk in chunks) {
       if (chunk.length <= maxChars) {
@@ -139,10 +163,12 @@ class VoiceManager {
 
     if (chunks.isEmpty) return;
 
-    final dio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 60),
-    ));
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 60),
+      ),
+    );
 
     final tempDir = await getTemporaryDirectory();
 
@@ -265,21 +291,12 @@ class VoiceManager {
 
   void setTtsStartHandler(void Function() handler) {
     _nativeTts.setStartHandler(handler);
-    _audioPlayer.playerStateStream.listen((state) {
-      if (state.playing &&
-          state.processingState == ProcessingState.ready) {
-        handler();
-      }
-    });
+    _ttsStartHandler = handler;
   }
 
   void setTtsCompletionHandler(void Function() handler) {
     _nativeTts.setCompletionHandler(handler);
-    _audioPlayer.playerStateStream.listen((state) {
-      if (state.processingState == ProcessingState.completed) {
-        handler();
-      }
-    });
+    _ttsCompletionHandler = handler;
   }
 
   void setTtsCancelHandler(void Function() handler) {
@@ -298,10 +315,7 @@ class VoiceManager {
     required Function(String) onStatus,
     required Function(dynamic) onError,
   }) async {
-    return await _nativeStt.initialize(
-      onStatus: onStatus,
-      onError: onError,
-    );
+    return await _nativeStt.initialize(onStatus: onStatus, onError: onError);
   }
 
   bool get isListening => _nativeStt.isListening;
@@ -330,5 +344,13 @@ class VoiceManager {
       ),
       onResult: onResult,
     );
+  }
+
+  Future<void> dispose() async {
+    await _playerStateSubscription.cancel();
+    await _nativeStt.cancel();
+    await _nativeTts.stop();
+    await _audioPlayer.dispose();
+    await _recorder.dispose();
   }
 }

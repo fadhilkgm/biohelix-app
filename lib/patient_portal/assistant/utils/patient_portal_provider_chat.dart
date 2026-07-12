@@ -171,15 +171,10 @@ extension PatientPortalChatMixin on PatientPortalProvider {
       _touchThread(currentThreadId, reply.content);
     } catch (error) {
       _errorMessage = error.toString();
-      final updated = _chatHistories[currentThreadId] ?? const <ChatMessage>[];
-      _chatHistories[currentThreadId] = [
-        ...updated,
-        const ChatMessage(
-          role: 'ai',
-          content:
-              'I could not reach the BHRC assistant right now. Please try again later or contact the hospital directly.',
-        ),
-      ];
+      // Roll back the optimistic turn. A transport failure is UI state, not an
+      // assistant-authored message, and callers need the error to offer retry.
+      _chatHistories[currentThreadId] = existing;
+      rethrow;
     } finally {
       _isSendingMessage = false;
       _notify();
@@ -205,6 +200,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     }
 
     final currentThreadId = threadId!;
+    final existing = _chatHistories[currentThreadId] ?? const <ChatMessage>[];
 
     _isSendingMessage = true;
     _errorMessage = null;
@@ -217,12 +213,8 @@ extension PatientPortalChatMixin on PatientPortalProvider {
         language: language,
       );
 
-      final existing = _chatHistories[currentThreadId] ?? const <ChatMessage>[];
       final transcript = voiceReply.transcript.trim();
-      final userMessage = ChatMessage(
-        role: 'user',
-        content: transcript,
-      );
+      final userMessage = ChatMessage(role: 'user', content: transcript);
       _chatHistories[currentThreadId] = [
         ...existing,
         if (transcript.isNotEmpty) userMessage,
@@ -235,16 +227,8 @@ extension PatientPortalChatMixin on PatientPortalProvider {
       return voiceReply;
     } catch (error) {
       _errorMessage = error.toString();
-      final updated = _chatHistories[currentThreadId] ?? const <ChatMessage>[];
-      _chatHistories[currentThreadId] = [
-        ...updated,
-        const ChatMessage(
-          role: 'ai',
-          content:
-              'I could not process that voice message right now. Please try again later or type your question instead.',
-        ),
-      ];
-      return null;
+      _chatHistories[currentThreadId] = existing;
+      rethrow;
     } finally {
       _isSendingMessage = false;
       _notify();

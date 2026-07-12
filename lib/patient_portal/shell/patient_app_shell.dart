@@ -99,7 +99,6 @@ class PatientAppShell extends StatefulWidget {
 class _PatientAppShellState extends State<PatientAppShell>
     implements PatientAppShellController {
   int _selectedIndex = 0;
-  bool _assistantOpenedInThisAppSession = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey<_RecordsTabState> _recordsTabKey =
       GlobalKey<_RecordsTabState>();
@@ -281,18 +280,15 @@ class _PatientAppShellState extends State<PatientAppShell>
 
   @override
   void openAiCheckup() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const AiCheckupTab()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const AiCheckupTab()));
   }
 
   Future<void> _openAssistant() async {
-    if (!_assistantOpenedInThisAppSession) {
-      await context.read<PatientPortalProvider>().createNewChatThread();
-      _assistantOpenedInThisAppSession = true;
-    }
-    if (!mounted) return;
-    Navigator.of(
+    // The assistant initializes cached threads after it is visible. A new
+    // thread is created lazily only when the patient explicitly starts one.
+    await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const _AssistantPage()));
   }

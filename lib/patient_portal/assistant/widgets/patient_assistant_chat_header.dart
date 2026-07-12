@@ -87,8 +87,8 @@ class _HeaderIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 42,
-      height: 42,
+      width: 48,
+      height: 48,
       child: IconButton(
         onPressed: onPressed,
         tooltip: tooltip,
