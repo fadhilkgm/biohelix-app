@@ -38,7 +38,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   dio: ^5.9.0
   file_picker: ^10.1.9
-  flutter_dotenv: ^5.2.1
   flutter_markdown: ^0.7.7+1
   flutter_tts: ^4.2.3
   google_fonts: ^6.3.2
@@ -86,7 +85,6 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - .env
     - assets/logo/logo.png
     - assets/images/body-organ-map.png
     - assets/images/human-body.png

@@ -117,8 +117,8 @@ class BookingConfirmation {
 
   factory BookingConfirmation.fromBookingResponse(Map<String, dynamic> json) {
     // Mobile API returns bookingId (camelCase); legacy API returns id + booking_number
-    final id = (json['bookingId'] as num?)?.toInt() ??
-        (json['id'] as num?)?.toInt();
+    final id =
+        (json['bookingId'] as num?)?.toInt() ?? (json['id'] as num?)?.toInt();
     final bookingNumber = json['booking_number']?.toString();
     return BookingConfirmation(
       reference: bookingNumber ?? (id == null ? 'BKG-PENDING' : 'BKG-$id'),
@@ -219,14 +219,19 @@ class HealthSnapshotInput {
 
   /// 50–300.
   final int? bloodPressureSystolic;
+
   /// 30–200.
   final int? bloodPressureDiastolic;
+
   /// 0–1000 mg/dL.
   final double? bloodSugar;
+
   /// 0–1000 mg/dL.
   final double? cholesterol;
+
   /// 1–500 (kg).
   final double? weight;
+
   /// Max 1000 chars.
   final String? otherConditions;
 
@@ -639,9 +644,7 @@ class PatientRepository {
       data: input.toJson(),
     );
     // Documented response wraps the saved record under the singular `vital` key.
-    return VitalRecord.fromJson(
-      _map(response['vital'] ?? response['vitals']),
-    );
+    return VitalRecord.fromJson(_map(response['vital'] ?? response['vitals']));
   }
 
   Future<List<DoctorListing>> getDoctors() async {
@@ -1056,6 +1059,7 @@ class PatientRepository {
     final normalizedMode = (mode ?? '').trim().toLowerCase();
     final response = await _apiClient.postJson(
       '/patients/chat/global/threads/$threadId/messages',
+      receiveTimeout: const Duration(seconds: 75),
       data: {
         'message': message,
         if (normalizedLanguage == 'en' || normalizedLanguage == 'ml')
@@ -1104,6 +1108,7 @@ class PatientRepository {
     final fileName = audioFilePath.split(RegExp(r'[\\/]')).last;
     final response = await _apiClient.postMultipart(
       '/patients/chat/global/threads/$threadId/voice',
+      receiveTimeout: const Duration(seconds: 120),
       data: FormData.fromMap({
         'audio': await MultipartFile.fromFile(
           File(audioFilePath).path,

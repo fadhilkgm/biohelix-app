@@ -8,14 +8,14 @@ Starter Flutter client for a Bun + D1 backend.
 - Provider-based app state via `SessionProvider`
 - Dio API client with bearer-token support
 - SharedPreferences token persistence
-- `.env` based API configuration
+- Compile-time API configuration that does not bundle secrets
 - Basic home screen to verify backend connectivity
 
 ## First-run steps
 
-1. Update `.env` with your Bun API base URL.
+1. Copy `.env.example` to `.env` and set the API URL. Never put provider secrets in this file.
 2. Run `flutter pub get`.
-3. Start the app with `flutter run`.
+3. Start the app with `flutter run --dart-define-from-file=.env`.
 4. Use the home screen to save a token and test your health endpoint.
 
 ## Suggested next features

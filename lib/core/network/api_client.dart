@@ -11,22 +11,21 @@ class ApiClient {
     Logger? logger,
     HttpClientAdapter? httpClientAdapter,
     VoidCallback? onUnauthorized,
-  })
-    : _logger = logger ?? Logger(),
-      _config = config,
-      _onUnauthorized = onUnauthorized,
-      _dio = Dio(
-        BaseOptions(
-          baseUrl: config.apiBaseUrl,
-          connectTimeout: const Duration(seconds: 30),
-          sendTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 60),
-          headers: const {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        ),
-      ) {
+  }) : _logger = logger ?? Logger(),
+       _config = config,
+       _onUnauthorized = onUnauthorized,
+       _dio = Dio(
+         BaseOptions(
+           baseUrl: config.apiBaseUrl,
+           connectTimeout: const Duration(seconds: 30),
+           sendTimeout: const Duration(seconds: 30),
+           receiveTimeout: const Duration(seconds: 60),
+           headers: const {
+             'Accept': 'application/json',
+             'Content-Type': 'application/json',
+           },
+         ),
+       ) {
     if (httpClientAdapter != null) {
       _dio.httpClientAdapter = httpClientAdapter;
     }
@@ -34,21 +33,12 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           _logger.i('REQ ${options.method} ${options.uri}');
-          if (options.queryParameters.isNotEmpty) {
-            _logger.i('REQ QUERY ${_stringify(options.queryParameters)}');
-          }
-          if (options.data != null) {
-            _logger.i('REQ BODY ${_stringify(options.data)}');
-          }
           handler.next(options);
         },
         onResponse: (response, handler) {
           _logger.i(
             'RES ${response.statusCode} ${response.requestOptions.uri}',
           );
-          if (response.data != null) {
-            _logger.i('RES BODY ${_stringify(response.data)}');
-          }
           handler.next(response);
         },
         onError: (error, handler) {
@@ -56,12 +46,6 @@ class ApiClient {
             'ERR ${error.response?.statusCode} ${error.requestOptions.uri}',
             error: error.message,
           );
-          if (error.requestOptions.data != null) {
-            _logger.e('ERR REQ BODY ${_stringify(error.requestOptions.data)}');
-          }
-          if (error.response?.data != null) {
-            _logger.e('ERR RES BODY ${_stringify(error.response?.data)}');
-          }
           if (error.response?.statusCode == 401) {
             _onUnauthorized?.call();
           }
@@ -75,16 +59,9 @@ class ApiClient {
   final Dio _dio;
   final Logger _logger;
   VoidCallback? _onUnauthorized;
-  static const int _maxLogLength = 1200;
 
   void setOnUnauthorized(VoidCallback? callback) {
     _onUnauthorized = callback;
-  }
-
-  static String _stringify(Object? data) {
-    final raw = data?.toString() ?? 'null';
-    if (raw.length <= _maxLogLength) return raw;
-    return '${raw.substring(0, _maxLogLength)}... [truncated ${raw.length - _maxLogLength} chars]';
   }
 
   static String _errorMessage(DioException error) {
@@ -136,12 +113,16 @@ class ApiClient {
     String path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
+    Duration? receiveTimeout,
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         path,
         data: data,
         queryParameters: queryParameters,
+        options: receiveTimeout == null
+            ? null
+            : Options(receiveTimeout: receiveTimeout),
       );
       return response.data ?? <String, dynamic>{};
     } on DioException catch (error) {
@@ -166,7 +147,10 @@ class ApiClient {
 
   Future<Map<String, dynamic>> deleteJson(String path, {Object? data}) async {
     try {
-      final response = await _dio.delete<Map<String, dynamic>>(path, data: data);
+      final response = await _dio.delete<Map<String, dynamic>>(
+        path,
+        data: data,
+      );
       return response.data ?? <String, dynamic>{};
     } on DioException catch (error) {
       throw ApiException(
@@ -179,9 +163,16 @@ class ApiClient {
   Future<Map<String, dynamic>> postMultipart(
     String path, {
     required FormData data,
+    Duration? receiveTimeout,
   }) async {
     try {
-      final response = await _dio.post<Map<String, dynamic>>(path, data: data);
+      final response = await _dio.post<Map<String, dynamic>>(
+        path,
+        data: data,
+        options: receiveTimeout == null
+            ? null
+            : Options(receiveTimeout: receiveTimeout),
+      );
       return response.data ?? <String, dynamic>{};
     } on DioException catch (error) {
       throw ApiException(
