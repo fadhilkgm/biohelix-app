@@ -144,29 +144,6 @@ class BookingConfirmation {
   }
 }
 
-String _normalizeBookingTime(String value) {
-  final trimmed = value.trim();
-  if (trimmed.isEmpty) return trimmed;
-
-  final firstPart = trimmed.split('-').first.trim();
-  final periodMatch = RegExp(
-    r'\b(am|pm)\b',
-    caseSensitive: false,
-  ).firstMatch(trimmed);
-  final period = periodMatch?.group(1)?.toUpperCase();
-  final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(firstPart);
-  if (timeMatch == null) return trimmed;
-
-  var hour = int.tryParse(timeMatch.group(1) ?? '');
-  final minute = int.tryParse(timeMatch.group(2) ?? '');
-  if (hour == null || minute == null) return trimmed;
-
-  if (period == 'PM' && hour < 12) hour += 12;
-  if (period == 'AM' && hour == 12) hour = 0;
-
-  return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-}
-
 class VitalInput {
   const VitalInput({
     this.height,
@@ -466,7 +443,10 @@ class PatientRepository {
   }
 
   Future<List<HomeBannerItem>> getHomeBanners() async {
-    final response = await _apiClient.getJson('/home-banners');
+    final response = await _apiClient.getJson(
+      '/home-banners',
+      queryParameters: {'target': 'mobile'},
+    );
     final banners = response['banners'] as List<dynamic>? ?? const [];
     return banners
         .map((item) {
@@ -573,6 +553,79 @@ class PatientRepository {
       return MyClubSummary.fromJson(_map(response['myClub']));
     }
     return MyClubSummary.fromJson(_map(response));
+  }
+
+  Future<List<FamilyMember>> getFamilyMembers() async {
+    final response = await _apiClient.getJson('/patients/me/family-members');
+    final members = response['members'] as List<dynamic>? ?? const [];
+    return members.map((item) => FamilyMember.fromJson(_map(item))).toList();
+  }
+
+  Future<FamilyMember> addFamilyMember({
+    required String firstName,
+    required String relationship,
+    String? lastName,
+    String? phone,
+    String? gender,
+    String? dateOfBirth,
+    String? bloodGroup,
+    String? email,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/patients/me/family-members',
+      data: {
+        'first_name': firstName.trim(),
+        if ((lastName ?? '').trim().isNotEmpty) 'last_name': lastName!.trim(),
+        'relationship': relationship,
+        if ((phone ?? '').trim().isNotEmpty)
+          'phone': normalizePatientPhone(phone!),
+        if ((gender ?? '').trim().isNotEmpty) 'gender': gender!.trim(),
+        if ((dateOfBirth ?? '').trim().isNotEmpty)
+          'date_of_birth': dateOfBirth!.trim(),
+        if ((bloodGroup ?? '').trim().isNotEmpty)
+          'blood_group': bloodGroup!.trim(),
+        if ((email ?? '').trim().isNotEmpty) 'email': email!.trim(),
+      },
+    );
+    return FamilyMember.fromJson(_map(response['member']));
+  }
+
+  Future<List<HomeCareServiceItem>> getHomeCareServices() async {
+    final response = await _apiClient.getJson('/home-care/services');
+    final services = response['services'] as List<dynamic>? ?? const [];
+    return services
+        .map((item) => HomeCareServiceItem.fromJson(_map(item)))
+        .toList();
+  }
+
+  Future<List<HomeCareBookingItem>> getHomeCareBookings({
+    int? patientId,
+  }) async {
+    final response = await _apiClient.getJson(
+      '/home-care/bookings',
+      queryParameters: patientId == null ? null : {'patient_id': patientId},
+    );
+    final bookings = response['bookings'] as List<dynamic>? ?? const [];
+    return bookings
+        .map((item) => HomeCareBookingItem.fromJson(_map(item)))
+        .toList();
+  }
+
+  Future<HomeCareBookingItem> createHomeCareBooking(
+    HomeCareBookingInput input,
+  ) async {
+    final response = await _apiClient.postJson(
+      '/home-care/bookings',
+      data: input.toJson(),
+    );
+    return HomeCareBookingItem.fromJson(_map(response['booking']));
+  }
+
+  Future<void> cancelHomeCareBooking(int bookingId, {int? patientId}) async {
+    await _apiClient.patchJson(
+      '/home-care/bookings/$bookingId/cancel',
+      data: patientId == null ? null : {'patient_id': patientId},
+    );
   }
 
   Future<HealthSnapshot?> getHealthSnapshot() async {
@@ -973,16 +1026,21 @@ class PatientRepository {
     );
   }
 
-  Future<DocumentRecord> uploadDocument(String filePath) async {
+  Future<DocumentRecord> uploadDocument(
+    String filePath, {
+    String? fileName,
+  }) async {
     final normalized = filePath.trim();
-    final fileName = normalized.split(RegExp(r'[\\/]')).last;
+    final uploadFileName = (fileName ?? '').trim().isNotEmpty
+        ? fileName!.trim()
+        : normalized.split(RegExp(r'[\\/]')).last;
 
     final response = await _apiClient.postMultipart(
       '/patients/documents',
       data: FormData.fromMap({
         'document': await MultipartFile.fromFile(
           File(normalized).path,
-          filename: fileName,
+          filename: uploadFileName,
         ),
       }),
     );
@@ -999,10 +1057,17 @@ class PatientRepository {
     return DocumentRecord.fromJson(json);
   }
 
-  Future<DocumentAnalysisResult> analyzeDocument(int documentId) async {
+  Future<DocumentAnalysisResult> analyzeDocument(
+    int documentId, {
+    String language = 'en',
+  }) async {
     final response = await _apiClient.postJson(
       '/patients/documents/$documentId/analyze',
+      data: {'language': language},
     );
+    if (response['success'] == false) {
+      throw ApiException(response['error']?.toString() ?? 'Analysis failed.');
+    }
     return DocumentAnalysisResult.fromJson(response);
   }
 
@@ -1088,9 +1153,18 @@ class PatientRepository {
           ),
         )
         .toList();
+    final messagePayload = _map(response['message']);
+
     return ChatMessage(
-      role: 'ai',
-      content: response['reply'] as String? ?? 'No response',
+      id: (messagePayload['id'] as num?)?.toInt(),
+      role: messagePayload['role'] as String? ?? 'ai',
+      content:
+          messagePayload['content'] as String? ??
+          response['reply'] as String? ??
+          'No response',
+      createdAt:
+          messagePayload['createdAt'] as String? ??
+          messagePayload['created_at'] as String?,
       suggestedPackages: suggestedPackages,
       suggestedTests: suggestedTests,
     );
@@ -1117,6 +1191,7 @@ class PatientRepository {
         ),
         if (normalizedLanguage == 'en' || normalizedLanguage == 'ml')
           'language': normalizedLanguage,
+        'synthesize_audio': '1',
       }),
     );
 
@@ -1133,20 +1208,31 @@ class PatientRepository {
     final resolvedAudioUrl = rawAudioUrl.isEmpty
         ? null
         : _resolveApiMediaUrl(rawAudioUrl, _apiClient.baseUrl);
+    final messagePayload = _map(response['message']);
 
     return GlobalChatVoiceReply(
       transcript: (response['transcript'] as String? ?? '').trim(),
       audioUrl: resolvedAudioUrl,
       reply: ChatMessage(
-        role: 'ai',
+        id: (messagePayload['id'] as num?)?.toInt(),
+        role: messagePayload['role'] as String? ?? 'ai',
         content:
+            messagePayload['content'] as String? ??
             response['reply'] as String? ??
             response['content'] as String? ??
             'No response',
+        createdAt:
+            messagePayload['createdAt'] as String? ??
+            messagePayload['created_at'] as String?,
         suggestedPackages: suggestedPackages,
         suggestedTests: suggestedTests,
       ),
     );
+  }
+
+  Future<VoiceProviderConfig> getVoiceProviderConfig() async {
+    final response = await _apiClient.getJson('/patients/chat/voice-config');
+    return VoiceProviderConfig.fromJson(response);
   }
 
   Future<ChatThreadSummary> renameGlobalChatThread({

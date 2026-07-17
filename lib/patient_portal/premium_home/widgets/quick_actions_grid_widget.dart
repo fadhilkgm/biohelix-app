@@ -52,6 +52,13 @@ class QuickActionsGridWidget extends StatelessWidget {
       iconBackground: Color(0xFFFEE2E2),
     ),
     _QuickActionItem(
+      id: 'home_care',
+      title: 'Home\nCare',
+      icon: Icons.home_repair_service_rounded,
+      iconColor: Color(0xFF0F766E),
+      iconBackground: Color(0xFFDDF7F3),
+    ),
+    _QuickActionItem(
       id: 'id_card',
       title: 'ID Card',
       icon: Icons.badge_rounded,
@@ -253,4 +260,3 @@ class _QuickActionItem {
   final Color iconBackground;
   final bool hasAiBadge;
 }
-

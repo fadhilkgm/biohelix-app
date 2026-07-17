@@ -1,13 +1,19 @@
 part of 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
 
 extension PatientPortalDocumentMixin on PatientPortalProvider {
-  Future<DocumentRecord> uploadDocument(String filePath) async {
+  Future<DocumentRecord> uploadDocument(
+    String filePath, {
+    String? fileName,
+  }) async {
     _isUploadingDocument = true;
     _errorMessage = null;
     _notify();
 
     try {
-      final uploaded = await _repository.uploadDocument(filePath);
+      final uploaded = await _repository.uploadDocument(
+        filePath,
+        fileName: fileName,
+      );
       await loadPortal();
       return uploaded;
     } catch (error) {
@@ -19,18 +25,25 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
     }
   }
 
-  Future<void> analyzeDocument(int documentId) async {
+  Future<DocumentAnalysisResult?> analyzeDocument(
+    int documentId, {
+    String language = 'en',
+  }) async {
     _analyzingDocumentId = documentId;
     _lastAnalysisResult = null;
     _errorMessage = null;
     _notify();
 
     try {
-      _lastAnalysisResult = await _repository.analyzeDocument(documentId);
+      _lastAnalysisResult = await _repository.analyzeDocument(
+        documentId,
+        language: language,
+      );
       if (_lastAnalysisResult != null) {
         _documentAnalyses[documentId] = _lastAnalysisResult!;
       }
       await loadPortal();
+      return _lastAnalysisResult;
     } catch (error) {
       _errorMessage = error.toString();
       rethrow;

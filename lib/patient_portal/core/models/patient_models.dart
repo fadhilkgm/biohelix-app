@@ -248,9 +248,7 @@ class BookingItem {
     final packageName =
         json['packageName'] as String? ?? package['package_name'] as String?;
     final nameFromRelation =
-        doctor['name'] as String? ??
-        testName ??
-        packageName;
+        doctor['name'] as String? ?? testName ?? packageName;
     return BookingItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
       bookingDate:
@@ -447,10 +445,7 @@ class MedicalRecordItem {
     final medicinesJson = json['medicines'] as List<dynamic>? ?? const [];
     final data = _map(json['data']);
     final apiType = json['type'] as String? ?? data['type'] as String?;
-    final category =
-        json['category'] as String? ??
-        apiType ??
-        'lab';
+    final category = json['category'] as String? ?? apiType ?? 'lab';
     final documentPath =
         json['documentPath'] as String? ??
         data['fileUrl'] as String? ??
@@ -691,6 +686,163 @@ class MyClubSummary {
   }
 }
 
+class FamilyMember {
+  const FamilyMember({
+    required this.linkId,
+    required this.patientId,
+    required this.name,
+    required this.relationship,
+    required this.canBookAppointments,
+    this.gender,
+    this.dateOfBirth,
+    this.age,
+    this.cardNumber,
+    this.status = 'active',
+  });
+
+  final int linkId;
+  final int patientId;
+  final String name;
+  final String relationship;
+  final bool canBookAppointments;
+  final String? gender;
+  final String? dateOfBirth;
+  final int? age;
+  final String? cardNumber;
+  final String status;
+
+  factory FamilyMember.fromJson(Map<String, dynamic> json) {
+    final permissions = _map(json['permissions']);
+    return FamilyMember(
+      linkId: (json['link_id'] as num?)?.toInt() ?? 0,
+      patientId: (json['patient_id'] as num?)?.toInt() ?? 0,
+      name: json['name'] as String? ?? 'Family member',
+      relationship: json['relationship'] as String? ?? 'family',
+      canBookAppointments:
+          permissions['book_appointments'] as bool? ??
+          json['can_book_appointments'] as bool? ??
+          true,
+      gender: json['gender'] as String?,
+      dateOfBirth: json['date_of_birth'] as String?,
+      age: (json['age'] as num?)?.toInt(),
+      cardNumber: json['card_number'] as String?,
+      status: json['status'] as String? ?? 'active',
+    );
+  }
+}
+
+class HomeCareServiceItem {
+  const HomeCareServiceItem({
+    required this.id,
+    required this.name,
+    required this.basePrice,
+    this.code,
+    this.description,
+    this.durationMinutes,
+    this.requiresAddress = true,
+  });
+
+  final int id;
+  final String name;
+  final double basePrice;
+  final String? code;
+  final String? description;
+  final int? durationMinutes;
+  final bool requiresAddress;
+
+  factory HomeCareServiceItem.fromJson(Map<String, dynamic> json) {
+    return HomeCareServiceItem(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      name:
+          json['name'] as String? ??
+          json['service_name'] as String? ??
+          'Home care',
+      code: json['code'] as String? ?? json['service_code'] as String?,
+      description: json['description'] as String?,
+      basePrice:
+          (json['base_price'] as num?)?.toDouble() ??
+          double.tryParse(json['base_price']?.toString() ?? '') ??
+          0,
+      durationMinutes: (json['duration_minutes'] as num?)?.toInt(),
+      requiresAddress: json['requires_address'] as bool? ?? true,
+    );
+  }
+}
+
+class HomeCareBookingItem {
+  const HomeCareBookingItem({
+    required this.id,
+    required this.bookingNumber,
+    required this.serviceName,
+    required this.preferredDate,
+    required this.status,
+    this.timeSlot,
+    this.notes,
+    this.paymentStatus,
+    this.createdAt,
+  });
+
+  final int id;
+  final String bookingNumber;
+  final String serviceName;
+  final String preferredDate;
+  final String status;
+  final String? timeSlot;
+  final String? notes;
+  final String? paymentStatus;
+  final String? createdAt;
+
+  factory HomeCareBookingItem.fromJson(Map<String, dynamic> json) {
+    return HomeCareBookingItem(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      bookingNumber: json['booking_number'] as String? ?? 'HCB',
+      serviceName: json['service'] as String? ?? 'Home care',
+      preferredDate: json['preferred_date'] as String? ?? '',
+      timeSlot: json['time_slot'] as String?,
+      notes: json['notes'] as String?,
+      status: json['status'] as String? ?? 'pending',
+      paymentStatus: json['payment_status'] as String?,
+      createdAt: json['created_at'] as String?,
+    );
+  }
+}
+
+class HomeCareBookingInput {
+  const HomeCareBookingInput({
+    required this.serviceId,
+    required this.preferredDate,
+    this.patientId,
+    this.timeSlot,
+    this.addressLine,
+    this.landmark,
+    this.notes,
+  });
+
+  final int serviceId;
+  final String preferredDate;
+  final int? patientId;
+  final String? timeSlot;
+  final String? addressLine;
+  final String? landmark;
+  final String? notes;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'service_id': serviceId,
+      if (patientId != null) 'patient_id': patientId,
+      'preferred_date': preferredDate,
+      if ((timeSlot ?? '').trim().isNotEmpty)
+        'preferred_time_slot': timeSlot!.trim(),
+      if ((addressLine ?? '').trim().isNotEmpty)
+        'address': {
+          'line1': addressLine!.trim(),
+          if ((landmark ?? '').trim().isNotEmpty) 'landmark': landmark!.trim(),
+        },
+      if ((notes ?? '').trim().isNotEmpty) 'notes': notes!.trim(),
+    };
+  }
+}
+
 class IdCardInfo {
   const IdCardInfo({
     required this.registrationNumber,
@@ -753,6 +905,7 @@ class HomeBannerItem {
     this.ctaTarget,
     this.sortOrder = 0,
     this.isActive = true,
+    this.placement = 'home_carousel',
   });
 
   final int id;
@@ -763,6 +916,9 @@ class HomeBannerItem {
   final String? ctaTarget;
   final int sortOrder;
   final bool isActive;
+  final String placement;
+
+  bool get isMobilePromoPopup => placement == 'mobile_promo_popup';
 
   factory HomeBannerItem.fromJson(Map<String, dynamic> json) {
     return HomeBannerItem(
@@ -780,6 +936,11 @@ class HomeBannerItem {
       isActive:
           json['isActive'] as bool? ??
           json['is_active'] == 1 || json['is_active'] == true,
+      placement:
+          json['placement'] as String? ??
+          json['bannerPlacement'] as String? ??
+          json['banner_placement'] as String? ??
+          'home_carousel',
     );
   }
 }
@@ -952,12 +1113,14 @@ class ChatMessage {
   const ChatMessage({
     required this.role,
     required this.content,
+    this.id,
     this.createdAt,
     this.attachments = const [],
     this.suggestedPackages = const [],
     this.suggestedTests = const [],
   });
 
+  final int? id;
   final String role;
   final String content;
   final String? createdAt;
@@ -974,6 +1137,7 @@ class ChatMessage {
     final pkgsRaw = json['suggestedPackages'] as List<dynamic>? ?? const [];
     final testsRaw = json['suggestedTests'] as List<dynamic>? ?? const [];
     return ChatMessage(
+      id: (json['id'] as num?)?.toInt(),
       role: json['role'] as String? ?? 'assistant',
       content: parsed.content,
       createdAt: json['createdAt'] as String? ?? json['created_at'] as String?,
@@ -1018,6 +1182,59 @@ class GlobalChatVoiceReply {
   final String transcript;
   final ChatMessage reply;
   final String? audioUrl;
+}
+
+class VoiceProviderConfig {
+  const VoiceProviderConfig({
+    required this.provider,
+    required this.enabled,
+    required this.apiKey,
+    required this.baseUrl,
+    required this.sttModel,
+    required this.ttsProvider,
+    required this.ttsEnabled,
+    required this.ttsApiKey,
+    required this.ttsModel,
+    required this.ttsVoice,
+    required this.ttsLanguageCode,
+  });
+
+  final String provider;
+  final bool enabled;
+  final String apiKey;
+  final String baseUrl;
+  final String sttModel;
+  final String ttsProvider;
+  final bool ttsEnabled;
+  final String ttsApiKey;
+  final String ttsModel;
+  final String ttsVoice;
+  final String ttsLanguageCode;
+
+  factory VoiceProviderConfig.fromJson(Map<String, dynamic> json) {
+    final tts = json['tts'] is Map
+        ? Map<String, dynamic>.from(json['tts'] as Map)
+        : const <String, dynamic>{};
+    return VoiceProviderConfig(
+      provider: json['provider'] as String? ?? 'replicate',
+      enabled: json['enabled'] == true,
+      apiKey: json['api_key'] as String? ?? '',
+      baseUrl: json['base_url'] as String? ?? json['baseUrl'] as String? ?? '',
+      sttModel:
+          json['stt_model'] as String? ??
+          json['sttModel'] as String? ??
+          'google/gemini-3-flash',
+      ttsProvider: tts['provider'] as String? ?? 'replicate',
+      ttsEnabled: tts['enabled'] == true,
+      ttsApiKey: tts['api_key'] as String? ?? tts['apiKey'] as String? ?? '',
+      ttsModel: tts['model'] as String? ?? 'google/gemini-3.1-flash-tts',
+      ttsVoice: tts['voice'] as String? ?? 'Kore',
+      ttsLanguageCode:
+          tts['language_code'] as String? ??
+          tts['languageCode'] as String? ??
+          'ml-IN',
+    );
+  }
 }
 
 class ChatAttachment {
@@ -1584,22 +1801,65 @@ class DocumentAnalysisResult {
     required this.success,
     required this.summary,
     required this.texts,
+    this.riskLevel,
+    this.riskReason,
+    this.findings = const [],
+    this.recommendations = const [],
     this.cached = false,
   });
 
   final bool success;
   final String summary;
   final List<String> texts;
+  final String? riskLevel;
+  final String? riskReason;
+  final List<String> findings;
+  final List<String> recommendations;
   final bool cached;
 
   factory DocumentAnalysisResult.fromJson(Map<String, dynamic> json) {
-    final texts = json['texts'] as List<dynamic>? ?? const [];
+    final texts = _stringList(json['texts']);
+    final findings = _findingList(json['findings']);
+    final recommendations = _stringList(json['recommendations']);
     return DocumentAnalysisResult(
       success: json['success'] as bool? ?? true,
       summary: json['summary'] as String? ?? '',
-      texts: texts.map((item) => item.toString()).toList(),
+      texts: texts,
+      riskLevel: json['riskLevel'] as String? ?? json['risk_level'] as String?,
+      riskReason:
+          json['riskReason'] as String? ?? json['risk_reason'] as String?,
+      findings: findings,
+      recommendations: recommendations,
       cached: json['cached'] as bool? ?? false,
     );
+  }
+
+  static List<String> _stringList(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  static List<String> _findingList(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw
+        .map((item) {
+          if (item is Map<String, dynamic>) {
+            final name = item['name']?.toString().trim() ?? '';
+            final value = item['value']?.toString().trim() ?? '';
+            final status = item['status']?.toString().trim() ?? '';
+            return [
+              if (name.isNotEmpty) name,
+              if (value.isNotEmpty) value,
+              if (status.isNotEmpty) '($status)',
+            ].join(' ');
+          }
+          return item?.toString().trim() ?? '';
+        })
+        .where((item) => item.isNotEmpty)
+        .toList();
   }
 }
 
@@ -1649,9 +1909,7 @@ class HealthProfileSnapshot {
     return HealthProfileSnapshot(
       id: (json['id'] as num?)?.toInt() ?? 0,
       recordedAt:
-          json['recorded_at'] as String? ??
-          json['recordedAt'] as String? ??
-          '',
+          json['recorded_at'] as String? ?? json['recordedAt'] as String? ?? '',
       source:
           json['source'] as String? ??
           json['sourceType'] as String? ??
@@ -1705,6 +1963,7 @@ class HealthSnapshot {
   final String? aiSummary;
   final String? generatedAt;
   final VitalRecord? latestVitals;
+
   /// Reserved for lab results; currently always `null` per the API contract.
   /// Kept as `dynamic` and parsed defensively since its shape isn't defined.
   final dynamic latestResults;
@@ -1731,8 +1990,7 @@ class HealthSnapshot {
           snapshot['other_conditions'] as String? ??
           snapshot['otherConditions'] as String?,
       aiSummary:
-          snapshot['ai_summary'] as String? ??
-          snapshot['aiSummary'] as String?,
+          snapshot['ai_summary'] as String? ?? snapshot['aiSummary'] as String?,
       generatedAt:
           snapshot['generated_at'] as String? ??
           snapshot['generatedAt'] as String?,

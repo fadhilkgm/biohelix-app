@@ -5,11 +5,13 @@ class _DashboardTab extends StatelessWidget {
     required this.onNavigate,
     required this.onOpenDoctorsDirectory,
     required this.onOpenLabTestsDirectory,
+    required this.onOpenHomeCare,
   });
 
   final ValueChanged<int> onNavigate;
   final VoidCallback onOpenDoctorsDirectory;
   final VoidCallback onOpenLabTestsDirectory;
+  final VoidCallback onOpenHomeCare;
 
   List<DoctorListing> _resolveHomeDoctors(
     PatientPortalProvider portal,
@@ -71,9 +73,7 @@ class _DashboardTab extends StatelessWidget {
           dashboard: dashboard,
           portal: portal,
           onOpenAssistant: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const _AssistantPage()),
-            );
+            PatientAppShell.of(context).openAssistant();
           },
           onOpenRecords: (filter) =>
               PatientAppShell.of(context).openRecords(filter),
@@ -86,6 +86,7 @@ class _DashboardTab extends StatelessWidget {
               ),
             );
           },
+          onOpenHomeCare: onOpenHomeCare,
           onOpenProfile: () => onNavigate(4),
         );
 
@@ -494,7 +495,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF5A88F1).withValues(alpha: 0.08),
+                          color: const Color(
+                            0xFF5A88F1,
+                          ).withValues(alpha: 0.08),
                           blurRadius: 24,
                           offset: const Offset(0, 8),
                         ),
@@ -529,7 +532,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                   borderRadius: BorderRadius.circular(18),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.03),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.03,
+                                      ),
                                       blurRadius: 8,
                                       offset: const Offset(2, 4),
                                     ),
@@ -555,7 +560,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                             end: Alignment.centerRight,
                                             colors: [
                                               Colors.transparent,
-                                              Colors.black.withValues(alpha: 0.02),
+                                              Colors.black.withValues(
+                                                alpha: 0.02,
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -591,8 +598,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                         color: const Color(0xFFF4F7FF),
                                         borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
-                                          color: const Color(0xFF5A88F1)
-                                              .withValues(alpha: 0.1),
+                                          color: const Color(
+                                            0xFF5A88F1,
+                                          ).withValues(alpha: 0.1),
                                         ),
                                       ),
                                       child: Row(
@@ -638,11 +646,14 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                                 Color(0xFF3B66D4),
                                               ],
                                             ),
-                                            borderRadius: BorderRadius.circular(14),
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: const Color(0xFF5A88F1)
-                                                    .withValues(alpha: 0.3),
+                                                color: const Color(
+                                                  0xFF5A88F1,
+                                                ).withValues(alpha: 0.3),
                                                 blurRadius: 8,
                                                 offset: const Offset(0, 4),
                                               ),
@@ -651,22 +662,25 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                           child: ElevatedButton(
                                             onPressed: () =>
                                                 Navigator.of(context).push(
-                                              MaterialPageRoute<void>(
-                                                builder: (_) =>
-                                                    _BannerPackageLandingPage(
-                                                  packageTarget: pkg.slug,
-                                                  isSpecific: true,
-                                                  package: pkg,
+                                                  MaterialPageRoute<void>(
+                                                    builder: (_) =>
+                                                        _BannerPackageLandingPage(
+                                                          packageTarget:
+                                                              pkg.slug,
+                                                          isSpecific: true,
+                                                          package: pkg,
+                                                        ),
+                                                  ),
                                                 ),
-                                              ),
-                                            ),
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.transparent,
+                                              backgroundColor:
+                                                  Colors.transparent,
                                               shadowColor: Colors.transparent,
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 24,
-                                                vertical: 12,
-                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 24,
+                                                    vertical: 12,
+                                                  ),
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
                                                     BorderRadius.circular(14),

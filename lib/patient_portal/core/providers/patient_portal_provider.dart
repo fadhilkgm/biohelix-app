@@ -9,6 +9,7 @@ import '../models/patient_models.dart';
 part '../../bookings/utils/portal_provider_booking.dart';
 part '../../assistant/utils/patient_portal_provider_chat.dart';
 part '../../records/utils/patient_portal_provider_documents.dart';
+part '../../home_care/utils/patient_portal_provider_home_care.dart';
 part 'patient_portal_provider_load.dart';
 part '../../profile/utils/patient_portal_provider_profile.dart';
 part 'patient_portal_provider_health.dart';
@@ -41,6 +42,9 @@ class PatientPortalProvider extends ChangeNotifier {
   List<LabPackageItem> _labPackages = const [];
   List<LabPackageOrderItem> _labPackageOrders = const [];
   List<DepartmentItem> _departments = const [];
+  List<FamilyMember> _familyMembers = const [];
+  List<HomeCareServiceItem> _homeCareServices = const [];
+  List<HomeCareBookingItem> _homeCareBookings = const [];
   HealthSnapshot? _healthSnapshot;
   List<HealthSnapshot> _healthSnapshotHistory = const [];
   int _healthSnapshotHistoryPage = 1;
@@ -57,11 +61,13 @@ class PatientPortalProvider extends ChangeNotifier {
   final Map<int, DocumentAnalysisResult> _documentAnalyses =
       <int, DocumentAnalysisResult>{};
   final Map<int, List<ChatMessage>> _documentChats = <int, List<ChatMessage>>{};
+  VoiceProviderConfig? _voiceProviderConfig;
   bool _isLoading = false;
   bool _isSavingProfile = false;
   bool _isSavingVitals = false;
   bool _isCreatingBooking = false;
   bool _isCreatingLabOrder = false;
+  bool _isCreatingHomeCareBooking = false;
   bool _isUploadingDocument = false;
   int? _analyzingDocumentId;
   bool _isSendingMessage = false;
@@ -72,7 +78,11 @@ class PatientPortalProvider extends ChangeNotifier {
 
   PatientDashboard? get dashboard => _dashboard;
   List<BookingItem> get bookings => _bookings;
-  List<HomeBannerItem> get homeBanners => _homeBanners;
+  List<HomeBannerItem> get homeBanners =>
+      _homeBanners.where((banner) => !banner.isMobilePromoPopup).toList();
+  List<HomeBannerItem> get promotionalHomeBanners =>
+      _homeBanners.where((banner) => banner.isMobilePromoPopup).toList();
+  VoiceProviderConfig? get voiceProviderConfig => _voiceProviderConfig;
   List<TickerMessageItem> get tickerMessages => _tickerMessages;
   List<HomeOfferItem> get homeOffers => _homeOffers;
   List<PrescriptionRecord> get prescriptions => _prescriptions;
@@ -87,6 +97,9 @@ class PatientPortalProvider extends ChangeNotifier {
   List<LabPackageItem> get labPackages => _labPackages;
   List<LabPackageOrderItem> get labPackageOrders => _labPackageOrders;
   List<DepartmentItem> get departments => _departments;
+  List<FamilyMember> get familyMembers => _familyMembers;
+  List<HomeCareServiceItem> get homeCareServices => _homeCareServices;
+  List<HomeCareBookingItem> get homeCareBookings => _homeCareBookings;
   HealthSnapshot? get healthSnapshot => _healthSnapshot;
   List<HealthSnapshot> get healthSnapshotHistory => _healthSnapshotHistory;
   bool get isLoadingHealthSnapshotHistory => _isLoadingHealthSnapshotHistory;
@@ -96,9 +109,7 @@ class PatientPortalProvider extends ChangeNotifier {
       _healthSnapshotHistoryPage < _healthSnapshotHistoryLastPage;
   bool get isSubmittingHealthSnapshot => _isSubmittingHealthSnapshot;
   List<AiSuggestionItem> get aiSuggestions => _aiSuggestions;
-  MyClubSummary? get myClub =>
-      _myClub ??
-      _dashboard?.myClub;
+  MyClubSummary? get myClub => _myClub ?? _dashboard?.myClub;
   List<ChatThreadSummary> get chatThreads => _chatThreads;
   String? get activeChatThreadId => _activeChatThreadId;
   List<ChatMessage> get chatMessages {
@@ -122,6 +133,7 @@ class PatientPortalProvider extends ChangeNotifier {
   bool get isSavingVitals => _isSavingVitals;
   bool get isCreatingBooking => _isCreatingBooking;
   bool get isCreatingLabOrder => _isCreatingLabOrder;
+  bool get isCreatingHomeCareBooking => _isCreatingHomeCareBooking;
   bool get isUploadingDocument => _isUploadingDocument;
   int? get analyzingDocumentId => _analyzingDocumentId;
   bool get isSendingMessage => _isSendingMessage;
@@ -172,6 +184,9 @@ class PatientPortalProvider extends ChangeNotifier {
     _labPackages = const [];
     _labPackageOrders = const [];
     _departments = const [];
+    _familyMembers = const [];
+    _homeCareServices = const [];
+    _homeCareBookings = const [];
     _healthSnapshot = null;
     _healthSnapshotHistory = const [];
     _healthSnapshotHistoryPage = 1;
@@ -179,6 +194,7 @@ class PatientPortalProvider extends ChangeNotifier {
     _isLoadingHealthSnapshotHistory = false;
     _isLoadingMoreHealthSnapshotHistory = false;
     _isSubmittingHealthSnapshot = false;
+    _isCreatingHomeCareBooking = false;
     _aiSuggestions = const [];
     _myClub = null;
     _chatThreads = const [];

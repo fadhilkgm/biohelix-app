@@ -46,6 +46,7 @@ class VoiceManager {
   }
 
   Future<void> speak(String text, String languageCode) async {
+    await _nativeTts.stop();
     await _nativeTts.setLanguage(languageCode);
     await _nativeTts.setPitch(1.0);
     await _nativeTts.setSpeechRate(languageCode.startsWith('ml') ? 0.42 : 0.45);
@@ -98,9 +99,15 @@ class VoiceManager {
     await _audioPlayer.setUrl(url);
     await _audioPlayer.play();
     await _audioPlayer.playerStateStream.firstWhere(
-      (state) =>
-          state.processingState == ProcessingState.completed ||
-          state.processingState == ProcessingState.idle,
+      (state) => state.processingState == ProcessingState.completed,
+    );
+  }
+
+  Future<void> playLocalAudio(String path) async {
+    await _audioPlayer.setFilePath(path);
+    await _audioPlayer.play();
+    await _audioPlayer.playerStateStream.firstWhere(
+      (state) => state.processingState == ProcessingState.completed,
     );
   }
 

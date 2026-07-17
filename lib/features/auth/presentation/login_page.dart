@@ -159,13 +159,15 @@ class _LoginPageState extends State<LoginPage> {
 
     final error = session.errorMessage ?? '';
     if (error.isNotEmpty && mounted) {
-      final message = _looksLikeDuplicate(error) || error.toLowerCase().contains('not found')
+      final message =
+          _looksLikeDuplicate(error) ||
+              error.toLowerCase().contains('not found')
           ? 'This mobile number is not registered. Please register first.'
           : error;
       session.clearError();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -196,11 +198,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const AppLogo(
-                        width: 180,
-                        height: 80,
-                        borderRadius: 5,
-                      ),
+                      const AppLogo(width: 180, height: 80, borderRadius: 5),
                       const SizedBox(height: 16),
                       Text(
                         strings.biohelix,
@@ -350,7 +348,8 @@ class _LoginPageState extends State<LoginPage> {
                                 errorText: _fieldErrors['place'],
                               ),
                             ],
-                            if (_isSignup && (session.errorMessage ?? '').isNotEmpty)
+                            if (_isSignup &&
+                                (session.errorMessage ?? '').isNotEmpty)
                               AuthErrorText(message: session.errorMessage!),
                             const SizedBox(height: 32),
                             AuthPrimaryButton(

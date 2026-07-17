@@ -11,6 +11,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   final _inputController = TextEditingController();
   final _messagesController = ScrollController();
   late final VoiceManager _voiceManager;
+  late final GeminiSttService _geminiSttService;
+  late final GeminiTtsService _geminiTtsService;
   int _lastAutoScrolledMessageCount = 0;
   String? _lastAutoScrolledThreadId;
   bool _showMobileSidebar = false;
@@ -22,6 +24,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   bool _isTapRecording = false;
   Timer? _liveAutoSendDebounce;
   StreamSubscription<dynamic>? _recordingAmplitudeSubscription;
+  DateTime? _tapRecordingStartedAt;
+  double _tapRecordingPeakLevel = 0.0;
   String _lastLiveSentText = '';
   String? _lastLiveSpokenReply;
   String _livePartialTranscript = '';
@@ -32,7 +36,9 @@ class _AssistantTabState extends State<_AssistantTab> {
   AppLanguage? _configuredLanguage;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
   bool _isAttachmentUploadInFlight = false;
+  bool _isAttachmentAnalysisInFlight = false;
   String? _uploadingAttachmentName;
+  String? _analyzingAttachmentName;
   double _soundLevel = 0.0;
 
   TextEditingController get inputController => _inputController;
@@ -40,6 +46,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   SpeechToText get speechToText => _voiceManager.nativeStt;
   FlutterTts get tts => _voiceManager.nativeTts;
   VoiceManager get voiceManager => _voiceManager;
+  GeminiSttService get geminiSttService => _geminiSttService;
+  GeminiTtsService get geminiTtsService => _geminiTtsService;
 
   bool get speechReady => _speechReady;
   set speechReady(bool value) => _speechReady = value;
@@ -80,7 +88,9 @@ class _AssistantTabState extends State<_AssistantTab> {
     _inputController.clear();
     _pendingAttachments.clear();
     _isAttachmentUploadInFlight = false;
+    _isAttachmentAnalysisInFlight = false;
     _uploadingAttachmentName = null;
+    _analyzingAttachmentName = null;
     _isTapRecording = false;
   }
 
@@ -88,6 +98,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   void initState() {
     super.initState();
     _voiceManager = VoiceManager();
+    _geminiSttService = GeminiSttService(apiKey: '');
+    _geminiTtsService = GeminiTtsService(apiKey: '');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<PatientPortalProvider>().initializeChatThreads();
@@ -130,11 +142,13 @@ class _AssistantTabState extends State<_AssistantTab> {
         final uploadInProgress =
             _isAttachmentUploadInFlight || portal.isUploadingDocument;
         final uploadingLabel = _uploadingAttachmentName;
+        final analysisInProgress =
+            _isAttachmentAnalysisInFlight || portal.analyzingDocumentId != null;
+        final analyzingLabel = _analyzingAttachmentName;
 
         if (_isLiveVoiceMode && !_isLiveTurnInFlight && messages.isNotEmpty) {
           final last = messages.last;
-          final fingerprint =
-              '${last.createdAt ?? ''}:${last.content.hashCode}';
+          final fingerprint = _speechFingerprint(last);
           if (last.role != 'user' && _lastLiveSpokenReply != fingerprint) {
             _lastLiveSpokenReply = fingerprint;
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -420,6 +434,13 @@ class _AssistantTabState extends State<_AssistantTab> {
                           ),
                         ),
                       ),
+                    if (analysisInProgress)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: _DocumentAnalysisProgressCard(
+                          fileName: analyzingLabel,
+                        ),
+                      ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(12, 8, 12, 15),
                       child: _isLiveVoiceMode
@@ -546,6 +567,17 @@ String? _latestAssistantText(List<ChatMessage> messages) {
     }
   }
   return null;
+}
+
+String _speechFingerprint(ChatMessage message) {
+  final id = message.id;
+  if (id != null) return 'id:$id';
+
+  return [
+    message.role,
+    message.createdAt ?? '',
+    message.content.trim(),
+  ].join(':');
 }
 
 class _AssistantEmptyState extends StatelessWidget {
@@ -1149,4 +1181,84 @@ class _VoiceOrbPainter extends CustomPainter {
       speaking != oldDelegate.speaking ||
       thinking != oldDelegate.thinking ||
       error != oldDelegate.error;
+}
+
+class _DocumentAnalysisProgressCard extends StatelessWidget {
+  const _DocumentAnalysisProgressCard({this.fileName});
+
+  final String? fileName;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (fileName ?? '').trim();
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 1200),
+      curve: Curves.easeInOut,
+      builder: (context, value, child) {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AiChatColors.bubbleAiSoft,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: AiChatColors.border),
+          ),
+          child: Row(
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 34,
+                    height: 34,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color.lerp(
+                              AiChatColors.accent,
+                              const Color(0xFF35B79B),
+                              value,
+                            ) ??
+                            AiChatColors.accent,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.privacy_tip_rounded, size: 17),
+                ],
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name.isEmpty
+                          ? 'AI is securely analyzing your document'
+                          : 'AI is securely analyzing $name',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.subtitle(
+                        context,
+                      ).copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Reading text, masking personal details, then preparing the summary.',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.subtitle(
+                        context,
+                      ).copyWith(fontSize: 12, height: 1.3),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

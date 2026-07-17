@@ -239,11 +239,11 @@ void main() {
     },
   );
 
-  test('9. app config uses production-safe defaults when env is absent', () {
+  test('9. app config uses local dev defaults when env is absent', () {
     final config = AppConfig.fromEnvironment();
 
     expect(config.appName, isNotEmpty);
-    expect(config.apiBaseUrl, 'https://www.bhrchospital.com/api/v1');
+    expect(config.apiBaseUrl, 'http://10.0.2.2:8000/api/v1');
     expect(config.healthEndpoint, '/health');
   });
 

@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "BioHelix App (local env)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "/Users/fadhil/Desktop/laravel/BHRC/biohelix_app",
+      "toolArgs": [
+        "--dart-define-from-file=/Users/fadhil/Desktop/laravel/BHRC/biohelix_app/.env"
+      ]
+    }
+  ]
+}

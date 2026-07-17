@@ -10,6 +10,7 @@ class _HomeQuickActionHandler {
     required this.onOpenBookings,
     required this.onOpenDoctorsDirectory,
     required this.onOpenLabOrder,
+    required this.onOpenHomeCare,
     required this.onOpenProfile,
   });
 
@@ -21,6 +22,7 @@ class _HomeQuickActionHandler {
   final VoidCallback onOpenBookings;
   final VoidCallback onOpenDoctorsDirectory;
   final VoidCallback onOpenLabOrder;
+  final VoidCallback onOpenHomeCare;
   final VoidCallback onOpenProfile;
 
   Future<void> open(String actionId) async {
@@ -57,6 +59,9 @@ class _HomeQuickActionHandler {
       case 'lab_test_order':
         onOpenLabOrder();
         return;
+      case 'home_care':
+        onOpenHomeCare();
+        return;
       case 'book_appointment':
         onOpenDoctorsDirectory();
         return;
@@ -67,8 +72,9 @@ class _HomeQuickActionHandler {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppStrings.of(context.read<LanguageProvider>().language)
-                  .unknownQuickAction(actionId),
+              AppStrings.of(
+                context.read<LanguageProvider>().language,
+              ).unknownQuickAction(actionId),
             ),
           ),
         );

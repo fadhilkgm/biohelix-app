@@ -1,6 +1,24 @@
 part of 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
 
 extension PatientPortalChatMixin on PatientPortalProvider {
+  Future<VoiceProviderConfig?> loadVoiceProviderConfig({
+    bool force = false,
+  }) async {
+    if (_voiceProviderConfig != null && !force) {
+      return _voiceProviderConfig;
+    }
+
+    try {
+      final config = await _repository.getVoiceProviderConfig();
+      if (config.enabled && config.apiKey.trim().isNotEmpty) {
+        _voiceProviderConfig = config;
+        return config;
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
   Future<void> initializeChatThreads({bool force = false}) async {
     if (_chatThreads.isNotEmpty && !force) {
       return;

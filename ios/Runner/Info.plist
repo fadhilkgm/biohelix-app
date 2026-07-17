@@ -30,6 +30,8 @@
 	<string>BioHelix uses your microphone for voice chat with Health AI.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>BioHelix converts your speech to text so you can chat hands-free.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>BHRC lets you choose images from your photo library to attach to Health AI chat.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

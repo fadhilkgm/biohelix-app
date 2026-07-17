@@ -172,7 +172,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Health and Research Center',
+                                    'BioHelix Health and Research center',
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context)
                                         .textTheme

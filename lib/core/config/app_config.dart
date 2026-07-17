@@ -23,7 +23,9 @@ class AppConfig {
 
     String defaultBaseUrl = definedApiBaseUrl.isNotEmpty
         ? definedApiBaseUrl
-        : 'https://www.bhrchospital.com/api/v1';
+        : kReleaseMode
+        ? 'https://www.bhrchospital.com/api/v1'
+        : 'http://localhost:8000/api/v1';
 
     if (!kIsWeb && defaultBaseUrl.contains('localhost')) {
       // In Flutter, if running on Android emulator, localhost points to the emulator.
@@ -32,6 +34,8 @@ class AppConfig {
         defaultBaseUrl = defaultBaseUrl.replaceAll('localhost', '10.0.2.2');
       }
     }
+
+    debugPrint('API_BASE_URL=$defaultBaseUrl');
 
     return AppConfig(
       appName: definedAppName.isEmpty ? 'BHRC' : definedAppName,

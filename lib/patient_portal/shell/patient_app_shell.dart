@@ -10,11 +10,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../assistant/services/gemini_tts_service.dart';
+import '../assistant/services/gemini_stt_service.dart';
 import '../assistant/utils/voice_manager.dart';
 
 import '../../core/config/app_config.dart';
@@ -39,11 +42,13 @@ import '../lab_booking/models/lab_booking_models.dart';
 import '../labs/screens/lab_test_detail_page.dart';
 import '../core/widgets/booking_success_screen.dart';
 import '../premium_home/screens/home_screen.dart' as premium_home;
+import '../shared/widgets/promotional_banner_dialog.dart';
 import 'widgets/bottom_nav_bar_widget.dart';
 import '../ai_checkup/screens/ai_checkup_tab.dart';
 import '../health_profile/screens/health_profile_screen.dart';
 import '../my_club/screens/patient_loyalty_panel.dart';
 
+part 'package:biohelix_app/patient_portal/home_care/screens/home_care_screen.dart';
 part 'package:biohelix_app/patient_portal/assistant/widgets/patient_assistant_attachment_widget.dart';
 part 'package:biohelix_app/patient_portal/assistant/widgets/patient_assistant_chat_header.dart';
 part 'package:biohelix_app/patient_portal/assistant/widgets/patient_assistant_chat_input.dart';
@@ -80,6 +85,7 @@ part 'package:biohelix_app/patient_portal/tests/screens/patient_tests_tab.dart';
 abstract class PatientAppShellController {
   void openRecords([String filter = 'all']);
   void goHome();
+  void openAssistant();
   void openAiCheckup();
 }
 
@@ -139,6 +145,7 @@ class _PatientAppShellState extends State<PatientAppShell>
         onNavigate: _setIndex,
         onOpenDoctorsDirectory: _openDoctorsDirectory,
         onOpenLabTestsDirectory: _openLabTestsDirectory,
+        onOpenHomeCare: _openHomeCare,
       ),
       const _BookingsTab(),
       _RecordsTab(key: _recordsTabKey),
@@ -148,6 +155,17 @@ class _PatientAppShellState extends State<PatientAppShell>
 
     return Consumer2<SessionProvider, PatientPortalProvider>(
       builder: (context, session, portal, _) {
+        if (!portal.isLoading && portal.promotionalHomeBanners.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            PromotionalBannerLaunchGate.showOnce(
+              context,
+              portal.promotionalHomeBanners,
+              onTap: _handlePromotionBannerTap,
+            );
+          });
+        }
+
         const homeStatusBarColor = Color(0xFF5A88F1);
         final statusStyle = _selectedIndex == 0
             ? const SystemUiOverlayStyle(
@@ -225,6 +243,28 @@ class _PatientAppShellState extends State<PatientAppShell>
   // Public entry point used by child widgets (e.g. package suggestion cards)
   void setTab(int index) => _setIndex(index);
 
+  void _handlePromotionBannerTap(HomeBannerItem banner) {
+    final portal = context.read<PatientPortalProvider>();
+    final targetHandler = _HomeFeedTargetHandler(
+      context: context,
+      portal: portal,
+      homeDoctors: portal.doctors,
+      onOpenDoctorsDirectory: _openDoctorsDirectory,
+      onOpenLabTestsDirectory: _openLabTestsDirectory,
+      onOpenPackageLandingPage: (packageTarget, isSpecific) {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => _BannerPackageLandingPage(
+              packageTarget: packageTarget,
+              isSpecific: isSpecific,
+            ),
+          ),
+        );
+      },
+    );
+    targetHandler.openBanner(banner);
+  }
+
   Future<void> _handleBackPress() async {
     if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
       Navigator.of(context).pop();
@@ -279,19 +319,18 @@ class _PatientAppShellState extends State<PatientAppShell>
   }
 
   @override
+  void openAssistant() {
+    _setIndex(3);
+  }
+
+  @override
   void openAiCheckup() {
     Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const AiCheckupTab()));
   }
 
-  Future<void> _openAssistant() async {
-    // The assistant initializes cached threads after it is visible. A new
-    // thread is created lazily only when the patient explicitly starts one.
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const _AssistantPage()));
-  }
+  void _openAssistant() => openAssistant();
 
   void _openDoctorsDirectory() {
     Navigator.of(context).push(
@@ -303,6 +342,12 @@ class _PatientAppShellState extends State<PatientAppShell>
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const _LabTestsDirectoryPage()),
     );
+  }
+
+  void _openHomeCare() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const _HomeCareScreen()));
   }
 
   void _openTestsHub() {
@@ -417,21 +462,6 @@ class _AssistantTabView extends StatelessWidget {
     return const Scaffold(
       backgroundColor: AiChatColors.background,
       body: _AssistantTab(),
-    );
-  }
-}
-
-class _AssistantPage extends StatelessWidget {
-  const _AssistantPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return const AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: AiChatColors.background,
-        body: _AssistantTab(),
-      ),
     );
   }
 }

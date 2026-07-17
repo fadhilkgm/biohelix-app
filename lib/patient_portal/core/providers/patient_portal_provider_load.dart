@@ -85,10 +85,25 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
       safeLoad<List<DepartmentItem>>(_repository.getDepartments, 'departments'),
       safeLoad<List<BodyPointItem>>(_repository.getBodyPoints, 'body points'),
       safeLoad<MyClubSummary>(_repository.getMyClub, 'my club'),
-      safeLoad<HealthSnapshot?>(_repository.getHealthSnapshot, 'health snapshot'),
+      safeLoad<HealthSnapshot?>(
+        _repository.getHealthSnapshot,
+        'health snapshot',
+      ),
       safeLoad<List<AiSuggestionItem>>(
         _repository.getAiSuggestions,
         'ai suggestions',
+      ),
+      safeLoad<List<FamilyMember>>(
+        _repository.getFamilyMembers,
+        'family members',
+      ),
+      safeLoad<List<HomeCareServiceItem>>(
+        _repository.getHomeCareServices,
+        'home care services',
+      ),
+      safeLoad<List<HomeCareBookingItem>>(
+        _repository.getHomeCareBookings,
+        'home care bookings',
       ),
     ]);
 
@@ -115,6 +130,9 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
     _myClub = results[17] as MyClubSummary?;
     _healthSnapshot = results[18] as HealthSnapshot?;
     _aiSuggestions = results[19] as List<AiSuggestionItem>? ?? const [];
+    _familyMembers = results[20] as List<FamilyMember>? ?? const [];
+    _homeCareServices = results[21] as List<HomeCareServiceItem>? ?? const [];
+    _homeCareBookings = results[22] as List<HomeCareBookingItem>? ?? const [];
 
     if (_myClub != null && _dashboard != null) {
       _dashboard = PatientDashboard(
