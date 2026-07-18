@@ -1801,6 +1801,8 @@ class DocumentAnalysisResult {
     required this.success,
     required this.summary,
     required this.texts,
+    this.status,
+    this.analysisId,
     this.riskLevel,
     this.riskReason,
     this.findings = const [],
@@ -1811,6 +1813,8 @@ class DocumentAnalysisResult {
   final bool success;
   final String summary;
   final List<String> texts;
+  final String? status;
+  final int? analysisId;
   final String? riskLevel;
   final String? riskReason;
   final List<String> findings;
@@ -1825,6 +1829,8 @@ class DocumentAnalysisResult {
       success: json['success'] as bool? ?? true,
       summary: json['summary'] as String? ?? '',
       texts: texts,
+      status: json['status']?.toString(),
+      analysisId: (json['analysisId'] as num?)?.toInt(),
       riskLevel: json['riskLevel'] as String? ?? json['risk_level'] as String?,
       riskReason:
           json['riskReason'] as String? ?? json['risk_reason'] as String?,

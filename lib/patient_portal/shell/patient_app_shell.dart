@@ -19,8 +19,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../assistant/services/gemini_tts_service.dart';
 import '../assistant/services/gemini_stt_service.dart';
 import '../assistant/utils/voice_manager.dart';
+import '../assistant/voice/live_voice_controller.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/network/api_client.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/theme/app_colors.dart';

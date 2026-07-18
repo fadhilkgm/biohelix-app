@@ -13,6 +13,7 @@ class _AssistantTabState extends State<_AssistantTab> {
   late final VoiceManager _voiceManager;
   late final GeminiSttService _geminiSttService;
   late final GeminiTtsService _geminiTtsService;
+  late final LiveVoiceController _liveVoiceController;
   int _lastAutoScrolledMessageCount = 0;
   String? _lastAutoScrolledThreadId;
   bool _showMobileSidebar = false;
@@ -31,7 +32,6 @@ class _AssistantTabState extends State<_AssistantTab> {
   String _livePartialTranscript = '';
   String _liveSubmittedTranscript = '';
   String? _liveVoiceError;
-  int _voiceRestartAttempts = 0;
   String? _configuredTtsLanguage;
   AppLanguage? _configuredLanguage;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
@@ -48,6 +48,7 @@ class _AssistantTabState extends State<_AssistantTab> {
   VoiceManager get voiceManager => _voiceManager;
   GeminiSttService get geminiSttService => _geminiSttService;
   GeminiTtsService get geminiTtsService => _geminiTtsService;
+  LiveVoiceController get liveVoiceController => _liveVoiceController;
 
   bool get speechReady => _speechReady;
   set speechReady(bool value) => _speechReady = value;
@@ -100,6 +101,21 @@ class _AssistantTabState extends State<_AssistantTab> {
     _voiceManager = VoiceManager();
     _geminiSttService = GeminiSttService(apiKey: '');
     _geminiTtsService = GeminiTtsService(apiKey: '');
+    _liveVoiceController = LiveVoiceController(
+      apiClient: context.read<ApiClient>(),
+      conversationIdProvider: () =>
+          context.read<PatientPortalProvider>().activeChatThreadId ?? '',
+      onTurnCompleted: (transcript, response) {
+        if (!mounted) return;
+        final portal = context.read<PatientPortalProvider>();
+        if (transcript.trim().isEmpty || response.trim().isEmpty) return;
+        unawaited(portal.reconcileLiveVoiceTurn(
+          transcript: transcript,
+          response: response,
+        ));
+      },
+    );
+    _liveVoiceController.addListener(_handleLiveVoiceControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<PatientPortalProvider>().initializeChatThreads();
@@ -120,6 +136,8 @@ class _AssistantTabState extends State<_AssistantTab> {
     _isLiveVoiceMode = false;
     _liveAutoSendDebounce?.cancel();
     _recordingAmplitudeSubscription?.cancel();
+    _liveVoiceController.removeListener(_handleLiveVoiceControllerChanged);
+    _liveVoiceController.dispose();
     unawaited(_voiceManager.dispose());
     _messagesController.dispose();
     _inputController.dispose();
@@ -145,18 +163,6 @@ class _AssistantTabState extends State<_AssistantTab> {
         final analysisInProgress =
             _isAttachmentAnalysisInFlight || portal.analyzingDocumentId != null;
         final analyzingLabel = _analyzingAttachmentName;
-
-        if (_isLiveVoiceMode && !_isLiveTurnInFlight && messages.isNotEmpty) {
-          final last = messages.last;
-          final fingerprint = _speechFingerprint(last);
-          if (last.role != 'user' && _lastLiveSpokenReply != fingerprint) {
-            _lastLiveSpokenReply = fingerprint;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted || !_isLiveVoiceMode) return;
-              _speakReplyThenResumeListening(last, portal);
-            });
-          }
-        }
 
         if (activeThreadId != _lastAutoScrolledThreadId) {
           _lastAutoScrolledThreadId = activeThreadId;
@@ -253,9 +259,8 @@ class _AssistantTabState extends State<_AssistantTab> {
                               onRetry: () {
                                 _updateAssistantState(() {
                                   _liveVoiceError = null;
-                                  _voiceRestartAttempts = 0;
                                 });
-                                _startVoiceListening(portal);
+                                _toggleLiveVoiceMode(portal);
                               },
                             )
                           : messages.isEmpty && !portal.isSendingMessage
@@ -558,6 +563,22 @@ class _AssistantTabState extends State<_AssistantTab> {
       },
     );
   }
+
+  void _handleLiveVoiceControllerChanged() {
+    if (!mounted) return;
+    final state = _liveVoiceController.state;
+    updateAssistantState(() {
+      _isListening = state.isListening;
+      _isSpeaking = state.isSpeaking;
+      _isLiveTurnInFlight = state.phase.name == 'transcribing' ||
+          state.phase.name == 'thinking' ||
+          state.phase.name == 'speaking';
+      _soundLevel = state.soundLevel;
+      _livePartialTranscript = state.partialTranscript;
+      _liveSubmittedTranscript = state.finalTranscript;
+      _liveVoiceError = state.errorMessage;
+    });
+  }
 }
 
 String? _latestAssistantText(List<ChatMessage> messages) {
@@ -567,17 +588,6 @@ String? _latestAssistantText(List<ChatMessage> messages) {
     }
   }
   return null;
-}
-
-String _speechFingerprint(ChatMessage message) {
-  final id = message.id;
-  if (id != null) return 'id:$id';
-
-  return [
-    message.role,
-    message.createdAt ?? '',
-    message.content.trim(),
-  ].join(':');
 }
 
 class _AssistantEmptyState extends StatelessWidget {

@@ -2,21 +2,21 @@
 
 ## Decision and scope
 
-Build true live voice as a separate realtime path while keeping the existing HTTP voice endpoint as a push-to-talk fallback.
+Build true live voice as a separate realtime path while keeping the existing HTTP voice endpoint as a push-to-talk fallback. For the current BHRC deployment, host the realtime gateway on the Laravel VPS instead of adding Cloudflare Worker + Durable Object.
 
 ```text
 Flutter
   |-- REST + Sanctum --> Laravel (auth, authorization, context, policy, history)
-  `-- WSS ------------> Cloudflare Worker
-                           `-- VoiceSession Durable Object
+  `-- WSS ------------> Nginx
+                           `-- Node.js voice-gateway (same VPS)
                                 |-- streaming STT
                                 |-- streaming LLM
                                 |-- streaming TTS
                                 |-- safety gates and cancellation
-                                `-- Queue --> signed Laravel persistence API
+                                `-- Redis/session state + Laravel persistence
 ```
 
-Laravel remains the system of record. The Worker owns only transient realtime session orchestration. Flutter never receives vendor credentials or performs medical reasoning. Raw audio is not retained by default.
+Laravel remains the system of record. The Node gateway owns only transient realtime session orchestration. Flutter never receives vendor credentials or performs medical reasoning. Raw audio is not retained by default.
 
 Use WebSocket for the first production release. The assistant is turn-oriented with barge-in, not a two-person call. Fix the first wire format to mono PCM16, 16 kHz, 20-40 ms frames; introduce Opus only if measured bandwidth costs justify it. Do not promise fully simultaneous speech: if acoustic echo cancellation is inadequate, fall back to half-duplex or require headphones.
 
@@ -84,7 +84,7 @@ connecting -> ready -> listening -> transcribing -> reasoning -> speaking
 any state -> degraded | reconnecting | closing -> closed
 ```
 
-Only one generation may be active per session. Illegal transitions are rejected. On local VAD speech during playback, Flutter stops playback immediately, increments its audio epoch, sends `response.cancel`, and starts capturing the new turn. The Durable Object aborts LLM/TTS work and increments its generation so late provider bytes are discarded. Persist the assistant text actually delivered and mark the turn `interrupted`.
+Only one generation may be active per session. Illegal transitions are rejected. On local VAD speech during playback, Flutter stops playback immediately, increments its audio epoch, sends `response.cancel`, and starts capturing the new turn. The Node gateway aborts LLM/TTS work and increments its generation so late provider bytes are discarded. Persist the assistant text actually delivered and mark the turn `interrupted`.
 
 Reconnect only finalized control state inside a short grace period; never replay stale microphone frames. Abort an unfinished turn after the grace period.
 
@@ -144,7 +144,7 @@ Create `ai_voice_sessions` containing session UUID, conversation/patient IDs, st
 
 Add message metadata: `turn_id`, `channel`, `sequence`, `delivery_status`, `language`, and bounded metadata. Enforce unique `(conversation_id, turn_id, role)` and ordered `(conversation_id, sequence)` indexes. Store provider/model, audio seconds, tokens, cost, and stage latency in `ai_voice_usage` or bounded metadata.
 
-Extract prompt and minimal context construction from `AIChatService` into `VoiceContextService`/a shared context service. Text chat and the gateway bootstrap must consume the same versioned policy. Do not copy clinical prompts or independently query records in the Worker.
+Extract prompt and minimal context construction from `AIChatService` into `VoiceContextService`/a shared context service. Text chat and the gateway bootstrap must consume the same versioned policy. Do not copy clinical prompts or independently query records in the gateway.
 
 ### Internal gateway APIs
 
@@ -155,41 +155,29 @@ POST /api/v1/internal/voice/sessions/{session}/usage
 POST /api/v1/internal/voice/sessions/{session}/close
 ```
 
-Worker requests include key ID, timestamp, nonce, body SHA-256, event ID, and HMAC signature. Laravel rejects clock skew, replayed nonces, excessive bodies, invalid session scope, and unknown keys. Support overlapping key IDs for rotation. Queue redelivery is harmless because persistence is idempotent and transactionally ordered.
+Gateway requests include a private shared secret and signed session ticket. Laravel rejects invalid ticket scope, expiry, excessive bodies, and invalid session ownership. Persistence is idempotent and transactionally ordered.
 
 Gate: cross-patient session creation is impossible; ticket reuse/replay fails; callback replay is harmless; concurrent turns remain ordered; context is minimal and policy-versioned.
 
-## Phase 3 - Worker and Durable Object gateway
+## Phase 3 - VPS Node.js gateway
 
-Create a separate deployable package:
+Create the separate `BHRC-Hospital/voice-gateway` package:
 
 ```text
 voice-gateway/
   src/index.ts
-  src/durable-objects/VoiceSession.ts
-  src/protocol/events.ts
-  src/protocol/binary-frame.ts
-  src/auth/ticket-verifier.ts
-  src/laravel/client.ts
-  src/providers/stt.ts
-  src/providers/llm.ts
-  src/providers/tts.ts
-  src/safety/emergency-gate.ts
-  src/queues/persist-turn.ts
-  src/observability/telemetry.ts
-  test/
-  wrangler.jsonc
+  src/protocol.ts
   package.json
   tsconfig.json
 ```
 
-Use one SQLite-backed Durable Object per session, WebSocket hibernation, transactionally persisted state transitions, and a short outbox. The DO is transient coordination, not the medical database. Cloudflare Queue delivers finalized turns/usage to Laravel with retry and dead-letter handling.
+Run one supervised Node process on the VPS, bind it to loopback, and expose it only through an Nginx WSS reverse proxy. Redis can hold active session locks and short-lived coordination state; the Laravel database remains authoritative. The gateway is transient coordination, not the medical database.
 
 Implement provider adapters with cancellation and explicit timeouts. Use the existing OpenAI-compatible reasoning provider only if its streaming endpoint passes the benchmark. STT/TTS remain interchangeable adapters selected by compliance and performance results.
 
-Enforce handshake rate, one connection per session, maximum buffered bytes, 60-second utterance cap, 15-minute session cap, 30-second idle warning/closure, turns/minute, bytes/minute, and provider-token ceiling through Laravel-issued limits plus Worker-side enforcement.
+Enforce handshake rate, one connection per session, maximum buffered bytes, 60-second utterance cap, 15-minute session cap, 30-second idle warning/closure, turns/minute, bytes/minute, and provider-token ceiling through Laravel-issued limits plus gateway-side enforcement.
 
-Gate: all legal state transitions are unit-tested; fake-provider integration tests cover cancellation and out-of-order bytes; DO restart/hibernation and duplicate Queue delivery preserve correctness; malformed/oversized frames are rejected safely.
+Gate: all legal state transitions are unit-tested; fake-provider integration tests cover cancellation and out-of-order bytes; gateway restart and duplicate persistence preserve correctness; malformed/oversized frames are rejected safely.
 
 ## Phase 4 - Flutter production voice client
 
@@ -216,7 +204,7 @@ Gate: a physical-device matrix passes Android/iOS, speaker, wired/Bluetooth, int
 - Validate model output before streaming TTS; block medication changes, definitive diagnoses, fabricated record claims, and prohibited recommendations.
 - Add clear not-a-doctor/not-an-emergency-service disclosure and explicit microphone/AI-processing consent.
 - Never place audio, transcripts, prompts, tickets, signed URLs, or patient IDs in URLs, crash analytics, or ordinary logs. Pseudonymize exported telemetry.
-- Propagate one trace ID across Flutter diagnostics, Worker, vendors, Queue, and Laravel. Record only state transitions, byte/duration counts, provider status, tokens/cost, cancellation reason, queue attempts, and policy versions.
+- Propagate one trace ID across Flutter diagnostics, gateway, vendors, and Laravel. Record only state transitions, byte/duration counts, provider status, tokens/cost, cancellation reason, and policy versions.
 - Add dashboards and alerts for latency, availability, provider failures, queue age/dead letters, persistence lag, auth spikes, emergency-gate errors, cost, and error-budget burn.
 
 ### Initial SLOs
@@ -243,9 +231,9 @@ Gate: load/soak and chaos tests meet SLOs; the approved critical emergency corpu
 - Push-to-talk MIME/duration/size/silence validation, rate limits, provider timeout/retry/circuit behavior, and R2 cleanup.
 - Pagination, conversation touch/order, cross-patient isolation, deletion/export, and retention jobs.
 
-### Worker tests
+### Gateway tests
 
-- Protocol parser fuzzing, malformed/oversized/out-of-order frames, every state transition, generation cancellation, late-byte rejection, reconnect, idle/session limits, provider failure/fallback, DO restart/hibernation, Queue and Laravel outages.
+- Protocol parser fuzzing, malformed/oversized/out-of-order frames, every state transition, generation cancellation, late-byte rejection, reconnect, idle/session limits, provider failure/fallback, gateway restart, and Laravel outages.
 
 ### Flutter tests
 
@@ -264,9 +252,9 @@ Use independent server-side flags for hardened push-to-talk and realtime voice, 
 1. Compliance, clinical policy, vendor benchmark, threat model, and SLO/cost budget.
 2. Push-to-talk hardening and current Flutter race/lifecycle fixes.
 3. Laravel schema, shared context/policy, session ticket, signed internal APIs, and tests.
-4. Worker/DO protocol, provider adapters, Queue persistence, cancellation, and telemetry.
+4. VPS gateway protocol, provider adapters, persistence, cancellation, and telemetry.
 5. Flutter streaming controller, audio pipeline, lifecycle/focus, and UI integration.
 6. End-to-end safety, security, load, chaos, and clinical evaluation.
 7. Flagged canary rollout with fallback and kill switch.
 
-Do not start the Worker implementation before Phase 0 selects vendors and validates compliance/latency. Do not treat polishing the current HTTP loop as progress toward streaming; they are separate deliverables.
+Do not treat polishing the current HTTP loop as progress toward streaming; they are separate deliverables. The VPS gateway can later move behind another edge or managed realtime service if scale justifies it.

@@ -1066,6 +1066,10 @@ class PatientRepository {
       data: {'language': language},
     );
     if (response['success'] == false) {
+      if (response['status']?.toString() == 'processing' ||
+          response['status']?.toString() == 'queued') {
+        return DocumentAnalysisResult.fromJson(response);
+      }
       throw ApiException(response['error']?.toString() ?? 'Analysis failed.');
     }
     return DocumentAnalysisResult.fromJson(response);

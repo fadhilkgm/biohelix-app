@@ -10,7 +10,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
 
     try {
       final config = await _repository.getVoiceProviderConfig();
-      if (config.enabled && config.apiKey.trim().isNotEmpty) {
+      if (config.enabled) {
         _voiceProviderConfig = config;
         return config;
       }
@@ -251,6 +251,40 @@ extension PatientPortalChatMixin on PatientPortalProvider {
       _isSendingMessage = false;
       _notify();
     }
+  }
+
+  Future<void> reconcileLiveVoiceTurn({
+    required String transcript,
+    required String response,
+  }) async {
+    final threadId = _activeChatThreadId;
+    final cleanTranscript = transcript.trim();
+    final cleanResponse = response.trim();
+    if (threadId == null ||
+        cleanTranscript.isEmpty ||
+        cleanResponse.isEmpty) {
+      return;
+    }
+
+    final existing = _chatHistories[threadId] ?? const <ChatMessage>[];
+    final lastPair = existing.length >= 2
+        ? existing.sublist(existing.length - 2)
+        : const <ChatMessage>[];
+    if (lastPair.length == 2 &&
+        lastPair[0].role == 'user' &&
+        lastPair[0].content.trim() == cleanTranscript &&
+        lastPair[1].role != 'user' &&
+        lastPair[1].content.trim() == cleanResponse) {
+      return;
+    }
+    _chatHistories[threadId] = [
+      ...existing,
+      ChatMessage(role: 'user', content: cleanTranscript),
+      ChatMessage(role: 'ai', content: cleanResponse),
+    ];
+    _touchThread(threadId, cleanTranscript);
+    _touchThread(threadId, cleanResponse);
+    _notify();
   }
 
   void _touchThread(String threadId, String preview) {

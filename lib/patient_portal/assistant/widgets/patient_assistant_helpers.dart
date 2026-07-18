@@ -119,12 +119,6 @@ extension _AssistantActions on _AssistantTabState {
     configuredTtsLanguage = target;
   }
 
-  Future<bool> _ensureVoiceReady() async {
-    if (speechReady) return true;
-    await _initializeVoiceFeatures();
-    return speechReady;
-  }
-
   Future<void> _sendMessage(PatientPortalProvider portal) async {
     final message = inputController.text.trim();
     final attachments = List<ChatAttachment>.from(_pendingAttachments);
@@ -258,6 +252,18 @@ extension _AssistantActions on _AssistantTabState {
     required String fileName,
     required int sizeBytes,
   }) async {
+    if (sizeBytes <= 0) {
+      _handleAttachmentError(
+        const FormatException('The selected report is empty.'),
+      );
+      return;
+    }
+    if (sizeBytes > 25 * 1024 * 1024) {
+      _handleAttachmentError(
+        const FormatException('Reports must be smaller than 25 MB.'),
+      );
+      return;
+    }
     try {
       updateAssistantState(() {
         _isAttachmentUploadInFlight = true;
@@ -291,12 +297,20 @@ extension _AssistantActions on _AssistantTabState {
             _isAttachmentAnalysisInFlight = false;
             _analyzingAttachmentName = null;
           });
-          if (analysis != null && analysis.summary.trim().isNotEmpty) {
-            _showDocumentAnalysisResult(fileName, analysis);
+          final result = analysis;
+          if (result != null && result.summary.trim().isNotEmpty) {
+            _showDocumentAnalysisResult(fileName, result);
+          } else if (result?.status == 'processing' ||
+              result?.status == 'queued') {
+            await _showAttachmentMessage(
+              'Your report is queued for analysis. We will show the summary when it is ready.',
+            );
           }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_strings.assistantSummaryReady(fileName))),
-          );
+          if (result?.summary.trim().isNotEmpty == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(_strings.assistantSummaryReady(fileName))),
+            );
+          }
         } catch (_) {
           if (!mounted) return;
           updateAssistantState(() {
@@ -346,6 +360,9 @@ extension _AssistantActions on _AssistantTabState {
       return error.message?.trim().isNotEmpty == true
           ? error.message!.trim()
           : 'Attachment picker failed. Please try again.';
+    }
+    if (error is FormatException) {
+      return error.message;
     }
     return error.toString();
   }
@@ -541,103 +558,6 @@ extension _AssistantActions on _AssistantTabState {
     await portal.renameChatThread(threadId: threadId, title: title);
   }
 
-  Future<void> _initializeVoiceFeatures() async {
-    try {
-      final available = await speechToText
-          .initialize(
-            onStatus: (status) async {
-              if (!mounted) return;
-              if (status == 'done' || status == 'notListening') {
-                // Auto-resume listening in Live Voice Mode only
-                final shouldAutoResume =
-                    (isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight);
-                if (shouldAutoResume) {
-                  final portal = context.read<PatientPortalProvider>();
-                  await _resumeListeningWithLimit(portal);
-                } else {
-                  if (isListening || isTapRecording) {
-                    updateAssistantState(() {
-                      _isListening = false;
-                      _isTapRecording = false;
-                      _soundLevel = 0.0;
-                    });
-                    Future.delayed(Duration.zero, () async {
-                      try {
-                        await speechToText.cancel();
-                      } catch (_) {}
-                    });
-                  }
-                }
-              }
-            },
-            onError: (errorNotification) async {
-              if (!mounted) return;
-              // Auto-resume on transient errors in Live Voice Mode only
-              final shouldAutoResume =
-                  (isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight);
-              if (shouldAutoResume) {
-                final portal = context.read<PatientPortalProvider>();
-                await _resumeListeningWithLimit(portal);
-              } else {
-                if (isListening || isTapRecording) {
-                  updateAssistantState(() {
-                    _isListening = false;
-                    _isTapRecording = false;
-                    _soundLevel = 0.0;
-                  });
-                  Future.delayed(Duration.zero, () async {
-                    try {
-                      await speechToText.cancel();
-                    } catch (_) {}
-                  });
-                }
-              }
-            },
-          )
-          .timeout(const Duration(seconds: 8), onTimeout: () => false);
-
-      await _configureTtsLanguage();
-      await voiceManager.awaitSpeakCompletion(true);
-      voiceManager.setTtsStartHandler(() {
-        if (!mounted) return;
-        updateAssistantState(() {
-          isSpeaking = true;
-        });
-      });
-      voiceManager.setTtsCompletionHandler(() async {
-        if (!mounted) return;
-        updateAssistantState(() {
-          isSpeaking = false;
-        });
-
-        // Re-activate mic listening ONLY after the voice output has finished playing,
-        // preventing the microphone from capturing the AI's own spoken output.
-        if (isLiveVoiceMode && !isLiveTurnInFlight && !isListening) {
-          final portal = context.read<PatientPortalProvider>();
-          await _startVoiceListening(portal);
-        }
-      });
-      voiceManager.setTtsCancelHandler(() {
-        if (!mounted) return;
-        updateAssistantState(() {
-          isSpeaking = false;
-        });
-      });
-
-      if (!mounted) return;
-      updateAssistantState(() {
-        speechReady = available;
-      });
-    } catch (e) {
-      // ignore: avoid_print
-      print("🎙️ [VoiceAssistant] SpeechToText initialization failed: $e");
-      if (!mounted) return;
-      updateAssistantState(() {
-        speechReady = false;
-      });
-    }
-  }
-
   /// Push-to-talk: tap once to start recording, tap again to stop and send.
   /// The recorded clip is uploaded to the server-side voice endpoint, which
   /// transcribes it, generates a reply, and (when configured) returns spoken
@@ -647,6 +567,7 @@ extension _AssistantActions on _AssistantTabState {
 
     if (isLiveVoiceMode) {
       await _toggleLiveVoiceMode(portal);
+      return;
     }
 
     // Currently recording — stop, upload and let the server handle STT/TTS.
@@ -737,6 +658,10 @@ extension _AssistantActions on _AssistantTabState {
     PatientPortalProvider portal,
     String audioPath,
   ) async {
+    if (isLiveVoiceMode) {
+      await voiceManager.deleteRecording(audioPath);
+      return;
+    }
     if (await _sendGeminiVoiceTurn(portal, audioPath)) {
       return;
     }
@@ -869,17 +794,8 @@ extension _AssistantActions on _AssistantTabState {
   }
 
   Future<void> _toggleLiveVoiceMode(PatientPortalProvider portal) async {
-    if (!await _ensureVoiceReady()) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_strings.assistantLiveVoiceUnavailable)),
-      );
-      return;
-    }
-
     if (isLiveVoiceMode) {
-      await voiceManager.stopListening();
-      await voiceManager.stopSpeaking();
+      await liveVoiceController.stop();
       if (!mounted) return;
       updateAssistantState(() {
         _isLiveVoiceMode = false;
@@ -895,41 +811,13 @@ extension _AssistantActions on _AssistantTabState {
       return;
     }
 
-    final latest = portal.chatMessages.isNotEmpty
-        ? portal.chatMessages.last
-        : null;
-    String? lastFingerprint;
-    if (latest != null && latest.role != 'user') {
-      lastFingerprint = _speechFingerprint(latest);
-    }
-
     updateAssistantState(() {
       isLiveVoiceMode = true;
-      lastLiveSpokenReply = lastFingerprint;
       _livePartialTranscript = '';
       _liveSubmittedTranscript = '';
       _liveVoiceError = null;
     });
-    await _startVoiceListening(portal);
-  }
-
-  Future<void> _resumeListeningWithLimit(PatientPortalProvider portal) async {
-    if (!mounted || !isLiveVoiceMode || isSpeaking || isLiveTurnInFlight) {
-      return;
-    }
-    if (_voiceRestartAttempts >= 2) {
-      updateAssistantState(() {
-        _isListening = false;
-        _soundLevel = 0.0;
-        _liveVoiceError = _strings.assistantUnableToListen;
-      });
-      return;
-    }
-    _voiceRestartAttempts += 1;
-    await Future<void>.delayed(const Duration(milliseconds: 450));
-    if (mounted && isLiveVoiceMode && !isSpeaking && !isLiveTurnInFlight) {
-      await _startVoiceListening(portal);
-    }
+    await liveVoiceController.start(locale: _ttsLanguageCode);
   }
 
   Future<void> _startVoiceListening(PatientPortalProvider portal) async {
@@ -957,7 +845,6 @@ extension _AssistantActions on _AssistantTabState {
             if (isLiveVoiceMode) {
               if (words.isEmpty || isLiveTurnInFlight) return;
               updateAssistantState(() {
-                _voiceRestartAttempts = 0;
                 _livePartialTranscript = words;
                 _liveVoiceError = null;
               });
@@ -1093,23 +980,6 @@ extension _AssistantActions on _AssistantTabState {
         // and the TTS completion handler will restart the mic AFTER the AI finishes talking!
       }
     }
-  }
-
-  Future<void> _speakReplyThenResumeListening(
-    ChatMessage message,
-    PatientPortalProvider portal,
-  ) async {
-    if (!isLiveVoiceMode || isSpeaking) return;
-
-    final toSpeak = _sanitizeSpeechText(message.content);
-    if (toSpeak.isEmpty) return;
-
-    await _configureTtsLanguage();
-    updateAssistantState(() {
-      isSpeaking = true;
-    });
-
-    await voiceManager.speak(toSpeak, _ttsLanguageCode);
   }
 
   String _sanitizeSpeechText(String value) {
