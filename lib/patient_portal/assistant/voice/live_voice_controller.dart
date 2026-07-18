@@ -270,6 +270,7 @@ class LiveVoiceController extends ChangeNotifier {
       return;
     }
     if (event.generation != null && event.generation != _generation) return;
+    if (event.turnId != null && event.turnId != _activeTurnId) return;
 
     switch (event.type) {
       case 'session.ready':
