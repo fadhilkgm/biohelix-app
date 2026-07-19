@@ -185,22 +185,40 @@ class LiveVoiceController extends ChangeNotifier {
     if (conversationId.isEmpty) {
       throw StateError('Select a chat conversation before starting voice.');
     }
-    final response = await _apiClient.postJson(
-      '/patients/chat/global/threads/$conversationId/voice-sessions',
-      data: {
-        'locale': locale,
-        'protocol': VoiceProtocol.version,
-        'device_id': 'flutter-${defaultTargetPlatform.name}',
-      },
-    );
-    final raw = response['session'] is Map ? response['session'] : response;
-    final session = VoiceSessionTicket.fromJson(_map(raw));
-    if (session.sessionId.isEmpty ||
-        session.gatewayUrl.isEmpty ||
-        session.ticket.isEmpty) {
-      throw StateError('The server returned an incomplete voice session.');
+    try {
+      final response = await _apiClient.postJson(
+        '/patients/chat/global/threads/$conversationId/voice-sessions',
+        data: {
+          'locale': locale,
+          'protocol': VoiceProtocol.version,
+          'device_id': 'flutter-${defaultTargetPlatform.name}',
+        },
+      );
+      final raw = response['session'] is Map ? response['session'] : response;
+      final session = VoiceSessionTicket.fromJson(_map(raw));
+      if (session.sessionId.isEmpty ||
+          session.gatewayUrl.isEmpty ||
+          session.ticket.isEmpty) {
+        throw StateError('The server returned an incomplete voice session.');
+      }
+      return session;
+    } catch (error) {
+      final message = error.toString();
+      if (message.contains('VOICE_GATEWAY_TICKET_SECRET') ||
+          message.contains('VOICE_GATEWAY_URL') ||
+          message.contains('not installed') ||
+          message.contains('migrate')) {
+        throw StateError(
+          'Live voice is not configured on the server yet. Ask backend to set VOICE_GATEWAY_* env vars, run migrations, and start the voice gateway.',
+        );
+      }
+      if (message.contains('HTTP 500') || message.contains('HTTP 503')) {
+        throw StateError(
+          'Live voice is unavailable on this server. The voice gateway/session API needs VPS configuration.',
+        );
+      }
+      rethrow;
     }
-    return session;
   }
 
   Future<void> _startMicrophone() async {

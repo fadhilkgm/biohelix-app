@@ -666,39 +666,53 @@ extension _AssistantActions on _AssistantTabState {
       return;
     }
 
-    // Voice turns play the server's spoken audio directly; don't also auto-speak.
-    final voiceReply = await portal.sendChatVoiceMessage(
-      audioPath,
-      language: _assistantLanguageCode,
-    );
-
-    // Clean up the temporary recording once uploaded.
-    unawaited(voiceManager.deleteRecording(audioPath));
-
-    if (!mounted || voiceReply == null) return;
-
-    final audioUrl = voiceReply.audioUrl;
-
-    // Server returned spoken audio — play it back.
-    updateAssistantState(() {
-      isSpeaking = true;
-    });
     try {
-      if (audioUrl != null && audioUrl.isNotEmpty) {
-        await voiceManager.playRemoteAudio(audioUrl);
-      } else {
-        await voiceManager.speak(
-          _sanitizeSpeechText(voiceReply.reply.content),
-          _ttsLanguageCode,
-        );
+      // Voice turns play the server's spoken audio directly; don't also auto-speak.
+      final voiceReply = await portal.sendChatVoiceMessage(
+        audioPath,
+        language: _assistantLanguageCode,
+      );
+
+      // Clean up the temporary recording once uploaded.
+      unawaited(voiceManager.deleteRecording(audioPath));
+
+      if (!mounted || voiceReply == null) return;
+
+      final audioUrl = voiceReply.audioUrl;
+
+      // Server returned spoken audio — play it back.
+      updateAssistantState(() {
+        isSpeaking = true;
+      });
+      try {
+        if (audioUrl != null && audioUrl.isNotEmpty) {
+          await voiceManager.playRemoteAudio(audioUrl);
+        } else {
+          await voiceManager.speak(
+            _sanitizeSpeechText(voiceReply.reply.content),
+            _ttsLanguageCode,
+          );
+        }
+      } catch (_) {
+      } finally {
+        if (mounted) {
+          updateAssistantState(() {
+            isSpeaking = false;
+          });
+        }
       }
-    } catch (_) {
-    } finally {
-      if (mounted) {
-        updateAssistantState(() {
-          isSpeaking = false;
-        });
-      }
+    } catch (error) {
+      unawaited(voiceManager.deleteRecording(audioPath));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().contains('422')
+                ? 'Voice recording format was rejected. Please try again.'
+                : '${_strings.assistantLiveVoiceUnavailable}: $error',
+          ),
+        ),
+      );
     }
   }
 

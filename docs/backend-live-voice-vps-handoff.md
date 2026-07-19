@@ -552,3 +552,33 @@ Analysis is synchronous in the current controller and may take up to several min
 - Emergency corpus tests pass clinician review.
 - Load, reconnect, restart, and provider-failure tests pass.
 - The realtime feature can be disabled server-side without shipping a new app.
+
+## Troubleshooting: Flutter `HTTP 500` on `/voice-sessions`
+
+If live voice fails immediately with:
+
+```text
+ERR 500 .../patients/chat/global/threads/{id}/voice-sessions
+```
+
+the mobile app never reached the WebSocket gateway. Laravel failed while creating the session ticket. Check the VPS in this order:
+
+```bash
+cd /var/www/BHRC-Hospital
+grep -E 'VOICE_GATEWAY_|SARVAM_API_KEY' .env
+php artisan migrate --force
+php artisan config:clear
+php artisan config:cache
+php artisan route:list --path=api/v1/patients/chat/global/threads
+sudo supervisorctl status bhrc-voice-gateway
+```
+
+Common causes:
+
+1. `VOICE_GATEWAY_TICKET_SECRET` or `VOICE_GATEWAY_INTERNAL_SECRET` is empty.
+2. `VOICE_GATEWAY_URL` is empty or still a placeholder.
+3. Migration `ai_voice_sessions` was not run.
+4. Cache driver does not support atomic locks (file/array). The API now falls back safely, but Redis is still recommended.
+5. The Node voice gateway is not running behind the WSS hostname returned in `gateway_url`.
+
+After fixing env/migration/gateway, restart PHP-FPM and the supervisor gateway process, then retry live voice.

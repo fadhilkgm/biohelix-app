@@ -16,6 +16,18 @@ Map<String, dynamic> _map(dynamic value) {
   return <String, dynamic>{};
 }
 
+String _voiceUploadContentType(String fileName) {
+  final lower = fileName.toLowerCase();
+  if (lower.endsWith('.wav')) return 'audio/wav';
+  if (lower.endsWith('.mp3')) return 'audio/mpeg';
+  if (lower.endsWith('.aac')) return 'audio/aac';
+  if (lower.endsWith('.ogg') || lower.endsWith('.oga')) return 'audio/ogg';
+  if (lower.endsWith('.webm')) return 'audio/webm';
+  if (lower.endsWith('.3gp') || lower.endsWith('.3gpp')) return 'audio/3gpp';
+  // AAC-LC from the device recorder is stored as .m4a / .mp4.
+  return 'audio/mp4';
+}
+
 String _resolveApiMediaUrl(String raw, String apiBaseUrl) {
   final value = raw.trim();
   if (value.isEmpty) return '';
@@ -1191,7 +1203,7 @@ class PatientRepository {
         'audio': await MultipartFile.fromFile(
           File(audioFilePath).path,
           filename: fileName,
-          contentType: DioMediaType('audio', 'mp4'),
+          contentType: DioMediaType.parse(_voiceUploadContentType(fileName)),
         ),
         if (normalizedLanguage == 'en' || normalizedLanguage == 'ml')
           'language': normalizedLanguage,
