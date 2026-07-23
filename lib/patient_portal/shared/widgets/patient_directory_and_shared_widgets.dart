@@ -67,7 +67,8 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
               : doctors.where((doctor) {
                   final name = doctor.name.toLowerCase();
                   final specialization = doctor.specialization.toLowerCase();
-                  final department = (doctor.departmentName ?? '').toLowerCase();
+                  final department = (doctor.departmentName ?? '')
+                      .toLowerCase();
                   return name.contains(_searchQuery) ||
                       specialization.contains(_searchQuery) ||
                       department.contains(_searchQuery);
@@ -91,6 +92,7 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
 
           return RefreshIndicator(
             onRefresh: portal.refresh,
+            notificationPredicate: (_) => false,
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 20),
               children: [

@@ -161,9 +161,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       if (!mounted) return;
       setState(() => _step = 'questions');
       final strings = AppStrings.of(context.read<LanguageProvider>().language);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(strings.analysisFailed(error.toString()))),
       );
     }
@@ -248,7 +246,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
                   index: _currentIndex,
                   total: _session!.questions.length,
                   selectedKey:
-                      _answers[_session!.questions[_currentIndex].id.toString()],
+                      _answers[_session!.questions[_currentIndex].id
+                          .toString()],
                   onAnswer: _answer,
                   onBack: _currentIndex > 0 ? _back : null,
                 ),
@@ -309,10 +308,7 @@ class _LanguageSelectionScreen extends StatelessWidget {
           ),
           const SizedBox(height: 40),
           _OptionCard(label: 'English', onTap: () => onSelect('en')),
-          _OptionCard(
-            label: 'മലയാളം (Malayalam)',
-            onTap: () => onSelect('ml'),
-          ),
+          _OptionCard(label: 'മലയാളം (Malayalam)', onTap: () => onSelect('ml')),
         ],
       ),
     );
@@ -481,8 +477,18 @@ class _HistoryScreenState extends State<_HistoryScreen> {
   }
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   String _formatDate(DateTime? date) {
@@ -507,7 +513,9 @@ class _HistoryScreenState extends State<_HistoryScreen> {
         if (snapshot.hasError) {
           return _HistoryMessage(
             icon: Icons.error_outline_rounded,
-            title: isMl ? 'ചരിത്രം ലോഡ് ചെയ്യാനായില്ല' : 'Could not load history',
+            title: isMl
+                ? 'ചരിത്രം ലോഡ് ചെയ്യാനായില്ല'
+                : 'Could not load history',
             subtitle: snapshot.error.toString(),
             actionLabel: isMl ? 'വീണ്ടും ശ്രമിക്കുക' : 'Retry',
             onAction: _retry,
@@ -528,6 +536,7 @@ class _HistoryScreenState extends State<_HistoryScreen> {
         return RefreshIndicator(
           color: _kAccent,
           onRefresh: () async => _retry(),
+          notificationPredicate: (_) => false,
           child: ListView.builder(
             padding: const EdgeInsets.all(24),
             itemCount: items.length,
@@ -734,7 +743,9 @@ class _QuestionScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isMl ? 'ചോദ്യം ${index + 1}/$total' : 'Question ${index + 1}/$total',
+                isMl
+                    ? 'ചോദ്യം ${index + 1}/$total'
+                    : 'Question ${index + 1}/$total',
                 style: GoogleFonts.manrope(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -920,7 +931,9 @@ class _ResultsScreen extends StatelessWidget {
         ],
         if (results.recommendedPackages.isNotEmpty) ...[
           const SizedBox(height: 28),
-          _SectionTitle(isMl ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Recommended Packages'),
+          _SectionTitle(
+            isMl ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Recommended Packages',
+          ),
           const SizedBox(height: 12),
           ...results.recommendedPackages.map(
             (pkg) => _PackageCard(
@@ -1175,10 +1188,7 @@ class _PackageCard extends StatelessWidget {
                   color: const Color(0xFFF4F7FF),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.inventory_2_outlined,
-                  color: _kAccent,
-                ),
+                child: const Icon(Icons.inventory_2_outlined, color: _kAccent),
               ),
               const SizedBox(width: 12),
               Expanded(

@@ -31,8 +31,7 @@ class _HealthSnapshotEntrySheet extends StatefulWidget {
       _HealthSnapshotEntrySheetState();
 }
 
-class _HealthSnapshotEntrySheetState
-    extends State<_HealthSnapshotEntrySheet> {
+class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
   final _systolicCtrl = TextEditingController();
   final _diastolicCtrl = TextEditingController();
   final _sugarCtrl = TextEditingController();
@@ -439,12 +438,15 @@ class _HealthSnapshotHistoryScreenState
 
           return RefreshIndicator(
             color: _accent,
-            onRefresh: () =>
-                context.read<PatientPortalProvider>().loadHealthSnapshotHistory(),
+            onRefresh: () => context
+                .read<PatientPortalProvider>()
+                .loadHealthSnapshotHistory(),
+            notificationPredicate: (_) => false,
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-              itemCount: history.length +
+              itemCount:
+                  history.length +
                   (portal.hasMoreHealthSnapshotHistory ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index >= history.length) {

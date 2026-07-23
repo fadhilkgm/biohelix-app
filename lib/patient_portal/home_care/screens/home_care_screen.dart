@@ -66,6 +66,7 @@ class _HomeCareScreenState extends State<_HomeCareScreen> {
 
           return RefreshIndicator(
             onRefresh: portal.refreshHomeCare,
+            notificationPredicate: (_) => false,
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
               children: [

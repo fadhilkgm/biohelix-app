@@ -151,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
         // 1. Header (Greeting + Ticker)
@@ -272,6 +272,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 20),
+              _HomeActionBanner(
+                label: 'Book a consultation for your loved ones?',
+                icon: Icons.family_restroom_rounded,
+                onTap: widget.onViewAllDoctors,
+              ),
               const SizedBox(height: 32),
               if (widget.healthSnapshot != null)
                 _HealthSnapshotCard(snapshot: widget.healthSnapshot!),
@@ -287,6 +293,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildBannerCarousel(context)
               else if (widget.isLoading)
                 _buildBannerSkeleton(context),
+              const SizedBox(height: 20),
+              _HomeActionBanner(
+                label: 'Home Care Booking',
+                icon: Icons.home_rounded,
+                accentColor: const Color(0xFF167A58),
+                solidColor: const Color(0xFF1F9A6D),
+                foregroundColor: Colors.white,
+                onTap: () => widget.onActionTap('home_care'),
+              ),
               const SizedBox(height: 32),
               OffersAndAppointmentsSectionWidget(
                 bookings: widget.bookings,
@@ -1430,6 +1445,142 @@ class _QuickLink extends StatelessWidget {
   }
 }
 
+class _HomeActionBanner extends StatelessWidget {
+  const _HomeActionBanner({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.accentColor = const Color(0xFF5A88F1),
+    this.solidColor,
+    this.foregroundColor = const Color(0xFF192233),
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color accentColor;
+  final Color? solidColor;
+  final Color foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: solidColor,
+            gradient: solidColor == null
+                ? const LinearGradient(
+                    colors: [Color(0xFFEAF1FF), Color(0xFFF5F8FF)],
+                  )
+                : null,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: solidColor == null
+                  ? accentColor.withValues(alpha: 0.18)
+                  : Colors.white.withValues(alpha: 0.14),
+            ),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              if (solidColor != null)
+                const Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(painter: _HomeBannerPatternPainter()),
+                  ),
+                ),
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: solidColor == null
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.16),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      icon,
+                      color: solidColor == null ? accentColor : foregroundColor,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: GoogleFonts.manrope(
+                        color: foregroundColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: solidColor == null
+                          ? Colors.transparent
+                          : Colors.white.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      color: solidColor == null ? accentColor : foregroundColor,
+                      size: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeBannerPatternPainter extends CustomPainter {
+  const _HomeBannerPatternPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fillPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.07)
+      ..style = PaintingStyle.fill;
+    final linePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    canvas.drawCircle(Offset(size.width + 10, size.height / 2), 54, fillPaint);
+
+    final wave = Path()
+      ..moveTo(size.width - 95, size.height + 8)
+      ..cubicTo(
+        size.width - 70,
+        size.height - 20,
+        size.width - 35,
+        size.height - 20,
+        size.width + 6,
+        8,
+      );
+    canvas.drawPath(wave, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class _HealthSnapshotCard extends StatelessWidget {
   const _HealthSnapshotCard({required this.snapshot});
 
@@ -1539,145 +1690,152 @@ class _HealthSnapshotCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.monitor_heart_rounded,
-                  color: Colors.black,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(top: 7),
-                  child: Text(
-                    'Health Status',
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.monitor_heart_rounded,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 7),
+                          child: Text(
+                            'Health Status',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                      ),
+                      _CardIconButton(
+                        icon: Icons.history_rounded,
+                        tooltip: 'View history',
+                        accentColor: Color(0xFF134633),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  const HealthSnapshotHistoryScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      _CardIconButton(
+                        icon: Icons.add_rounded,
+                        tooltip: "Add/update today's readings",
+                        accentColor: Color(0xFF134633),
+                        onTap: () => showHealthSnapshotEntrySheet(context),
+                      ),
+                    ],
+                  ),
+                  if (snapshotDateLabel != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'For $snapshotDateLabel',
+                      style: const TextStyle(
+                        color: Color(0xFF1E6C50),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      if (score != null)
+                        _SnapshotMetric(
+                          label: 'Health',
+                          value: score.toStringAsFixed(0),
+                          accentColor: const Color(0xFF134633),
+                        ),
+                      if (risk != null) ...[
+                        const SizedBox(width: 16),
+                        _SnapshotMetric(
+                          label: 'Risk',
+                          value: risk.toStringAsFixed(0),
+                          accentColor: const Color(0xFFD65C2B),
+                        ),
+                      ],
+                      if (snapshot.bmi != null) ...[
+                        const SizedBox(width: 16),
+                        _SnapshotMetric(
+                          label: 'BMI',
+                          value: snapshot.bmi!.toStringAsFixed(1),
+                          accentColor: const Color(0xFF2C63DF),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    summary,
                     style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.8,
+                      color: Color(0xFF134633),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      height: 1.4,
                     ),
                   ),
-                ),
-              ),
-              _CardIconButton(
-                icon: Icons.history_rounded,
-                tooltip: 'View history',
-                accentColor: Color(0xFF134633),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const HealthSnapshotHistoryScreen(),
+                  if (extraFacts.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    ...extraFacts.map(
+                      (fact) => Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          fact,
+                          style: const TextStyle(
+                            color: Color(0xFF1E6C50),
+                            fontSize: 13,
+                            height: 1.4,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
                     ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              _CardIconButton(
-                icon: Icons.add_rounded,
-                tooltip: "Add/update today's readings",
-                accentColor: Color(0xFF134633),
-                onTap: () => showHealthSnapshotEntrySheet(context),
-              ),
-            ],
-          ),
-          if (snapshotDateLabel != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              'For $snapshotDateLabel',
-              style: const TextStyle(color: Color(0xFF1E6C50), fontSize: 11),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              if (score != null)
-                _SnapshotMetric(
-                  label: 'Health',
-                  value: score.toStringAsFixed(0),
-                  accentColor: const Color(0xFF134633),
-                ),
-              if (risk != null) ...[
-                const SizedBox(width: 16),
-                _SnapshotMetric(
-                  label: 'Risk',
-                  value: risk.toStringAsFixed(0),
-                  accentColor: const Color(0xFFD65C2B),
-                ),
-              ],
-              if (snapshot.bmi != null) ...[
-                const SizedBox(width: 16),
-                _SnapshotMetric(
-                  label: 'BMI',
-                  value: snapshot.bmi!.toStringAsFixed(1),
-                  accentColor: const Color(0xFF2C63DF),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            summary,
-            style: const TextStyle(
-              color: Color(0xFF134633),
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              height: 1.4,
-            ),
-          ),
-          if (extraFacts.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            ...extraFacts.map(
-              (fact) => Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  fact,
-                  style: const TextStyle(
-                    color: Color(0xFF1E6C50),
-                    fontSize: 13,
-                    height: 1.4,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ],
-          if (snapshot.isEmpty) ...[
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => showHealthSnapshotEntrySheet(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF134633),
-                  side: const BorderSide(color: Color(0xFF5CCB9E)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: const Text(
-                  "Add Today's Readings",
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-          ] else if (generatedLabel != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Updated $generatedLabel',
-              style: const TextStyle(color: Color(0xFF1E6C50), fontSize: 11),
-            ),
-          ],
+                  ],
+                  if (snapshot.isEmpty) ...[
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => showHealthSnapshotEntrySheet(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF134633),
+                          side: const BorderSide(color: Color(0xFF5CCB9E)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          "Add Today's Readings",
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ] else if (generatedLabel != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'Updated $generatedLabel',
+                      style: const TextStyle(
+                        color: Color(0xFF1E6C50),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1739,8 +1897,8 @@ class _SnapshotMetric extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: Colors.black, 
-            fontSize: 11, 
+            color: Colors.black,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
           ),
         ),

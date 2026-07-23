@@ -16,6 +16,24 @@ import 'patient_portal/core/providers/patient_portal_provider.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'features/session/providers/session_provider.dart';
 
+class _ClampedScrollBehavior extends MaterialScrollBehavior {
+  const _ClampedScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const ClampingScrollPhysics();
+  }
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
+}
+
 class BioHelixApp extends StatefulWidget {
   const BioHelixApp({super.key});
 
@@ -86,6 +104,7 @@ class _BioHelixAppState extends State<BioHelixApp> {
       child: Consumer2<ThemeProvider, LanguageProvider>(
         builder: (context, themeProvider, languageProvider, _) => MaterialApp(
           debugShowCheckedModeBanner: false,
+          scrollBehavior: const _ClampedScrollBehavior(),
           title: _config.appName,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),

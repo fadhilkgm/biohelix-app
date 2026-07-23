@@ -115,17 +115,17 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
       }
       if (!mounted) return;
       final strings = AppStrings.of(context.read<LanguageProvider>().language);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.healthProfileSaved)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(strings.healthProfileSaved)));
       await _load();
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = error.toString());
       final strings = AppStrings.of(context.read<LanguageProvider>().language);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(strings.couldNotSave(error.toString()))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.couldNotSave(error.toString()))),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -159,6 +159,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               color: HealthProfileScreen._accent,
+              notificationPredicate: (_) => false,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
                 children: [

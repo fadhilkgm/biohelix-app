@@ -105,7 +105,7 @@ class _BookingsTabState extends State<_BookingsTab> {
           body: DecoratedBox(
             decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
             child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(

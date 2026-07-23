@@ -48,13 +48,12 @@ class _RecordsTabState extends State<_RecordsTab> {
     final uri = Uri.tryParse(trimmed);
     if (uri == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppStrings.of(context.read<LanguageProvider>().language)
-                .invalidReportLink,
+            AppStrings.of(
+              context.read<LanguageProvider>().language,
+            ).invalidReportLink,
           ),
         ),
       );
@@ -63,13 +62,12 @@ class _RecordsTabState extends State<_RecordsTab> {
 
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppStrings.of(context.read<LanguageProvider>().language)
-                .couldNotOpenReport,
+            AppStrings.of(
+              context.read<LanguageProvider>().language,
+            ).couldNotOpenReport,
           ),
         ),
       );
@@ -87,7 +85,7 @@ class _RecordsTabState extends State<_RecordsTab> {
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
           body: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
@@ -939,9 +937,7 @@ class _RecordDetailSheet extends StatelessWidget {
     final background = isSummary
         ? const Color(0xFFFFF7ED)
         : const Color(0xFFEFF6FF);
-    final icon = isSummary
-        ? Icons.description_rounded
-        : Icons.science_rounded;
+    final icon = isSummary ? Icons.description_rounded : Icons.science_rounded;
 
     final details = <String>[
       if ((record.doctorName ?? '').trim().isNotEmpty)

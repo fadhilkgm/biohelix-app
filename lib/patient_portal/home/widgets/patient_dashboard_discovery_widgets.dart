@@ -1,6 +1,5 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
-
 class _HomeSectionHeader extends StatelessWidget {
   const _HomeSectionHeader({
     required this.title,
@@ -131,7 +130,7 @@ class _HorizontalCardRailState extends State<_HorizontalCardRail> {
             ),
             child: ListView.separated(
               controller: _controller,
-              physics: const BouncingScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 4),
               scrollDirection: Axis.horizontal,
               itemCount: widget.itemCount,
@@ -147,4 +146,3 @@ class _HorizontalCardRailState extends State<_HorizontalCardRail> {
     );
   }
 }
-

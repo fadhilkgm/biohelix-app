@@ -155,8 +155,9 @@ class _ProfileTabState extends State<_ProfileTab> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppStrings.of(context.read<LanguageProvider>().language)
-                .reportPreviewUnavailable,
+            AppStrings.of(
+              context.read<LanguageProvider>().language,
+            ).reportPreviewUnavailable,
           ),
         ),
       );
@@ -178,14 +179,20 @@ class _ProfileTabState extends State<_ProfileTab> {
                 resolved,
                 fit: BoxFit.contain,
                 headers: {
-                  if (Provider.of<SessionProvider>(context, listen: false).authToken != null)
-                    'Authorization': 'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
+                  if (Provider.of<SessionProvider>(
+                        context,
+                        listen: false,
+                      ).authToken !=
+                      null)
+                    'Authorization':
+                        'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
                 },
                 errorBuilder: (_, _, _) => Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
-                    AppStrings.of(context.read<LanguageProvider>().language)
-                        .couldNotPreviewImage,
+                    AppStrings.of(
+                      context.read<LanguageProvider>().language,
+                    ).couldNotPreviewImage,
                   ),
                 ),
               ),
@@ -388,15 +395,12 @@ class _ProfileTabState extends State<_ProfileTab> {
 
     if (!context.mounted) return;
     final strings = AppStrings.of(context.read<LanguageProvider>().language);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(strings.familyMemberAdded)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(strings.familyMemberAdded)));
   }
 
-  Future<void> _switchFamilyProfile(
-    BuildContext context,
-    String token,
-  ) async {
+  Future<void> _switchFamilyProfile(BuildContext context, String token) async {
     final session = context.read<SessionProvider>();
 
     try {
@@ -463,11 +467,10 @@ class _ProfileTabState extends State<_ProfileTab> {
                                 children: [
                                   Text(
                                     'Switch Profile',
-                                    style: theme.textTheme.titleLarge
-                                        ?.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w800,
-                                        ),
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
@@ -536,7 +539,9 @@ class _ProfileTabState extends State<_ProfileTab> {
                                         padding: const EdgeInsets.all(14),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(22),
+                                          borderRadius: BorderRadius.circular(
+                                            22,
+                                          ),
                                           border: Border.all(
                                             color: isActive
                                                 ? const Color(0xFF5A88F1)
@@ -564,11 +569,11 @@ class _ProfileTabState extends State<_ProfileTab> {
                                                 profile.patient.name.isEmpty
                                                     ? 'P'
                                                     : profile
-                                                        .patient
-                                                        .name
-                                                        .characters
-                                                        .first
-                                                        .toUpperCase(),
+                                                          .patient
+                                                          .name
+                                                          .characters
+                                                          .first
+                                                          .toUpperCase(),
                                                 style: const TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.w800,
@@ -583,7 +588,8 @@ class _ProfileTabState extends State<_ProfileTab> {
                                                 children: [
                                                   Text(
                                                     profile.patient.name,
-                                                    style: theme.textTheme
+                                                    style: theme
+                                                        .textTheme
                                                         .titleSmall
                                                         ?.copyWith(
                                                           fontWeight:
@@ -592,9 +598,11 @@ class _ProfileTabState extends State<_ProfileTab> {
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
-                                                    profile.patient
+                                                    profile
+                                                        .patient
                                                         .registrationNumber,
-                                                    style: theme.textTheme
+                                                    style: theme
+                                                        .textTheme
                                                         .bodySmall
                                                         ?.copyWith(
                                                           color: const Color(
@@ -607,7 +615,8 @@ class _ProfileTabState extends State<_ProfileTab> {
                                                   const SizedBox(height: 2),
                                                   Text(
                                                     profile.patient.phone,
-                                                    style: theme.textTheme
+                                                    style: theme
+                                                        .textTheme
                                                         .bodySmall
                                                         ?.copyWith(
                                                           color: const Color(
@@ -627,15 +636,17 @@ class _ProfileTabState extends State<_ProfileTab> {
                                                     ),
                                                 decoration: BoxDecoration(
                                                   color: const Color(
-                                                     0xFFF4F7FF,
+                                                    0xFFF4F7FF,
                                                   ),
                                                   borderRadius:
-                                                      BorderRadius.circular(999),
+                                                      BorderRadius.circular(
+                                                        999,
+                                                      ),
                                                 ),
                                                 child: const Text(
                                                   'Active',
                                                   style: TextStyle(
-                                                     color: Color(0xFF5A88F1),
+                                                    color: Color(0xFF5A88F1),
                                                     fontWeight: FontWeight.w800,
                                                   ),
                                                 ),
@@ -673,7 +684,9 @@ class _ProfileTabState extends State<_ProfileTab> {
                                     borderRadius: BorderRadius.circular(18),
                                   ),
                                 ),
-                                icon: const Icon(Icons.person_add_alt_1_rounded),
+                                icon: const Icon(
+                                  Icons.person_add_alt_1_rounded,
+                                ),
                                 label: const Text(
                                   'Add Family Member',
                                   style: TextStyle(fontWeight: FontWeight.w800),
@@ -791,10 +804,8 @@ class _ProfileTabState extends State<_ProfileTab> {
                           Chip(label: Text(strings.active))
                         else
                           OutlinedButton(
-                            onPressed: () => _switchFamilyProfile(
-                              context,
-                              profile.token,
-                            ),
+                            onPressed: () =>
+                                _switchFamilyProfile(context, profile.token),
                             child: Text(strings.switchProfile),
                           ),
                       ],
@@ -1173,8 +1184,13 @@ class _ProfileTabState extends State<_ProfileTab> {
                                       resolvedUrl,
                                       fit: BoxFit.cover,
                                       headers: {
-                                        if (Provider.of<SessionProvider>(context, listen: false).authToken != null)
-                                          'Authorization': 'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
+                                        if (Provider.of<SessionProvider>(
+                                              context,
+                                              listen: false,
+                                            ).authToken !=
+                                            null)
+                                          'Authorization':
+                                              'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
                                       },
                                       errorBuilder: (_, _, _) => const Icon(
                                         Icons.image_not_supported_outlined,
@@ -1334,7 +1350,7 @@ class _ProfileTabState extends State<_ProfileTab> {
         return Container(
           color: const Color(0xFFF4F7F8),
           child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
             children: [
               _RedesignedProfileSection(
