@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
@@ -40,11 +41,19 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   LiveVoiceState get state => _state;
 
   Future<void> start({required String locale}) async {
-    if (_state.isActive) return;
+    if (_state.isActive) {
+      _debugLog('start ignored: session is already active');
+      return;
+    }
+    _debugLog('start requested locale=$locale');
     _setState(const LiveVoiceState(phase: LiveVoicePhase.connecting));
 
     try {
       final bootstrap = await _signalingApi.bootstrap();
+      _debugLog(
+        'bootstrap received: iceServers=${bootstrap.iceServers.length}, '
+        'sessionEvent=${bootstrap.sessionUpdate['type']}',
+      );
       if (bootstrap.iceServers.isEmpty) {
         throw StateError('No realtime ICE servers are available.');
       }
@@ -55,9 +64,11 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
             .toList(),
         'sdpSemantics': 'unified-plan',
       });
+      _debugLog('peer connection created');
       _peer = peer;
       _wirePeerCallbacks(peer);
       await _configureAudioSession();
+      _debugLog('audio session configured for speaker/Bluetooth');
 
       final microphone = await navigator.mediaDevices.getUserMedia({
         'audio': {
@@ -68,7 +79,13 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         'video': false,
       });
       _microphone = microphone;
+      _debugLog(
+        'microphone acquired: audioTracks=${microphone.getAudioTracks().length}',
+      );
       for (final track in microphone.getAudioTracks()) {
+        _debugLog(
+          'adding microphone track: id=${track.id}, enabled=${track.enabled}',
+        );
         await peer.addTrack(track, microphone);
       }
       _startAudioLevelMonitor();
@@ -77,11 +94,13 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         'oai-events',
         RTCDataChannelInit()..ordered = true,
       );
+      _debugLog('data channel created: label=oai-events');
       _events = channel;
       _wireDataChannel(channel, bootstrap.sessionUpdate);
 
       final offer = await peer.createOffer({'offerToReceiveAudio': true});
       await peer.setLocalDescription(offer);
+      _debugLog('local SDP offer set; waiting for ICE gathering');
       await _waitForIceGathering(peer);
       final local = await peer.getLocalDescription();
       final offerSdp = local?.sdp ?? '';
@@ -89,22 +108,31 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         throw StateError('WebRTC did not create a valid SDP offer.');
       }
 
+      _debugLog('sending SDP offer to Laravel: bytes=${offerSdp.length}');
       final answer = await _signalingApi.createCall(offerSdp);
+      _debugLog('SDP answer received: bytes=${answer.length}');
       await peer.setRemoteDescription(RTCSessionDescription(answer, 'answer'));
+      _debugLog('remote SDP answer set');
       _connectTimeout = Timer(const Duration(seconds: 20), () {
         if (_state.phase == LiveVoicePhase.connecting) {
+          _debugLog('connection timeout fired');
           _setError('Realtime voice connection timed out.');
           unawaited(stop(reason: 'connection_timeout'));
         }
       });
     } catch (error) {
+      _debugLog('start failed: ${_safeError(error)}');
       await _releaseResources();
       _setError(_friendlyError(error));
     }
   }
 
   Future<void> stop({String reason = 'user_stopped'}) async {
-    if (_stopping) return;
+    if (_stopping) {
+      _debugLog('stop ignored: already stopping');
+      return;
+    }
+    _debugLog('stop requested: reason=$reason');
     _stopping = true;
     _connectTimeout?.cancel();
     if (!_disposed) {
@@ -119,7 +147,11 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> interrupt() async {
-    if (_events?.state != RTCDataChannelState.RTCDataChannelOpen) return;
+    if (_events?.state != RTCDataChannelState.RTCDataChannelOpen) {
+      _debugLog('interrupt ignored: data channel is not open');
+      return;
+    }
+    _debugLog('interrupting current response');
     await _sendEvent({'type': 'response.cancel'});
     await _sendEvent({'type': 'output_audio_buffer.clear'});
     _responseText.clear();
@@ -136,12 +168,20 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
 
   void _wirePeerCallbacks(RTCPeerConnection peer) {
     peer.onIceGatheringState = (iceState) {
+      _debugLog('ICE gathering state=$iceState');
       if (iceState == RTCIceGatheringState.RTCIceGatheringStateComplete &&
           !(_iceGathering?.isCompleted ?? true)) {
         _iceGathering?.complete();
       }
     };
+    peer.onIceConnectionState = (iceState) {
+      _debugLog('ICE connection state=$iceState');
+    };
+    peer.onSignalingState = (signalingState) {
+      _debugLog('signaling state=$signalingState');
+    };
     peer.onConnectionState = (connectionState) {
+      _debugLog('peer connection state=$connectionState');
       switch (connectionState) {
         case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
           _connectTimeout?.cancel();
@@ -160,8 +200,13 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       }
     };
     peer.onTrack = (event) {
+      _debugLog(
+        'remote track received: kind=${event.track.kind}, '
+        'id=${event.track.id}, streams=${event.streams.length}',
+      );
       if (event.track.kind == 'audio') {
         event.track.enabled = true;
+        _debugLog('remote audio track enabled');
       }
     };
   }
@@ -212,7 +257,9 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     Map<String, dynamic> sessionUpdate,
   ) {
     channel.onDataChannelState = (channelState) {
+      _debugLog('data channel state=$channelState');
       if (channelState == RTCDataChannelState.RTCDataChannelOpen) {
+        _debugLog('data channel open; sending session.update');
         unawaited(_sendEvent(sessionUpdate));
       } else if (channelState == RTCDataChannelState.RTCDataChannelClosed &&
           !_stopping &&
@@ -221,13 +268,19 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       }
     };
     channel.onMessage = (message) {
-      if (message.isBinary) return;
+      if (message.isBinary) {
+        _debugLog('binary data-channel message received: ignored');
+        return;
+      }
       try {
         final decoded = jsonDecode(message.text);
         if (decoded is Map) {
           _handleEvent(Map<String, dynamic>.from(decoded));
+        } else {
+          _debugLog('non-object data-channel message received: ignored');
         }
-      } catch (_) {
+      } catch (error) {
+        _debugLog('invalid data-channel event: ${_safeError(error)}');
         _setError('Realtime server sent an invalid event.');
       }
     };
@@ -241,12 +294,20 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     _iceGathering = Completer<void>();
     await _iceGathering!.future.timeout(
       const Duration(seconds: 8),
-      onTimeout: () {},
+      onTimeout: () {
+        _debugLog('ICE gathering wait timed out; continuing with current SDP');
+      },
     );
   }
 
   void _handleEvent(Map<String, dynamic> event) {
     final type = event['type']?.toString() ?? '';
+    final deltaLength = event['delta']?.toString().length;
+    _debugLog(
+      deltaLength == null
+          ? 'event received: type=${type.isEmpty ? '<missing>' : type}'
+          : 'event received: type=$type deltaChars=$deltaLength',
+    );
     switch (type) {
       case 'session.updated':
         final session = event['session'] is Map
@@ -313,6 +374,10 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         final error = event['error'] is Map
             ? Map<String, dynamic>.from(event['error'] as Map)
             : const <String, dynamic>{};
+        _debugLog(
+          'provider error: code=${error['code'] ?? '<missing>'}, '
+          'message=${error['message'] ?? '<missing>'}',
+        );
         _setError(
           error['message']?.toString() ?? 'Realtime voice request failed.',
         );
@@ -380,9 +445,15 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     final channel = _events;
     if (channel == null ||
         channel.state != RTCDataChannelState.RTCDataChannelOpen) {
+      _debugLog(
+        'event not sent: type=${event['type'] ?? '<missing>'}, '
+        'channelState=${channel?.state}',
+      );
       return;
     }
+    _debugLog('event sending: type=${event['type'] ?? '<missing>'}');
     await channel.send(RTCDataChannelMessage(jsonEncode(event)));
+    _debugLog('event sent: type=${event['type'] ?? '<missing>'}');
   }
 
   void _clearTurnBuffers() {
@@ -401,6 +472,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _releaseResources() async {
+    _debugLog('releasing realtime resources');
     _connectTimeout?.cancel();
     _audioLevelTimer?.cancel();
     _audioLevelTimer = null;
@@ -418,6 +490,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     _peer = null;
     await peer?.close();
     await peer?.dispose();
+    _debugLog('realtime resources released');
   }
 
   String _friendlyError(Object error) {
@@ -430,6 +503,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
 
   void _setError(String message) {
     if (_disposed) return;
+    _debugLog('state error: $message');
     _setState(
       _state.copyWith(phase: LiveVoicePhase.error, errorMessage: message),
     );
@@ -437,8 +511,22 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
 
   void _setState(LiveVoiceState next) {
     if (_disposed) return;
+    if (next.phase != _state.phase) {
+      _debugLog('phase ${_state.phase.name} -> ${next.phase.name}');
+    }
     _state = next;
     notifyListeners();
+  }
+
+  void _debugLog(String message) {
+    if (kDebugMode) {
+      debugPrint('[LiveVoice] $message');
+    }
+  }
+
+  String _safeError(Object error) {
+    final text = error.toString();
+    return text.length <= 500 ? text : '${text.substring(0, 500)}…';
   }
 
   @override

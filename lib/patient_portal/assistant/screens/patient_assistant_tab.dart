@@ -783,7 +783,7 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
       children: [
         Positioned.fill(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 30, 24, 124),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 124),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
