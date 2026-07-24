@@ -43,8 +43,8 @@ class InworldSignalingApi {
 
   Future<InworldSessionBootstrap> bootstrap() async {
     final responses = await Future.wait([
-      _client.getJson('/v1/realtime/ice'),
-      _client.getJson('/v1/realtime/session-config'),
+      _client.getJson('/realtime/ice'),
+      _client.getJson('/realtime/session-config'),
     ]);
     final rawIce = responses[0]['ice_servers'] as List<dynamic>? ?? const [];
     final sessionUpdate = Map<String, dynamic>.from(responses[1]);
@@ -66,7 +66,7 @@ class InworldSignalingApi {
   }
 
   Future<String> createCall(String offerSdp) async {
-    final answer = await _client.postSdp('/v1/realtime/calls', sdp: offerSdp);
+    final answer = await _client.postSdp('/realtime/calls', sdp: offerSdp);
     if (!answer.trimLeft().startsWith('v=0')) {
       throw const FormatException('Realtime server returned an invalid SDP.');
     }
@@ -80,7 +80,7 @@ class InworldSignalingApi {
     required String idempotencyKey,
   }) async {
     await _client.postJson(
-      '/v1/realtime/turns',
+      '/realtime/turns',
       data: {
         'conversation_id': conversationId,
         'transcript': transcript,
