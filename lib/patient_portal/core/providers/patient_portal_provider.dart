@@ -61,7 +61,6 @@ class PatientPortalProvider extends ChangeNotifier {
   final Map<int, DocumentAnalysisResult> _documentAnalyses =
       <int, DocumentAnalysisResult>{};
   final Map<int, List<ChatMessage>> _documentChats = <int, List<ChatMessage>>{};
-  VoiceProviderConfig? _voiceProviderConfig;
   bool _isLoading = false;
   bool _isSavingProfile = false;
   bool _isSavingVitals = false;
@@ -82,7 +81,6 @@ class PatientPortalProvider extends ChangeNotifier {
       _homeBanners.where((banner) => !banner.isMobilePromoPopup).toList();
   List<HomeBannerItem> get promotionalHomeBanners =>
       _homeBanners.where((banner) => banner.isMobilePromoPopup).toList();
-  VoiceProviderConfig? get voiceProviderConfig => _voiceProviderConfig;
   List<TickerMessageItem> get tickerMessages => _tickerMessages;
   List<HomeOfferItem> get homeOffers => _homeOffers;
   List<PrescriptionRecord> get prescriptions => _prescriptions;

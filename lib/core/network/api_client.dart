@@ -109,6 +109,27 @@ class ApiClient {
     }
   }
 
+  Future<String> postSdp(String path, {required String sdp}) async {
+    try {
+      final response = await _dio.post<String>(
+        path,
+        data: sdp,
+        options: Options(
+          contentType: 'application/sdp',
+          responseType: ResponseType.plain,
+          headers: const {'Accept': 'application/sdp'},
+          receiveTimeout: const Duration(seconds: 20),
+        ),
+      );
+      return response.data ?? '';
+    } on DioException catch (error) {
+      throw ApiException(
+        _errorMessage(error),
+        statusCode: error.response?.statusCode,
+      );
+    }
+  }
+
   Future<Map<String, dynamic>> postJson(
     String path, {
     Object? data,

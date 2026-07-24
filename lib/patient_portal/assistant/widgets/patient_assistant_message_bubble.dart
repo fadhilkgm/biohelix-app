@@ -6,8 +6,6 @@ class _MessageBubbleWidget extends StatelessWidget {
     required this.timeLabel,
     required this.attachments,
     required this.isSpeaking,
-    required this.onSpeakTap,
-    required this.onStopTap,
     required this.onAttachmentTap,
   });
 
@@ -15,13 +13,10 @@ class _MessageBubbleWidget extends StatelessWidget {
   final String timeLabel;
   final List<_ChatAttachment> attachments;
   final bool isSpeaking;
-  final VoidCallback onSpeakTap;
-  final VoidCallback onStopTap;
   final ValueChanged<_ChatAttachment> onAttachmentTap;
 
   @override
   Widget build(BuildContext context) {
-    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     final isUser = message.role == 'user';
     final radius = BorderRadius.only(
       topLeft: Radius.circular(
@@ -63,38 +58,12 @@ class _MessageBubbleWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: isUser ? AiChatColors.userBubbleGradient : null,
                 color: isUser ? null : AiChatColors.bubbleAi,
-                border: isUser
-                    ? null
-                    : Border.all(color: AiChatColors.border),
+                border: isUser ? null : Border.all(color: AiChatColors.border),
                 borderRadius: radius,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!isUser)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: IconButton(
-                        onPressed: onSpeakTap,
-                        tooltip: isSpeaking
-                            ? strings.assistantStopVoice
-                            : strings.assistantPlayVoice,
-                        iconSize: 18,
-                        constraints: const BoxConstraints(
-                          minWidth: 30,
-                          minHeight: 30,
-                        ),
-                        style: IconButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          foregroundColor: AiChatColors.textSecondary,
-                        ),
-                        icon: Icon(
-                          isSpeaking
-                              ? Icons.stop_circle_outlined
-                              : Icons.volume_up_outlined,
-                        ),
-                      ),
-                    ),
                   if (isUser)
                     Text(
                       message.content,
@@ -155,18 +124,6 @@ class _MessageBubbleWidget extends StatelessWidget {
                     for (final test in message.suggestedTests)
                       _TestSuggestionCard(test: test),
                   ],
-                  if (!isUser && isSpeaking)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.s10),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: onStopTap,
-                          icon: const Icon(Icons.volume_off_rounded),
-                          label: Text(strings.assistantStopAiVoice),
-                        ),
-                      ),
-                    ),
                   const SizedBox(height: AppSpacing.s8),
                   Align(
                     alignment: Alignment.centerRight,
@@ -250,10 +207,9 @@ class _RevealingMarkdownState extends State<_RevealingMarkdown> {
   }
 
   void _computeWordEnds() {
-    _wordEnds = RegExp(r'\S+')
-        .allMatches(widget.data)
-        .map((match) => match.end)
-        .toList(growable: false);
+    _wordEnds = RegExp(
+      r'\S+',
+    ).allMatches(widget.data).map((match) => match.end).toList(growable: false);
   }
 
   void _startTimer() {
@@ -285,7 +241,10 @@ class _RevealingMarkdownState extends State<_RevealingMarkdown> {
     final shown =
         (!widget.animate || _revealed >= _wordEnds.length || _wordEnds.isEmpty)
         ? widget.data
-        : widget.data.substring(0, _wordEnds[_revealed - 1 < 0 ? 0 : _revealed - 1]);
+        : widget.data.substring(
+            0,
+            _wordEnds[_revealed - 1 < 0 ? 0 : _revealed - 1],
+          );
 
     return MarkdownBody(
       data: _revealed == 0 && widget.animate ? '' : shown,

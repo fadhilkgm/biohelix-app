@@ -16,18 +16,6 @@ Map<String, dynamic> _map(dynamic value) {
   return <String, dynamic>{};
 }
 
-String _voiceUploadContentType(String fileName) {
-  final lower = fileName.toLowerCase();
-  if (lower.endsWith('.wav')) return 'audio/wav';
-  if (lower.endsWith('.mp3')) return 'audio/mpeg';
-  if (lower.endsWith('.aac')) return 'audio/aac';
-  if (lower.endsWith('.ogg') || lower.endsWith('.oga')) return 'audio/ogg';
-  if (lower.endsWith('.webm')) return 'audio/webm';
-  if (lower.endsWith('.3gp') || lower.endsWith('.3gpp')) return 'audio/3gpp';
-  // AAC-LC from the device recorder is stored as .m4a / .mp4.
-  return 'audio/mp4';
-}
-
 String _resolveApiMediaUrl(String raw, String apiBaseUrl) {
   final value = raw.trim();
   if (value.isEmpty) return '';
@@ -1184,71 +1172,6 @@ class PatientRepository {
       suggestedPackages: suggestedPackages,
       suggestedTests: suggestedTests,
     );
-  }
-
-  /// Push-to-talk voice turn. Uploads a recorded audio clip; the server runs
-  /// STT → LLM → TTS and returns the transcript, the AI reply, and an optional
-  /// signed URL to a spoken rendering of the reply.
-  Future<GlobalChatVoiceReply> sendGlobalChatVoiceMessage({
-    required String threadId,
-    required String audioFilePath,
-    String? language,
-  }) async {
-    final normalizedLanguage = (language ?? '').trim().toLowerCase();
-    final fileName = audioFilePath.split(RegExp(r'[\\/]')).last;
-    final response = await _apiClient.postMultipart(
-      '/patients/chat/global/threads/$threadId/voice',
-      receiveTimeout: const Duration(seconds: 120),
-      data: FormData.fromMap({
-        'audio': await MultipartFile.fromFile(
-          File(audioFilePath).path,
-          filename: fileName,
-          contentType: DioMediaType.parse(_voiceUploadContentType(fileName)),
-        ),
-        if (normalizedLanguage == 'en' || normalizedLanguage == 'ml')
-          'language': normalizedLanguage,
-        'synthesize_audio': '1',
-      }),
-    );
-
-    final pkgsRaw = response['suggestedPackages'] as List<dynamic>? ?? const [];
-    final suggestedPackages = pkgsRaw
-        .map((item) => LabPackageItem.fromJson(_map(item)))
-        .toList();
-    final testsRaw = response['suggestedTests'] as List<dynamic>? ?? const [];
-    final suggestedTests = testsRaw
-        .map((item) => LabTestItem.fromJson(_map(item)))
-        .toList();
-
-    final rawAudioUrl = (response['audio_url'] as String? ?? '').trim();
-    final resolvedAudioUrl = rawAudioUrl.isEmpty
-        ? null
-        : _resolveApiMediaUrl(rawAudioUrl, _apiClient.baseUrl);
-    final messagePayload = _map(response['message']);
-
-    return GlobalChatVoiceReply(
-      transcript: (response['transcript'] as String? ?? '').trim(),
-      audioUrl: resolvedAudioUrl,
-      reply: ChatMessage(
-        id: (messagePayload['id'] as num?)?.toInt(),
-        role: messagePayload['role'] as String? ?? 'ai',
-        content:
-            messagePayload['content'] as String? ??
-            response['reply'] as String? ??
-            response['content'] as String? ??
-            'No response',
-        createdAt:
-            messagePayload['createdAt'] as String? ??
-            messagePayload['created_at'] as String?,
-        suggestedPackages: suggestedPackages,
-        suggestedTests: suggestedTests,
-      ),
-    );
-  }
-
-  Future<VoiceProviderConfig> getVoiceProviderConfig() async {
-    final response = await _apiClient.getJson('/patients/chat/voice-config');
-    return VoiceProviderConfig.fromJson(response);
   }
 
   Future<ChatThreadSummary> renameGlobalChatThread({

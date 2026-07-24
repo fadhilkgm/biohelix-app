@@ -10,30 +10,18 @@ class _AssistantTab extends StatefulWidget {
 class _AssistantTabState extends State<_AssistantTab> {
   final _inputController = TextEditingController();
   final _messagesController = ScrollController();
-  late final VoiceManager _voiceManager;
-  late final GeminiSttService _geminiSttService;
-  late final GeminiTtsService _geminiTtsService;
   late final LiveVoiceController _liveVoiceController;
   int _lastAutoScrolledMessageCount = 0;
   String? _lastAutoScrolledThreadId;
   bool _showMobileSidebar = false;
-  bool _speechReady = false;
   bool _isListening = false;
   bool _isSpeaking = false;
   bool _isLiveVoiceMode = false;
   bool _isLiveTurnInFlight = false;
-  bool _isTapRecording = false;
-  Timer? _liveAutoSendDebounce;
-  StreamSubscription<dynamic>? _recordingAmplitudeSubscription;
-  DateTime? _tapRecordingStartedAt;
-  double _tapRecordingPeakLevel = 0.0;
-  String _lastLiveSentText = '';
-  String? _lastLiveSpokenReply;
   String _livePartialTranscript = '';
   String _liveSubmittedTranscript = '';
   String? _liveVoiceError;
-  String? _configuredTtsLanguage;
-  AppLanguage? _configuredLanguage;
+  String? _liveConversationId;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
   bool _isAttachmentUploadInFlight = false;
   bool _isAttachmentAnalysisInFlight = false;
@@ -43,15 +31,7 @@ class _AssistantTabState extends State<_AssistantTab> {
 
   TextEditingController get inputController => _inputController;
   ScrollController get messagesController => _messagesController;
-  SpeechToText get speechToText => _voiceManager.nativeStt;
-  FlutterTts get tts => _voiceManager.nativeTts;
-  VoiceManager get voiceManager => _voiceManager;
-  GeminiSttService get geminiSttService => _geminiSttService;
-  GeminiTtsService get geminiTtsService => _geminiTtsService;
   LiveVoiceController get liveVoiceController => _liveVoiceController;
-
-  bool get speechReady => _speechReady;
-  set speechReady(bool value) => _speechReady = value;
 
   bool get isListening => _isListening;
   set isListening(bool value) => _isListening = value;
@@ -64,15 +44,6 @@ class _AssistantTabState extends State<_AssistantTab> {
 
   bool get isLiveTurnInFlight => _isLiveTurnInFlight;
   set isLiveTurnInFlight(bool value) => _isLiveTurnInFlight = value;
-
-  String? get lastLiveSpokenReply => _lastLiveSpokenReply;
-  set lastLiveSpokenReply(String? value) => _lastLiveSpokenReply = value;
-
-  String? get configuredTtsLanguage => _configuredTtsLanguage;
-  set configuredTtsLanguage(String? value) => _configuredTtsLanguage = value;
-
-  bool get isTapRecording => _isTapRecording;
-  set isTapRecording(bool value) => _isTapRecording = value;
 
   double get soundLevel => _soundLevel;
   set soundLevel(double value) => _soundLevel = value;
@@ -92,27 +63,37 @@ class _AssistantTabState extends State<_AssistantTab> {
     _isAttachmentAnalysisInFlight = false;
     _uploadingAttachmentName = null;
     _analyzingAttachmentName = null;
-    _isTapRecording = false;
   }
 
   @override
   void initState() {
     super.initState();
-    _voiceManager = VoiceManager();
-    _geminiSttService = GeminiSttService(apiKey: '');
-    _geminiTtsService = GeminiTtsService(apiKey: '');
     _liveVoiceController = LiveVoiceController(
-      apiClient: context.read<ApiClient>(),
-      conversationIdProvider: () =>
-          context.read<PatientPortalProvider>().activeChatThreadId ?? '',
-      onTurnCompleted: (transcript, response) {
+      signalingApi: InworldSignalingApi(context.read<ApiClient>()),
+      onTurnCompleted: (transcript, response) async {
         if (!mounted) return;
         final portal = context.read<PatientPortalProvider>();
         if (transcript.trim().isEmpty || response.trim().isEmpty) return;
-        unawaited(portal.reconcileLiveVoiceTurn(
+        final conversationId = _liveConversationId;
+        await portal.reconcileLiveVoiceTurn(
           transcript: transcript,
           response: response,
-        ));
+        );
+        if ((conversationId ?? '').isEmpty) return;
+        try {
+          await InworldSignalingApi(context.read<ApiClient>()).persistTurn(
+            conversationId: conversationId!,
+            transcript: transcript,
+            response: response,
+            idempotencyKey:
+                '$conversationId-${DateTime.now().microsecondsSinceEpoch}',
+          );
+        } catch (error) {
+          if (!mounted) return;
+          updateAssistantState(() {
+            _liveVoiceError = 'The voice turn could not be saved: $error';
+          });
+        }
       },
     );
     _liveVoiceController.addListener(_handleLiveVoiceControllerChanged);
@@ -123,22 +104,11 @@ class _AssistantTabState extends State<_AssistantTab> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final language = context.read<LanguageProvider>().language;
-    if (_configuredLanguage == language) return;
-    _configuredLanguage = language;
-    unawaited(_configureTtsLanguage());
-  }
-
-  @override
   void dispose() {
     _isLiveVoiceMode = false;
-    _liveAutoSendDebounce?.cancel();
-    _recordingAmplitudeSubscription?.cancel();
     _liveVoiceController.removeListener(_handleLiveVoiceControllerChanged);
     _liveVoiceController.dispose();
-    unawaited(_voiceManager.dispose());
+    _liveConversationId = null;
     _messagesController.dispose();
     _inputController.dispose();
     super.dispose();
@@ -322,14 +292,10 @@ class _AssistantTabState extends State<_AssistantTab> {
                                         index,
                                       ),
                                       attachments: attachments,
-                                      onSpeakTap: () =>
-                                          _toggleSpeechPlayback(message),
                                       isSpeaking:
                                           _isSpeaking &&
                                           message.role != 'user' &&
                                           index == messages.length - 1,
-                                      onStopTap: () =>
-                                          _interruptAiSpeechAndListen(portal),
                                       onAttachmentTap: (attachment) {
                                         _openAttachmentPreview(
                                           context,
@@ -459,7 +425,7 @@ class _AssistantTabState extends State<_AssistantTab> {
                               soundLevel: _soundLevel,
                               onAttach: () => _attachFile(portal),
                               onLiveTap: () => _toggleLiveVoiceMode(portal),
-                              onVoiceTap: _toggleVoiceInput,
+                              onVoiceTap: () => _toggleLiveVoiceMode(portal),
                               onInterrupt: () =>
                                   _interruptAiSpeechAndListen(portal),
                               onSend: () => _sendMessage(portal),
@@ -472,9 +438,14 @@ class _AssistantTabState extends State<_AssistantTab> {
               final sidebar = ChatSidebarWidget(
                 threads: portal.chatThreads,
                 activeThreadId: portal.activeChatThreadId,
-                onThreadSelect: (threadId) {
+                onThreadSelect: (threadId) async {
+                  if (_isLiveVoiceMode) {
+                    await _toggleLiveVoiceMode(portal);
+                    if (!mounted) return;
+                  }
                   _updateAssistantState(_clearComposer);
-                  portal.switchChatThread(threadId);
+                  await portal.switchChatThread(threadId);
+                  if (!mounted) return;
                   if (!showDesktopSidebar) {
                     setState(() {
                       _showMobileSidebar = false;
@@ -568,9 +539,15 @@ class _AssistantTabState extends State<_AssistantTab> {
     if (!mounted) return;
     final state = _liveVoiceController.state;
     updateAssistantState(() {
+      if (state.phase == LiveVoicePhase.closed ||
+          state.phase == LiveVoicePhase.error) {
+        _isLiveVoiceMode = false;
+        _liveConversationId = null;
+      }
       _isListening = state.isListening;
       _isSpeaking = state.isSpeaking;
-      _isLiveTurnInFlight = state.phase.name == 'transcribing' ||
+      _isLiveTurnInFlight =
+          state.phase.name == 'transcribing' ||
           state.phase.name == 'thinking' ||
           state.phase.name == 'speaking';
       _soundLevel = state.soundLevel;

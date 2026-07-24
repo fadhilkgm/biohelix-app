@@ -1,375 +1,437 @@
 import 'dart:async';
+import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-import '../../../core/network/api_client.dart';
+import 'inworld_signaling_api.dart';
 import 'live_voice_state.dart';
-import 'microphone_stream.dart';
-import 'streaming_audio_player.dart';
-import 'voice_gateway_client.dart';
-import 'voice_protocol.dart';
 
-class LiveVoiceController extends ChangeNotifier {
+typedef RealtimeTurnCompleted =
+    FutureOr<void> Function(String transcript, String response);
+
+class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   LiveVoiceController({
-    required ApiClient apiClient,
-    required String Function() conversationIdProvider,
-    void Function(String transcript, String response)? onTurnCompleted,
-    MicrophoneStream? microphone,
-    StreamingAudioPlayer? audioPlayer,
-    VoiceGatewayClient? gateway,
-  }) : _apiClient = apiClient,
-       _conversationIdProvider = conversationIdProvider,
-       _onTurnCompleted = onTurnCompleted,
-       _microphone = microphone ?? MicrophoneStream(),
-       _audioPlayer = audioPlayer ?? StreamingAudioPlayer(),
-       _gateway = gateway ?? VoiceGatewayClient();
+    required InworldSignalingApi signalingApi,
+    required RealtimeTurnCompleted onTurnCompleted,
+  }) : _signalingApi = signalingApi,
+       _onTurnCompleted = onTurnCompleted {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
-  final ApiClient _apiClient;
-  final String Function() _conversationIdProvider;
-  final void Function(String transcript, String response)? _onTurnCompleted;
-  final MicrophoneStream _microphone;
-  final StreamingAudioPlayer _audioPlayer;
-  final VoiceGatewayClient _gateway;
+  final InworldSignalingApi _signalingApi;
+  final RealtimeTurnCompleted _onTurnCompleted;
 
   LiveVoiceState _state = const LiveVoiceState();
-  StreamSubscription<VoiceGatewayEvent>? _gatewaySubscription;
-  StreamSubscription<Uint8List>? _microphoneSubscription;
-  StreamSubscription<dynamic>? _amplitudeSubscription;
-  Timer? _endpointingTimer;
-  VoiceSessionTicket? _session;
-  String? _activeTurnId;
-  int _audioSequence = 0;
-  int _generation = 0;
-  int _turnSequence = 0;
-  DateTime? _lastSpeechAt;
-  bool _hasSpeech = false;
+  RTCPeerConnection? _peer;
+  RTCDataChannel? _events;
+  MediaStream? _microphone;
+  Completer<void>? _iceGathering;
+  Timer? _connectTimeout;
+  Timer? _audioLevelTimer;
   bool _disposed = false;
+  bool _stopping = false;
+  String _currentInputItemId = '';
+  String _currentResponseId = '';
+  final Map<String, StringBuffer> _inputTranscripts = {};
+  final Map<String, StringBuffer> _responseText = {};
+  final Map<String, StringBuffer> _responseAudioTranscripts = {};
 
   LiveVoiceState get state => _state;
 
   Future<void> start({required String locale}) async {
     if (_state.isActive) return;
-    _generation = 0;
-    _activeTurnId = null;
-    _audioSequence = 0;
-    _hasSpeech = false;
-    _lastSpeechAt = null;
-    _setState(
-      _state.copyWith(
-        phase: LiveVoicePhase.connecting,
-        clearError: true,
-      ),
-    );
+    _setState(const LiveVoiceState(phase: LiveVoicePhase.connecting));
 
     try {
-      final session = await _createSession(locale: locale);
-      _session = session;
-      _gatewaySubscription = _gateway.events.listen(
-        _handleGatewayEvent,
-        onError: (Object error, StackTrace stack) {
-          _setError(error.toString());
-        },
-      );
-      await _gateway.connect(session);
-      final permitted = await _microphone.hasPermission();
-      if (!permitted) {
-        throw StateError('Microphone permission is required for live voice.');
+      final bootstrap = await _signalingApi.bootstrap();
+      if (bootstrap.iceServers.isEmpty) {
+        throw StateError('No realtime ICE servers are available.');
       }
-      await _audioPlayer.initialize();
-      await _startMicrophone();
-      _setState(
-        _state.copyWith(
-          phase: LiveVoicePhase.listening,
-          sessionId: session.sessionId,
-          clearError: true,
-        ),
+
+      final peer = await createPeerConnection({
+        'iceServers': bootstrap.iceServers
+            .map((server) => server.toWebRtcJson())
+            .toList(),
+        'sdpSemantics': 'unified-plan',
+      });
+      _peer = peer;
+      _wirePeerCallbacks(peer);
+      await _configureAudioSession();
+
+      final microphone = await navigator.mediaDevices.getUserMedia({
+        'audio': {
+          'echoCancellation': true,
+          'noiseSuppression': true,
+          'autoGainControl': true,
+        },
+        'video': false,
+      });
+      _microphone = microphone;
+      for (final track in microphone.getAudioTracks()) {
+        await peer.addTrack(track, microphone);
+      }
+      _startAudioLevelMonitor();
+
+      final channel = await peer.createDataChannel(
+        'oai-events',
+        RTCDataChannelInit()..ordered = true,
       );
+      _events = channel;
+      _wireDataChannel(channel, bootstrap.sessionUpdate);
+
+      final offer = await peer.createOffer({'offerToReceiveAudio': true});
+      await peer.setLocalDescription(offer);
+      await _waitForIceGathering(peer);
+      final local = await peer.getLocalDescription();
+      final offerSdp = local?.sdp ?? '';
+      if (!offerSdp.trimLeft().startsWith('v=0')) {
+        throw StateError('WebRTC did not create a valid SDP offer.');
+      }
+
+      final answer = await _signalingApi.createCall(offerSdp);
+      await peer.setRemoteDescription(RTCSessionDescription(answer, 'answer'));
+      _connectTimeout = Timer(const Duration(seconds: 20), () {
+        if (_state.phase == LiveVoicePhase.connecting) {
+          _setError('Realtime voice connection timed out.');
+          unawaited(stop(reason: 'connection_timeout'));
+        }
+      });
     } catch (error) {
-      await stop(reason: 'start_failed');
-      _setError(error.toString());
+      await _releaseResources();
+      _setError(_friendlyError(error));
     }
   }
 
   Future<void> stop({String reason = 'user_stopped'}) async {
-    if (_state.phase == LiveVoicePhase.idle ||
-        _state.phase == LiveVoicePhase.closed) {
-      return;
+    if (_stopping) return;
+    _stopping = true;
+    _connectTimeout?.cancel();
+    if (!_disposed) {
+      _setState(_state.copyWith(phase: LiveVoicePhase.closing));
     }
-    _setState(_state.copyWith(phase: LiveVoicePhase.closing));
-    _generation++;
-    try {
-      final session = _session;
-      if (session != null && _gateway.isConnected) {
-        _gateway.sendControl(
-          VoiceProtocol.control(
-            type: VoiceClientEventType.sessionEnd,
-            sessionId: session.sessionId,
-            generation: _generation,
-            data: {'reason': reason},
-          ),
-        );
-      }
-    } catch (_) {
-      // The socket may already have closed; local resources still need cleanup.
+    await _releaseResources();
+    _clearTurnBuffers();
+    if (!_disposed) {
+      _setState(const LiveVoiceState(phase: LiveVoicePhase.closed));
     }
-    await _microphoneSubscription?.cancel();
-    await _amplitudeSubscription?.cancel();
-    _endpointingTimer?.cancel();
-    _endpointingTimer = null;
-    await _gatewaySubscription?.cancel();
-    _microphoneSubscription = null;
-    _amplitudeSubscription = null;
-    _gatewaySubscription = null;
-    await _microphone.cancel();
-    await _audioPlayer.stop();
-    await _gateway.disconnect();
-    _session = null;
-    _activeTurnId = null;
+    _stopping = false;
+  }
+
+  Future<void> interrupt() async {
+    if (_events?.state != RTCDataChannelState.RTCDataChannelOpen) return;
+    await _sendEvent({'type': 'response.cancel'});
+    await _sendEvent({'type': 'output_audio_buffer.clear'});
+    _responseText.clear();
+    _responseAudioTranscripts.clear();
+    _currentResponseId = '';
     _setState(
-      const LiveVoiceState(
-        phase: LiveVoicePhase.closed,
+      _state.copyWith(
+        phase: LiveVoicePhase.listening,
+        responseText: '',
+        clearError: true,
       ),
     );
   }
 
-  Future<void> interrupt() async {
-    final session = _session;
-    final turnId = _activeTurnId;
-    if (session == null || turnId == null) return;
-    _generation++;
-    await _audioPlayer.stop();
-    if (_gateway.isConnected) {
-      _gateway.sendControl(
-        VoiceProtocol.control(
-          type: VoiceClientEventType.responseCancel,
-          sessionId: session.sessionId,
-          turnId: turnId,
-          generation: _generation,
-        ),
-      );
+  void _wirePeerCallbacks(RTCPeerConnection peer) {
+    peer.onIceGatheringState = (iceState) {
+      if (iceState == RTCIceGatheringState.RTCIceGatheringStateComplete &&
+          !(_iceGathering?.isCompleted ?? true)) {
+        _iceGathering?.complete();
+      }
+    };
+    peer.onConnectionState = (connectionState) {
+      switch (connectionState) {
+        case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
+          _connectTimeout?.cancel();
+        case RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
+          if (_state.isActive) {
+            _setState(_state.copyWith(phase: LiveVoicePhase.reconnecting));
+          }
+        case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
+          _setError('Realtime voice connection failed.');
+        case RTCPeerConnectionState.RTCPeerConnectionStateClosed:
+          if (!_stopping && _state.isActive) {
+            _setState(_state.copyWith(phase: LiveVoicePhase.closed));
+          }
+        default:
+          break;
+      }
+    };
+    peer.onTrack = (event) {
+      if (event.track.kind == 'audio') {
+        event.track.enabled = true;
+      }
+    };
+  }
+
+  Future<void> _configureAudioSession() async {
+    await Helper.setAndroidAudioConfiguration(
+      AndroidAudioConfiguration.communication,
+    );
+    await Helper.setAppleAudioConfiguration(
+      AppleNativeAudioManagement.getAppleAudioConfigurationForMode(
+        AppleAudioIOMode.localAndRemote,
+        preferSpeakerOutput: true,
+      ),
+    );
+    await Helper.setSpeakerphoneOnButPreferBluetooth();
+  }
+
+  void _startAudioLevelMonitor() {
+    _audioLevelTimer?.cancel();
+    _audioLevelTimer = Timer.periodic(
+      const Duration(milliseconds: 120),
+      (_) => unawaited(_readAudioLevel()),
+    );
+  }
+
+  Future<void> _readAudioLevel() async {
+    final peer = _peer;
+    if (peer == null || !_state.isListening) return;
+    try {
+      final reports = await peer.getStats();
+      var level = 0.0;
+      for (final report in reports) {
+        final raw = report.values['audioLevel'];
+        if (raw is num && raw.toDouble() > level) {
+          level = raw.toDouble();
+        }
+      }
+      if (level != _state.soundLevel) {
+        _setState(_state.copyWith(soundLevel: level.clamp(0.0, 1.0)));
+      }
+    } catch (_) {
+      // Audio-level stats are optional and differ across native WebRTC builds.
     }
-    _activeTurnId = null;
-    _audioSequence = 0;
-    _hasSpeech = false;
-    _lastSpeechAt = null;
+  }
+
+  void _wireDataChannel(
+    RTCDataChannel channel,
+    Map<String, dynamic> sessionUpdate,
+  ) {
+    channel.onDataChannelState = (channelState) {
+      if (channelState == RTCDataChannelState.RTCDataChannelOpen) {
+        unawaited(_sendEvent(sessionUpdate));
+      } else if (channelState == RTCDataChannelState.RTCDataChannelClosed &&
+          !_stopping &&
+          _state.isActive) {
+        _setError('Realtime event channel closed.');
+      }
+    };
+    channel.onMessage = (message) {
+      if (message.isBinary) return;
+      try {
+        final decoded = jsonDecode(message.text);
+        if (decoded is Map) {
+          _handleEvent(Map<String, dynamic>.from(decoded));
+        }
+      } catch (_) {
+        _setError('Realtime server sent an invalid event.');
+      }
+    };
+  }
+
+  Future<void> _waitForIceGathering(RTCPeerConnection peer) async {
+    if (await peer.getIceGatheringState() ==
+        RTCIceGatheringState.RTCIceGatheringStateComplete) {
+      return;
+    }
+    _iceGathering = Completer<void>();
+    await _iceGathering!.future.timeout(
+      const Duration(seconds: 8),
+      onTimeout: () {},
+    );
+  }
+
+  void _handleEvent(Map<String, dynamic> event) {
+    final type = event['type']?.toString() ?? '';
+    switch (type) {
+      case 'session.updated':
+        final session = event['session'] is Map
+            ? Map<String, dynamic>.from(event['session'] as Map)
+            : const <String, dynamic>{};
+        _setState(
+          _state.copyWith(
+            phase: LiveVoicePhase.listening,
+            sessionId: session['id']?.toString(),
+            clearError: true,
+          ),
+        );
+      case 'input_audio_buffer.speech_started':
+        if (_state.isSpeaking) {
+          unawaited(interrupt());
+        }
+        _setState(
+          _state.copyWith(
+            phase: LiveVoicePhase.listening,
+            partialTranscript: '',
+            responseText: '',
+            clearError: true,
+          ),
+        );
+      case 'input_audio_buffer.speech_stopped':
+        _setState(_state.copyWith(phase: LiveVoicePhase.transcribing));
+      case 'conversation.item.input_audio_transcription.delta':
+        final itemId = event['item_id']?.toString() ?? 'current-input';
+        _currentInputItemId = itemId;
+        final buffer = _inputTranscripts.putIfAbsent(itemId, StringBuffer.new);
+        buffer.write(event['delta']?.toString() ?? '');
+        _setState(_state.copyWith(partialTranscript: buffer.toString()));
+      case 'conversation.item.input_audio_transcription.completed':
+        final itemId = event['item_id']?.toString() ?? _currentInputItemId;
+        final transcript =
+            event['transcript']?.toString().trim() ??
+            _inputTranscripts[itemId]?.toString().trim() ??
+            '';
+        _currentInputItemId = itemId;
+        _inputTranscripts[itemId] = StringBuffer(transcript);
+        _setState(
+          _state.copyWith(
+            phase: LiveVoicePhase.thinking,
+            partialTranscript: '',
+            finalTranscript: transcript,
+          ),
+        );
+      case 'response.created':
+        final response = event['response'] is Map
+            ? Map<String, dynamic>.from(event['response'] as Map)
+            : const <String, dynamic>{};
+        _currentResponseId =
+            response['id']?.toString() ??
+            event['response_id']?.toString() ??
+            'current-response';
+        _setState(_state.copyWith(phase: LiveVoicePhase.thinking));
+      case 'response.output_audio_transcript.delta':
+        _appendResponseDelta(event, audioTranscript: true);
+      case 'response.output_text.delta':
+        _appendResponseDelta(event, audioTranscript: false);
+      case 'response.done':
+        _completeResponse(event);
+      case 'error':
+        final error = event['error'] is Map
+            ? Map<String, dynamic>.from(event['error'] as Map)
+            : const <String, dynamic>{};
+        _setError(
+          error['message']?.toString() ?? 'Realtime voice request failed.',
+        );
+      default:
+        break;
+    }
+  }
+
+  void _appendResponseDelta(
+    Map<String, dynamic> event, {
+    required bool audioTranscript,
+  }) {
+    final responseId =
+        event['response_id']?.toString() ??
+        (_currentResponseId.isEmpty ? 'current-response' : _currentResponseId);
+    _currentResponseId = responseId;
+    final target = audioTranscript ? _responseAudioTranscripts : _responseText;
+    final buffer = target.putIfAbsent(responseId, StringBuffer.new);
+    buffer.write(event['delta']?.toString() ?? '');
+    final display = _firstNonEmpty([
+      _responseAudioTranscripts[responseId]?.toString(),
+      _responseText[responseId]?.toString(),
+    ]);
+    _setState(
+      _state.copyWith(phase: LiveVoicePhase.speaking, responseText: display),
+    );
+  }
+
+  void _completeResponse(Map<String, dynamic> event) {
+    final response = event['response'] is Map
+        ? Map<String, dynamic>.from(event['response'] as Map)
+        : const <String, dynamic>{};
+    final responseId =
+        response['id']?.toString() ??
+        event['response_id']?.toString() ??
+        _currentResponseId;
+    final transcript =
+        _inputTranscripts[_currentInputItemId]?.toString().trim() ??
+        _state.finalTranscript.trim();
+    final answer = _firstNonEmpty([
+      _responseAudioTranscripts[responseId]?.toString().trim(),
+      _responseText[responseId]?.toString().trim(),
+      _state.responseText.trim(),
+    ]);
+    if (transcript.isNotEmpty && answer.isNotEmpty) {
+      unawaited(Future.sync(() => _onTurnCompleted(transcript, answer)));
+    }
+    _inputTranscripts.remove(_currentInputItemId);
+    _responseText.remove(responseId);
+    _responseAudioTranscripts.remove(responseId);
+    _currentInputItemId = '';
+    _currentResponseId = '';
     _setState(
       _state.copyWith(
         phase: LiveVoicePhase.listening,
         partialTranscript: '',
         finalTranscript: '',
         responseText: '',
-        clearError: true,
         clearTurn: true,
       ),
     );
   }
 
-  Future<void> commitTurn() async {
-    final session = _session;
-    final turnId = _activeTurnId;
-    if (session == null || turnId == null || !_gateway.isConnected) return;
-    _hasSpeech = false;
-    _gateway.sendControl(
-      VoiceProtocol.control(
-        type: VoiceClientEventType.audioCommit,
-        sessionId: session.sessionId,
-        turnId: turnId,
-        generation: _generation,
-      ),
-    );
-    _setState(_state.copyWith(phase: LiveVoicePhase.transcribing));
-  }
-
-  Future<VoiceSessionTicket> _createSession({required String locale}) async {
-    final conversationId = _conversationId;
-    if (conversationId.isEmpty) {
-      throw StateError('Select a chat conversation before starting voice.');
-    }
-    try {
-      final response = await _apiClient.postJson(
-        '/patients/chat/global/threads/$conversationId/voice-sessions',
-        data: {
-          'locale': locale,
-          'protocol': VoiceProtocol.version,
-          'device_id': 'flutter-${defaultTargetPlatform.name}',
-        },
-      );
-      final raw = response['session'] is Map ? response['session'] : response;
-      final session = VoiceSessionTicket.fromJson(_map(raw));
-      if (session.sessionId.isEmpty ||
-          session.gatewayUrl.isEmpty ||
-          session.ticket.isEmpty) {
-        throw StateError('The server returned an incomplete voice session.');
-      }
-      return session;
-    } catch (error) {
-      final message = error.toString();
-      if (message.contains('VOICE_GATEWAY_TICKET_SECRET') ||
-          message.contains('VOICE_GATEWAY_URL') ||
-          message.contains('not installed') ||
-          message.contains('migrate')) {
-        throw StateError(
-          'Live voice is not configured on the server yet. Ask backend to set VOICE_GATEWAY_* env vars, run migrations, and start the voice gateway.',
-        );
-      }
-      if (message.contains('HTTP 500') || message.contains('HTTP 503')) {
-        throw StateError(
-          'Live voice is unavailable on this server. The voice gateway/session API needs VPS configuration.',
-        );
-      }
-      rethrow;
-    }
-  }
-
-  Future<void> _startMicrophone() async {
-    final stream = await _microphone.start();
-    final session = _session!;
-    _microphoneSubscription = stream.listen((chunk) {
-      if (_state.phase != LiveVoicePhase.listening &&
-          _state.phase != LiveVoicePhase.speaking) {
-        return;
-      }
-      if (_state.phase == LiveVoicePhase.speaking) return;
-      if (_activeTurnId == null) {
-        _activeTurnId = _newTurnId();
-        _audioSequence = 0;
-        _gateway.sendControl(
-          VoiceProtocol.control(
-            type: VoiceClientEventType.audioStart,
-            sessionId: session.sessionId,
-            turnId: _activeTurnId,
-            generation: _generation,
-          ),
-        );
-      }
-      _gateway.sendAudio(
-        sessionId: session.sessionId,
-        turnId: _activeTurnId!,
-        sequence: _audioSequence++,
-        pcm16: chunk,
-      );
-    });
-    _amplitudeSubscription = _microphone.amplitudeStream.listen((amplitude) {
-      final level = ((amplitude.current + 60) / 60).clamp(0.0, 1.0);
-      if (_state.phase == LiveVoicePhase.speaking && level >= 0.22) {
-        unawaited(interrupt());
-      }
-      if (_state.phase != LiveVoicePhase.listening) {
-        _setState(_state.copyWith(soundLevel: level));
-        return;
-      }
-      if (level >= 0.14) {
-        _lastSpeechAt = DateTime.now();
-        _hasSpeech = true;
-      }
-      _endpointingTimer ??= Timer.periodic(
-        const Duration(milliseconds: 120),
-        (_) {
-          if (_state.phase != LiveVoicePhase.listening ||
-              !_hasSpeech ||
-              _activeTurnId == null) {
-            return;
-          }
-          final lastSpeech = _lastSpeechAt;
-          if (lastSpeech != null &&
-              DateTime.now().difference(lastSpeech) >=
-                  const Duration(milliseconds: 900)) {
-            _hasSpeech = false;
-            unawaited(commitTurn());
-          }
-        },
-      );
-      _setState(_state.copyWith(soundLevel: level));
-    });
-  }
-
-  void _handleGatewayEvent(VoiceGatewayEvent event) {
-    if (event.sessionId != null && event.sessionId != _session?.sessionId) {
+  Future<void> _sendEvent(Map<String, dynamic> event) async {
+    final channel = _events;
+    if (channel == null ||
+        channel.state != RTCDataChannelState.RTCDataChannelOpen) {
       return;
     }
-    if (event.generation != null && event.generation != _generation) return;
-    if (event.turnId != null && event.turnId != _activeTurnId) return;
-
-    switch (event.type) {
-      case 'session.ready':
-        _setState(_state.copyWith(phase: LiveVoicePhase.listening));
-      case 'turn.accepted':
-        _setState(
-          _state.copyWith(
-            phase: LiveVoicePhase.listening,
-            turnId: event.turnId,
-            clearError: true,
-          ),
-        );
-      case 'transcript.partial':
-        _setState(
-          _state.copyWith(
-            phase: LiveVoicePhase.listening,
-            partialTranscript: event.text,
-          ),
-        );
-      case 'transcript.final':
-        _setState(
-          _state.copyWith(
-            phase: LiveVoicePhase.thinking,
-            finalTranscript: event.text,
-            partialTranscript: '',
-          ),
-        );
-      case 'response.text.delta':
-        _setState(
-          _state.copyWith(
-            phase: LiveVoicePhase.speaking,
-            responseText: '${_state.responseText}${event.text}',
-          ),
-        );
-      case 'response.audio.start':
-        unawaited(_audioPlayer.start());
-        _setState(_state.copyWith(phase: LiveVoicePhase.speaking));
-      case 'response.audio.chunk':
-        final audio = event.audio;
-        if (audio != null) _audioPlayer.add(audio);
-        _setState(_state.copyWith(phase: LiveVoicePhase.speaking));
-      case 'response.audio.end':
-        unawaited(_audioPlayer.finish());
-        _completeTurn();
-      case 'response.cancelled':
-        unawaited(_audioPlayer.stop());
-        _completeTurn();
-      case 'safety.escalation':
-        _setState(_state.copyWith(phase: LiveVoicePhase.degraded));
-      case 'error':
-        _setError(event.text.isEmpty ? 'Live voice is unavailable.' : event.text);
-      case 'session.ended':
-        unawaited(stop(reason: 'server_ended'));
-    }
+    await channel.send(RTCDataChannelMessage(jsonEncode(event)));
   }
 
-  void _completeTurn() {
-    final transcript = _state.finalTranscript;
-    final response = _state.responseText;
-    _activeTurnId = null;
-    _audioSequence = 0;
-    _hasSpeech = false;
-    _lastSpeechAt = null;
-    _setState(
-      _state.copyWith(
-        phase: LiveVoicePhase.listening,
-        partialTranscript: '',
-        clearError: true,
-      ),
-    );
-    if (transcript.trim().isNotEmpty || response.trim().isNotEmpty) {
-      _onTurnCompleted?.call(transcript, response);
+  void _clearTurnBuffers() {
+    _inputTranscripts.clear();
+    _responseText.clear();
+    _responseAudioTranscripts.clear();
+    _currentInputItemId = '';
+    _currentResponseId = '';
+  }
+
+  String _firstNonEmpty(Iterable<String?> values) {
+    for (final value in values) {
+      if ((value ?? '').isNotEmpty) return value!;
     }
+    return '';
+  }
+
+  Future<void> _releaseResources() async {
+    _connectTimeout?.cancel();
+    _audioLevelTimer?.cancel();
+    _audioLevelTimer = null;
+    _iceGathering = null;
+    final events = _events;
+    _events = null;
+    await events?.close();
+    final microphone = _microphone;
+    _microphone = null;
+    for (final track in microphone?.getTracks() ?? <MediaStreamTrack>[]) {
+      track.stop();
+    }
+    await microphone?.dispose();
+    final peer = _peer;
+    _peer = null;
+    await peer?.close();
+    await peer?.dispose();
+  }
+
+  String _friendlyError(Object error) {
+    final text = error.toString().replaceFirst('Exception: ', '');
+    if (text.contains('Permission') || text.contains('NotAllowed')) {
+      return 'Microphone permission is required for live voice.';
+    }
+    return text;
   }
 
   void _setError(String message) {
+    if (_disposed) return;
     _setState(
-      _state.copyWith(
-        phase: LiveVoicePhase.error,
-        errorMessage: message,
-      ),
+      _state.copyWith(phase: LiveVoicePhase.error, errorMessage: message),
     );
   }
 
@@ -379,26 +441,21 @@ class LiveVoiceController extends ChangeNotifier {
     notifyListeners();
   }
 
-  String get _conversationId {
-    return _conversationIdProvider().trim();
-  }
-
-  String _newTurnId() =>
-      '${DateTime.now().microsecondsSinceEpoch}-${_turnSequence++}';
-
-  static Map<String, dynamic> _map(dynamic value) {
-    if (value is Map<String, dynamic>) return value;
-    if (value is Map) return Map<String, dynamic>.from(value);
-    return const {};
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if ((state == AppLifecycleState.paused ||
+            state == AppLifecycleState.detached) &&
+        _state.isActive) {
+      unawaited(stop(reason: 'app_backgrounded'));
+    }
   }
 
   @override
   void dispose() {
+    if (_disposed) return;
+    WidgetsBinding.instance.removeObserver(this);
     _disposed = true;
-    unawaited(stop(reason: 'controller_disposed'));
-    unawaited(_microphone.dispose());
-    unawaited(_audioPlayer.dispose());
-    unawaited(_gateway.dispose());
+    unawaited(_releaseResources());
     super.dispose();
   }
 }
