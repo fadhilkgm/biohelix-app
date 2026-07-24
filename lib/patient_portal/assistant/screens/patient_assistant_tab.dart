@@ -68,8 +68,9 @@ class _AssistantTabState extends State<_AssistantTab> {
   @override
   void initState() {
     super.initState();
+    final apiClient = context.read<ApiClient>();
     _liveVoiceController = LiveVoiceController(
-      signalingApi: InworldSignalingApi(context.read<ApiClient>()),
+      signalingApi: InworldSignalingApi(apiClient),
       onTurnCompleted: (transcript, response) async {
         if (!mounted) return;
         final portal = context.read<PatientPortalProvider>();
@@ -81,7 +82,7 @@ class _AssistantTabState extends State<_AssistantTab> {
         );
         if ((conversationId ?? '').isEmpty) return;
         try {
-          await InworldSignalingApi(context.read<ApiClient>()).persistTurn(
+          await InworldSignalingApi(apiClient).persistTurn(
             conversationId: conversationId!,
             transcript: transcript,
             response: response,
@@ -94,6 +95,16 @@ class _AssistantTabState extends State<_AssistantTab> {
             _liveVoiceError = 'The voice turn could not be saved: $error';
           });
         }
+      },
+      onTurnContext: (transcript) async {
+        final conversationId = _liveConversationId;
+        if ((conversationId ?? '').isEmpty) {
+          throw StateError('A chat conversation is required for live voice.');
+        }
+        return InworldSignalingApi(apiClient).responseInstructions(
+          conversationId: conversationId!,
+          transcript: transcript,
+        );
       },
     );
     _liveVoiceController.addListener(_handleLiveVoiceControllerChanged);

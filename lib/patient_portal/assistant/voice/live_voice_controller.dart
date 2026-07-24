@@ -10,18 +10,22 @@ import 'live_voice_state.dart';
 
 typedef RealtimeTurnCompleted =
     FutureOr<void> Function(String transcript, String response);
+typedef RealtimeTurnContext = Future<String> Function(String transcript);
 
 class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   LiveVoiceController({
     required InworldSignalingApi signalingApi,
     required RealtimeTurnCompleted onTurnCompleted,
+    required RealtimeTurnContext onTurnContext,
   }) : _signalingApi = signalingApi,
-       _onTurnCompleted = onTurnCompleted {
+       _onTurnCompleted = onTurnCompleted,
+       _onTurnContext = onTurnContext {
     WidgetsBinding.instance.addObserver(this);
   }
 
   final InworldSignalingApi _signalingApi;
   final RealtimeTurnCompleted _onTurnCompleted;
+  final RealtimeTurnContext _onTurnContext;
 
   LiveVoiceState _state = const LiveVoiceState();
   RTCPeerConnection? _peer;
@@ -293,7 +297,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     }
     _iceGathering = Completer<void>();
     await _iceGathering!.future.timeout(
-      const Duration(seconds: 8),
+      const Duration(seconds: 3),
       onTimeout: () {
         _debugLog('ICE gathering wait timed out; continuing with current SDP');
       },
@@ -355,6 +359,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
             finalTranscript: transcript,
           ),
         );
+        unawaited(_requestContextAndRespond(itemId, transcript));
       case 'response.created':
         final response = event['response'] is Map
             ? Map<String, dynamic>.from(event['response'] as Map)
@@ -383,6 +388,36 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         );
       default:
         break;
+    }
+  }
+
+  Future<void> _requestContextAndRespond(String itemId, String transcript) async {
+    if (transcript.isEmpty) {
+      _setError('No speech was detected. Please try again.');
+      return;
+    }
+
+    try {
+      _debugLog('requesting Laravel voice context for transcript chars=${transcript.length}');
+      final instructions = await _onTurnContext(transcript);
+      if (_disposed ||
+          _stopping ||
+          !_state.isActive ||
+          _currentInputItemId != itemId) {
+        return;
+      }
+      await _sendEvent({
+        'type': 'response.create',
+        'response': {
+          'output_modalities': ['audio', 'text'],
+          'instructions': instructions,
+        },
+      });
+    } catch (error) {
+      _debugLog('Laravel voice context request failed: ${_safeError(error)}');
+      if (!_disposed && !_stopping && _currentInputItemId == itemId) {
+        _setError('Could not prepare your health context. Please try again.');
+      }
     }
   }
 

@@ -73,6 +73,26 @@ class InworldSignalingApi {
     return answer;
   }
 
+  /// Laravel selects only completed, patient-owned report summaries for this
+  /// transcript. Inworld never receives a document tool or raw report file.
+  Future<String> responseInstructions({
+    required String conversationId,
+    required String transcript,
+  }) async {
+    final response = await _client.postJson(
+      '/realtime/context',
+      data: {
+        'conversation_id': int.tryParse(conversationId) ?? conversationId,
+        'transcript': transcript,
+      },
+    );
+    final instructions = response['instructions']?.toString().trim() ?? '';
+    if (instructions.isEmpty) {
+      throw const FormatException('Voice context response is invalid.');
+    }
+    return instructions;
+  }
+
   Future<void> persistTurn({
     required String conversationId,
     required String transcript,
