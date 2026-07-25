@@ -227,6 +227,7 @@ class _AssistantTabState extends State<_AssistantTab> {
                       child: _isLiveVoiceMode
                           ? _AssistantLiveStage(
                               patientName: patientName,
+                              phase: _liveVoiceController.state.phase,
                               isListening: _isListening,
                               isSpeaking: _isSpeaking,
                               isBusy: portal.isSendingMessage,
@@ -708,6 +709,7 @@ class _AssistantEmptyState extends StatelessWidget {
 class _AssistantLiveStage extends StatefulWidget {
   const _AssistantLiveStage({
     required this.patientName,
+    required this.phase,
     required this.isListening,
     required this.isSpeaking,
     required this.isBusy,
@@ -722,6 +724,7 @@ class _AssistantLiveStage extends StatefulWidget {
   });
 
   final String patientName;
+  final LiveVoicePhase phase;
   final bool isListening;
   final bool isSpeaking;
   final bool isBusy;
@@ -769,8 +772,14 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
     final isSpeaking = widget.isSpeaking;
     final isListening = widget.isListening;
     final hasError = (widget.errorMessage ?? '').isNotEmpty;
+    final isConnecting =
+        widget.phase == LiveVoicePhase.connecting ||
+        widget.phase == LiveVoicePhase.reconnecting ||
+        widget.phase == LiveVoicePhase.ready;
     final phaseLabel = hasError
         ? strings.assistantVoiceUnavailable
+        : isConnecting
+        ? 'Connecting securely'
         : isSpeaking
         ? strings.assistantSpeaking
         : widget.isBusy
@@ -780,6 +789,8 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
         : strings.assistantReady;
     final supportLabel = hasError
         ? widget.errorMessage!
+        : isConnecting
+        ? 'Preparing your private voice connection. Your microphone turns on when ready.'
         : isSpeaking
         ? strings.assistantInterruptAi
         : widget.isBusy
@@ -823,6 +834,18 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
                   textAlign: TextAlign.center,
                   style: AppTextStyles.subtitle(context),
                 ),
+                if (isConnecting) ...[
+                  const SizedBox(height: 18),
+                  const SizedBox(
+                    width: 156,
+                    child: LinearProgressIndicator(
+                      minHeight: 3,
+                      borderRadius: BorderRadius.all(Radius.circular(99)),
+                      color: AiChatColors.primary,
+                      backgroundColor: AiChatColors.bubbleAiSoft,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 if (hasError) ...[
                   FilledButton.icon(
