@@ -324,10 +324,13 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
     _iceGathering = Completer<void>();
+    // Do not block the patient on full ICE completion. Candidates continue to
+    // populate the local SDP immediately, while this short window preserves a
+    // reliable first candidate for typical mobile and Wi-Fi networks.
     await _iceGathering!.future.timeout(
-      const Duration(milliseconds: 1200),
+      const Duration(milliseconds: 350),
       onTimeout: () {
-        _debugLog('ICE gathering wait timed out; continuing with current SDP');
+        _debugLog('ICE fast-start window elapsed; continuing with current SDP');
       },
     );
   }
@@ -335,7 +338,9 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   void _handleEvent(Map<String, dynamic> event) {
     final type = event['type']?.toString() ?? '';
     if (_disposed || _stopping || !_state.isActive) {
-      _debugLog('event ignored after voice session ended: ${type.isEmpty ? '<missing>' : type}');
+      _debugLog(
+        'event ignored after voice session ended: ${type.isEmpty ? '<missing>' : type}',
+      );
       return;
     }
     final deltaLength = event['delta']?.toString().length;
@@ -423,14 +428,19 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _requestContextAndRespond(String itemId, String transcript) async {
+  Future<void> _requestContextAndRespond(
+    String itemId,
+    String transcript,
+  ) async {
     if (transcript.isEmpty) {
       await _failContextTurn('No speech was detected. Please try again.');
       return;
     }
 
     try {
-      _debugLog('requesting Laravel voice context for transcript chars=${transcript.length}');
+      _debugLog(
+        'requesting Laravel voice context for transcript chars=${transcript.length}',
+      );
       final instructions = await _onTurnContext(transcript);
       if (_disposed ||
           _stopping ||
@@ -448,7 +458,9 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     } catch (error) {
       _debugLog('Laravel voice context request failed: ${_safeError(error)}');
       if (!_disposed && !_stopping && _currentInputItemId == itemId) {
-        await _failContextTurn('Could not prepare your health context. Please try again.');
+        await _failContextTurn(
+          'Could not prepare your health context. Please try again.',
+        );
       }
     }
   }
