@@ -306,6 +306,10 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
 
   void _handleEvent(Map<String, dynamic> event) {
     final type = event['type']?.toString() ?? '';
+    if (_disposed || _stopping || !_state.isActive) {
+      _debugLog('event ignored after voice session ended: ${type.isEmpty ? '<missing>' : type}');
+      return;
+    }
     final deltaLength = event['delta']?.toString().length;
     _debugLog(
       deltaLength == null
@@ -393,7 +397,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _requestContextAndRespond(String itemId, String transcript) async {
     if (transcript.isEmpty) {
-      _setError('No speech was detected. Please try again.');
+      await _failContextTurn('No speech was detected. Please try again.');
       return;
     }
 
@@ -416,9 +420,15 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     } catch (error) {
       _debugLog('Laravel voice context request failed: ${_safeError(error)}');
       if (!_disposed && !_stopping && _currentInputItemId == itemId) {
-        _setError('Could not prepare your health context. Please try again.');
+        await _failContextTurn('Could not prepare your health context. Please try again.');
       }
     }
+  }
+
+  Future<void> _failContextTurn(String message) async {
+    _setError(message);
+    await _releaseResources();
+    _clearTurnBuffers();
   }
 
   void _appendResponseDelta(

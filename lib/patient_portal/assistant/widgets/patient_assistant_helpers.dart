@@ -564,6 +564,13 @@ extension _AssistantActions on _AssistantTabState {
       return;
     }
 
+    // Voice turns must be persisted against a real global chat thread. The
+    // assistant tab can be opened before the initial background load finishes.
+    await portal.initializeChatThreads(
+      force: (portal.activeChatThreadId ?? '').isEmpty,
+    );
+    if (!mounted) return;
+
     if ((portal.activeChatThreadId ?? '').isEmpty) {
       await portal.createNewChatThread();
     }
