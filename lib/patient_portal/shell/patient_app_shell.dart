@@ -8,18 +8,15 @@ import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:speech_to_text/speech_to_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../assistant/services/gemini_tts_service.dart';
-import '../assistant/services/gemini_stt_service.dart';
-import '../assistant/utils/voice_manager.dart';
+import '../assistant/voice/inworld_signaling_api.dart';
 import '../assistant/voice/live_voice_controller.dart';
+import '../assistant/voice/live_voice_state.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';

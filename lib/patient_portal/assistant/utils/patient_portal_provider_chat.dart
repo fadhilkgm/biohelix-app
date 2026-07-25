@@ -1,24 +1,6 @@
 part of 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
 
 extension PatientPortalChatMixin on PatientPortalProvider {
-  Future<VoiceProviderConfig?> loadVoiceProviderConfig({
-    bool force = false,
-  }) async {
-    if (_voiceProviderConfig != null && !force) {
-      return _voiceProviderConfig;
-    }
-
-    try {
-      final config = await _repository.getVoiceProviderConfig();
-      if (config.enabled) {
-        _voiceProviderConfig = config;
-        return config;
-      }
-    } catch (_) {}
-
-    return null;
-  }
-
   Future<void> initializeChatThreads({bool force = false}) async {
     if (_chatThreads.isNotEmpty && !force) {
       return;
@@ -199,60 +181,6 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     }
   }
 
-  /// Uploads a recorded voice clip to the server-side voice endpoint. The
-  /// server transcribes it, generates an AI reply, and (when TTS is configured)
-  /// returns a signed audio URL. Both the transcribed user turn and the AI
-  /// reply are appended to the active thread. Returns the reply (including the
-  /// optional `audioUrl` for playback), or null on failure.
-  Future<GlobalChatVoiceReply?> sendChatVoiceMessage(
-    String audioFilePath, {
-    String? language,
-  }) async {
-    var threadId = _activeChatThreadId;
-    if ((threadId ?? '').isEmpty) {
-      await createNewChatThread();
-      threadId = _activeChatThreadId;
-      if ((threadId ?? '').isEmpty) {
-        return null;
-      }
-    }
-
-    final currentThreadId = threadId!;
-    final existing = _chatHistories[currentThreadId] ?? const <ChatMessage>[];
-
-    _isSendingMessage = true;
-    _errorMessage = null;
-    _notify();
-
-    try {
-      final voiceReply = await _repository.sendGlobalChatVoiceMessage(
-        threadId: currentThreadId,
-        audioFilePath: audioFilePath,
-        language: language,
-      );
-
-      final transcript = voiceReply.transcript.trim();
-      final userMessage = ChatMessage(role: 'user', content: transcript);
-      _chatHistories[currentThreadId] = [
-        ...existing,
-        if (transcript.isNotEmpty) userMessage,
-        voiceReply.reply,
-      ];
-      if (transcript.isNotEmpty) {
-        _touchThread(currentThreadId, transcript);
-      }
-      _touchThread(currentThreadId, voiceReply.reply.content);
-      return voiceReply;
-    } catch (error) {
-      _errorMessage = error.toString();
-      _chatHistories[currentThreadId] = existing;
-      rethrow;
-    } finally {
-      _isSendingMessage = false;
-      _notify();
-    }
-  }
-
   Future<void> reconcileLiveVoiceTurn({
     required String transcript,
     required String response,
@@ -260,9 +188,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     final threadId = _activeChatThreadId;
     final cleanTranscript = transcript.trim();
     final cleanResponse = response.trim();
-    if (threadId == null ||
-        cleanTranscript.isEmpty ||
-        cleanResponse.isEmpty) {
+    if (threadId == null || cleanTranscript.isEmpty || cleanResponse.isEmpty) {
       return;
     }
 

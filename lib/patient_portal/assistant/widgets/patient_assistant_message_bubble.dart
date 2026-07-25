@@ -5,12 +5,14 @@ class _MessageBubbleWidget extends StatelessWidget {
     required this.message,
     required this.timeLabel,
     required this.attachments,
+    required this.isSpeaking,
     required this.onAttachmentTap,
   });
 
   final ChatMessage message;
   final String timeLabel;
   final List<_ChatAttachment> attachments;
+  final bool isSpeaking;
   final ValueChanged<_ChatAttachment> onAttachmentTap;
 
   @override
@@ -54,7 +56,8 @@ class _MessageBubbleWidget extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 340),
               padding: const EdgeInsets.all(AppSpacing.s14),
               decoration: BoxDecoration(
-                color: isUser ? AiChatColors.userBubble : AiChatColors.bubbleAi,
+                gradient: isUser ? AiChatColors.userBubbleGradient : null,
+                color: isUser ? null : AiChatColors.bubbleAi,
                 border: isUser ? null : Border.all(color: AiChatColors.border),
                 borderRadius: radius,
               ),

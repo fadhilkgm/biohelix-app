@@ -9,13 +9,8 @@ plugins {
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
-val isReleaseBuild = gradle.startParameter.taskNames.any {
-    it.contains("Release", ignoreCase = true) || it.contains("bundle", ignoreCase = true)
-}
 if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
-} else if (isReleaseBuild) {
-    throw GradleException("Release signing requires android/key.properties")
 }
 
 android {
