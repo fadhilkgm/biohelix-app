@@ -193,11 +193,11 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
               activePackage.description!.isNotEmpty;
 
           return Scaffold(
-            backgroundColor: Colors.white,
+            backgroundColor: const Color(0xFFF6F9FE),
             body: CustomScrollView(
               slivers: [
                 SliverAppBar(
-                  expandedHeight: 380,
+                  expandedHeight: 220,
                   pinned: true,
                   stretch: true,
                   backgroundColor: const Color(0xFF5A88F1),
@@ -220,120 +220,217 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                     ),
                   ),
                   flexibleSpace: FlexibleSpaceBar(
-                    background: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        packageImageUrl.isNotEmpty
-                            ? Image.network(
-                                packageImageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) =>
-                                    const AppLogoPlaceholder(padding: 32),
-                              )
-                            : const AppLogoPlaceholder(padding: 32),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.3),
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.6),
-                              ],
+                    background: ColoredBox(
+                      color: const Color(0xFFE8F1FF),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            right: -45,
+                            top: 28,
+                            child: Container(
+                              width: 150,
+                              height: 150,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(
+                                  0xFF5A88F1,
+                                ).withValues(alpha: 0.08),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                          Center(
+                            child: Container(
+                              width: 164,
+                              height: 164,
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.82),
+                                borderRadius: BorderRadius.circular(28),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF356FD3,
+                                    ).withValues(alpha: 0.1),
+                                    blurRadius: 24,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(18),
+                                child: packageImageUrl.isNotEmpty
+                                    ? Image.network(
+                                        packageImageUrl,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, _, _) =>
+                                            const AppLogoPlaceholder(
+                                              padding: 16,
+                                            ),
+                                      )
+                                    : const AppLogoPlaceholder(padding: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    activePackage.name,
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w900,
-                                      color: const Color(0xFF192233),
-                                      height: 1.1,
-                                    ),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: const Color(0xFFDCE6F3)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF356FD3,
+                                ).withValues(alpha: 0.07),
+                                blurRadius: 18,
+                                offset: const Offset(0, 7),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEAF2FF),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  'HEALTH PACKAGE',
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.9,
+                                    color: const Color(0xFF356FD3),
                                   ),
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF4F7FF),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '${activePackage.totalTests ?? activePackage.includedTests.length} Tests Available',
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 14,
-                                        color: const Color(0xFF5A88F1),
-                                        fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                activePackage.name,
+                                style: GoogleFonts.manrope(
+                                  fontSize: 23,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF192233),
+                                  height: 1.18,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEAF2FF),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.science_outlined,
+                                            size: 17,
+                                            color: Color(0xFF356FD3),
+                                          ),
+                                          const SizedBox(width: 7),
+                                          Flexible(
+                                            child: Text(
+                                              '${activePackage.totalTests ?? activePackage.includedTests.length} tests included',
+                                              style: GoogleFonts.manrope(
+                                                fontSize: 12,
+                                                color: const Color(0xFF356FD3),
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
+                                  const SizedBox(width: 14),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '₹${activePackage.discountedPrice ?? activePackage.basePrice}',
+                                        style: GoogleFonts.manrope(
+                                          fontSize: 25,
+                                          fontWeight: FontWeight.w900,
+                                          color: const Color(0xFF356FD3),
+                                        ),
+                                      ),
+                                      if (activePackage.discountedPrice !=
+                                              null &&
+                                          activePackage.discountedPrice! <
+                                              activePackage.basePrice)
+                                        Text(
+                                          '₹${activePackage.basePrice}',
+                                          style: GoogleFonts.manrope(
+                                            fontSize: 13,
+                                            decoration:
+                                                TextDecoration.lineThrough,
+                                            color: const Color(0xFF6B7A90),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '₹${activePackage.discountedPrice ?? activePackage.basePrice}',
-                                  style: GoogleFonts.manrope(
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF5A88F1),
-                                  ),
-                                ),
-                                if (activePackage.discountedPrice != null &&
-                                    activePackage.discountedPrice! <
-                                        activePackage.basePrice)
-                                  Text(
-                                    '₹${activePackage.basePrice}',
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 16,
-                                      decoration: TextDecoration.lineThrough,
-                                      color: const Color(
-                                        0xFF192233,
-                                      ).withValues(alpha: 0.3),
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
                         if (hasTests || hasDescription) ...[
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Text(
-                              'Tests Included ${hasTests ? "(${activePackage.includedTests.length})" : ""}',
-                              style: GoogleFonts.manrope(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF192233),
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tests Included ${hasTests ? "(${activePackage.includedTests.length})" : ""}',
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900,
+                                    color: const Color(0xFF192233),
+                                  ),
+                                ),
+                                if (hasTests) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Everything covered in this package',
+                                    style: GoogleFonts.manrope(
+                                      fontSize: 12,
+                                      color: const Color(0xFF6B7A90),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -344,21 +441,29 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
-                                    vertical: 14,
+                                    vertical: 12,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF8F9FB),
-                                    borderRadius: BorderRadius.circular(16),
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
                                     border: Border.all(
-                                      color: const Color(0xFFE5E9F0),
+                                      color: const Color(0xFFDCE6F3),
                                     ),
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(
-                                        Icons.science_rounded,
-                                        size: 18,
-                                        color: Color(0xFF5A88F1),
+                                      Container(
+                                        width: 34,
+                                        height: 34,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFEAF2FF),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.science_rounded,
+                                          size: 17,
+                                          color: Color(0xFF356FD3),
+                                        ),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -432,12 +537,19 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: Text(
-                    'Book This Package',
-                    style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.calendar_month_rounded, size: 21),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Book This Package',
+                        style: GoogleFonts.manrope(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 17,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

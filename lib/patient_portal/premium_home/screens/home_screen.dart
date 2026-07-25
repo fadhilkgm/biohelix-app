@@ -150,287 +150,237 @@ class _HomeScreenState extends State<HomeScreen> {
       language: language,
     );
 
-    return ListView(
-      physics: const ClampingScrollPhysics(),
-      padding: EdgeInsets.zero,
-      children: [
-        // 1. Header (Greeting + Ticker)
-        Container(
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
+    return ColoredBox(
+      color: const Color(0xFFF6F9FE),
+      child: ListView(
+        physics: const ClampingScrollPhysics(),
+        padding: EdgeInsets.zero,
+        children: [
+          // 1. Header (Greeting + Ticker)
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
+              ),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
             ),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 10, bottom: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: HomeHeroHeaderWidget(
-                      greeting: headerContent.greeting,
-                      patientName: headerContent.displayName,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _EmergencyStrip(
-                      ambulanceNumber: widget.ambulanceNumber,
-                      emergencyNumber: widget.emergencyNumber,
-                      receptionNumber: widget.receptionNumber,
-                      onDark: true,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Ticker Messages (Replacing Banners/Search)
-                  if (widget.tickerMessages.isNotEmpty)
-                    SizedBox(
-                      height: 48,
-                      child: PageView.builder(
-                        itemCount: widget.tickerMessages.length,
-                        itemBuilder: (context, index) {
-                          final ticker = widget.tickerMessages[index];
-                          return InkWell(
-                            onTap: () => widget.onTickerTap(ticker),
-                            child: Container(
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.tips_and_updates_outlined,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Flexible(
-                                    child: Text(
-                                      '"${ticker.message}"',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.normal,
-                                        letterSpacing: 0.2,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // 2. Main Content Sections
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Quick Links Section
-              Row(
-                children: [
-                  _QuickLink(
-                    label: 'Book Doctors',
-                    icon: Icons.person_add_alt_1_rounded,
-                    onTap: widget.onViewAllDoctors,
-                    color: const Color(0xFF5A88F1),
-                  ),
-                  const SizedBox(width: 12),
-                  _QuickLink(
-                    label: 'Book Test',
-                    icon: Icons.biotech_rounded,
-                    onTap: widget.onViewAllLabTests,
-                    color: const Color(0xFF1F9A6D),
-                  ),
-                  const SizedBox(width: 12),
-                  _QuickLink(
-                    label: 'AI Checkup',
-                    icon: Icons.auto_awesome_rounded,
-                    onTap: () => widget.onActionTap('ai_checkup'),
-                    color: const Color(0xFF915AF1),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _HomeActionBanner(
-                label: 'Book a consultation for your loved ones?',
-                icon: Icons.family_restroom_rounded,
-                onTap: widget.onViewAllDoctors,
-              ),
-              const SizedBox(height: 32),
-              if (widget.healthSnapshot != null)
-                _HealthSnapshotCard(snapshot: widget.healthSnapshot!),
-              if (widget.healthSnapshot != null) const SizedBox(height: 24),
-              if (widget.aiSuggestions.isNotEmpty)
-                _AiSuggestionsSection(
-                  suggestions: widget.aiSuggestions,
-                  onAccept: widget.onAcceptSuggestion,
-                ),
-              if (widget.aiSuggestions.isNotEmpty) const SizedBox(height: 24),
-              // Banners Carousel
-              if (widget.banners.isNotEmpty)
-                _buildBannerCarousel(context)
-              else if (widget.isLoading)
-                _buildBannerSkeleton(context),
-              const SizedBox(height: 20),
-              _HomeActionBanner(
-                label: 'Home Care Booking',
-                icon: Icons.home_rounded,
-                accentColor: const Color(0xFF167A58),
-                solidColor: const Color(0xFF1F9A6D),
-                foregroundColor: Colors.white,
-                onTap: () => widget.onActionTap('home_care'),
-              ),
-              const SizedBox(height: 32),
-              OffersAndAppointmentsSectionWidget(
-                bookings: widget.bookings,
-                onSeeAllAppointments: widget.onSeeAllAppointments,
-                onOfferTap: widget.onOfferTap,
-                homeOffers: widget.homeOffers,
-              ),
-              const SizedBox(height: 32),
-              // Find Doctors Section
-              const Text(
-                'Find Doctors',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF192233),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _departments.map((dept) {
-                    return _CategoryChip(
-                      label: dept,
-                      isActive: _selectedDepartment == dept,
-                      onTap: () => setState(() => _selectedDepartment = dept),
-                      icon: _getSpecialtyIcon(dept),
-                      iconUrl: _getDepartmentIconUrl(dept),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Doctors Carousel
-              if (_filteredDoctors.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Text(strings.noDoctorsInDepartment),
-                  ),
-                )
-              else
-                SizedBox(
-                  height: 380,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _filteredDoctors.length,
-                    itemBuilder: (context, index) {
-                      final doc = _filteredDoctors[index];
-                      return _DoctorCard(
-                        doc: doc,
-                        onTap: () => widget.onDoctorTap(doc),
-                        resolvedImageUrl: _resolveImageUrl(doc.imageUrl ?? ''),
-                      );
-                    },
-                  ),
-                ),
-
-              // 3. Health Packages Section
-              if (widget.labPackages.isNotEmpty) ...[
-                const SizedBox(height: 40),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Health Packages',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF192233),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: HomeHeroHeaderWidget(
+                        greeting: headerContent.greeting,
+                        patientName: headerContent.displayName,
                       ),
                     ),
-                    TextButton(
-                      onPressed: widget.onViewAllPackages,
-                      child: const Text(
-                        'View All',
-                        style: TextStyle(
-                          color: Color(0xFF5A88F1),
-                          fontWeight: FontWeight.w700,
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _EmergencyStrip(
+                        ambulanceNumber: widget.ambulanceNumber,
+                        emergencyNumber: widget.emergencyNumber,
+                        receptionNumber: widget.receptionNumber,
+                        onDark: true,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Ticker Messages (Replacing Banners/Search)
+                    if (widget.tickerMessages.isNotEmpty)
+                      SizedBox(
+                        height: 48,
+                        child: PageView.builder(
+                          itemCount: widget.tickerMessages.length,
+                          itemBuilder: (context, index) {
+                            final ticker = widget.tickerMessages[index];
+                            return InkWell(
+                              onTap: () => widget.onTickerTap(ticker),
+                              child: Container(
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.tips_and_updates_outlined,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Flexible(
+                                      child: Text(
+                                        '"${ticker.message}"',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.normal,
+                                          letterSpacing: 0.2,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // 2. Main Content Sections
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Quick Links Section
+                Row(
+                  children: [
+                    _QuickLink(
+                      label: 'Book Doctors',
+                      icon: Icons.person_add_alt_1_rounded,
+                      onTap: widget.onViewAllDoctors,
+                      color: const Color(0xFF5A88F1),
+                    ),
+                    const SizedBox(width: 12),
+                    _QuickLink(
+                      label: 'Book Test',
+                      icon: Icons.biotech_rounded,
+                      onTap: widget.onViewAllLabTests,
+                      color: const Color(0xFF1F9A6D),
+                    ),
+                    const SizedBox(width: 12),
+                    _QuickLink(
+                      label: 'AI Checkup',
+                      icon: Icons.auto_awesome_rounded,
+                      onTap: () => widget.onActionTap('ai_checkup'),
+                      color: const Color(0xFF915AF1),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 480,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: widget.labPackages.length,
-                        itemBuilder: (context, index) {
-                          final pkg = widget.labPackages[index];
-                          return _PackageCard(
-                            pkg: pkg,
-                            width: constraints.maxWidth,
-                            margin: EdgeInsets.only(
-                              right: index == widget.labPackages.length - 1
-                                  ? 0
-                                  : 18,
-                            ),
-                            onTap: () => widget.onPackageTap(pkg),
-                            resolvedImageUrl: _resolveImageUrl(
-                              pkg.imageUrl ?? '',
-                            ),
-                          );
-                        },
-                      );
-                    },
+                const SizedBox(height: 20),
+                _HomeActionBanner(
+                  label: 'Book a consultation for your loved ones?',
+                  icon: Icons.family_restroom_rounded,
+                  imageAsset: 'assets/images/family-care-cutout.png',
+                  onTap: widget.onViewAllDoctors,
+                ),
+                const SizedBox(height: 12),
+                _HomeActionBanner(
+                  label: 'Home Care Booking',
+                  icon: Icons.home_rounded,
+                  accentColor: const Color(0xFF167A58),
+                  solidColor: const Color(0xFF1F9A6D),
+                  foregroundColor: Colors.white,
+                  onTap: () => widget.onActionTap('home_care'),
+                ),
+                const SizedBox(height: 32),
+                if (widget.healthSnapshot != null)
+                  _HealthSnapshotCard(snapshot: widget.healthSnapshot!),
+                if (widget.healthSnapshot != null) const SizedBox(height: 24),
+                if (widget.aiSuggestions.isNotEmpty)
+                  _AiSuggestionsSection(
+                    suggestions: widget.aiSuggestions,
+                    onAccept: widget.onAcceptSuggestion,
+                  ),
+                if (widget.aiSuggestions.isNotEmpty) const SizedBox(height: 24),
+                // Banners Carousel
+                if (widget.banners.isNotEmpty)
+                  _buildBannerCarousel(context)
+                else if (widget.isLoading)
+                  _buildBannerSkeleton(context),
+                const SizedBox(height: 32),
+                OffersAndAppointmentsSectionWidget(
+                  bookings: widget.bookings,
+                  onSeeAllAppointments: widget.onSeeAllAppointments,
+                  onOfferTap: widget.onOfferTap,
+                  homeOffers: widget.homeOffers,
+                ),
+                const SizedBox(height: 32),
+                // Find Doctors Section
+                const Text(
+                  'Find Doctors',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF192233),
                   ),
                 ),
+                const SizedBox(height: 16),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _departments.map((dept) {
+                      return _CategoryChip(
+                        label: dept,
+                        isActive: _selectedDepartment == dept,
+                        onTap: () => setState(() => _selectedDepartment = dept),
+                        icon: _getSpecialtyIcon(dept),
+                        iconUrl: _getDepartmentIconUrl(dept),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Doctors Carousel
+                if (_filteredDoctors.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Text(strings.noDoctorsInDepartment),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 380,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _filteredDoctors.length,
+                      itemBuilder: (context, index) {
+                        final doc = _filteredDoctors[index];
+                        return _DoctorCard(
+                          doc: doc,
+                          onTap: () => widget.onDoctorTap(doc),
+                          resolvedImageUrl: _resolveImageUrl(
+                            doc.imageUrl ?? '',
+                          ),
+                        );
+                      },
+                    ),
+                  ),
 
-                // Add Lab Tests section
-                if (widget.labTests.isNotEmpty) ...[
-                  const SizedBox(height: 32),
+                // 3. Health Packages Section
+                if (widget.labPackages.isNotEmpty) ...[
+                  const SizedBox(height: 40),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Popular Lab Tests',
+                        'Health Packages',
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: 24,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF192233),
                         ),
                       ),
                       TextButton(
-                        onPressed: widget.onViewAllLabTests,
+                        onPressed: widget.onViewAllPackages,
                         child: const Text(
                           'View All',
                           style: TextStyle(
@@ -443,29 +393,85 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
-                    height: 100,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: widget.labTests.length,
-                      itemBuilder: (context, index) {
-                        final test = widget.labTests[index];
-                        return _TestCard(
-                          test: test,
-                          onTap: () => widget.onLabTap(test),
-                          resolvedImageUrl: _resolveImageUrl(
-                            test.imageUrl ?? '',
-                          ),
+                    height: 480,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: widget.labPackages.length,
+                          itemBuilder: (context, index) {
+                            final pkg = widget.labPackages[index];
+                            return _PackageCard(
+                              pkg: pkg,
+                              width: constraints.maxWidth,
+                              margin: EdgeInsets.only(
+                                right: index == widget.labPackages.length - 1
+                                    ? 0
+                                    : 18,
+                              ),
+                              onTap: () => widget.onPackageTap(pkg),
+                              resolvedImageUrl: _resolveImageUrl(
+                                pkg.imageUrl ?? '',
+                              ),
+                            );
+                          },
                         );
                       },
                     ),
                   ),
+
+                  // Add Lab Tests section
+                  if (widget.labTests.isNotEmpty) ...[
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Popular Lab Tests',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF192233),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: widget.onViewAllLabTests,
+                          child: const Text(
+                            'View All',
+                            style: TextStyle(
+                              color: Color(0xFF5A88F1),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 100,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: widget.labTests.length,
+                        itemBuilder: (context, index) {
+                          final test = widget.labTests[index];
+                          return _TestCard(
+                            test: test,
+                            onTap: () => widget.onLabTap(test),
+                            resolvedImageUrl: _resolveImageUrl(
+                              test.imageUrl ?? '',
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
                 ],
-                const SizedBox(height: 32),
               ],
-            ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1453,6 +1459,7 @@ class _HomeActionBanner extends StatelessWidget {
     this.accentColor = const Color(0xFF5A88F1),
     this.solidColor,
     this.foregroundColor = const Color(0xFF192233),
+    this.imageAsset,
   });
 
   final String label;
@@ -1461,9 +1468,92 @@ class _HomeActionBanner extends StatelessWidget {
   final Color accentColor;
   final Color? solidColor;
   final Color foregroundColor;
+  final String? imageAsset;
 
   @override
   Widget build(BuildContext context) {
+    if (imageAsset != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
+            height: 148,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F1FF),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: const Color(0xFF5A88F1).withValues(alpha: 0.16),
+              ),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.asset(
+                    imageAsset!,
+                    fit: BoxFit.contain,
+                    alignment: Alignment.bottomCenter,
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    width: 185,
+                    margin: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 9),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.manrope(
+                            color: const Color(0xFF183B68),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            height: 1.25,
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        SizedBox(
+                          height: 36,
+                          child: ElevatedButton(
+                            onPressed: onTap,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF376FD3),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                              ),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text(
+                              'Book now',
+                              style: GoogleFonts.manrope(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1630,12 +1720,12 @@ class _HealthSnapshotCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFF9BE1C8), // Solid vibrant green
+        color: const Color(0xFFEAF4FF),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF70CFAD), width: 1.5),
+        border: Border.all(color: const Color(0xFFB8D6F6), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF192233).withValues(alpha: 0.05),
+            color: const Color(0xFF225B9E).withValues(alpha: 0.08),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -1654,7 +1744,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                 height: 140,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF72D3B2).withValues(alpha: 0.4),
+                  color: const Color(0xFFBCD8F4).withValues(alpha: 0.45),
                 ),
               ),
             ),
@@ -1667,7 +1757,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                 height: 180,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF72D3B2).withValues(alpha: 0.3),
+                  color: const Color(0xFFBCD8F4).withValues(alpha: 0.3),
                 ),
               ),
             ),
@@ -1680,7 +1770,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF72D3B2).withValues(alpha: 0.2),
+                  color: const Color(0xFFBCD8F4).withValues(alpha: 0.22),
                 ),
               ),
             ),
@@ -1695,13 +1785,13 @@ class _HealthSnapshotCard extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.08),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFD7E9FC),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.monitor_heart_rounded,
-                          color: Colors.black,
+                          color: Color(0xFF225B9E),
                           size: 18,
                         ),
                       ),
@@ -1712,7 +1802,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                           child: Text(
                             'Health Status',
                             style: TextStyle(
-                              color: Colors.black,
+                              color: Color(0xFF173B63),
                               fontSize: 12,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.8,
@@ -1723,7 +1813,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                       _CardIconButton(
                         icon: Icons.history_rounded,
                         tooltip: 'View history',
-                        accentColor: Color(0xFF134633),
+                        accentColor: Color(0xFF225B9E),
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
@@ -1737,7 +1827,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                       _CardIconButton(
                         icon: Icons.add_rounded,
                         tooltip: "Add/update today's readings",
-                        accentColor: Color(0xFF134633),
+                        accentColor: Color(0xFF225B9E),
                         onTap: () => showHealthSnapshotEntrySheet(context),
                       ),
                     ],
@@ -1747,7 +1837,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                     Text(
                       'For $snapshotDateLabel',
                       style: const TextStyle(
-                        color: Color(0xFF1E6C50),
+                        color: Color(0xFF52708F),
                         fontSize: 11,
                       ),
                     ),
@@ -1759,14 +1849,14 @@ class _HealthSnapshotCard extends StatelessWidget {
                         _SnapshotMetric(
                           label: 'Health',
                           value: score.toStringAsFixed(0),
-                          accentColor: const Color(0xFF134633),
+                          accentColor: const Color(0xFF147D73),
                         ),
                       if (risk != null) ...[
                         const SizedBox(width: 16),
                         _SnapshotMetric(
                           label: 'Risk',
                           value: risk.toStringAsFixed(0),
-                          accentColor: const Color(0xFFD65C2B),
+                          accentColor: const Color(0xFFD05A45),
                         ),
                       ],
                       if (snapshot.bmi != null) ...[
@@ -1774,7 +1864,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                         _SnapshotMetric(
                           label: 'BMI',
                           value: snapshot.bmi!.toStringAsFixed(1),
-                          accentColor: const Color(0xFF2C63DF),
+                          accentColor: const Color(0xFF3B65C4),
                         ),
                       ],
                     ],
@@ -1783,7 +1873,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                   Text(
                     summary,
                     style: const TextStyle(
-                      color: Color(0xFF134633),
+                      color: Color(0xFF173B63),
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       height: 1.4,
@@ -1797,7 +1887,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                         child: Text(
                           fact,
                           style: const TextStyle(
-                            color: Color(0xFF1E6C50),
+                            color: Color(0xFF52708F),
                             fontSize: 13,
                             height: 1.4,
                             fontWeight: FontWeight.w500,
@@ -1813,8 +1903,8 @@ class _HealthSnapshotCard extends StatelessWidget {
                       child: OutlinedButton(
                         onPressed: () => showHealthSnapshotEntrySheet(context),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF134633),
-                          side: const BorderSide(color: Color(0xFF5CCB9E)),
+                          foregroundColor: const Color(0xFF225B9E),
+                          side: const BorderSide(color: Color(0xFF9EC4EC)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -1831,7 +1921,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                     Text(
                       'Updated $generatedLabel',
                       style: const TextStyle(
-                        color: Color(0xFF1E6C50),
+                        color: Color(0xFF52708F),
                         fontSize: 11,
                       ),
                     ),

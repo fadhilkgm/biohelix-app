@@ -109,10 +109,12 @@ class _AssistantTabState extends State<_AssistantTab> {
         if (!mounted) return;
         final portal = context.read<PatientPortalProvider>();
         if (transcript.trim().isEmpty || response.trim().isEmpty) return;
-        unawaited(portal.reconcileLiveVoiceTurn(
-          transcript: transcript,
-          response: response,
-        ));
+        unawaited(
+          portal.reconcileLiveVoiceTurn(
+            transcript: transcript,
+            response: response,
+          ),
+        );
       },
     );
     _liveVoiceController.addListener(_handleLiveVoiceControllerChanged);
@@ -322,14 +324,6 @@ class _AssistantTabState extends State<_AssistantTab> {
                                         index,
                                       ),
                                       attachments: attachments,
-                                      onSpeakTap: () =>
-                                          _toggleSpeechPlayback(message),
-                                      isSpeaking:
-                                          _isSpeaking &&
-                                          message.role != 'user' &&
-                                          index == messages.length - 1,
-                                      onStopTap: () =>
-                                          _interruptAiSpeechAndListen(portal),
                                       onAttachmentTap: (attachment) {
                                         _openAttachmentPreview(
                                           context,
@@ -570,7 +564,8 @@ class _AssistantTabState extends State<_AssistantTab> {
     updateAssistantState(() {
       _isListening = state.isListening;
       _isSpeaking = state.isSpeaking;
-      _isLiveTurnInFlight = state.phase.name == 'transcribing' ||
+      _isLiveTurnInFlight =
+          state.phase.name == 'transcribing' ||
           state.phase.name == 'thinking' ||
           state.phase.name == 'speaking';
       _soundLevel = state.soundLevel;
@@ -608,31 +603,59 @@ class _AssistantEmptyState extends StatelessWidget {
       builder: (context, constraints) => ListView(
         padding: EdgeInsets.fromLTRB(
           constraints.maxWidth > 700 ? 64 : 20,
-          42,
+          24,
           constraints.maxWidth > 700 ? 64 : 20,
           18,
         ),
         children: [
-          const Center(child: _BioHelixMark(size: 46)),
-          const SizedBox(height: 20),
-          Text(
-            '${strings.assistantTitle} — $patientName',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
-              color: AiChatColors.textPrimary,
-              fontSize: 28,
-              height: 1.2,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.7,
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF2FF),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFCFE0FA)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF356FD3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 27,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '${strings.assistantTitle} — $patientName',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.manrope(
+                    color: const Color(0xFF173B63),
+                    fontSize: 25,
+                    height: 1.2,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  strings.assistantInputHint,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.manrope(
+                    color: const Color(0xFF5B7190),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            strings.assistantInputHint,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.subtitle(context),
-          ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 22),
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -651,29 +674,49 @@ class _AssistantEmptyState extends StatelessWidget {
                       onTap: () => onPromptTap(prompt),
                       borderRadius: BorderRadius.circular(AppRadius.card),
                       child: Container(
-                        constraints: const BoxConstraints(minHeight: 76),
-                        padding: const EdgeInsets.all(16),
+                        constraints: const BoxConstraints(minHeight: 72),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 13,
+                        ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.86),
-                          borderRadius: BorderRadius.circular(AppRadius.card),
-                          border: Border.all(color: AiChatColors.border),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFDCE6F3)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF356FD3,
+                              ).withValues(alpha: 0.06),
+                              blurRadius: 14,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
                         ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.north_east_rounded,
-                              size: 19,
-                              color: AiChatColors.accent,
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFEAF2FF),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.arrow_outward_rounded,
+                                size: 18,
+                                color: Color(0xFF356FD3),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 prompt,
                                 style: GoogleFonts.manrope(
-                                  color: AiChatColors.primary,
+                                  color: const Color(0xFF173B63),
                                   fontSize: 14,
                                   height: 1.35,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
@@ -685,28 +728,57 @@ class _AssistantEmptyState extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.shield_outlined,
-                size: 16,
-                color: AiChatColors.textSecondary,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  strings.assistantDisclaimer,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.manrope(
-                    fontSize: 12,
-                    height: 1.4,
-                    color: AiChatColors.textSecondary,
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F7FC),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFDCE6F3)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE3EDFB),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.health_and_safety_outlined,
+                    size: 19,
+                    color: Color(0xFF356FD3),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'For your safety',
+                        style: GoogleFonts.manrope(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF173B63),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        strings.assistantDisclaimer,
+                        style: GoogleFonts.manrope(
+                          fontSize: 11.5,
+                          height: 1.4,
+                          color: const Color(0xFF5B7190),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

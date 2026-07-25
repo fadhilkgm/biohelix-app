@@ -14,6 +14,7 @@ class AiChatColors {
   // Brand accents
   static const primary = Color(0xFF1B4D3E); // deep green
   static const accent = Color(0xFF2E8B57); // sea green
+  static const userBubble = Color(0xFF356FD3);
   static const border = Color(0xFFE5E7EB);
   static const surfaceTint = Color(0xFFECF5F1);
 

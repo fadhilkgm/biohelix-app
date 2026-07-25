@@ -377,7 +377,7 @@ class _EnStrings extends LocalizedStrings {
   String get assistantInputHint => 'Ask about your health';
   @override
   String get assistantDisclaimer =>
-      'AI can make mistakes. Always consult a doctor before taking action.';
+      'AI can make mistakes. Consult a doctor before acting.';
   @override
   String get assistantLive => 'Live';
   @override
