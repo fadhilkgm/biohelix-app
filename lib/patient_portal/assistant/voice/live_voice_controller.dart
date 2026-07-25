@@ -44,19 +44,34 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
 
   LiveVoiceState get state => _state;
 
+  /// Fetches short-lived ICE/session configuration ahead of the voice tap.
+  /// This does not open the microphone or create an Inworld call.
+  Future<void> prewarm() async {
+    if (_disposed || _state.isActive) return;
+    try {
+      await _signalingApi.bootstrap();
+      _debugLog('voice bootstrap prewarmed');
+    } catch (error) {
+      // A warm-up failure must not prevent the normal start path from retrying.
+      _debugLog('voice bootstrap prewarm failed: ${_safeError(error)}');
+    }
+  }
+
   Future<void> start({required String locale}) async {
     if (_state.isActive) {
       _debugLog('start ignored: session is already active');
       return;
     }
     _debugLog('start requested locale=$locale');
+    final startup = Stopwatch()..start();
     _setState(const LiveVoiceState(phase: LiveVoicePhase.connecting));
 
     try {
       final bootstrap = await _signalingApi.bootstrap();
       _debugLog(
         'bootstrap received: iceServers=${bootstrap.iceServers.length}, '
-        'sessionEvent=${bootstrap.sessionUpdate['type']}',
+        'sessionEvent=${bootstrap.sessionUpdate['type']}, '
+        'elapsed=${startup.elapsedMilliseconds}ms',
       );
       if (bootstrap.iceServers.isEmpty) {
         throw StateError('No realtime ICE servers are available.');
@@ -67,14 +82,16 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
             .map((server) => server.toWebRtcJson())
             .toList(),
         'sdpSemantics': 'unified-plan',
+        // Begin gathering candidates as early as the native WebRTC stack allows.
+        'iceCandidatePoolSize': 2,
       });
       _debugLog('peer connection created');
       _peer = peer;
       _wirePeerCallbacks(peer);
-      await _configureAudioSession();
-      _debugLog('audio session configured for speaker/Bluetooth');
-
-      final microphone = await navigator.mediaDevices.getUserMedia({
+      // Audio routing and microphone allocation are independent native calls;
+      // running them together removes avoidable startup latency.
+      final audioSessionFuture = _configureAudioSession();
+      final microphoneFuture = navigator.mediaDevices.getUserMedia({
         'audio': {
           'echoCancellation': true,
           'noiseSuppression': true,
@@ -82,6 +99,10 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         },
         'video': false,
       });
+      await audioSessionFuture;
+      _debugLog('audio session configured for speaker/Bluetooth');
+
+      final microphone = await microphoneFuture;
       _microphone = microphone;
       _debugLog(
         'microphone acquired: audioTracks=${microphone.getAudioTracks().length}',
@@ -112,9 +133,15 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         throw StateError('WebRTC did not create a valid SDP offer.');
       }
 
-      _debugLog('sending SDP offer to Laravel: bytes=${offerSdp.length}');
+      _debugLog(
+        'sending SDP offer to Laravel: bytes=${offerSdp.length}, '
+        'elapsed=${startup.elapsedMilliseconds}ms',
+      );
       final answer = await _signalingApi.createCall(offerSdp);
-      _debugLog('SDP answer received: bytes=${answer.length}');
+      _debugLog(
+        'SDP answer received: bytes=${answer.length}, '
+        'elapsed=${startup.elapsedMilliseconds}ms',
+      );
       await peer.setRemoteDescription(RTCSessionDescription(answer, 'answer'));
       _debugLog('remote SDP answer set');
       _connectTimeout = Timer(const Duration(seconds: 20), () {
@@ -126,6 +153,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       });
     } catch (error) {
       _debugLog('start failed: ${_safeError(error)}');
+      _signalingApi.invalidateBootstrap();
       await _releaseResources();
       _setError(_friendlyError(error));
     }
@@ -297,7 +325,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     }
     _iceGathering = Completer<void>();
     await _iceGathering!.future.timeout(
-      const Duration(seconds: 3),
+      const Duration(milliseconds: 1200),
       onTimeout: () {
         _debugLog('ICE gathering wait timed out; continuing with current SDP');
       },

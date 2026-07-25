@@ -37,11 +37,44 @@ class InworldSessionBootstrap {
 }
 
 class InworldSignalingApi {
-  const InworldSignalingApi(this._client);
+  InworldSignalingApi(this._client);
 
   final ApiClient _client;
+  InworldSessionBootstrap? _cachedBootstrap;
+  DateTime? _cachedAt;
+  Future<InworldSessionBootstrap>? _bootstrapInFlight;
+
+  static const _bootstrapCacheTtl = Duration(seconds: 45);
 
   Future<InworldSessionBootstrap> bootstrap() async {
+    final cached = _cachedBootstrap;
+    final cachedAt = _cachedAt;
+    if (cached != null &&
+        cachedAt != null &&
+        DateTime.now().difference(cachedAt) < _bootstrapCacheTtl) {
+      return cached;
+    }
+    final inFlight = _bootstrapInFlight;
+    if (inFlight != null) return inFlight;
+
+    final request = _fetchBootstrap();
+    _bootstrapInFlight = request;
+    try {
+      final bootstrap = await request;
+      _cachedBootstrap = bootstrap;
+      _cachedAt = DateTime.now();
+      return bootstrap;
+    } finally {
+      _bootstrapInFlight = null;
+    }
+  }
+
+  void invalidateBootstrap() {
+    _cachedBootstrap = null;
+    _cachedAt = null;
+  }
+
+  Future<InworldSessionBootstrap> _fetchBootstrap() async {
     final responses = await Future.wait([
       _client.getJson('/realtime/ice'),
       _client.getJson('/realtime/session-config'),

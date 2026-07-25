@@ -111,6 +111,9 @@ class _AssistantTabState extends State<_AssistantTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<PatientPortalProvider>().initializeChatThreads();
+      // Fetch ICE/session config early. This is network-only: the microphone
+      // stays off until the patient explicitly starts live voice.
+      unawaited(_liveVoiceController.prewarm());
     });
   }
 
