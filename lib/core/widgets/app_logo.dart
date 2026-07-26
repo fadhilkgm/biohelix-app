@@ -40,10 +40,7 @@ class AppLogo extends StatelessWidget {
     }
 
     if (backgroundColor != null) {
-      return ColoredBox(
-        color: backgroundColor!,
-        child: image,
-      );
+      return ColoredBox(color: backgroundColor!, child: image);
     }
 
     return image;

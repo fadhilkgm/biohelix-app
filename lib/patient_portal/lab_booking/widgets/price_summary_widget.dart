@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class PriceSummaryWidget extends StatelessWidget {
   const PriceSummaryWidget({
@@ -29,7 +28,8 @@ class PriceSummaryWidget extends StatelessWidget {
           children: [
             Text(
               label,
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 14,
                 fontWeight: strong ? FontWeight.w800 : FontWeight.w500,
                 color: strong ? const Color(0xFF2D3142) : Colors.grey[600],
@@ -38,10 +38,15 @@ class PriceSummaryWidget extends StatelessWidget {
             const Spacer(),
             Text(
               value,
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: strong ? 18 : 14,
                 fontWeight: strong ? FontWeight.w800 : FontWeight.w700,
-                color: color ?? (strong ? const Color(0xFF5A88F1) : const Color(0xFF2D3142)),
+                color:
+                    color ??
+                    (strong
+                        ? const Color(0xFF06489B)
+                        : const Color(0xFF2D3142)),
               ),
             ),
           ],
@@ -61,7 +66,8 @@ class PriceSummaryWidget extends StatelessWidget {
         children: [
           Text(
             'Order Summary',
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontWeight: FontWeight.w800,
               fontSize: 15,
               color: const Color(0xFF2D3142),

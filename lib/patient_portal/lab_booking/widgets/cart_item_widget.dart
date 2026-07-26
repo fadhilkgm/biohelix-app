@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../models/lab_booking_models.dart';
 
 class CartItemWidget extends StatelessWidget {
@@ -32,10 +31,7 @@ class CartItemWidget extends StatelessWidget {
               color: const Color(0xFFF4F7FF),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.science_outlined,
-              color: Color(0xFF5A88F1),
-            ),
+            child: const Icon(Icons.science_outlined, color: Color(0xFF06489B)),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -44,7 +40,8 @@ class CartItemWidget extends StatelessWidget {
               children: [
                 Text(
                   item.test.name,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     color: const Color(0xFF2D3142),
@@ -55,10 +52,11 @@ class CartItemWidget extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '₹${item.test.price.toStringAsFixed(0)}',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
-                    color: const Color(0xFF5A88F1),
+                    color: const Color(0xFF06489B),
                   ),
                 ),
               ],

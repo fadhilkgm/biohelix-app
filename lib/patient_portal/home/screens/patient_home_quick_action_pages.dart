@@ -432,10 +432,7 @@ class _EmptyPackageCard extends StatelessWidget {
               'Open the full package catalog to review the latest preventive bundles.',
             ),
             const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onTap,
-              child: Text(strings.browsePackages),
-            ),
+            FilledButton(onPressed: onTap, child: Text(strings.browsePackages)),
           ],
         ),
       ),

@@ -3,12 +3,14 @@ part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 class _DashboardTab extends StatelessWidget {
   const _DashboardTab({
     required this.onNavigate,
+    required this.onOpenBookings,
     required this.onOpenDoctorsDirectory,
     required this.onOpenLabTestsDirectory,
     required this.onOpenHomeCare,
   });
 
   final ValueChanged<int> onNavigate;
+  final VoidCallback onOpenBookings;
   final VoidCallback onOpenDoctorsDirectory;
   final VoidCallback onOpenLabTestsDirectory;
   final VoidCallback onOpenHomeCare;
@@ -77,7 +79,7 @@ class _DashboardTab extends StatelessWidget {
           },
           onOpenRecords: (filter) =>
               PatientAppShell.of(context).openRecords(filter),
-          onOpenBookings: () => onNavigate(1),
+          onOpenBookings: onOpenBookings,
           onOpenDoctorsDirectory: onOpenDoctorsDirectory,
           onOpenLabOrder: () {
             Navigator.of(context).push(
@@ -87,7 +89,7 @@ class _DashboardTab extends StatelessWidget {
             );
           },
           onOpenHomeCare: onOpenHomeCare,
-          onOpenProfile: () => onNavigate(4),
+          onOpenProfile: () => onNavigate(3),
         );
 
         return _DashboardDiscoverySections(
@@ -119,7 +121,7 @@ class _DashboardTab extends StatelessWidget {
           onPackageTap: (package) {
             targetHandler.openPackageLanding(package.slug, true);
           },
-          onSeeAllAppointments: () => onNavigate(1),
+          onSeeAllAppointments: onOpenBookings,
           onQuickActionTap: quickActionHandler.open,
           isLoading: portal.isLoading,
           healthSnapshot: portal.healthSnapshot,
@@ -200,23 +202,13 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                   expandedHeight: 220,
                   pinned: true,
                   stretch: true,
-                  backgroundColor: const Color(0xFF5A88F1),
+                  backgroundColor: const Color(0xFF06489B),
                   elevation: 0,
+                  leadingWidth: 64,
                   leading: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.chevron_left,
-                          color: Color(0xFF192233),
-                          size: 30,
-                        ),
-                      ),
+                    padding: const EdgeInsets.only(left: 12),
+                    child: AppChevronBackButton(
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
                   flexibleSpace: FlexibleSpaceBar(
@@ -233,7 +225,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: const Color(
-                                  0xFF5A88F1,
+                                  0xFF06489B,
                                 ).withValues(alpha: 0.08),
                               ),
                             ),
@@ -316,7 +308,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                 ),
                                 child: Text(
                                   'HEALTH PACKAGE',
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 10,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 0.9,
@@ -327,7 +320,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                               const SizedBox(height: 12),
                               Text(
                                 activePackage.name,
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 23,
                                   fontWeight: FontWeight.w900,
                                   color: const Color(0xFF192233),
@@ -360,7 +354,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                           Flexible(
                                             child: Text(
                                               '${activePackage.totalTests ?? activePackage.includedTests.length} tests included',
-                                              style: GoogleFonts.manrope(
+                                              style: TextStyle(
+                                                fontFamily: 'Manrope',
                                                 fontSize: 12,
                                                 color: const Color(0xFF356FD3),
                                                 fontWeight: FontWeight.w800,
@@ -377,7 +372,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                     children: [
                                       Text(
                                         '₹${activePackage.discountedPrice ?? activePackage.basePrice}',
-                                        style: GoogleFonts.manrope(
+                                        style: TextStyle(
+                                          fontFamily: 'Manrope',
                                           fontSize: 25,
                                           fontWeight: FontWeight.w900,
                                           color: const Color(0xFF356FD3),
@@ -389,7 +385,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                               activePackage.basePrice)
                                         Text(
                                           '₹${activePackage.basePrice}',
-                                          style: GoogleFonts.manrope(
+                                          style: TextStyle(
+                                            fontFamily: 'Manrope',
                                             fontSize: 13,
                                             decoration:
                                                 TextDecoration.lineThrough,
@@ -413,7 +410,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                               children: [
                                 Text(
                                   'Tests Included ${hasTests ? "(${activePackage.includedTests.length})" : ""}',
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 20,
                                     fontWeight: FontWeight.w900,
                                     color: const Color(0xFF192233),
@@ -423,7 +421,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Everything covered in this package',
-                                    style: GoogleFonts.manrope(
+                                    style: TextStyle(
+                                      fontFamily: 'Manrope',
                                       fontSize: 12,
                                       color: const Color(0xFF6B7A90),
                                       fontWeight: FontWeight.w500,
@@ -469,7 +468,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                       Expanded(
                                         child: Text(
                                           testName,
-                                          style: GoogleFonts.manrope(
+                                          style: TextStyle(
+                                            fontFamily: 'Manrope',
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
                                             color: const Color(
@@ -486,7 +486,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                           ] else if (hasDescription) ...[
                             Text(
                               activePackage.description!,
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 16,
                                 color: const Color(
                                   0xFF192233,
@@ -529,7 +530,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                           ),
                         ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5A88F1),
+                    backgroundColor: const Color(0xFF06489B),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 18),
@@ -544,7 +545,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                       const SizedBox(width: 10),
                       Text(
                         'Book This Package',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontWeight: FontWeight.w900,
                           fontSize: 17,
                         ),
@@ -571,7 +573,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
           appBar: AppBar(
             title: Text(
               'Health Packages',
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontWeight: FontWeight.w900,
                 fontSize: 22,
                 color: const Color(0xFF192233),
@@ -608,7 +611,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                       boxShadow: [
                         BoxShadow(
                           color: const Color(
-                            0xFF5A88F1,
+                            0xFF06489B,
                           ).withValues(alpha: 0.08),
                           blurRadius: 24,
                           offset: const Offset(0, 8),
@@ -693,7 +696,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                       pkg.name,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.manrope(
+                                      style: TextStyle(
+                                        fontFamily: 'Manrope',
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
                                         color: const Color(0xFF1A1A1A),
@@ -711,7 +715,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                         borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
                                           color: const Color(
-                                            0xFF5A88F1,
+                                            0xFF06489B,
                                           ).withValues(alpha: 0.1),
                                         ),
                                       ),
@@ -721,14 +725,15 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                           const Icon(
                                             Icons.biotech_rounded,
                                             size: 14,
-                                            color: Color(0xFF5A88F1),
+                                            color: Color(0xFF06489B),
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
                                             '${pkg.totalTests ?? pkg.includedTests.length} Tests',
-                                            style: GoogleFonts.manrope(
+                                            style: TextStyle(
+                                              fontFamily: 'Manrope',
                                               fontSize: 12,
-                                              color: const Color(0xFF5A88F1),
+                                              color: const Color(0xFF06489B),
                                               fontWeight: FontWeight.w800,
                                             ),
                                           ),
@@ -742,7 +747,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                       children: [
                                         Text(
                                           '₹${pkg.discountedPrice ?? pkg.basePrice}',
-                                          style: GoogleFonts.manrope(
+                                          style: TextStyle(
+                                            fontFamily: 'Manrope',
                                             fontSize: 20,
                                             fontWeight: FontWeight.w900,
                                             color: const Color(0xFF192233),
@@ -754,7 +760,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
                                               colors: [
-                                                Color(0xFF5A88F1),
+                                                Color(0xFF06489B),
                                                 Color(0xFF3B66D4),
                                               ],
                                             ),
@@ -764,7 +770,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                             boxShadow: [
                                               BoxShadow(
                                                 color: const Color(
-                                                  0xFF5A88F1,
+                                                  0xFF06489B,
                                                 ).withValues(alpha: 0.3),
                                                 blurRadius: 8,
                                                 offset: const Offset(0, 4),
@@ -800,7 +806,8 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                             ),
                                             child: Text(
                                               'Book',
-                                              style: GoogleFonts.manrope(
+                                              style: TextStyle(
+                                                fontFamily: 'Manrope',
                                                 fontWeight: FontWeight.w800,
                                                 fontSize: 15,
                                                 color: Colors.white,
@@ -845,7 +852,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF5A88F1).withValues(alpha: 0.1),
+                color: const Color(0xFF06489B).withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -854,7 +861,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
           child: const Icon(
             Icons.health_and_safety_rounded,
             size: 40,
-            color: Color(0xFF5A88F1),
+            color: Color(0xFF06489B),
           ),
         ),
       ),

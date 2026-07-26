@@ -27,10 +27,7 @@ class HomeHeroHeaderWidget extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  AppLogo(
-                    size: 32,
-                    fit: BoxFit.contain,
-                  ),
+                  AppLogo(size: 32, fit: BoxFit.contain),
                   const SizedBox(width: 8),
                   Text(
                     hospitalName,

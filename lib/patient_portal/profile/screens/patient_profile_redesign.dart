@@ -5,17 +5,19 @@ class _RedesignedProfileSection extends StatelessWidget {
     required this.patient,
     required this.idCard,
     required this.myClub,
-    required this.onOpenTestsHub,
-    required this.onSwitchProfiles,
+    required this.familyMembers,
+    required this.onManageFamily,
     required this.onSignOut,
+    required this.onDeleteAccount,
   });
 
   final PatientIdentity patient;
   final IdCardInfo idCard;
   final MyClubSummary myClub;
-  final VoidCallback onOpenTestsHub;
-  final VoidCallback onSwitchProfiles;
+  final List<FamilyMember> familyMembers;
+  final VoidCallback onManageFamily;
   final VoidCallback onSignOut;
+  final Future<void> Function() onDeleteAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -33,85 +35,116 @@ class _RedesignedProfileSection extends StatelessWidget {
             end: Alignment.bottomCenter,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _ProfileHeroHeader(
-              patient: patient,
-              onSwitchProfiles: onSwitchProfiles,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Text(
-                'Patient ID Card',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-              child: _PatientIdCard(
-                patient: patient,
-                idCard: idCard,
-                myClub: myClub,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Text(
-                'Patient QR Code',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-              child: _PatientQrCard(patient: patient),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Text(
-                'Personal Information',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-              child: _PersonalInfoCard(patient: patient),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Text(
-                'Settings',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-              child: _ProfileSettingsCard(onOpenTestsHub: onOpenTestsHub),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: _SignOutButton(onPressed: onSignOut),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Center(
-                child: Text(
-                  'BHRC Patient Portal v1.0.0',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF8A94A6),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 620),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ProfileHeroHeader(patient: patient),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: Text(
+                    'Membership',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: _MembershipPlanCard(
+                    patient: patient,
+                    idCard: idCard,
+                    myClub: myClub,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: Text(
+                    'Relatives',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: _RelativesCard(familyMembers: familyMembers),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: OutlinedButton.icon(
+                    onPressed: onManageFamily,
+                    icon: const Icon(Icons.group_add_rounded),
+                    label: const Text('Manage family members'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                      foregroundColor: const Color(0xFF06489B),
+                      side: const BorderSide(color: Color(0xFFB8CAE1)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: Text(
+                    'Health Profile',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: _HealthProfileCard(),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: Text(
+                    'Personal Information',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: _PersonalInfoCard(patient: patient),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: Text(
+                    'Settings',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: _ProfileSettingsCard(onDeleteAccount: onDeleteAccount),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: _SignOutButton(onPressed: onSignOut),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Center(
+                    child: Text(
+                      'BHRC Patient Portal v1.0.0',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF8A94A6),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -119,83 +152,100 @@ class _RedesignedProfileSection extends StatelessWidget {
 }
 
 class _ProfileHeroHeader extends StatelessWidget {
-  const _ProfileHeroHeader({
-    required this.patient,
-    required this.onSwitchProfiles,
-  });
+  const _ProfileHeroHeader({required this.patient});
 
   final PatientIdentity patient;
-  final VoidCallback onSwitchProfiles;
 
   @override
   Widget build(BuildContext context) {
-    final initials = _buildInitials(patient.name);
     final topInset = MediaQuery.of(context).padding.top;
     final theme = Theme.of(context);
+    final gender = (patient.gender ?? '').trim();
+    final genderLabel = gender.isEmpty
+        ? 'Sex not specified'
+        : '${gender[0].toUpperCase()}${gender.substring(1).toLowerCase()}';
+    final ageLabel = patient.age == null
+        ? 'Age not specified'
+        : '${patient.age} years';
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16, topInset + 14, 16, 18),
+      padding: EdgeInsets.fromLTRB(20, topInset + 20, 20, 30),
       color: const Color(0xFFF4F7F8),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircleAvatar(
-                radius: 27,
-                backgroundColor: const Color(
-                  0xFF5A88F1,
-                ).withValues(alpha: 0.14),
-                child: Text(
-                  initials,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: const Color(0xFF5A88F1),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
+              const AppLogo(size: 58),
+              const SizedBox(width: 14),
+              Flexible(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Profile',
-                      style: theme.textTheme.headlineSmall?.copyWith(
+                      'BHRC Hospital',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: const Color(0xFF06489B),
                         fontWeight: FontWeight.w800,
-                        height: 1.12,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
-                      '${patient.name} - MRN: ${patient.registrationNumber}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      'Biohelix Health and Research Center',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF66758A),
                         fontWeight: FontWeight.w600,
+                        height: 1.25,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              IconButton(
-                onPressed: onSwitchProfiles,
-                tooltip: 'Switch Profile',
-                icon: const Icon(Icons.swap_horiz_rounded, size: 24),
-                style: IconButton.styleFrom(
-                  fixedSize: const Size(48, 48),
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF192233),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFE2E9F2)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF06489B).withValues(alpha: 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  patient.name,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.12,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 7),
+                Text(
+                  '$ageLabel  •  $genderLabel',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Divider(height: 1, color: Color(0xFFE6EBF2)),
+                const SizedBox(height: 18),
+                _PatientQrCard(patient: patient),
+              ],
+            ),
           ),
         ],
       ),
@@ -203,8 +253,8 @@ class _ProfileHeroHeader extends StatelessWidget {
   }
 }
 
-class _PatientIdCard extends StatelessWidget {
-  const _PatientIdCard({
+class _MembershipPlanCard extends StatelessWidget {
+  const _MembershipPlanCard({
     required this.patient,
     required this.idCard,
     required this.myClub,
@@ -216,117 +266,100 @@ class _PatientIdCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    final benefits = myClub.benefits.take(2);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) =>
-                  PatientLoyaltyDetailsPage(idCard: idCard, myClub: myClub),
-            ),
-          );
-        },
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF7B3FF2), Color(0xFF5B2DD8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF7B3FF2), Color(0xFF5B2DD8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'BHRC',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 22,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      idCard.membershipTier,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
+              const Icon(
+                Icons.workspace_premium_rounded,
+                color: Color(0xFFE0D5FF),
               ),
-              const SizedBox(height: 10),
-              Text(
-                patient.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
+              const SizedBox(width: 9),
+              const Expanded(
+                child: Text(
+                  'BHRC MEMBERSHIP',
+                  style: TextStyle(
+                    color: Color(0xFFE0D5FF),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                    fontSize: 12,
+                  ),
                 ),
               ),
-              Text(
-                patient.registrationNumber,
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _IdCardStat(
-                      label: 'Points',
-                      value: '${myClub.points}',
-                    ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  idCard.membershipTier,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _IdCardStat(
-                      label: 'Value',
-                      value: '₹${myClub.currencyValue.toStringAsFixed(0)}',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(
-                    Icons.touch_app_rounded,
-                    size: 16,
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Tap to view points credit and redemption history',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 18),
+          Text(
+            '${idCard.membershipTier} Membership',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 22,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${patient.name}  •  ${patient.registrationNumber}',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.88)),
+          ),
+          if (benefits.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            ...benefits.map(
+              (benefit) => Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFFE0D5FF),
+                      size: 17,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        benefit,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -346,12 +379,7 @@ class _PatientQrCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE6EBF2)),
-      ),
+      padding: EdgeInsets.zero,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -372,23 +400,6 @@ class _PatientQrCard extends StatelessWidget {
               color: const Color(0xFF192233),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            patient.name,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'MRN: ${patient.registrationNumber}',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
           const SizedBox(height: 10),
           Text(
             'Show this code at the reception or lab counter',
@@ -403,50 +414,61 @@ class _PatientQrCard extends StatelessWidget {
   }
 }
 
-class _IdCardStat extends StatelessWidget {
-  const _IdCardStat({required this.label, required this.value});
+class _RelativesCard extends StatelessWidget {
+  const _RelativesCard({required this.familyMembers});
 
-  final String label;
-  final String value;
+  final List<FamilyMember> familyMembers;
 
   @override
   Widget build(BuildContext context) {
+    if (familyMembers.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE6EBF2)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.family_restroom_rounded, color: Color(0xFF06489B)),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'No relatives are linked to this patient yet.',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE6EBF2)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.82)),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
-            ),
-          ),
-        ],
+        children: familyMembers.indexed.map((entry) {
+          final (index, member) = entry;
+          return _ProfileInfoTile(
+            icon: Icons.family_restroom_rounded,
+            label: member.name,
+            value: _formatRelationship(member.relationship),
+            isLast: index == familyMembers.length - 1,
+          );
+        }).toList(),
       ),
     );
   }
 }
 
-String _buildInitials(String name) {
-  final parts = name
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((value) => value.isNotEmpty)
-      .toList();
-  if (parts.isEmpty) return 'P';
-  if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-  return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
-      .toUpperCase();
+String _formatRelationship(String value) {
+  if (value.trim().isEmpty) return 'Family member';
+  final normalized = value.trim().replaceAll('_', ' ');
+  return normalized[0].toUpperCase() + normalized.substring(1);
 }

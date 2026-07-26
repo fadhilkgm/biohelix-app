@@ -1,6 +1,4 @@
-﻿import 'dart:async';
-import 'package:google_fonts/google_fonts.dart';
-
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -240,7 +238,10 @@ class _OfferCard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -249,7 +250,8 @@ class _OfferCard extends StatelessWidget {
                         children: [
                           Text(
                             item.title,
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
                               color: Colors.white,
                               fontSize: 17,
                               fontWeight: FontWeight.w900,
@@ -260,7 +262,8 @@ class _OfferCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             item.subtitle,
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
                               color: Colors.white.withValues(alpha: 0.85),
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
@@ -286,7 +289,8 @@ class _OfferCard extends StatelessWidget {
                               children: [
                                 Text(
                                   item.buttonLabel,
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     color: Colors.white,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w800,
@@ -349,4 +353,3 @@ class _OfferItem {
   final String? target;
   final HomeOfferItem source;
 }
-

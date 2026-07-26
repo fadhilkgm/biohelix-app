@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
@@ -25,7 +24,8 @@ class CheckoutDetailsScreen extends StatelessWidget {
         centerTitle: false,
         title: Text(
           'Booking Details',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: 'Manrope',
             fontWeight: FontWeight.w800,
             color: const Color(0xFF2D3142),
           ),
@@ -43,7 +43,8 @@ class CheckoutDetailsScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Select Patient',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
                       color: const Color(0xFF2D3142),
@@ -73,15 +74,21 @@ class CheckoutDetailsScreen extends StatelessWidget {
                       margin: const EdgeInsets.only(right: 12),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF5A88F1) : Colors.white,
+                        color: isSelected
+                            ? const Color(0xFF06489B)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF5A88F1) : Colors.black.withValues(alpha: 0.05),
+                          color: isSelected
+                              ? const Color(0xFF06489B)
+                              : Colors.black.withValues(alpha: 0.05),
                         ),
                         boxShadow: [
                           if (isSelected)
                             BoxShadow(
-                              color: const Color(0xFF5A88F1).withValues(alpha: 0.3),
+                              color: const Color(
+                                0xFF06489B,
+                              ).withValues(alpha: 0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -91,11 +98,15 @@ class CheckoutDetailsScreen extends StatelessWidget {
                         children: [
                           CircleAvatar(
                             radius: 18,
-                            backgroundColor: isSelected ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFF4F7FF),
+                            backgroundColor: isSelected
+                                ? Colors.white.withValues(alpha: 0.2)
+                                : const Color(0xFFF4F7FF),
                             child: Text(
                               p.name.characters.first.toUpperCase(),
                               style: TextStyle(
-                                color: isSelected ? Colors.white : const Color(0xFF5A88F1),
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF06489B),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -111,7 +122,9 @@ class CheckoutDetailsScreen extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: isSelected ? Colors.white : const Color(0xFF2D3142),
+                                    color: isSelected
+                                        ? Colors.white
+                                        : const Color(0xFF2D3142),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -119,7 +132,9 @@ class CheckoutDetailsScreen extends StatelessWidget {
                                 Text(
                                   '${p.age} yrs • ${p.gender.characters.first}',
                                   style: TextStyle(
-                                    color: isSelected ? Colors.white.withValues(alpha: 0.8) : Colors.grey,
+                                    color: isSelected
+                                        ? Colors.white.withValues(alpha: 0.8)
+                                        : Colors.grey,
                                     fontSize: 11,
                                   ),
                                 ),
@@ -141,7 +156,8 @@ class CheckoutDetailsScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Collection Type',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: const Color(0xFF2D3142),
@@ -153,21 +169,21 @@ class CheckoutDetailsScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                   _CollectionOption(
-                      title: 'Home Collection',
-                      subtitle: '99 fee applies',
-                      icon: Icons.home_rounded,
-                      selected: c.collectionType == CollectionType.home,
-                      onTap: () => c.setCollectionType(CollectionType.home),
-                   ),
-                   const SizedBox(width: 12),
-                   _CollectionOption(
-                      title: 'Visit Lab',
-                      subtitle: 'Free collection',
-                      icon: Icons.local_hospital_rounded,
-                      selected: c.collectionType == CollectionType.lab,
-                      onTap: () => c.setCollectionType(CollectionType.lab),
-                   ),
+                  _CollectionOption(
+                    title: 'Home Collection',
+                    subtitle: '99 fee applies',
+                    icon: Icons.home_rounded,
+                    selected: c.collectionType == CollectionType.home,
+                    onTap: () => c.setCollectionType(CollectionType.home),
+                  ),
+                  const SizedBox(width: 12),
+                  _CollectionOption(
+                    title: 'Visit Lab',
+                    subtitle: 'Free collection',
+                    icon: Icons.local_hospital_rounded,
+                    selected: c.collectionType == CollectionType.lab,
+                    onTap: () => c.setCollectionType(CollectionType.lab),
+                  ),
                 ],
               ),
             ),
@@ -183,7 +199,8 @@ class CheckoutDetailsScreen extends StatelessWidget {
                   children: [
                     Text(
                       'Collection Address',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
                         color: const Color(0xFF2D3142),
@@ -216,54 +233,58 @@ class CheckoutDetailsScreen extends StatelessWidget {
                 },
               ),
             ],
-            
+
             const SizedBox(height: 100),
           ],
         ),
       ),
       bottomNavigationBar: Container(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: () => _push(context, const SlotSelectionScreen()),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5A88F1),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Choose Time Slot',
-                      style: GoogleFonts.manrope(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward_rounded, size: 20),
-                  ],
-                ),
-              ),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
             ),
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: () => _push(context, const SlotSelectionScreen()),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF06489B),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Choose Time Slot',
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward_rounded, size: 20),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Future<void> _showAddPatientDialog(BuildContext context, LabBookingController c) async {
+  Future<void> _showAddPatientDialog(
+    BuildContext context,
+    LabBookingController c,
+  ) async {
     final strings = AppStrings.of(context.read<LanguageProvider>().language);
     final genderLabels = strings.genderOptions;
     final name = TextEditingController();
@@ -309,7 +330,11 @@ class CheckoutDetailsScreen extends StatelessWidget {
             onPressed: () {
               final parsed = int.tryParse(age.text) ?? 0;
               if (name.text.trim().isNotEmpty && parsed > 0) {
-                c.addPatient(name: name.text.trim(), age: parsed, gender: gender);
+                c.addPatient(
+                  name: name.text.trim(),
+                  age: parsed,
+                  gender: gender,
+                );
               }
               Navigator.pop(context);
             },
@@ -320,7 +345,10 @@ class CheckoutDetailsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _showAddAddressDialog(BuildContext context, LabBookingController c) async {
+  Future<void> _showAddAddressDialog(
+    BuildContext context,
+    LabBookingController c,
+  ) async {
     final strings = AppStrings.of(context.read<LanguageProvider>().language);
     final label = TextEditingController();
     final address = TextEditingController();
@@ -334,7 +362,9 @@ class CheckoutDetailsScreen extends StatelessWidget {
           children: [
             TextField(
               controller: label,
-              decoration: const InputDecoration(labelText: 'Label (e.g., Home, Office)'),
+              decoration: const InputDecoration(
+                labelText: 'Label (e.g., Home, Office)',
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -350,8 +380,12 @@ class CheckoutDetailsScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              if (label.text.trim().isNotEmpty && address.text.trim().isNotEmpty) {
-                c.addAddress(label: label.text.trim(), fullAddress: address.text.trim());
+              if (label.text.trim().isNotEmpty &&
+                  address.text.trim().isNotEmpty) {
+                c.addAddress(
+                  label: label.text.trim(),
+                  fullAddress: address.text.trim(),
+                );
               }
               Navigator.pop(context);
             },
@@ -398,7 +432,9 @@ class _CollectionOption extends StatelessWidget {
             color: selected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: selected ? const Color(0xFF5A88F1) : Colors.black.withValues(alpha: 0.05),
+              color: selected
+                  ? const Color(0xFF06489B)
+                  : Colors.black.withValues(alpha: 0.05),
               width: selected ? 2 : 1,
             ),
             boxShadow: [
@@ -414,17 +450,20 @@ class _CollectionOption extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: selected ? const Color(0xFF5A88F1) : Colors.grey,
+                color: selected ? const Color(0xFF06489B) : Colors.grey,
                 size: 28,
               ),
               const SizedBox(height: 12),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
-                  color: selected ? const Color(0xFF5A88F1) : const Color(0xFF2D3142),
+                  color: selected
+                      ? const Color(0xFF06489B)
+                      : const Color(0xFF2D3142),
                 ),
               ),
               const SizedBox(height: 4),
@@ -433,7 +472,9 @@ class _CollectionOption extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 11,
-                  color: selected ? const Color(0xFF5A88F1).withValues(alpha: 0.7) : Colors.grey,
+                  color: selected
+                      ? const Color(0xFF06489B).withValues(alpha: 0.7)
+                      : Colors.grey,
                 ),
               ),
             ],

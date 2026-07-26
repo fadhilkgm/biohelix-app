@@ -69,9 +69,9 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                         const SizedBox(height: 8),
                         Text(
                           showLoginForm
-                                  ? (otpRequested
-                                      ? 'Enter the WhatsApp OTP sent to ${session.pendingPhone} to continue.'
-                                      : 'Sign in with your mobile number. We will send a WhatsApp OTP.')
+                              ? (otpRequested
+                                    ? 'Enter the WhatsApp OTP sent to ${session.pendingPhone} to continue.'
+                                    : 'Sign in with your mobile number. We will send a WhatsApp OTP.')
                               : 'Track appointments, reports, and prescriptions from one place.',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
@@ -89,20 +89,25 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                     vertical: 6,
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Patient Portal',
-                                        style: theme.textTheme.titleLarge?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                        ),
+                                        style: theme.textTheme.titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
                                         'Secure mobile access for appointments, records, and prescriptions.',
-                                        style: theme.textTheme.bodyMedium?.copyWith(
-                                          color: theme.colorScheme.onSurfaceVariant,
-                                        ),
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
                                       ),
                                       const SizedBox(height: 24),
                                       SizedBox(
@@ -127,7 +132,8 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                               : CustomCard(
                                   key: const ValueKey('login_form_view'),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       if (!otpRequested)
                                         TextButton.icon(
@@ -136,7 +142,10 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                               _showLoginForm = false;
                                             });
                                           },
-                                          icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                                          icon: const Icon(
+                                            Icons.arrow_back_rounded,
+                                            size: 18,
+                                          ),
                                           label: const Text('Back'),
                                         ),
                                       Container(
@@ -145,15 +154,24 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                           vertical: 6,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: theme.colorScheme.primaryContainer,
-                                          borderRadius: BorderRadius.circular(999),
+                                          color: theme
+                                              .colorScheme
+                                              .primaryContainer,
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
                                         ),
                                         child: Text(
-                                          otpRequested ? 'Step 2 of 2' : 'Step 1 of 2',
-                                          style: theme.textTheme.labelMedium?.copyWith(
-                                            color: theme.colorScheme.onPrimaryContainer,
-                                            fontWeight: FontWeight.w700,
-                                          ),
+                                          otpRequested
+                                              ? 'Step 2 of 2'
+                                              : 'Step 1 of 2',
+                                          style: theme.textTheme.labelMedium
+                                              ?.copyWith(
+                                                color: theme
+                                                    .colorScheme
+                                                    .onPrimaryContainer,
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                         ),
                                       ),
                                       const SizedBox(height: 18),
@@ -161,7 +179,9 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                         controller: _phoneController,
                                         label: 'Mobile number',
                                         hintText: 'Enter mobile number',
-                                        prefixIcon: const Icon(Icons.phone_android_rounded),
+                                        prefixIcon: const Icon(
+                                          Icons.phone_android_rounded,
+                                        ),
                                         keyboardType: TextInputType.phone,
                                         readOnly: otpRequested,
                                       ),
@@ -170,35 +190,47 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                           controller: _otpController,
                                           label: 'OTP',
                                           hintText: 'Enter 6-digit OTP',
-                                          prefixIcon: const Icon(Icons.lock_open_rounded),
+                                          prefixIcon: const Icon(
+                                            Icons.lock_open_rounded,
+                                          ),
                                           keyboardType: TextInputType.number,
                                         ),
-                                        if (showDevOtp && (session.devOtp ?? '').isNotEmpty) ...[
+                                        if (showDevOtp &&
+                                            (session.devOtp ?? '')
+                                                .isNotEmpty) ...[
                                           const SizedBox(height: 12),
                                           Container(
                                             width: double.infinity,
                                             padding: const EdgeInsets.all(12),
                                             decoration: BoxDecoration(
-                                              color: theme.colorScheme.primaryContainer,
-                                              borderRadius: BorderRadius.circular(12),
+                                              color: theme
+                                                  .colorScheme
+                                                  .primaryContainer,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                             ),
                                             child: Text(
                                               'Dev OTP: ${session.devOtp}',
-                                              style: theme.textTheme.bodyMedium?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: theme.colorScheme.onPrimaryContainer,
-                                              ),
+                                              style: theme.textTheme.bodyMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onPrimaryContainer,
+                                                  ),
                                             ),
                                           ),
                                         ],
                                       ],
-                                      if ((session.errorMessage ?? '').isNotEmpty) ...[
+                                      if ((session.errorMessage ?? '')
+                                          .isNotEmpty) ...[
                                         const SizedBox(height: 12),
                                         Text(
                                           session.errorMessage!,
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: theme.colorScheme.error,
-                                          ),
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme.colorScheme.error,
+                                              ),
                                         ),
                                       ],
                                       const SizedBox(height: 20),
@@ -206,17 +238,21 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                         width: double.infinity,
                                         child: CustomButton(
                                           onPressed: () async {
-                                            final messenger = ScaffoldMessenger.of(context);
+                                            final messenger =
+                                                ScaffoldMessenger.of(context);
                                             try {
                                               if (otpRequested) {
-                                                await context.read<SessionProvider>().verifyOtp(
+                                                await context
+                                                    .read<SessionProvider>()
+                                                    .verifyOtp(
                                                       otp: _otpController.text,
                                                     );
                                               } else {
                                                 await context
                                                     .read<SessionProvider>()
                                                     .sendOtp(
-                                                      phone: _phoneController.text,
+                                                      phone:
+                                                          _phoneController.text,
                                                     );
                                                 if (context.mounted) {
                                                   messenger.showSnackBar(
@@ -232,8 +268,12 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                               }
                                             } catch (_) {}
                                           },
-                                          text: otpRequested ? 'Verify and Sign In' : 'Send OTP',
-                                          isLoading: session.isSendingOtp || session.isVerifyingOtp,
+                                          text: otpRequested
+                                              ? 'Verify and Sign In'
+                                              : 'Send OTP',
+                                          isLoading:
+                                              session.isSendingOtp ||
+                                              session.isVerifyingOtp,
                                           icon: Icon(
                                             otpRequested
                                                 ? Icons.verified_user_rounded
@@ -249,12 +289,16 @@ class _PatientAuthScreenState extends State<PatientAuthScreen> {
                                           width: double.infinity,
                                           child: CustomButton(
                                             isOutlined: true,
-                                            onPressed: session.isSendingOtp || session.isVerifyingOtp
+                                            onPressed:
+                                                session.isSendingOtp ||
+                                                    session.isVerifyingOtp
                                                 ? null
                                                 : () {
                                                     _otpController.clear();
                                                     _phoneController.clear();
-                                                    context.read<SessionProvider>().cancelPendingOtp();
+                                                    context
+                                                        .read<SessionProvider>()
+                                                        .cancelPendingOtp();
                                                   },
                                             icon: Icon(
                                               Icons.restart_alt_rounded,

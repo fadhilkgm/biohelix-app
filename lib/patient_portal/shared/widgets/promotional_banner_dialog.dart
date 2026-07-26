@@ -227,7 +227,7 @@ class _PromotionFallback extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF5A88F1), Color(0xFF19A49A)],
+          colors: [Color(0xFF06489B), Color(0xFF19A49A)],
         ),
       ),
       child: Center(

@@ -55,6 +55,7 @@ class PatientPortalProvider extends ChangeNotifier {
   List<AiSuggestionItem> _aiSuggestions = const [];
   MyClubSummary? _myClub;
   List<ChatThreadSummary> _chatThreads = const [];
+  Future<void>? _chatInitialization;
   String? _activeChatThreadId;
   final Map<String, List<ChatMessage>> _chatHistories =
       <String, List<ChatMessage>>{};

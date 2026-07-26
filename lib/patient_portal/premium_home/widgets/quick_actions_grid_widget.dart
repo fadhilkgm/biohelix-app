@@ -1,5 +1,4 @@
-﻿import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/material.dart';
 
 import '../design/app_spacing.dart';
 import '../design/app_text_styles.dart';
@@ -198,7 +197,8 @@ class _QuickActionCard extends StatelessWidget {
                             ),
                             child: Text(
                               'AI',
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 color: Colors.white,
                                 fontSize: 8,
                                 fontWeight: FontWeight.w900,

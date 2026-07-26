@@ -69,9 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         if (!session.isAuthenticated) {
-          return PatientAuthFlow(
-            onBackToOnboarding: _resetOnboarding,
-          );
+          return PatientAuthFlow(onBackToOnboarding: _resetOnboarding);
         }
 
         return PatientAppShell(key: ValueKey(session.patient?.id));

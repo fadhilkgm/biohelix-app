@@ -129,7 +129,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                     controller: widget.controller,
                     minLines: 1,
                     maxLines: 4,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                       color: AiChatColors.textPrimary,
@@ -305,7 +306,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                       ),
                       child: Text(
                         strings.assistantRecording,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           color: Colors.white,
                           fontSize: 8,
                           fontWeight: FontWeight.w800,

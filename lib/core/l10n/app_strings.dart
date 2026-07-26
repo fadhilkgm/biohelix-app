@@ -17,6 +17,7 @@ class AppStrings {
 abstract class LocalizedStrings {
   const LocalizedStrings();
 
+  String get goodDay;
   String get goodMorning;
   String get goodAfternoon;
   String get goodEvening;
@@ -40,6 +41,17 @@ abstract class LocalizedStrings {
   String get noUpcomingAppointments;
   String get onboardingTitle;
   String get onboardingDescription;
+  String get chooseLanguageTitle;
+  String get chooseLanguageDescription;
+  String get next;
+  String get reviewPoliciesTitle;
+  String get reviewPoliciesDescription;
+  String get agreementConfirmation;
+  String get dataPrivacyNoticeTitle;
+  String get dataPrivacyNoticeBody;
+  String get privacyPolicy;
+  String get termsAndConditions;
+  String get legalContentUnavailable;
   String get getStarted;
   String get biohelix;
   String get hospitalLocation;
@@ -124,6 +136,8 @@ abstract class LocalizedStrings {
 
   // Navigation
   String get navHome;
+  String get navHealthStatus;
+  String get navRecords;
   String get navReports;
   String get navBookings;
   String get navCheckup;
@@ -180,6 +194,31 @@ abstract class LocalizedStrings {
   // Home & discovery
   String get noDoctorsInDepartment;
   String couldNotStartCall(String number);
+  String get bookConsultationForLovedOne;
+  String get healthStatus;
+  String forHealthDate(String date);
+  String get healthMetric;
+  String get riskMetric;
+  String healthScoreSummary(String score);
+  String updatedHealthAt(String date);
+  String get viewHealthHistory;
+  String get addTodayReadings;
+  String get noHealthReadings;
+  String get healthSnapshotReady;
+  String get healthStatusSubtitle;
+  String get fromDate;
+  String get toDate;
+  String get healthScoreTrend;
+  String get comprehensiveSummary;
+  String get latestScore;
+  String get averageScore;
+  String get scoreChange;
+  String get reportsInRange;
+  String get recentHealthReport;
+  String get noHealthStatusData;
+  String get noDataInSelectedRange;
+  String get bloodSugarLabel;
+  String get cholesterolLabel;
 
   // Labs & tests
   String get noLabTestsAvailable;
@@ -218,6 +257,8 @@ abstract class LocalizedStrings {
 class _EnStrings extends LocalizedStrings {
   const _EnStrings();
 
+  @override
+  String get goodDay => 'Have a good day,';
   @override
   String get goodMorning => 'Good Morning,';
   @override
@@ -266,6 +307,33 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get onboardingDescription =>
       'Connect instantly with trusted doctors, book visits online, and manage your health anytime.';
+  @override
+  String get chooseLanguageTitle => 'Choose your language';
+  @override
+  String get chooseLanguageDescription =>
+      'Select the language you would like to use throughout the BHRC app.';
+  @override
+  String get next => 'Next';
+  @override
+  String get reviewPoliciesTitle => 'Your privacy matters';
+  @override
+  String get reviewPoliciesDescription =>
+      'Please review how we handle your information and the terms for using the app.';
+  @override
+  String get agreementConfirmation =>
+      'I have read and agree to the Privacy Policy and Terms & Conditions.';
+  @override
+  String get dataPrivacyNoticeTitle => 'Your data and privacy';
+  @override
+  String get dataPrivacyNoticeBody =>
+      'We securely handle your personal and health information to provide care. By continuing, you acknowledge our policies.';
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+  @override
+  String get termsAndConditions => 'Terms & Conditions';
+  @override
+  String get legalContentUnavailable =>
+      'This information is temporarily unavailable.';
   @override
   String get getStarted => 'Get Started';
   @override
@@ -457,6 +525,10 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get navHome => 'Home';
   @override
+  String get navHealthStatus => 'Health Status';
+  @override
+  String get navRecords => 'Records';
+  @override
   String get navReports => 'Reports';
   @override
   String get navBookings => 'Bookings';
@@ -559,6 +631,59 @@ class _EnStrings extends LocalizedStrings {
   @override
   String couldNotStartCall(String number) =>
       'Could not start a call to $number';
+  @override
+  String get bookConsultationForLovedOne =>
+      'Book a consultation for your loved one';
+  @override
+  String get healthStatus => 'Health Status';
+  @override
+  String forHealthDate(String date) => 'For $date';
+  @override
+  String get healthMetric => 'Health';
+  @override
+  String get riskMetric => 'Risk';
+  @override
+  String healthScoreSummary(String score) => 'Health score: $score/100.';
+  @override
+  String updatedHealthAt(String date) => 'Updated $date';
+  @override
+  String get viewHealthHistory => 'View health history';
+  @override
+  String get addTodayReadings => "Add today's readings";
+  @override
+  String get noHealthReadings =>
+      "No readings recorded yet — add today's readings to get your score.";
+  @override
+  String get healthSnapshotReady => 'Your health snapshot is ready.';
+  @override
+  String get healthStatusSubtitle =>
+      'Review recent health trends and summaries for a selected date range.';
+  @override
+  String get fromDate => 'From';
+  @override
+  String get toDate => 'To';
+  @override
+  String get healthScoreTrend => 'Health score trend';
+  @override
+  String get comprehensiveSummary => 'Comprehensive summary';
+  @override
+  String get latestScore => 'Latest score';
+  @override
+  String get averageScore => 'Average score';
+  @override
+  String get scoreChange => 'Score change';
+  @override
+  String get reportsInRange => 'Reports in range';
+  @override
+  String get recentHealthReport => 'Recent health report';
+  @override
+  String get noHealthStatusData => 'No health history is available yet.';
+  @override
+  String get noDataInSelectedRange => 'No scores in the selected date range.';
+  @override
+  String get bloodSugarLabel => 'Blood sugar';
+  @override
+  String get cholesterolLabel => 'Cholesterol';
 
   // Labs & tests
   @override
@@ -620,9 +745,11 @@ class _MlStrings extends LocalizedStrings {
   const _MlStrings();
 
   @override
+  String get goodDay => 'നല്ലൊരു ദിവസം ആശംസിക്കുന്നു,';
+  @override
   String get goodMorning => 'സുപ്രഭാതം,';
   @override
-  String get goodAfternoon => 'ഉച്ചയ്ക്ക് ശേഷം,';
+  String get goodAfternoon => 'ശുഭ ഉച്ചതിരിഞ്ഞ്,';
   @override
   String get goodEvening => 'ശുഭസായാഹ്നം,';
   @override
@@ -669,6 +796,32 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get onboardingDescription =>
       'വിശ്വസനീയമായ ഡോക്ടർമാരുമായി ഉടൻ ബന്ധപ്പെടൂ, ഓൺലൈനായി സന്ദർശനം ബുക്ക് ചെയ്യൂ, ആരോഗ്യ വിവരങ്ങൾ എപ്പോൾ വേണമെങ്കിലും നിയന്ത്രിക്കൂ.';
+  @override
+  String get chooseLanguageTitle => 'നിങ്ങളുടെ ഭാഷ തിരഞ്ഞെടുക്കുക';
+  @override
+  String get chooseLanguageDescription =>
+      'BHRC ആപ്പിൽ ഉപയോഗിക്കാൻ ആഗ്രഹിക്കുന്ന ഭാഷ തിരഞ്ഞെടുക്കുക.';
+  @override
+  String get next => 'അടുത്തത്';
+  @override
+  String get reviewPoliciesTitle => 'നിങ്ങളുടെ സ്വകാര്യത പ്രധാനമാണ്';
+  @override
+  String get reviewPoliciesDescription =>
+      'നിങ്ങളുടെ വിവരങ്ങൾ ഞങ്ങൾ എങ്ങനെ കൈകാര്യം ചെയ്യുന്നു എന്നും ആപ്പ് ഉപയോഗിക്കുന്നതിനുള്ള നിബന്ധനകളും ദയവായി വായിക്കുക.';
+  @override
+  String get agreementConfirmation =>
+      'സ്വകാര്യതാ നയവും നിബന്ധനകളും വ്യവസ്ഥകളും ഞാൻ വായിക്കുകയും അംഗീകരിക്കുകയും ചെയ്യുന്നു.';
+  @override
+  String get dataPrivacyNoticeTitle => 'നിങ്ങളുടെ വിവരങ്ങളും സ്വകാര്യതയും';
+  @override
+  String get dataPrivacyNoticeBody =>
+      'നിങ്ങൾക്ക് ആരോഗ്യ സേവനങ്ങൾ നൽകുന്നതിനായി വ്യക്തിഗതവും ആരോഗ്യവുമായി ബന്ധപ്പെട്ടതുമായ വിവരങ്ങൾ ഞങ്ങൾ സുരക്ഷിതമായി കൈകാര്യം ചെയ്യുന്നു. തുടരുന്നതിലൂടെ ഞങ്ങളുടെ നയങ്ങൾ നിങ്ങൾ അംഗീകരിക്കുന്നു.';
+  @override
+  String get privacyPolicy => 'സ്വകാര്യതാ നയം';
+  @override
+  String get termsAndConditions => 'നിബന്ധനകളും വ്യവസ്ഥകളും';
+  @override
+  String get legalContentUnavailable => 'ഈ വിവരം ഇപ്പോൾ ലഭ്യമല്ല.';
   @override
   String get getStarted => 'തുടങ്ങുക';
   @override
@@ -863,6 +1016,10 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get navHome => 'ഹോം';
   @override
+  String get navHealthStatus => 'ആരോഗ്യ നില';
+  @override
+  String get navRecords => 'റെക്കോർഡുകൾ';
+  @override
   String get navReports => 'റിപ്പോർട്ടുകൾ';
   @override
   String get navBookings => 'ബുക്കിംഗുകൾ';
@@ -944,9 +1101,9 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get familyMemberAdded => 'കുടുംബാംഗത്തെ ചേർത്തു.';
   @override
-  String get profileUpdated => 'പ്രൊഫൈൽ അപ്ഡേറ്റ് ചെയ്തു.';
+  String get profileUpdated => 'പ്രൊഫൈൽ പുതുക്കി.';
   @override
-  String get vitalsSaved => 'വൈറ്റൽസ് സേവ് ചെയ്തു.';
+  String get vitalsSaved => 'ആരോഗ്യ അളവുകൾ സംരക്ഷിച്ചു.';
   @override
   String get noUploadedReports => 'അപ്ലോഡ് ചെയ്ത റിപ്പോർട്ടുകൾ ഇല്ല.';
   @override
@@ -956,9 +1113,9 @@ class _MlStrings extends LocalizedStrings {
 
   // Health profile
   @override
-  String get healthProfileSaved => 'ആരോഗ്യ പ്രൊഫൈൽ സേവ് ചെയ്തു.';
+  String get healthProfileSaved => 'ആരോഗ്യ പ്രൊഫൈൽ സംരക്ഷിച്ചു.';
   @override
-  String couldNotSave(String error) => 'സേവ് ചെയ്യാൻ കഴിഞ്ഞില്ല: $error';
+  String couldNotSave(String error) => 'സംരക്ഷിക്കാൻ കഴിഞ്ഞില്ല: $error';
 
   // Home & discovery
   @override
@@ -966,6 +1123,60 @@ class _MlStrings extends LocalizedStrings {
   @override
   String couldNotStartCall(String number) =>
       '$number എന്ന നമ്പറിലേക്ക് കോൾ ആരംഭിക്കാൻ കഴിഞ്ഞില്ല';
+  @override
+  String get bookConsultationForLovedOne =>
+      'നിങ്ങളുടെ പ്രിയപ്പെട്ടവർക്കായി കൺസൾട്ടേഷൻ ബുക്ക് ചെയ്യൂ.';
+  @override
+  String get healthStatus => 'ആരോഗ്യ നില';
+  @override
+  String forHealthDate(String date) => 'തീയതി: $date';
+  @override
+  String get healthMetric => 'ആരോഗ്യം';
+  @override
+  String get riskMetric => 'അപകടസാധ്യത';
+  @override
+  String healthScoreSummary(String score) => 'ആരോഗ്യ സ്കോർ: $score/100.';
+  @override
+  String updatedHealthAt(String date) => 'അവസാനം പുതുക്കിയത്: $date';
+  @override
+  String get viewHealthHistory => 'ആരോഗ്യ ചരിത്രം കാണുക';
+  @override
+  String get addTodayReadings => 'ഇന്നത്തെ അളവുകൾ ചേർക്കുക';
+  @override
+  String get noHealthReadings =>
+      'ഇതുവരെ അളവുകളൊന്നും രേഖപ്പെടുത്തിയിട്ടില്ല — സ്കോർ ലഭിക്കാൻ ഇന്നത്തെ അളവുകൾ ചേർക്കുക.';
+  @override
+  String get healthSnapshotReady => 'നിങ്ങളുടെ ആരോഗ്യ സംഗ്രഹം തയ്യാറാണ്.';
+  @override
+  String get healthStatusSubtitle =>
+      'തിരഞ്ഞെടുത്ത തീയതി പരിധിയിലെ സമീപകാല ആരോഗ്യ പ്രവണതകളും സംഗ്രഹവും കാണുക.';
+  @override
+  String get fromDate => 'മുതൽ';
+  @override
+  String get toDate => 'വരെ';
+  @override
+  String get healthScoreTrend => 'ആരോഗ്യ സ്കോർ പ്രവണത';
+  @override
+  String get comprehensiveSummary => 'സമഗ്ര സംഗ്രഹം';
+  @override
+  String get latestScore => 'ഏറ്റവും പുതിയ സ്കോർ';
+  @override
+  String get averageScore => 'ശരാശരി സ്കോർ';
+  @override
+  String get scoreChange => 'സ്കോർ മാറ്റം';
+  @override
+  String get reportsInRange => 'പരിധിയിലെ റിപ്പോർട്ടുകൾ';
+  @override
+  String get recentHealthReport => 'സമീപകാല ആരോഗ്യ റിപ്പോർട്ട്';
+  @override
+  String get noHealthStatusData => 'ആരോഗ്യ ചരിത്രം ഇതുവരെ ലഭ്യമല്ല.';
+  @override
+  String get noDataInSelectedRange =>
+      'തിരഞ്ഞെടുത്ത തീയതി പരിധിയിൽ സ്കോറുകളില്ല.';
+  @override
+  String get bloodSugarLabel => 'രക്തത്തിലെ പഞ്ചസാര';
+  @override
+  String get cholesterolLabel => 'കൊളസ്‌ട്രോൾ';
 
   // Labs & tests
   @override

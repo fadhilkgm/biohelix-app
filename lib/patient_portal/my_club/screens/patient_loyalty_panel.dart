@@ -51,7 +51,10 @@ class PatientLoyaltyPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(strings.tierLabel(myClub.tier), style: theme.textTheme.bodyMedium),
+                Text(
+                  strings.tierLabel(myClub.tier),
+                  style: theme.textTheme.bodyMedium,
+                ),
                 const SizedBox(height: 4),
                 Text(
                   'Estimated value: ₹${myClub.currencyValue.toStringAsFixed(2)}',

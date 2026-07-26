@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/app_logo.dart';
 
@@ -85,4 +85,3 @@ class _LogoBox extends StatelessWidget {
     );
   }
 }
-

@@ -107,22 +107,29 @@ class BookingConfirmation {
     required this.reference,
     this.id,
     this.batchId,
+    this.tokenNumber,
     this.raw = const <String, dynamic>{},
   });
 
   final String reference;
   final int? id;
   final String? batchId;
+  final int? tokenNumber;
   final Map<String, dynamic> raw;
 
   factory BookingConfirmation.fromBookingResponse(Map<String, dynamic> json) {
     // Mobile API returns bookingId (camelCase); legacy API returns id + booking_number
     final id =
         (json['bookingId'] as num?)?.toInt() ?? (json['id'] as num?)?.toInt();
-    final bookingNumber = json['booking_number']?.toString();
+    final bookingNumber =
+        json['bookingNumber']?.toString() ?? json['booking_number']?.toString();
+    final tokenNumber =
+        (json['tokenNumber'] as num?)?.toInt() ??
+        (json['token_number'] as num?)?.toInt();
     return BookingConfirmation(
       reference: bookingNumber ?? (id == null ? 'BKG-PENDING' : 'BKG-$id'),
       id: id,
+      tokenNumber: tokenNumber,
       raw: json,
     );
   }
@@ -377,6 +384,13 @@ class PatientRepository {
 
   Future<void> logout() async {
     await _apiClient.postJson('/auth/logout');
+  }
+
+  Future<void> deleteAccount() async {
+    await _apiClient.deleteJson(
+      '/patients/me',
+      data: const {'confirmation': 'CONFIRM'},
+    );
   }
 
   Future<PatientIdentity> updatePatientProfile(PatientIdentity patient) async {
@@ -1029,6 +1043,7 @@ class PatientRepository {
   Future<DocumentRecord> uploadDocument(
     String filePath, {
     String? fileName,
+    String? documentType,
   }) async {
     final normalized = filePath.trim();
     final uploadFileName = (fileName ?? '').trim().isNotEmpty
@@ -1042,6 +1057,8 @@ class PatientRepository {
           File(normalized).path,
           filename: uploadFileName,
         ),
+        if (documentType != null && documentType.trim().isNotEmpty)
+          'documentType': documentType.trim(),
       }),
     );
 

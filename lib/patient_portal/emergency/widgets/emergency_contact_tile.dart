@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'emergency_support_content.dart';
 
@@ -42,11 +42,7 @@ class EmergencyContactTile extends StatelessWidget {
                 color: contact.iconColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                contact.icon,
-                color: contact.iconColor,
-                size: 24,
-              ),
+              child: Icon(contact.icon, color: contact.iconColor, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -90,10 +86,7 @@ class EmergencyContactTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     contact.subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -115,4 +108,3 @@ class EmergencyContactTile extends StatelessWidget {
     );
   }
 }
-

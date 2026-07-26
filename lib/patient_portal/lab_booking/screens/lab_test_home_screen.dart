@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
+import '../../../core/widgets/app_chevron_back_button.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../lab_booking/design/app_colors.dart';
 import '../../lab_booking/design/app_spacing.dart';
@@ -49,7 +49,8 @@ class _LabHomeContent extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Lab Tests',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: 'Manrope',
             fontWeight: FontWeight.w800,
             color: const Color(0xFF192233),
           ),
@@ -57,13 +58,12 @@ class _LabHomeContent extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            color: Color(0xFF192233),
-            size: 30,
+        leadingWidth: 64,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: AppChevronBackButton(
+            onPressed: () => Navigator.maybePop(context),
           ),
-          onPressed: () => Navigator.maybePop(context),
         ),
         actions: [
           IconButton(
@@ -158,9 +158,9 @@ class _LabHomeContent extends StatelessWidget {
                 child: Center(
                   child: Text(
                     'No tests found for this body system.',
-                    style: AppTextStyles.body(context).copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    style: AppTextStyles.body(
+                      context,
+                    ).copyWith(color: AppColors.textSecondary),
                   ),
                 ),
               )
@@ -173,10 +173,7 @@ class _LabHomeContent extends StatelessWidget {
                     if (t.originalItem != null) {
                       _push(
                         context,
-                        LabTestDetailPage(
-                          test: t.originalItem!,
-                          controller: c,
-                        ),
+                        LabTestDetailPage(test: t.originalItem!, controller: c),
                       );
                     } else {
                       c.addToCart(t);
@@ -211,7 +208,7 @@ class _LabHomeContent extends StatelessWidget {
         child: ElevatedButton(
           onPressed: () => _push(context, const CartScreen()),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5A88F1),
+            backgroundColor: const Color(0xFF06489B),
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -224,7 +221,8 @@ class _LabHomeContent extends StatelessWidget {
             children: [
               Text(
                 'Confirm Booking',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -238,7 +236,8 @@ class _LabHomeContent extends StatelessWidget {
                 ),
                 child: Text(
                   '${c.cartCount}',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -276,7 +275,7 @@ class _LabHomeContent extends StatelessWidget {
         duration: const Duration(milliseconds: 1500),
         content: Text(
           '${test.name} added',
-          style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
         ),
         backgroundColor: const Color(0xFF4CAF50),
         behavior: SnackBarBehavior.floating,

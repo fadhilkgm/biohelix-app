@@ -147,7 +147,9 @@ class SessionProvider extends ChangeNotifier {
     String? bloodGroup,
   }) async {
     final normalizedPhone = normalizePatientPhone(phone);
-    if (normalizedPhone.isEmpty || name.trim().isEmpty || place.trim().isEmpty) {
+    if (normalizedPhone.isEmpty ||
+        name.trim().isEmpty ||
+        place.trim().isEmpty) {
       _errorMessage = 'Enter your name, mobile number, and location.';
       notifyListeners();
       return;
@@ -474,6 +476,22 @@ class SessionProvider extends ChangeNotifier {
     } catch (_) {
       // Local sign-out should still complete if the token is already invalid.
     }
+    await _authStorage.clearAll();
+    _authToken = null;
+    _apiClient.updateAuthToken(null);
+    _patient = null;
+    _familyProfiles = const [];
+    _pendingPhone = null;
+    _pendingMrn = null;
+    _devOtp = null;
+    _otpStatusMessage = null;
+    _clearPendingSignupDetails();
+    _state = SessionState.signedOut;
+    notifyListeners();
+  }
+
+  Future<void> deleteAccount() async {
+    await _patientRepository.deleteAccount();
     await _authStorage.clearAll();
     _authToken = null;
     _apiClient.updateAuthToken(null);

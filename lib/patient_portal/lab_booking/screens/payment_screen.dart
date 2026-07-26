@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -33,7 +32,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
         centerTitle: false,
         title: Text(
           'Payment',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: 'Manrope',
             fontWeight: FontWeight.w800,
             color: const Color(0xFF2D3142),
           ),
@@ -48,7 +48,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Choose Payment Method',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontWeight: FontWeight.w800,
                   fontSize: 18,
                   color: const Color(0xFF2D3142),
@@ -96,7 +97,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Final Summary',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: const Color(0xFF2D3142),
@@ -132,7 +134,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         child: ElevatedButton(
           onPressed: _placing ? null : () => _confirm(context),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5A88F1),
+            backgroundColor: const Color(0xFF06489B),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
@@ -154,7 +156,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   children: [
                     Text(
                       'Confirm Order',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                       ),
@@ -303,13 +306,13 @@ class _PaymentOption extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: selected
-                    ? const Color(0xFF5A88F1)
+                    ? const Color(0xFF06489B)
                     : const Color(0xFFF4F7FF),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
                 icon,
-                color: selected ? Colors.white : const Color(0xFF5A88F1),
+                color: selected ? Colors.white : const Color(0xFF06489B),
               ),
             ),
             const SizedBox(width: 16),
@@ -319,7 +322,8 @@ class _PaymentOption extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       color: const Color(0xFF2D3142),
@@ -335,7 +339,7 @@ class _PaymentOption extends StatelessWidget {
             Radio<bool>(
               value: true,
               groupValue: selected,
-              activeColor: const Color(0xFF5A88F1),
+              activeColor: const Color(0xFF06489B),
               onChanged: (_) => onTap(),
             ),
           ],

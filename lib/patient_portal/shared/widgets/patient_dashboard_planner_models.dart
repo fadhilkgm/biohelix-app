@@ -382,4 +382,3 @@ _PeriodicPlan _buildPeriodicPlan({
     yearlySchedule: yearlySchedule,
   );
 }
-

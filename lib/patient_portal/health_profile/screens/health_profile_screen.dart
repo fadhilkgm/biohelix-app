@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -18,7 +17,7 @@ class HealthProfileScreen extends StatefulWidget {
 
   static const _bg = Color(0xFFF8F9FB);
   static const _ink = Color(0xFF192233);
-  static const _accent = Color(0xFF5A88F1);
+  static const _accent = Color(0xFF06489B);
 
   @override
   State<HealthProfileScreen> createState() => _HealthProfileScreenState();
@@ -138,7 +137,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
       appBar: AppBar(
         title: Text(
           'Health Profile',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 20,
             fontWeight: FontWeight.w800,
             color: HealthProfileScreen._ink,
@@ -167,7 +167,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                     'Keep your conditions, medications and allergies up to date. '
                     'Each save is stored as a new timestamped snapshot and helps '
                     'personalise your AI health assessments.',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 13,
                       height: 1.5,
                       color: HealthProfileScreen._ink.withValues(alpha: 0.6),
@@ -226,7 +227,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                             )
                           : Text(
                               'Save Health Profile',
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontWeight: FontWeight.w800,
                                 fontSize: 16,
                               ),
@@ -237,7 +239,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                     const SizedBox(height: 12),
                     Text(
                       _error!,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 13,
                         color: const Color(0xFFDB4C4C),
                       ),
@@ -247,7 +250,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                     const SizedBox(height: 32),
                     Text(
                       'History',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                         color: HealthProfileScreen._ink,
@@ -275,7 +279,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
         children: [
           Text(
             label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: HealthProfileScreen._ink,
@@ -302,7 +307,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                 vertical: 14,
               ),
             ),
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
@@ -358,7 +364,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
               Expanded(
                 child: Text(
                   dateLabel,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
                     color: HealthProfileScreen._ink,
@@ -376,7 +383,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                 ),
                 child: Text(
                   _sourceLabels[snapshot.source] ?? snapshot.source,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: HealthProfileScreen._accent,
@@ -392,7 +400,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(
                   line,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 13,
                     height: 1.4,
                     color: HealthProfileScreen._ink.withValues(alpha: 0.75),

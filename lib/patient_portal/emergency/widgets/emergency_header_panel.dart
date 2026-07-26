@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class EmergencyHeaderPanel extends StatelessWidget {
   const EmergencyHeaderPanel({
@@ -72,4 +72,3 @@ class EmergencyHeaderPanel extends StatelessWidget {
     );
   }
 }
-

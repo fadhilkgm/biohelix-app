@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
@@ -48,14 +47,18 @@ class TestListScreen extends StatelessWidget {
                 children: [
                   TextField(
                     onChanged: c.setQuery,
-                    style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w600,
+                    ),
                     decoration: InputDecoration(
                       prefixIcon: const Icon(
                         Icons.search_rounded,
-                        color: Color(0xFF5A88F1),
+                        color: Color(0xFF06489B),
                       ),
                       hintText: 'Search tests or biomarkers',
-                      hintStyle: GoogleFonts.manrope(
+                      hintStyle: TextStyle(
+                        fontFamily: 'Manrope',
                         color: const Color(0xFF192233).withValues(alpha: 0.4),
                         fontWeight: FontWeight.w600,
                       ),
@@ -84,23 +87,26 @@ class TestListScreen extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: c.selectedBodyPoint == null
-                                  ? const Color(0xFF5A88F1)
+                                  ? const Color(0xFF06489B)
                                   : const Color(0xFFF4F7FF),
                               borderRadius: BorderRadius.circular(30),
                               border: Border.all(
                                 color: c.selectedBodyPoint == null
-                                    ? const Color(0xFF5A88F1)
+                                    ? const Color(0xFF06489B)
                                     : Colors.transparent,
                               ),
                             ),
                             child: Text(
                               'All',
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: c.selectedBodyPoint == null
                                     ? Colors.white
-                                    : const Color(0xFF192233).withValues(alpha: 0.6),
+                                    : const Color(
+                                        0xFF192233,
+                                      ).withValues(alpha: 0.6),
                               ),
                             ),
                           ),
@@ -118,23 +124,26 @@ class TestListScreen extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? const Color(0xFF5A88F1)
+                                    ? const Color(0xFF06489B)
                                     : const Color(0xFFF4F7FF),
                                 borderRadius: BorderRadius.circular(30),
                                 border: Border.all(
                                   color: isSelected
-                                      ? const Color(0xFF5A88F1)
+                                      ? const Color(0xFF06489B)
                                       : Colors.transparent,
                                 ),
                               ),
                               child: Text(
                                 bp.name,
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
                                   color: isSelected
                                       ? Colors.white
-                                      : const Color(0xFF192233).withValues(alpha: 0.6),
+                                      : const Color(
+                                          0xFF192233,
+                                        ).withValues(alpha: 0.6),
                                 ),
                               ),
                             ),
@@ -150,9 +159,7 @@ class TestListScreen extends StatelessWidget {
           if (c.filteredTests.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
-              child: Center(
-                child: Text(strings.noTestsFoundForFilters),
-              ),
+              child: Center(child: Text(strings.noTestsFoundForFilters)),
             )
           else
             SliverPadding(
@@ -205,7 +212,7 @@ class TestListScreen extends StatelessWidget {
         child: ElevatedButton(
           onPressed: () => _push(context, const CartScreen()),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5A88F1),
+            backgroundColor: const Color(0xFF06489B),
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -218,7 +225,8 @@ class TestListScreen extends StatelessWidget {
             children: [
               Text(
                 'Confirm Booking',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -232,7 +240,8 @@ class TestListScreen extends StatelessWidget {
                 ),
                 child: Text(
                   '${c.cartCount}',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -270,7 +279,7 @@ class TestListScreen extends StatelessWidget {
         duration: const Duration(milliseconds: 1500),
         content: Text(
           '${test.name} added',
-          style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
         ),
         backgroundColor: const Color(0xFF4CAF50),
         behavior: SnackBarBehavior.floating,

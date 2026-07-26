@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
+import '../../../core/widgets/app_chevron_back_button.dart';
 import '../../core/models/patient_models.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../../lab_booking/screens/package_booking_screen.dart';
@@ -24,7 +24,7 @@ AiCheckupService _defaultAiCheckupServiceFactory(BuildContext context) {
 }
 
 const _kInk = Color(0xFF192233);
-const _kAccent = Color(0xFF5A88F1);
+const _kAccent = Color(0xFF06489B);
 const _kBg = Color(0xFFF8F9FB);
 
 int _parsePrice(String? raw) {
@@ -45,7 +45,7 @@ class AiCheckupTab extends StatefulWidget {
 }
 
 class _AiCheckupTabState extends State<AiCheckupTab> {
-  String _step = 'language';
+  String _step = 'welcome';
   String _language = 'en';
 
   AssessmentSession? _session;
@@ -57,10 +57,22 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   AiCheckupService get _service =>
       (widget.serviceFactory ?? _defaultAiCheckupServiceFactory)(context);
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_step == 'welcome' && _session == null) {
+      _language = context.read<LanguageProvider>().language == AppLanguage.ml
+          ? 'ml'
+          : 'en';
+    }
+  }
+
   void _reset() {
     setState(() {
-      _step = 'language';
-      _language = 'en';
+      _step = 'welcome';
+      _language = context.read<LanguageProvider>().language == AppLanguage.ml
+          ? 'ml'
+          : 'en';
       _session = null;
       _currentIndex = 0;
       _answers.clear();
@@ -174,7 +186,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       appBar: AppBar(
         title: Text(
           'AI Health Checkup',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 22,
             fontWeight: FontWeight.w800,
             color: _kInk,
@@ -187,31 +200,32 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
         scrolledUnderElevation: 0,
         centerTitle: false,
         toolbarHeight: 72,
-        leading: _step != 'language'
-            ? IconButton(
-                tooltip: 'Back',
-                icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
-                onPressed: () {
-                  if (_step == 'results' || _step == 'analyzing') {
-                    _reset();
-                    return;
-                  }
-                  if (_step == 'questions' && _currentIndex > 0) {
-                    _back();
-                    return;
-                  }
-                  setState(() {
-                    _step = switch (_step) {
-                      'welcome' => 'language',
-                      'questions' => 'welcome',
-                      _ => 'language',
-                    };
-                  });
-                },
+        leadingWidth: 64,
+        leading: _step != 'welcome'
+            ? Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: AppChevronBackButton(
+                  onPressed: () {
+                    if (_step == 'results' || _step == 'analyzing') {
+                      _reset();
+                      return;
+                    }
+                    if (_step == 'questions' && _currentIndex > 0) {
+                      _back();
+                      return;
+                    }
+                    setState(() {
+                      _step = switch (_step) {
+                        'questions' => 'welcome',
+                        _ => 'welcome',
+                      };
+                    });
+                  },
+                ),
               )
             : null,
         actions: [
-          if (_step == 'language' || _step == 'welcome')
+          if (_step == 'welcome')
             IconButton(
               tooltip: _language == 'ml' ? 'ചരിത്രം' : 'History',
               icon: const Icon(Icons.history_rounded, color: _kInk),
@@ -220,12 +234,6 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
         ],
       ),
       body: switch (_step) {
-        'language' => _LanguageSelectionScreen(
-          onSelect: (lang) => setState(() {
-            _language = lang;
-            _step = 'welcome';
-          }),
-        ),
         'welcome' => _WelcomeScreen(
           language: _language,
           error: _error,
@@ -261,7 +269,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
           language: _language,
           loadHistory: _service.listHistory,
           onOpen: _openHistoryItem,
-          onStartNew: () => setState(() => _step = 'language'),
+          onStartNew: _reset,
         ),
         'results' =>
           _results != null
@@ -273,44 +281,6 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
               : const SizedBox.shrink(),
         _ => const SizedBox.shrink(),
       },
-    );
-  }
-}
-
-class _LanguageSelectionScreen extends StatelessWidget {
-  const _LanguageSelectionScreen({required this.onSelect});
-
-  final ValueChanged<String> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Choose Language',
-            style: GoogleFonts.manrope(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: _kInk,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Select your preferred language for the health assessment.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
-              fontSize: 15,
-              color: _kInk.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 40),
-          _OptionCard(label: 'English', onTap: () => onSelect('en')),
-          _OptionCard(label: 'മലയാളം (Malayalam)', onTap: () => onSelect('ml')),
-        ],
-      ),
     );
   }
 }
@@ -353,7 +323,8 @@ class _WelcomeScreen extends StatelessWidget {
           Text(
             isMl ? 'എഐ ഹെൽത്ത് ചെക്കപ്പ്' : 'AI Health Checkup',
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 28,
               fontWeight: FontWeight.w900,
               color: _kInk,
@@ -365,7 +336,8 @@ class _WelcomeScreen extends StatelessWidget {
                 ? 'കുറച്ച് ചോദ്യങ്ങൾക്ക് മറുപടി നൽകുക. നിങ്ങളുടെ ഉത്തരങ്ങൾ വിലയിരുത്തി അനുയോജ്യമായ പരിശോധനകൾ നിർദ്ദേശിക്കും.'
                 : 'Answer a few questions about your health. Our AI will assess your risk and suggest preventive lab tests tailored for you.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 15,
               color: _kInk.withValues(alpha: 0.6),
               height: 1.5,
@@ -376,7 +348,8 @@ class _WelcomeScreen extends StatelessWidget {
             Text(
               error!,
               textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 13,
                 color: const Color(0xFFDB4C4C),
               ),
@@ -415,7 +388,8 @@ class _LoadingScreen extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 20,
               fontWeight: FontWeight.w800,
               color: _kInk,
@@ -582,7 +556,8 @@ class _HistoryScreenState extends State<_HistoryScreen> {
                                     const SizedBox(width: 6),
                                     Text(
                                       risk.label,
-                                      style: GoogleFonts.manrope(
+                                      style: TextStyle(
+                                        fontFamily: 'Manrope',
                                         fontSize: 12,
                                         fontWeight: FontWeight.w800,
                                         color: risk.color,
@@ -594,7 +569,8 @@ class _HistoryScreenState extends State<_HistoryScreen> {
                               const Spacer(),
                               Text(
                                 _formatDate(item.createdAt),
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                   color: _kInk.withValues(alpha: 0.45),
@@ -608,7 +584,8 @@ class _HistoryScreenState extends State<_HistoryScreen> {
                               item.summary.trim(),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 13,
                                 height: 1.5,
                                 color: _kInk.withValues(alpha: 0.78),
@@ -621,7 +598,8 @@ class _HistoryScreenState extends State<_HistoryScreen> {
                             children: [
                               Text(
                                 isMl ? 'വിശദാംശങ്ങൾ കാണുക' : 'View details',
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   color: _kAccent,
@@ -676,7 +654,8 @@ class _HistoryMessage extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: _kInk,
@@ -686,7 +665,8 @@ class _HistoryMessage extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 14,
                 color: _kInk.withValues(alpha: 0.55),
               ),
@@ -746,7 +726,8 @@ class _QuestionScreen extends StatelessWidget {
                 isMl
                     ? 'ചോദ്യം ${index + 1}/$total'
                     : 'Question ${index + 1}/$total',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: _kAccent,
@@ -758,7 +739,8 @@ class _QuestionScreen extends StatelessWidget {
                   icon: const Icon(Icons.arrow_back_rounded, size: 16),
                   label: Text(
                     isMl ? 'തിരികെ' : 'Back',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
@@ -775,7 +757,8 @@ class _QuestionScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             question.question,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 22,
               fontWeight: FontWeight.w900,
               color: _kInk,
@@ -849,7 +832,8 @@ class _OptionCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     label,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: isSelected ? _kAccent : _kInk,
@@ -972,7 +956,10 @@ class _ResultsScreen extends StatelessWidget {
             icon: const Icon(Icons.replay_rounded),
             label: Text(
               isMl ? 'വീണ്ടും പരിശോധിക്കുക' : 'Retake Assessment',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontWeight: FontWeight.w800,
+              ),
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: _kAccent,
@@ -999,7 +986,8 @@ class _ResultsScreen extends StatelessWidget {
             ),
             label: Text(
               isMl ? 'ഹോമിലേക്ക് മടങ്ങുക' : 'Back to Home',
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontWeight: FontWeight.w800,
                 color: _kInk.withValues(alpha: 0.6),
               ),
@@ -1061,7 +1049,8 @@ class _RiskCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   risk.label,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: risk.color,
@@ -1074,7 +1063,8 @@ class _RiskCard extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               summary.trim(),
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 14,
                 height: 1.6,
                 color: _kInk.withValues(alpha: 0.8),
@@ -1127,7 +1117,8 @@ class _InsightsCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         insight,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 13,
                           height: 1.5,
                           color: _kInk.withValues(alpha: 0.78),
@@ -1197,7 +1188,8 @@ class _PackageCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                         color: _kInk,
@@ -1208,7 +1200,8 @@ class _PackageCard extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           subtitle!.trim(),
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 12,
                             color: _kInk.withValues(alpha: 0.5),
                           ),
@@ -1219,7 +1212,8 @@ class _PackageCard extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           '$testCount tests',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: _kInk.withValues(alpha: 0.4),
@@ -1238,7 +1232,8 @@ class _PackageCard extends StatelessWidget {
                 if (priceValue > 0)
                   Text(
                     '₹$priceValue',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                       color: _kAccent,
@@ -1262,7 +1257,8 @@ class _PackageCard extends StatelessWidget {
                     ),
                     child: Text(
                       'Book Now',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
                       ),
@@ -1325,7 +1321,8 @@ class _TestsCard extends StatelessWidget {
                     children: [
                       Text(
                         test.testName,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                           color: _kInk,
@@ -1334,7 +1331,8 @@ class _TestsCard extends StatelessWidget {
                       if ((test.category ?? '').trim().isNotEmpty)
                         Text(
                           test.category!.trim(),
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 12,
                             color: _kInk.withValues(alpha: 0.5),
                           ),
@@ -1345,7 +1343,8 @@ class _TestsCard extends StatelessWidget {
                 if (priceValue > 0)
                   Text(
                     '₹$priceValue',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: _kAccent,
@@ -1369,7 +1368,8 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: GoogleFonts.manrope(
+      style: TextStyle(
+        fontFamily: 'Manrope',
         fontSize: 18,
         fontWeight: FontWeight.w800,
         color: _kInk,
@@ -1401,7 +1401,11 @@ class _PrimaryButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: GoogleFonts.manrope(fontWeight: FontWeight.w900, fontSize: 18),
+          style: TextStyle(
+            fontFamily: 'Manrope',
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+          ),
         ),
       ),
     );

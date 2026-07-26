@@ -1,4 +1,4 @@
-﻿part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
+part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _TestsTab extends StatefulWidget {
   const _TestsTab();
@@ -41,7 +41,9 @@ class _TestsTabState extends State<_TestsTab> {
             height: 52,
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -216,8 +218,9 @@ class _TestsTabState extends State<_TestsTab> {
                       },
                       icon: const Icon(Icons.inventory_2_outlined),
                       label: Text(
-                        AppStrings.of(context.watch<LanguageProvider>().language)
-                            .viewHealthPackages,
+                        AppStrings.of(
+                          context.watch<LanguageProvider>().language,
+                        ).viewHealthPackages,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -302,7 +305,9 @@ class _TestsTabState extends State<_TestsTab> {
                                       shape: BoxShape.circle,
                                       color: isActive
                                           ? Colors.green
-                                          : Colors.redAccent.withValues(alpha: 0.8),
+                                          : Colors.redAccent.withValues(
+                                              alpha: 0.8,
+                                            ),
                                       border: Border.all(
                                         color: Colors.white,
                                         width: 2,
@@ -582,8 +587,9 @@ class _TestsTabState extends State<_TestsTab> {
                 child: Padding(
                   padding: const EdgeInsets.all(40),
                   child: Text(
-                    AppStrings.of(context.watch<LanguageProvider>().language)
-                        .noRecordsFound,
+                    AppStrings.of(
+                      context.watch<LanguageProvider>().language,
+                    ).noRecordsFound,
                   ),
                 ),
               )
@@ -666,4 +672,3 @@ class _TestsTabState extends State<_TestsTab> {
     );
   }
 }
-

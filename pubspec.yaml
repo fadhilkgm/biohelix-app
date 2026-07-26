@@ -40,7 +40,6 @@ dependencies:
   file_picker: ^10.1.9
   flutter_markdown: ^0.7.7+1
   flutter_webrtc: ^1.5.2
-  google_fonts: ^6.3.2
   intl: ^0.20.2
   logger: ^2.6.1
   provider: ^6.1.5
@@ -48,6 +47,7 @@ dependencies:
   url_launcher: ^6.3.2
   barcode_widget: ^2.0.4
   image_picker: ^1.2.3
+  pdfrx: ^2.4.7
 
 dev_dependencies:
   flutter_test:
@@ -81,11 +81,21 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Variable.ttf
+    - family: AnekMalayalam
+      fonts:
+        - asset: assets/fonts/AnekMalayalam-Variable.ttf
   assets:
     - assets/logo/logo.png
     - assets/images/body-organ-map.png
     - assets/images/human-body.png
     - assets/images/
+    - assets/images/health-ai/health-ai-mascot-body.png
+    - assets/images/health-ai/health-ai-mascot-arm-left.png
+    - assets/images/health-ai/health-ai-mascot-arm-right.png
     - assets/images/doctor-looking-clipboard/
 
   # To add assets to your application, add an assets section, like this:

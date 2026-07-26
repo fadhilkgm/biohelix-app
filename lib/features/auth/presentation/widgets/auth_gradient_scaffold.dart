@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/widgets/app_chevron_back_button.dart';
+
 // Full-screen blue gradient scaffold used across all auth screens.
 // Handles status bar styling, optional back button, and footer widget.
 class AuthGradientScaffold extends StatelessWidget {
@@ -15,24 +17,25 @@ class AuthGradientScaffold extends StatelessWidget {
   final VoidCallback? onBack;
   final Widget? footer;
 
-  static const _gradientTop = Color(0xFF0B2867);
-  static const _gradientBottom = Color(0xFF1A80AA);
-
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ));
+    final colorScheme = Theme.of(context).colorScheme;
+
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
+    );
 
     return Scaffold(
-      backgroundColor: _gradientTop,
+      backgroundColor: colorScheme.primary,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [_gradientTop, _gradientBottom],
+            colors: [colorScheme.primary, colorScheme.secondary],
           ),
         ),
         child: SafeArea(
@@ -44,7 +47,7 @@ class AuthGradientScaffold extends StatelessWidget {
                   alignment: Alignment.topLeft,
                   child: Padding(
                     padding: const EdgeInsets.only(left: 16, top: 8),
-                    child: _BackButton(onTap: onBack!),
+                    child: AppChevronBackButton(onPressed: onBack!),
                   ),
                 ),
               Expanded(
@@ -56,32 +59,6 @@ class AuthGradientScaffold extends StatelessWidget {
               ?footer,
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BackButton extends StatelessWidget {
-  const _BackButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.18),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(
-          Icons.arrow_back_rounded,
-          color: Colors.white,
-          size: 18,
         ),
       ),
     );

@@ -36,9 +36,11 @@ class CustomButton extends StatelessWidget {
     final isEnabled = onPressed != null;
 
     // Resolve colors based on mode
-    final Color bgColor = color ?? (onDark
-        ? (isOutlined ? Colors.transparent : Colors.white)
-        : (isEnabled ? primary : Colors.grey.shade400));
+    final Color bgColor =
+        color ??
+        (onDark
+            ? (isOutlined ? Colors.transparent : Colors.white)
+            : (isEnabled ? primary : Colors.grey.shade400));
     final Color fgColor = onDark
         ? (isOutlined ? Colors.white : primary)
         : (isEnabled ? Colors.white : Colors.white70);

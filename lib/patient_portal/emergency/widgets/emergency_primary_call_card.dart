@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class EmergencyPrimaryCallCard extends StatelessWidget {
   const EmergencyPrimaryCallCard({
@@ -74,7 +74,10 @@ class EmergencyPrimaryCallCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE53935),
                     borderRadius: BorderRadius.circular(12),
@@ -96,4 +99,3 @@ class EmergencyPrimaryCallCard extends StatelessWidget {
     );
   }
 }
-

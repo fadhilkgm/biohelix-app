@@ -226,8 +226,9 @@ class AssessmentHistoryItem {
       language: json['language']?.toString() ?? 'en',
       riskLevel: json['risk_level']?.toString() ?? 'low',
       summary: json['summary']?.toString() ?? '',
-      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '')
-          ?.toLocal(),
+      createdAt: DateTime.tryParse(
+        json['created_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
+import '../../../core/widgets/app_chevron_back_button.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../session/providers/session_provider.dart';
 import 'widgets/auth_form_widgets.dart';
@@ -174,18 +175,22 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       body: Stack(
         children: [
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFFF0F4FF), Colors.white],
+                  colors: [
+                    colorScheme.primary.withValues(alpha: 0.08),
+                    colorScheme.surface,
+                  ],
                 ),
               ),
             ),
@@ -283,9 +288,9 @@ class _LoginPageState extends State<LoginPage> {
                                 hint: strings.dateOfBirthHint,
                                 keyboardType: TextInputType.datetime,
                                 prefixIcon: Icons.calendar_today_rounded,
-                                suffixIcon: const Icon(
+                                suffixIcon: Icon(
                                   Icons.event_available_rounded,
-                                  color: Color(0xFF537DE8),
+                                  color: colorScheme.primary,
                                 ),
                                 errorText: _fieldErrors['dob'],
                                 readOnly: true,
@@ -377,9 +382,9 @@ class _LoginPageState extends State<LoginPage> {
                                   _isSignup
                                       ? strings.alreadyRegisteredLogin
                                       : strings.newPatientRegister,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF537DE8),
+                                    color: colorScheme.primary,
                                   ),
                                 ),
                               ),
@@ -401,22 +406,14 @@ class _LoginPageState extends State<LoginPage> {
           Positioned(
             top: 50,
             left: 20,
-            child: GestureDetector(
-              onTap: () {
+            child: AppChevronBackButton(
+              onPressed: () {
                 if (widget.onBack != null) {
                   widget.onBack!();
                 } else {
                   Navigator.maybePop(context);
                 }
               },
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.chevron_left_rounded, size: 28),
-              ),
             ),
           ),
         ],

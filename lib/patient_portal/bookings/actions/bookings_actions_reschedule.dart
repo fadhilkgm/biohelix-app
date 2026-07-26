@@ -18,8 +18,9 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppStrings.of(context.read<LanguageProvider>().language)
-                .doctorInfoMissing,
+            AppStrings.of(
+              context.read<LanguageProvider>().language,
+            ).doctorInfoMissing,
           ),
         ),
       );
@@ -86,8 +87,12 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
               ),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: AppShadows.high(dark: theme.brightness == Brightness.dark),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+                boxShadow: AppShadows.high(
+                  dark: theme.brightness == Brightness.dark,
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -98,7 +103,8 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     children: [
                       Text(
                         'Reschedule',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: theme.colorScheme.onSurface,
@@ -114,7 +120,8 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                   const SizedBox(height: 4),
                   Text(
                     'Choose a new date and time with ${selectedDoctor.name}',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -148,19 +155,28 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: theme.colorScheme.outlineVariant),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF5A88F1).withValues(alpha: 0.1),
+                              color: const Color(
+                                0xFF06489B,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.calendar_today_rounded, color: Color(0xFF5A88F1), size: 20),
+                            child: const Icon(
+                              Icons.calendar_today_rounded,
+                              color: Color(0xFF06489B),
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -169,15 +185,19 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                               children: [
                                 Text(
                                   'Selected Date',
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
-                                  DateFormat('EEEE, dd MMM yyyy').format(selectedDate),
-                                  style: GoogleFonts.manrope(
+                                  DateFormat(
+                                    'EEEE, dd MMM yyyy',
+                                  ).format(selectedDate),
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                     color: theme.colorScheme.onSurface,
@@ -186,7 +206,11 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                               ],
                             ),
                           ),
-                          Icon(Icons.edit_calendar_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                          Icon(
+                            Icons.edit_calendar_rounded,
+                            size: 20,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ],
                       ),
                     ),
@@ -194,7 +218,8 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                   const SizedBox(height: 24),
                   Text(
                     'Available Slots',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: theme.colorScheme.onSurface,
@@ -215,11 +240,16 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                       alignment: Alignment.center,
                       child: Column(
                         children: [
-                          Icon(Icons.event_busy_rounded, size: 40, color: theme.colorScheme.outline),
+                          Icon(
+                            Icons.event_busy_rounded,
+                            size: 40,
+                            color: theme.colorScheme.outline,
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             'No slots available on this day',
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: theme.colorScheme.onSurfaceVariant,
@@ -232,12 +262,13 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 2.6,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            childAspectRatio: 2.6,
+                          ),
                       itemCount: availableSlots.length,
                       itemBuilder: (context, index) {
                         final slot = availableSlots[index];
@@ -256,18 +287,27 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                           child: Container(
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF5A88F1) : Colors.transparent,
+                              color: isSelected
+                                  ? const Color(0xFF06489B)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isSelected ? const Color(0xFF5A88F1) : theme.colorScheme.outlineVariant,
+                                color: isSelected
+                                    ? const Color(0xFF06489B)
+                                    : theme.colorScheme.outlineVariant,
                               ),
                             ),
                             child: Text(
                               slot,
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                                fontWeight: isSelected
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                color: isSelected
+                                    ? Colors.white
+                                    : theme.colorScheme.onSurface,
                               ),
                             ),
                           ),
@@ -276,51 +316,60 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     ),
                   const SizedBox(height: 12),
                   CustomButton(
-                    onPressed: (portal.bookings.any((b) => 
-                        b.id != booking.id && 
-                        b.bookingDate == DateFormat('yyyy-MM-dd').format(selectedDate) &&
-                        b.status != 'cancelled'
-                    )) ? null : () async {
-                      if (selectedSlot == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              AppStrings.of(
-                                context.read<LanguageProvider>().language,
-                              ).selectTimeSlot,
-                            ),
-                          ),
-                        );
-                        return;
-                      }
+                    onPressed:
+                        (portal.bookings.any(
+                          (b) =>
+                              b.id != booking.id &&
+                              b.bookingDate ==
+                                  DateFormat(
+                                    'yyyy-MM-dd',
+                                  ).format(selectedDate) &&
+                              b.status != 'cancelled',
+                        ))
+                        ? null
+                        : () async {
+                            if (selectedSlot == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    AppStrings.of(
+                                      context.read<LanguageProvider>().language,
+                                    ).selectTimeSlot,
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
 
-                      try {
-                        await portal.rescheduleBooking(
-                          bookingId: booking.id,
-                          bookingDate: DateFormat('yyyy-MM-dd').format(selectedDate),
-                          timeslot: selectedSlot!.trim(),
-                        );
-                        if (!context.mounted) return;
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              AppStrings.of(
-                                context.read<LanguageProvider>().language,
-                              ).appointmentRescheduled,
-                            ),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      } catch (error) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(error.toString())),
-                        );
-                      }
-                    },
+                            try {
+                              await portal.rescheduleBooking(
+                                bookingId: booking.id,
+                                bookingDate: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(selectedDate),
+                                timeslot: selectedSlot!.trim(),
+                              );
+                              if (!context.mounted) return;
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    AppStrings.of(
+                                      context.read<LanguageProvider>().language,
+                                    ).appointmentRescheduled,
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            } catch (error) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error.toString())),
+                              );
+                            }
+                          },
                     text: 'Confirm Reschedule',
-                    color: const Color(0xFF5A88F1),
+                    color: const Color(0xFF06489B),
                     isLoading: portal.isCreatingBooking,
                   ),
                 ],
@@ -363,7 +412,9 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
       });
 
       try {
-        final doctorId = portal.doctors.isNotEmpty ? portal.doctors.first.id : null;
+        final doctorId = portal.doctors.isNotEmpty
+            ? portal.doctors.first.id
+            : null;
         if (doctorId == null) {
           setModalState(() {
             availableSlots = fallbackSlots;
@@ -414,8 +465,12 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
               ),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: AppShadows.high(dark: theme.brightness == Brightness.dark),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+                boxShadow: AppShadows.high(
+                  dark: theme.brightness == Brightness.dark,
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -426,7 +481,8 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     children: [
                       Text(
                         'Reschedule Lab Test',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: theme.colorScheme.onSurface,
@@ -442,7 +498,8 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                   const SizedBox(height: 4),
                   Text(
                     'Order: ${order.testName}',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -468,19 +525,28 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: theme.colorScheme.outlineVariant),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0EA5E9).withValues(alpha: 0.1),
+                              color: const Color(
+                                0xFF0EA5E9,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.calendar_today_rounded, color: Color(0xFF0EA5E9), size: 20),
+                            child: const Icon(
+                              Icons.calendar_today_rounded,
+                              color: Color(0xFF0EA5E9),
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -489,15 +555,19 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                               children: [
                                 Text(
                                   'Selected Date',
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
-                                  DateFormat('EEEE, dd MMM yyyy').format(selectedDate),
-                                  style: GoogleFonts.manrope(
+                                  DateFormat(
+                                    'EEEE, dd MMM yyyy',
+                                  ).format(selectedDate),
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                     color: theme.colorScheme.onSurface,
@@ -506,7 +576,11 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                               ],
                             ),
                           ),
-                          Icon(Icons.edit_calendar_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                          Icon(
+                            Icons.edit_calendar_rounded,
+                            size: 20,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ],
                       ),
                     ),
@@ -514,7 +588,8 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                   const SizedBox(height: 24),
                   Text(
                     'Available Intervals',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: theme.colorScheme.onSurface,
@@ -532,12 +607,13 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 2.6,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            childAspectRatio: 2.6,
+                          ),
                       itemCount: availableSlots.length,
                       itemBuilder: (context, index) {
                         final slot = availableSlots[index];
@@ -556,18 +632,27 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                           child: Container(
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF0EA5E9) : Colors.transparent,
+                              color: isSelected
+                                  ? const Color(0xFF0EA5E9)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isSelected ? const Color(0xFF0EA5E9) : theme.colorScheme.outlineVariant,
+                                color: isSelected
+                                    ? const Color(0xFF0EA5E9)
+                                    : theme.colorScheme.outlineVariant,
                               ),
                             ),
                             child: Text(
                               slot,
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                                fontWeight: isSelected
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                color: isSelected
+                                    ? Colors.white
+                                    : theme.colorScheme.onSurface,
                               ),
                             ),
                           ),
@@ -616,7 +701,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                       }
                     },
                     text: 'Confirm Reschedule',
-                    color: const Color(0xFF5A88F1),
+                    color: const Color(0xFF06489B),
                     isLoading: portal.isCreatingLabOrder,
                   ),
                 ],
@@ -659,7 +744,9 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
       });
 
       try {
-        final doctorId = portal.doctors.isNotEmpty ? portal.doctors.first.id : null;
+        final doctorId = portal.doctors.isNotEmpty
+            ? portal.doctors.first.id
+            : null;
         if (doctorId == null) {
           setModalState(() {
             availableSlots = fallbackSlots;
@@ -710,8 +797,12 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
               ),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: AppShadows.high(dark: theme.brightness == Brightness.dark),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+                boxShadow: AppShadows.high(
+                  dark: theme.brightness == Brightness.dark,
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -722,7 +813,8 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     children: [
                       Text(
                         'Reschedule Package',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: theme.colorScheme.onSurface,
@@ -738,7 +830,8 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                   const SizedBox(height: 4),
                   Text(
                     'Order: ${order.packageName}',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -764,19 +857,28 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: theme.colorScheme.outlineVariant),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                              color: const Color(
+                                0xFF8B5CF6,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.calendar_today_rounded, color: Color(0xFF8B5CF6), size: 20),
+                            child: const Icon(
+                              Icons.calendar_today_rounded,
+                              color: Color(0xFF8B5CF6),
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -785,15 +887,19 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                               children: [
                                 Text(
                                   'Selected Date',
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
-                                  DateFormat('EEEE, dd MMM yyyy').format(selectedDate),
-                                  style: GoogleFonts.manrope(
+                                  DateFormat(
+                                    'EEEE, dd MMM yyyy',
+                                  ).format(selectedDate),
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                     color: theme.colorScheme.onSurface,
@@ -802,7 +908,11 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                               ],
                             ),
                           ),
-                          Icon(Icons.edit_calendar_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                          Icon(
+                            Icons.edit_calendar_rounded,
+                            size: 20,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ],
                       ),
                     ),
@@ -810,7 +920,8 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                   const SizedBox(height: 24),
                   Text(
                     'Available Intervals',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: theme.colorScheme.onSurface,
@@ -828,12 +939,13 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 2.6,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            childAspectRatio: 2.6,
+                          ),
                       itemCount: availableSlots.length,
                       itemBuilder: (context, index) {
                         final slot = availableSlots[index];
@@ -852,18 +964,27 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                           child: Container(
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF8B5CF6) : Colors.transparent,
+                              color: isSelected
+                                  ? const Color(0xFF8B5CF6)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isSelected ? const Color(0xFF8B5CF6) : theme.colorScheme.outlineVariant,
+                                color: isSelected
+                                    ? const Color(0xFF8B5CF6)
+                                    : theme.colorScheme.outlineVariant,
                               ),
                             ),
                             child: Text(
                               slot,
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                                fontWeight: isSelected
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                color: isSelected
+                                    ? Colors.white
+                                    : theme.colorScheme.onSurface,
                               ),
                             ),
                           ),
@@ -912,7 +1033,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                       }
                     },
                     text: 'Confirm Reschedule',
-                    color: const Color(0xFF5A88F1),
+                    color: const Color(0xFF06489B),
                     isLoading: portal.isCreatingLabOrder,
                   ),
                 ],

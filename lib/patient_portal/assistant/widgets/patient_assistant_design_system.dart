@@ -32,41 +32,47 @@ class AiChatColors {
 }
 
 class AppTextStyles {
-  static TextStyle title(BuildContext context) => GoogleFonts.manrope(
+  static TextStyle title(BuildContext context) => TextStyle(
+    fontFamily: 'Manrope',
     fontSize: 22,
     fontWeight: FontWeight.w500,
     color: AiChatColors.textPrimary,
     letterSpacing: -0.4,
   );
 
-  static TextStyle subtitle(BuildContext context) => GoogleFonts.manrope(
+  static TextStyle subtitle(BuildContext context) => TextStyle(
+    fontFamily: 'Manrope',
     fontSize: 14,
     fontWeight: FontWeight.w500,
     color: AiChatColors.textSecondary,
   );
 
-  static TextStyle bubbleUser(BuildContext context) => GoogleFonts.manrope(
+  static TextStyle bubbleUser(BuildContext context) => TextStyle(
+    fontFamily: 'Manrope',
     fontSize: 15,
     height: 1.45,
     fontWeight: FontWeight.w500,
     color: Colors.white,
   );
 
-  static TextStyle bubbleAi(BuildContext context) => GoogleFonts.manrope(
+  static TextStyle bubbleAi(BuildContext context) => TextStyle(
+    fontFamily: 'Manrope',
     fontSize: 15,
     height: 1.45,
     fontWeight: FontWeight.w400,
     color: AiChatColors.textPrimary,
   );
 
-  static TextStyle dateSeparator(BuildContext context) => GoogleFonts.manrope(
+  static TextStyle dateSeparator(BuildContext context) => TextStyle(
+    fontFamily: 'Manrope',
     fontSize: 11,
     fontWeight: FontWeight.w700,
     color: AiChatColors.textSecondary,
     letterSpacing: 0.3,
   );
 
-  static TextStyle inputHint(BuildContext context) => GoogleFonts.manrope(
+  static TextStyle inputHint(BuildContext context) => TextStyle(
+    fontFamily: 'Manrope',
     fontSize: 16,
     fontWeight: FontWeight.w400,
     color: AiChatColors.textSecondary,

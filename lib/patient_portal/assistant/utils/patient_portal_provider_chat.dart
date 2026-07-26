@@ -6,6 +6,24 @@ extension PatientPortalChatMixin on PatientPortalProvider {
       return;
     }
 
+    final pending = _chatInitialization;
+    if (pending != null && !force) {
+      await pending;
+      return;
+    }
+
+    final initialization = _loadInitialChatThreads();
+    _chatInitialization = initialization;
+    try {
+      await initialization;
+    } finally {
+      if (identical(_chatInitialization, initialization)) {
+        _chatInitialization = null;
+      }
+    }
+  }
+
+  Future<void> _loadInitialChatThreads() async {
     _errorMessage = null;
 
     try {

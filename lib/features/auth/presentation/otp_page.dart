@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
+import '../../../core/widgets/app_chevron_back_button.dart';
 import '../../session/providers/session_provider.dart';
 import 'widgets/auth_form_widgets.dart';
 import 'widgets/otp_input.dart';
@@ -34,27 +35,31 @@ class _OtpPageState extends State<OtpPage> {
     await session.resendPendingOtp();
     if (!mounted) return;
     final message = session.otpStatusMessage ?? strings.otpResentDefault;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     final showDevOtp = context.read<AppConfig>().showDevOtp;
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       body: Stack(
         children: [
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFFF0F4FF), Colors.white],
+                  colors: [
+                    colorScheme.primary.withValues(alpha: 0.08),
+                    colorScheme.surface,
+                  ],
                 ),
               ),
             ),
@@ -123,7 +128,8 @@ class _OtpPageState extends State<OtpPage> {
                               _verify();
                             },
                           ),
-                          if (showDevOtp && (session.devOtp ?? '').isNotEmpty) ...[
+                          if (showDevOtp &&
+                              (session.devOtp ?? '').isNotEmpty) ...[
                             const SizedBox(height: 32),
                             Container(
                               width: double.infinity,
@@ -195,10 +201,10 @@ class _OtpPageState extends State<OtpPage> {
                                 onTap: session.isSendingOtp ? null : _resend,
                                 child: Text(
                                   strings.otpResend,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF537DE8),
+                                    color: colorScheme.primary,
                                   ),
                                 ),
                               ),
@@ -215,23 +221,7 @@ class _OtpPageState extends State<OtpPage> {
           Positioned(
             top: 50,
             left: 20,
-            child: GestureDetector(
-              onTap: widget.onBack,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.arrow_back_rounded, size: 20),
-              ),
-            ),
+            child: AppChevronBackButton(onPressed: widget.onBack),
           ),
         ],
       ),

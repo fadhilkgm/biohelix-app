@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import '../../../core/widgets/app_chevron_back_button.dart';
 
 class PatientHeaderAction {
   const PatientHeaderAction({
@@ -53,11 +54,7 @@ class PatientScreenHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (onBack != null) ...[
-                _HeaderIconButton(
-                  icon: Icons.arrow_back_rounded,
-                  tooltip: 'Back',
-                  onPressed: onBack!,
-                ),
+                AppChevronBackButton(onPressed: onBack!),
                 const SizedBox(width: 12),
               ],
               Expanded(
@@ -68,7 +65,8 @@ class PatientScreenHeader extends StatelessWidget {
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
                         color: theme.colorScheme.onSurface,
@@ -81,7 +79,8 @@ class PatientScreenHeader extends StatelessWidget {
                         subtitle!,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: theme.colorScheme.onSurfaceVariant,

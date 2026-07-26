@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
 class AppTextStyles {
   static TextStyle headerTitle(BuildContext context) {
-    return GoogleFonts.manrope(
-      textStyle: Theme.of(context).textTheme.titleLarge,
+    return Theme.of(context).textTheme.titleLarge!.copyWith(
+      fontFamily: 'Manrope',
       color: AppColors.textPrimary,
       fontWeight: FontWeight.w800,
       letterSpacing: -0.3,
@@ -15,8 +14,8 @@ class AppTextStyles {
   }
 
   static TextStyle subText(BuildContext context) {
-    return GoogleFonts.manrope(
-      textStyle: Theme.of(context).textTheme.bodyMedium,
+    return Theme.of(context).textTheme.bodyMedium!.copyWith(
+      fontFamily: 'Manrope',
       color: AppColors.textSecondary,
       fontWeight: FontWeight.w500,
       height: 1.35,
@@ -24,16 +23,16 @@ class AppTextStyles {
   }
 
   static TextStyle sectionTitle(BuildContext context) {
-    return GoogleFonts.manrope(
-      textStyle: Theme.of(context).textTheme.titleMedium,
+    return Theme.of(context).textTheme.titleMedium!.copyWith(
+      fontFamily: 'Manrope',
       color: AppColors.textPrimary,
       fontWeight: FontWeight.w700,
     );
   }
 
   static TextStyle cardTitle(BuildContext context) {
-    return GoogleFonts.manrope(
-      textStyle: Theme.of(context).textTheme.titleSmall,
+    return Theme.of(context).textTheme.titleSmall!.copyWith(
+      fontFamily: 'Manrope',
       color: AppColors.textPrimary,
       fontWeight: FontWeight.w800,
       letterSpacing: -0.2,
@@ -41,8 +40,8 @@ class AppTextStyles {
   }
 
   static TextStyle cardSubtitle(BuildContext context) {
-    return GoogleFonts.manrope(
-      textStyle: Theme.of(context).textTheme.bodySmall,
+    return Theme.of(context).textTheme.bodySmall!.copyWith(
+      fontFamily: 'Manrope',
       color: AppColors.secondary,
       fontWeight: FontWeight.w600,
     );

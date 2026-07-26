@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class HomeHealthAlertWidget extends StatelessWidget {
   const HomeHealthAlertWidget({
@@ -74,4 +74,3 @@ class HomeHealthAlertWidget extends StatelessWidget {
     );
   }
 }
-

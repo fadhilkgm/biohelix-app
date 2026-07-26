@@ -4,6 +4,7 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
   Future<DocumentRecord> uploadDocument(
     String filePath, {
     String? fileName,
+    String? documentType,
   }) async {
     _isUploadingDocument = true;
     _errorMessage = null;
@@ -13,6 +14,7 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
       final uploaded = await _repository.uploadDocument(
         filePath,
         fileName: fileName,
+        documentType: documentType,
       );
       await loadPortal();
       return uploaded;

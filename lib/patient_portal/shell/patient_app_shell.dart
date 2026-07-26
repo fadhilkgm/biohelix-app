@@ -8,7 +8,6 @@ import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -24,10 +23,12 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shadows.dart';
+import '../../core/widgets/app_chevron_back_button.dart';
 import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/custom_bottom_bar.dart';
 import '../../core/widgets/custom_button.dart';
 import '../../features/session/providers/session_provider.dart';
+import '../../features/onboarding/models/legal_content.dart';
 import '../core/data/patient_repository.dart';
 import '../core/models/patient_models.dart';
 import '../core/models/home_feed_models.dart';
@@ -41,10 +42,12 @@ import '../lab_booking/models/lab_booking_models.dart';
 import '../labs/screens/lab_test_detail_page.dart';
 import '../core/widgets/booking_success_screen.dart';
 import '../premium_home/screens/home_screen.dart' as premium_home;
+import '../records/screens/in_app_document_viewer.dart';
 import '../shared/widgets/promotional_banner_dialog.dart';
 import 'widgets/bottom_nav_bar_widget.dart';
 import '../ai_checkup/screens/ai_checkup_tab.dart';
 import '../health_profile/screens/health_profile_screen.dart';
+import '../health_profile/screens/health_status_tab.dart';
 import '../my_club/screens/patient_loyalty_panel.dart';
 
 part 'package:biohelix_app/patient_portal/home_care/screens/home_care_screen.dart';
@@ -73,6 +76,7 @@ part 'package:biohelix_app/patient_portal/home/screens/patient_dashboard_tab.dar
 part 'package:biohelix_app/patient_portal/shared/widgets/patient_directory_and_shared_widgets.dart';
 part 'package:biohelix_app/patient_portal/profile/screens/patient_profile_redesign.dart';
 part 'package:biohelix_app/patient_portal/profile/screens/patient_profile_redesign_sections.dart';
+part 'package:biohelix_app/patient_portal/profile/screens/family_members_screen.dart';
 part 'package:biohelix_app/patient_portal/home/widgets/patient_home_dashboard_sections.dart';
 part 'package:biohelix_app/patient_portal/home/actions/patient_home_quick_action_handler.dart';
 part 'package:biohelix_app/patient_portal/home/screens/patient_home_quick_action_pages.dart';
@@ -115,19 +119,14 @@ class _PatientAppShellState extends State<PatientAppShell>
       label: strings.navHome,
     ),
     BottomNavItem(
-      icon: Icons.calendar_month_outlined,
-      selectedIcon: Icons.calendar_month_rounded,
-      label: strings.navBookings,
+      icon: Icons.monitor_heart_outlined,
+      selectedIcon: Icons.monitor_heart_rounded,
+      label: strings.navHealthStatus,
     ),
     BottomNavItem(
       icon: Icons.folder_outlined,
       selectedIcon: Icons.folder_rounded,
-      label: strings.navReports,
-    ),
-    BottomNavItem(
-      icon: Icons.chat_bubble_outline_rounded,
-      selectedIcon: Icons.chat_bubble_rounded,
-      label: strings.navAssistant,
+      label: strings.navRecords,
     ),
     BottomNavItem(
       icon: Icons.person_outline_rounded,
@@ -142,13 +141,13 @@ class _PatientAppShellState extends State<PatientAppShell>
     final pages = [
       _DashboardTab(
         onNavigate: _setIndex,
+        onOpenBookings: _openBookings,
         onOpenDoctorsDirectory: _openDoctorsDirectory,
         onOpenLabTestsDirectory: _openLabTestsDirectory,
         onOpenHomeCare: _openHomeCare,
       ),
-      const _BookingsTab(),
+      HealthStatusTab(onBack: goHome),
       _RecordsTab(key: _recordsTabKey),
-      const _AssistantTabView(),
       _ProfileTab(onOpenTestsHub: _openTestsHub),
     ];
 
@@ -165,7 +164,7 @@ class _PatientAppShellState extends State<PatientAppShell>
           });
         }
 
-        const homeStatusBarColor = Color(0xFF5A88F1);
+        const homeStatusBarColor = Color(0xFF06489B);
         final statusStyle = _selectedIndex == 0
             ? const SystemUiOverlayStyle(
                 statusBarColor: homeStatusBarColor,
@@ -320,7 +319,30 @@ class _PatientAppShellState extends State<PatientAppShell>
 
   @override
   void openAssistant() {
-    _setIndex(3);
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 160),
+        reverseTransitionDuration: const Duration(milliseconds: 140),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const _AssistantTabView(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.025, 0),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -331,6 +353,14 @@ class _PatientAppShellState extends State<PatientAppShell>
   }
 
   void _openAssistant() => openAssistant();
+
+  void _openBookings() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _BookingsTab(onBack: () => Navigator.of(context).pop()),
+      ),
+    );
+  }
 
   void _openDoctorsDirectory() {
     Navigator.of(context).push(
@@ -357,37 +387,109 @@ class _PatientAppShellState extends State<PatientAppShell>
   }
 }
 
-class _AssistantFab extends StatelessWidget {
+class _AssistantFab extends StatefulWidget {
   const _AssistantFab({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
+  State<_AssistantFab> createState() => _AssistantFabState();
+}
+
+class _AssistantFabState extends State<_AssistantFab>
+    with SingleTickerProviderStateMixin {
+  bool _hasPreloadedChat = false;
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2200),
+  )..repeat();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hasPreloadedChat) return;
+    _hasPreloadedChat = true;
+    unawaited(context.read<PatientPortalProvider>().initializeChatThreads());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
-    final compact = MediaQuery.sizeOf(context).width < 390;
+    return Tooltip(
+      message: strings.assistantTitle,
+      child: Semantics(
+        button: true,
+        label: strings.assistantTitle,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 88,
+              height: 88,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF06489B).withValues(alpha: 0.24),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  final phase = _controller.value * math.pi * 2;
+                  final bodyFloat = math.sin(phase) * 3;
+                  final headLook = math.cos(phase);
+                  final leftArmFloat = math.sin(phase + 0.8) * 4;
+                  final rightArmFloat = math.sin(phase + math.pi + 0.8) * 4;
 
-    if (compact) {
-      return FloatingActionButton(
-        heroTag: 'patient-health-ai-fab',
-        onPressed: onTap,
-        backgroundColor: const Color(0xFF16B5A4),
-        foregroundColor: Colors.white,
-        tooltip: strings.assistantTitle,
-        child: const Icon(Icons.mic_rounded),
-      );
-    }
-
-    return FloatingActionButton.extended(
-      heroTag: 'patient-health-ai-fab',
-      onPressed: onTap,
-      backgroundColor: const Color(0xFF16B5A4),
-      foregroundColor: Colors.white,
-      icon: const Icon(Icons.mic_rounded),
-      label: Text(
-        strings.assistantFabLabel,
-        style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+                  return Stack(
+                    fit: StackFit.expand,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Transform.translate(
+                        offset: Offset(headLook * 1.5, bodyFloat),
+                        child: Transform.rotate(
+                          angle: headLook * 0.075,
+                          child: _mascotLayer('body'),
+                        ),
+                      ),
+                      Transform.translate(
+                        offset: Offset(-1, bodyFloat + leftArmFloat),
+                        child: _mascotLayer('arm-left'),
+                      ),
+                      Transform.translate(
+                        offset: Offset(1, bodyFloat + rightArmFloat),
+                        child: _mascotLayer('arm-right'),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _mascotLayer(String name) {
+    return Image.asset(
+      'assets/images/health-ai/health-ai-mascot-$name.png',
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
     );
   }
 }

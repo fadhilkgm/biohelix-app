@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const background = Color(0xFFF5F8F8);
   static const surface = Color(0xFFFFFFFF);
-  static const primary = Color(0xFF0C8F84);
+  static const primary = Color(0xFF06489B);
   static const accent = Color(0xFF1E7CC2);
   static const textPrimary = Color(0xFF12242D);
   static const textSecondary = Color(0xFF617582);
@@ -13,5 +13,5 @@ class AppColors {
 
   static const shellGradient = [Color(0xFFEDF5F5), Color(0xFFF8FAFA)];
   static const cardGradient = [Color(0xFFFFFFFF), Color(0xFFF5FBFA)];
-  static const bannerGradient = [Color(0xFF5A88F1), Color(0xFF3F6ED1)];
+  static const bannerGradient = [Color(0xFF06489B), Color(0xFF3F6ED1)];
 }

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Primary & Accents
-  static const Color primary = Color(0xFF1B4D3E); // Deep Green
-  static const Color primaryLight = Color(0xFF4C7D6D);
-  static const Color primaryDark = Color(0xFF0D2A22);
+  static const Color primary = Color(0xFF06489B); // BioHelix logo blue
+  static const Color primaryLight = Color(0xFF4EA7E8);
+  static const Color primaryDark = Color(0xFF04336E);
   static const Color accent = Color(0xFF2E8B57); // Sea Green
 
   // Neutrals - Light Theme
@@ -16,7 +16,9 @@ class AppColors {
   static const Color inputBackgroundLight = Color(0xFFF3F4F6);
 
   // Neutrals - Dark Theme
-  static const Color backgroundDark = Color(0xFF111827); // Dark gray/navy background
+  static const Color backgroundDark = Color(
+    0xFF111827,
+  ); // Dark gray/navy background
   static const Color surfaceDark = Color(0xFF1F2937);
   static const Color textPrimaryDark = Color(0xFFF9FAFB);
   static const Color textSecondaryDark = Color(0xFF9CA3AF);

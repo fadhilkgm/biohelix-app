@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../core/models/patient_models.dart';
+import '../../core/widgets/booking_success_screen.dart';
 import '../design/app_radius.dart';
 import '../design/app_spacing.dart';
 import '../design/app_text_styles.dart';
@@ -20,7 +21,16 @@ class UpcomingAppointmentsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final upcoming = bookings.take(2).toList(growable: false);
+    final upcoming = bookings
+        .where((booking) {
+          final status = booking.status.trim().toLowerCase();
+          return booking.isDoctorAppointment &&
+              status != 'completed' &&
+              status != 'complete' &&
+              status != 'done';
+        })
+        .take(2)
+        .toList(growable: false);
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
 
     return Column(
@@ -49,7 +59,10 @@ class UpcomingAppointmentsWidget extends StatelessWidget {
                 .map(
                   (booking) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: _AppointmentCard(booking: booking),
+                    child: _AppointmentCard(
+                      booking: booking,
+                      onTap: () => _openAppointment(context, booking),
+                    ),
                   ),
                 )
                 .toList(growable: false),
@@ -57,12 +70,34 @@ class UpcomingAppointmentsWidget extends StatelessWidget {
       ],
     );
   }
+
+  void _openAppointment(BuildContext context, BookingItem booking) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BookingSuccessScreen(
+          bookingId: booking.id.toString(),
+          tokenNumber: booking.tokenNumber,
+          showMedicalSuccessIcon: true,
+          popToRootOnBack: false,
+          title: 'Upcoming Appointment',
+          subtitle:
+              'Your appointment is scheduled. Keep your token number ready when you arrive.',
+          doctorName: booking.doctorName,
+          doctorSpecialization: booking.doctorSpecialization,
+          doctorImageUrl: booking.doctorImageUrl,
+          bookingDate: booking.bookingDate,
+          bookingTime: booking.timeslot,
+        ),
+      ),
+    );
+  }
 }
 
 class _AppointmentCard extends StatelessWidget {
-  const _AppointmentCard({required this.booking});
+  const _AppointmentCard({required this.booking, required this.onTap});
 
   final BookingItem booking;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -70,49 +105,46 @@ class _AppointmentCard extends StatelessWidget {
         ? 'General Medicine'
         : booking.doctorSpecialization!.trim();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(AppRadius.section),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.section),
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF0FB),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.medical_services_rounded,
-              color: Color(0xFF0B3A82),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  booking.doctorName,
-                  style: AppTextStyles.sectionTitle(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      booking.doctorName,
+                      style: AppTextStyles.sectionTitle(
+                        context,
+                      ).copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      specialization,
+                      style: AppTextStyles.subText(
+                        context,
+                      ).copyWith(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 4),
+                    _AppointmentDateTimeBadge(
+                      date: booking.bookingDate,
+                      time: booking.timeslot,
+                    ),
+                  ],
                 ),
-                Text(specialization, style: AppTextStyles.subText(context)),
-                const SizedBox(height: 4),
-                Text(
-                  '${booking.bookingDate} at ${booking.timeslot}',
-                  style: AppTextStyles.subText(context).copyWith(
-                    color: const Color(0xFF8A94A3),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              _StatusPill(label: _statusLabel(booking.status)),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFF8A94A3)),
+            ],
           ),
-          _StatusPill(label: _statusLabel(booking.status)),
-        ],
+        ),
       ),
     );
   }
@@ -121,6 +153,42 @@ class _AppointmentCard extends StatelessWidget {
     final status = rawStatus.trim().toLowerCase();
     if (status.isEmpty) return 'Confirmed';
     return status[0].toUpperCase() + status.substring(1);
+  }
+}
+
+class _AppointmentDateTimeBadge extends StatelessWidget {
+  const _AppointmentDateTimeBadge({required this.date, required this.time});
+
+  final String date;
+  final String time;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF2FC),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.schedule_rounded,
+            size: 15,
+            color: Color(0xFF315D91),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            '$date  •  $time',
+            style: AppTextStyles.subText(context).copyWith(
+              color: const Color(0xFF315D91),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -160,7 +228,7 @@ class _StatusPill extends StatelessWidget {
         label,
         style: AppTextStyles.subText(
           context,
-        ).copyWith(color: const Color(0xFF16A34A), fontWeight: FontWeight.w700),
+        ).copyWith(color: const Color(0xFF16A34A), fontWeight: FontWeight.w600),
       ),
     );
   }

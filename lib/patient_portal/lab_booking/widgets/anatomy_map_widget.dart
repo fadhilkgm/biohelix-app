@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/models/patient_models.dart';
 
@@ -56,13 +55,16 @@ class AnatomyMapWidget extends StatelessWidget {
                   ),
                   // Render active coordinate dots
                   ...activePoints.map((bp) {
-                    final double xOffset = constraints.maxWidth * (bp.imageX / 100.0);
-                    final double yOffset = constraints.maxHeight * (bp.imageY / 100.0);
+                    final double xOffset =
+                        constraints.maxWidth * (bp.imageX / 100.0);
+                    final double yOffset =
+                        constraints.maxHeight * (bp.imageY / 100.0);
 
                     // Positioned relative to the stack
                     return Positioned(
-                      left: xOffset - 25, // offset half of the touch target size
-                      top: yOffset - 25,  // offset half of the touch target size
+                      left:
+                          xOffset - 25, // offset half of the touch target size
+                      top: yOffset - 25, // offset half of the touch target size
                       child: SizedBox(
                         width: 50,
                         height: 50,
@@ -129,7 +131,9 @@ class _PulsatingMarkerState extends State<PulsatingMarker>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.isSelected ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final color = widget.isSelected
+        ? const Color(0xFF10B981)
+        : const Color(0xFFEF4444);
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -195,7 +199,8 @@ class _PulsatingMarkerState extends State<PulsatingMarker>
                 ),
                 child: Text(
                   widget.label,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     color: Colors.white,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,

@@ -9,7 +9,8 @@ extension _BookingsTabActions on _BookingsTab {
     final confirm = await _showStyledConfirmDialog(
       context: context,
       title: 'Cancel Appointment',
-      message: 'Are you sure you want to cancel your appointment with ${booking.doctorName}?',
+      message:
+          'Are you sure you want to cancel your appointment with ${booking.doctorName}?',
       confirmLabel: 'Yes, Cancel',
       isDestructive: true,
     );
@@ -30,8 +31,6 @@ extension _BookingsTabActions on _BookingsTab {
       ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
-
-
 
   Future<void> _cancelLabOrder(
     BuildContext context,
@@ -63,7 +62,6 @@ extension _BookingsTabActions on _BookingsTab {
     }
   }
 
-
   Future<void> _cancelLabPackageOrder(
     BuildContext context,
     PatientPortalProvider portal,
@@ -83,9 +81,9 @@ extension _BookingsTabActions on _BookingsTab {
       await portal.cancelLabPackageOrder(order.id);
       if (!context.mounted) return;
       final strings = AppStrings.of(context.read<LanguageProvider>().language);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.packageBookingCancelled)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(strings.packageBookingCancelled)));
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -127,13 +125,13 @@ extension _BookingsTabActions on _BookingsTab {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: (isDestructive ? Colors.red : const Color(0xFF5A88F1))
+                  color: (isDestructive ? Colors.red : const Color(0xFF06489B))
                       .withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   isDestructive ? Icons.warning_rounded : Icons.info_rounded,
-                  color: isDestructive ? Colors.red : const Color(0xFF5A88F1),
+                  color: isDestructive ? Colors.red : const Color(0xFF06489B),
                   size: 32,
                 ),
               ),
@@ -143,7 +141,8 @@ extension _BookingsTabActions on _BookingsTab {
                 child: Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: theme.colorScheme.onSurface,
@@ -156,7 +155,8 @@ extension _BookingsTabActions on _BookingsTab {
                 child: Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -180,7 +180,8 @@ extension _BookingsTabActions on _BookingsTab {
                           alignment: Alignment.center,
                           child: Text(
                             cancelLabel,
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               color: theme.colorScheme.onSurfaceVariant,
@@ -201,12 +202,13 @@ extension _BookingsTabActions on _BookingsTab {
                           alignment: Alignment.center,
                           child: Text(
                             confirmLabel,
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                               color: isDestructive
                                   ? Colors.red
-                                  : const Color(0xFF5A88F1),
+                                  : const Color(0xFF06489B),
                             ),
                           ),
                         ),

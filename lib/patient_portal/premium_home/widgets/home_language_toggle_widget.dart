@@ -31,17 +31,29 @@ class HomeLanguageToggleWidget extends StatelessWidget {
           _LangChip(
             label: 'EN',
             isSelected: langProvider.isEnglish,
-            onTap: () => langProvider.setLanguage(AppLanguage.en),
+            onTap: () =>
+                _changeLanguageAfterFrame(langProvider, AppLanguage.en),
           ),
           const SizedBox(width: 4),
           _LangChip(
             label: 'മലയാളം',
             isSelected: langProvider.isMalayalam,
-            onTap: () => langProvider.setLanguage(AppLanguage.ml),
+            onTap: () =>
+                _changeLanguageAfterFrame(langProvider, AppLanguage.ml),
           ),
         ],
       ),
     );
+  }
+
+  void _changeLanguageAfterFrame(
+    LanguageProvider provider,
+    AppLanguage language,
+  ) {
+    if (provider.language == language) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      provider.setLanguage(language);
+    });
   }
 }
 

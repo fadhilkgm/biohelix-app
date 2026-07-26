@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/widgets/app_chevron_back_button.dart';
 import '../../../core/widgets/app_logo.dart';
 
 class BookingSuccessDetail {
@@ -33,6 +33,9 @@ class BookingSuccessScreen extends StatelessWidget {
     this.doctorImageUrl,
     this.bookingDate,
     this.bookingTime,
+    this.tokenNumber,
+    this.showMedicalSuccessIcon = false,
+    this.popToRootOnBack = true,
   });
 
   final String bookingId;
@@ -49,6 +52,9 @@ class BookingSuccessScreen extends StatelessWidget {
   final String? doctorImageUrl;
   final String? bookingDate;
   final String? bookingTime;
+  final int? tokenNumber;
+  final bool showMedicalSuccessIcon;
+  final bool popToRootOnBack;
 
   String get _resolvedSummaryTitle {
     final value = summaryTitle?.trim();
@@ -94,12 +100,31 @@ class BookingSuccessScreen extends StatelessWidget {
         _resolvedDetails.isNotEmpty;
   }
 
+  void _goBack(BuildContext context) {
+    if (popToRootOnBack) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final detailItems = _resolvedDetails;
 
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        leadingWidth: 64,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: AppChevronBackButton(onPressed: () => _goBack(context)),
+        ),
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -111,16 +136,20 @@ class BookingSuccessScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 32),
-                    Image.asset(
-                      imagePath,
-                      height: _hasSummary ? 180 : 320,
-                      fit: BoxFit.contain,
-                    ),
+                    if (showMedicalSuccessIcon)
+                      const _MedicalSuccessIcon()
+                    else
+                      Image.asset(
+                        imagePath,
+                        height: _hasSummary ? 180 : 320,
+                        fit: BoxFit.contain,
+                      ),
                     const SizedBox(height: 32),
                     Text(
                       title,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
                         color: const Color(0xFF192233),
@@ -131,7 +160,8 @@ class BookingSuccessScreen extends StatelessWidget {
                     Text(
                       subtitle,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 16,
                         color: const Color(0xFF192233).withValues(alpha: 0.6),
                         height: 1.5,
@@ -146,39 +176,41 @@ class BookingSuccessScreen extends StatelessWidget {
                         imageUrl: _resolvedSummaryImageUrl,
                         imageAsset: summaryImageAsset,
                         details: detailItems,
+                        tokenNumber: showMedicalSuccessIcon
+                            ? tokenNumber
+                            : null,
                       ),
                     ],
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F7FF),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        'Reference: $bookingId',
-                        style: GoogleFonts.manrope(
-                          fontSize: 14,
-                          color: const Color(0xFF5A88F1),
-                          fontWeight: FontWeight.w800,
+                    if (!showMedicalSuccessIcon) ...[
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4F7FF),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          'Reference: $bookingId',
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 14,
+                            color: Color(0xFF06489B),
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                     const SizedBox(height: 40),
                     SizedBox(
                       width: double.infinity,
                       height: 60,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(
-                            context,
-                          ).popUntil((route) => route.isFirst);
-                        },
+                        onPressed: () => _goBack(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5A88F1),
+                          backgroundColor: const Color(0xFF06489B),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
@@ -187,7 +219,8 @@ class BookingSuccessScreen extends StatelessWidget {
                         ),
                         child: Text(
                           'Back',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                           ),
@@ -206,6 +239,55 @@ class BookingSuccessScreen extends StatelessWidget {
   }
 }
 
+class _MedicalSuccessIcon extends StatelessWidget {
+  const _MedicalSuccessIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 150,
+      height: 150,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 138,
+            height: 138,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F3FF),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFB9D8F7), width: 2),
+            ),
+            child: const Icon(
+              Icons.medical_services_outlined,
+              color: Color(0xFF06489B),
+              size: 62,
+            ),
+          ),
+          Positioned(
+            right: 4,
+            bottom: 12,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1F9A6D),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 4),
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _BookingSummaryCard extends StatelessWidget {
   const _BookingSummaryCard({
     required this.title,
@@ -213,6 +295,7 @@ class _BookingSummaryCard extends StatelessWidget {
     required this.imageUrl,
     required this.details,
     this.imageAsset,
+    this.tokenNumber,
   });
 
   final String title;
@@ -220,6 +303,7 @@ class _BookingSummaryCard extends StatelessWidget {
   final String imageUrl;
   final String? imageAsset;
   final List<BookingSuccessDetail> details;
+  final int? tokenNumber;
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +340,8 @@ class _BookingSummaryCard extends StatelessWidget {
                         title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF192233),
@@ -268,10 +353,11 @@ class _BookingSummaryCard extends StatelessWidget {
                         subtitle,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF5A88F1),
+                          color: const Color(0xFF06489B),
                         ),
                       ),
                     ],
@@ -299,6 +385,42 @@ class _BookingSummaryCard extends StatelessWidget {
                       .toList(),
                 );
               },
+            ),
+          ],
+          if (tokenNumber != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F3FF),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFB9D8F7)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Token Number',
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 18,
+                      color: Color(0xFF345A7D),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    '#$tokenNumber',
+                    style: const TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 32,
+                      height: 1,
+                      color: Color(0xFF06489B),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -344,7 +466,7 @@ class _BookingDetailTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(detail.icon, size: 18, color: const Color(0xFF5A88F1)),
+          Icon(detail.icon, size: 18, color: const Color(0xFF06489B)),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -355,7 +477,8 @@ class _BookingDetailTile extends StatelessWidget {
                   detail.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF192233).withValues(alpha: 0.45),
@@ -366,7 +489,8 @@ class _BookingDetailTile extends StatelessWidget {
                   detail.value,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
                     color: const Color(0xFF192233),

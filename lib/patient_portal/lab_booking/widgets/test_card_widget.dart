@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../models/lab_booking_models.dart';
 
 class TestCardWidget extends StatelessWidget {
@@ -42,30 +41,42 @@ class TestCardWidget extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF4F7FF),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      (test.bodyPoints.isNotEmpty ? test.bodyPoints.first.name : 'Lab test').toUpperCase(),
-                      style: GoogleFonts.manrope(
+                      (test.bodyPoints.isNotEmpty
+                              ? test.bodyPoints.first.name
+                              : 'Lab test')
+                          .toUpperCase(),
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF5A88F1),
+                        color: const Color(0xFF06489B),
                         letterSpacing: 0.5,
                       ),
                     ),
                   ),
                   const Spacer(),
-                  const Icon(Icons.history_toggle_off_rounded, size: 14, color: Color(0xFF5A88F1)),
+                  const Icon(
+                    Icons.history_toggle_off_rounded,
+                    size: 14,
+                    color: Color(0xFF06489B),
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     test.originalItem?.resultEta ?? '24 hrs',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF5A88F1),
+                      color: const Color(0xFF06489B),
                     ),
                   ),
                 ],
@@ -73,7 +84,8 @@ class TestCardWidget extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 test.name,
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF192233),
@@ -90,7 +102,8 @@ class TestCardWidget extends StatelessWidget {
                       if (test.basePrice > test.price)
                         Text(
                           '₹${test.basePrice.toStringAsFixed(0)}',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Colors.grey,
@@ -99,10 +112,11 @@ class TestCardWidget extends StatelessWidget {
                         ),
                       Text(
                         '₹${test.price.toStringAsFixed(0)}',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF5A88F1),
+                          color: const Color(0xFF06489B),
                         ),
                       ),
                     ],
@@ -111,12 +125,13 @@ class TestCardWidget extends StatelessWidget {
                   TextButton(
                     onPressed: onOpen,
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF5A88F1),
+                      foregroundColor: const Color(0xFF06489B),
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
                     child: Text(
                       'Book Now',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
                       ),
@@ -128,7 +143,7 @@ class TestCardWidget extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: onAdd,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5A88F1),
+                        backgroundColor: const Color(0xFF06489B),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -138,7 +153,8 @@ class TestCardWidget extends StatelessWidget {
                       ),
                       child: Text(
                         'Add',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontWeight: FontWeight.w800,
                           fontSize: 13,
                         ),
@@ -154,4 +170,3 @@ class TestCardWidget extends StatelessWidget {
     );
   }
 }
-

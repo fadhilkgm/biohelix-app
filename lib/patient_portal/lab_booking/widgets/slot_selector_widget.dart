@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class SlotSelectorWidget extends StatelessWidget {
   const SlotSelectorWidget({
@@ -29,22 +28,24 @@ class SlotSelectorWidget extends StatelessWidget {
       itemBuilder: (context, index) {
         final slot = slots[index];
         final isSelected = selectedSlot == slot;
-        
+
         return GestureDetector(
           onTap: () => onSelect(slot),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF5A88F1) : Colors.white,
+              color: isSelected ? const Color(0xFF06489B) : Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? const Color(0xFF5A88F1) : Colors.black.withValues(alpha: 0.05),
+                color: isSelected
+                    ? const Color(0xFF06489B)
+                    : Colors.black.withValues(alpha: 0.05),
               ),
               boxShadow: [
                 if (isSelected)
                   BoxShadow(
-                    color: const Color(0xFF5A88F1).withValues(alpha: 0.2),
+                    color: const Color(0xFF06489B).withValues(alpha: 0.2),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -61,10 +62,15 @@ class SlotSelectorWidget extends StatelessWidget {
                 Expanded(
                   child: Text(
                     slot.replaceAll(' - ', ' to '),
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      color: isSelected ? Colors.white : const Color(0xFF2D3142),
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF2D3142),
                     ),
                   ),
                 ),

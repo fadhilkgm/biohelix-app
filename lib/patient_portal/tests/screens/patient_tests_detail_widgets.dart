@@ -1,7 +1,12 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _ViewToggle extends StatelessWidget {
-  const _ViewToggle({required this.label, required this.icon, required this.selected, required this.onTap});
+  const _ViewToggle({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
   final String label;
   final IconData icon;
   final bool selected;
@@ -22,9 +27,23 @@ class _ViewToggle extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 18, color: selected ? Colors.white : theme.colorScheme.onSurfaceVariant),
+              Icon(
+                icon,
+                size: 18,
+                color: selected
+                    ? Colors.white
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 8),
-              Text(label, style: TextStyle(color: selected ? Colors.white : theme.colorScheme.onSurfaceVariant, fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected
+                      ? Colors.white
+                      : theme.colorScheme.onSurfaceVariant,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
             ],
           ),
         ),
@@ -353,4 +372,3 @@ class _DocumentDetailSheetState extends State<_DocumentDetailSheet> {
     );
   }
 }
-

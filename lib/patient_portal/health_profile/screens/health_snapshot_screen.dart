@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -9,7 +8,7 @@ import '../../core/providers/patient_portal_provider.dart';
 
 const Color _bg = Color(0xFFF8F9FB);
 const Color _ink = Color(0xFF192233);
-const Color _accent = Color(0xFF5A88F1);
+const Color _accent = Color(0xFF06489B);
 const Color _danger = Color(0xFFDB4C4C);
 
 /// Opens the manual "add/update today's readings" form as a bottom sheet.
@@ -165,7 +164,8 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
               const SizedBox(height: 18),
               Text(
                 "Add / Update Today's Readings",
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: _ink,
@@ -175,7 +175,8 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
               Text(
                 'All fields are optional. Saving again today updates the '
                 'same entry instead of creating a new one.',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 13,
                   height: 1.4,
                   color: _ink.withValues(alpha: 0.6),
@@ -246,7 +247,11 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
               if (_error != null) ...[
                 Text(
                   _error!,
-                  style: GoogleFonts.manrope(fontSize: 13, color: _danger),
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 13,
+                    color: _danger,
+                  ),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -274,7 +279,8 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
                         )
                       : Text(
                           'Save Readings',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
                           ),
@@ -302,7 +308,8 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
         children: [
           Text(
             label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -330,7 +337,8 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
                 vertical: 12,
               ),
             ),
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -396,7 +404,8 @@ class _HealthSnapshotHistoryScreenState
       appBar: AppBar(
         title: Text(
           'Health Snapshot History',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 18,
             fontWeight: FontWeight.w800,
             color: _ink,
@@ -427,7 +436,8 @@ class _HealthSnapshotHistoryScreenState
                       ? 'Could not load history. Pull to retry.'
                       : 'No past snapshots yet.',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 14,
                     color: _ink.withValues(alpha: 0.6),
                   ),
@@ -495,7 +505,8 @@ class _HealthSnapshotHistoryScreenState
         children: [
           Text(
             _formatDate(snapshot.snapshotDate),
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontWeight: FontWeight.w800,
               fontSize: 14,
               color: _ink,
@@ -519,7 +530,8 @@ class _HealthSnapshotHistoryScreenState
                       ),
                       child: Text(
                         metric,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           color: _accent,
@@ -534,7 +546,8 @@ class _HealthSnapshotHistoryScreenState
             const SizedBox(height: 8),
             Text(
               snapshot.aiSummary!.trim(),
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 13,
                 height: 1.4,
                 color: _ink.withValues(alpha: 0.75),

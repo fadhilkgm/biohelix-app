@@ -48,8 +48,10 @@ class _BioHelixAppState extends State<BioHelixApp> {
   late final PatientRepository _patientRepository;
   late final SessionProvider _sessionProvider;
   late final PatientPortalProvider _patientPortalProvider;
+  late final LanguageProvider _languageProvider;
+  late final Future<void> _languageInitialization;
   final ThemeProvider _themeProvider = ThemeProvider();
-  final LanguageProvider _languageProvider = LanguageProvider();
+  bool _languageSyncedForSession = false;
 
   @override
   void initState() {
@@ -68,15 +70,33 @@ class _BioHelixAppState extends State<BioHelixApp> {
       apiClient: _apiClient,
       patientRepository: _patientRepository,
     )..initialize();
+    _languageProvider = LanguageProvider(apiClient: _apiClient);
+    _languageInitialization = _languageProvider.initialize();
+    _sessionProvider.addListener(_handleSessionChanged);
     _patientPortalProvider = PatientPortalProvider(
       repository: _patientRepository,
       sessionProvider: _sessionProvider,
     );
-    _languageProvider.initialize();
+  }
+
+  void _handleSessionChanged() {
+    if (!_sessionProvider.isAuthenticated) {
+      _languageSyncedForSession = false;
+      return;
+    }
+    if (_languageSyncedForSession) return;
+    _languageSyncedForSession = true;
+    unawaited(_syncLanguageAfterLogin());
+  }
+
+  Future<void> _syncLanguageAfterLogin() async {
+    await _languageInitialization;
+    await _languageProvider.syncToServer();
   }
 
   @override
   void dispose() {
+    _sessionProvider.removeListener(_handleSessionChanged);
     _patientPortalProvider.dispose();
     _sessionProvider.dispose();
     _themeProvider.dispose();
@@ -116,6 +136,13 @@ class _BioHelixAppState extends State<BioHelixApp> {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
+          builder: (context, child) => DefaultTextStyle.merge(
+            style: const TextStyle(
+              fontFamily: 'Manrope',
+              fontFamilyFallback: ['AnekMalayalam'],
+            ),
+            child: child ?? const SizedBox.shrink(),
+          ),
           home: const SplashScreen(),
         ),
       ),

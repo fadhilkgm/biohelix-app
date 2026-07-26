@@ -302,7 +302,8 @@ class _StatusBadge extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 11,
               fontWeight: FontWeight.w800,
               color: accentColor,
@@ -616,4 +617,3 @@ String _formatDate(String raw) {
     return raw;
   }
 }
-

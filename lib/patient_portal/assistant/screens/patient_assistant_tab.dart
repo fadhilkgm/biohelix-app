@@ -18,8 +18,6 @@ class _AssistantTabState extends State<_AssistantTab> {
   bool _isSpeaking = false;
   bool _isLiveVoiceMode = false;
   bool _isLiveTurnInFlight = false;
-  String _livePartialTranscript = '';
-  String _liveSubmittedTranscript = '';
   String? _liveVoiceError;
   String? _liveConversationId;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
@@ -113,7 +111,12 @@ class _AssistantTabState extends State<_AssistantTab> {
       context.read<PatientPortalProvider>().initializeChatThreads();
       // Fetch ICE/session config early. This is network-only: the microphone
       // stays off until the patient explicitly starts live voice.
-      unawaited(_liveVoiceController.prewarm());
+      final language = context.read<LanguageProvider>().language;
+      unawaited(
+        _liveVoiceController.prewarm(
+          locale: language == AppLanguage.ml ? 'ml-IN' : 'en-IN',
+        ),
+      );
     });
   }
 
@@ -232,8 +235,6 @@ class _AssistantTabState extends State<_AssistantTab> {
                               isSpeaking: _isSpeaking,
                               isBusy: portal.isSendingMessage,
                               soundLevel: _soundLevel,
-                              partialTranscript: _livePartialTranscript,
-                              submittedTranscript: _liveSubmittedTranscript,
                               errorMessage: _liveVoiceError,
                               latestAssistantText: _latestAssistantText(
                                 messages,
@@ -566,8 +567,6 @@ class _AssistantTabState extends State<_AssistantTab> {
           state.phase.name == 'thinking' ||
           state.phase.name == 'speaking';
       _soundLevel = state.soundLevel;
-      _livePartialTranscript = state.partialTranscript;
-      _liveSubmittedTranscript = state.finalTranscript;
       _liveVoiceError = state.errorMessage;
     });
   }
@@ -631,7 +630,8 @@ class _AssistantEmptyState extends StatelessWidget {
                 Text(
                   '${strings.assistantTitle} — $patientName',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     color: const Color(0xFF173B63),
                     fontSize: 25,
                     height: 1.2,
@@ -643,7 +643,8 @@ class _AssistantEmptyState extends StatelessWidget {
                 Text(
                   strings.assistantInputHint,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     color: const Color(0xFF5B7190),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -709,7 +710,8 @@ class _AssistantEmptyState extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 prompt,
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   color: const Color(0xFF173B63),
                                   fontSize: 14,
                                   height: 1.35,
@@ -756,7 +758,8 @@ class _AssistantEmptyState extends StatelessWidget {
                     children: [
                       Text(
                         'For your safety',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF173B63),
@@ -765,7 +768,8 @@ class _AssistantEmptyState extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         strings.assistantDisclaimer,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 11.5,
                           height: 1.4,
                           color: const Color(0xFF5B7190),
@@ -791,8 +795,6 @@ class _AssistantLiveStage extends StatefulWidget {
     required this.isSpeaking,
     required this.isBusy,
     required this.soundLevel,
-    required this.partialTranscript,
-    required this.submittedTranscript,
     required this.errorMessage,
     required this.latestAssistantText,
     required this.onInterrupt,
@@ -806,8 +808,6 @@ class _AssistantLiveStage extends StatefulWidget {
   final bool isSpeaking;
   final bool isBusy;
   final double soundLevel;
-  final String partialTranscript;
-  final String submittedTranscript;
   final String? errorMessage;
   final String? latestAssistantText;
   final VoidCallback onInterrupt;
@@ -875,11 +875,7 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
         : isListening
         ? strings.assistantLiveModeActive
         : strings.assistantLiveVoiceUnavailable;
-    final displayText = isSpeaking
-        ? widget.latestAssistantText ?? ''
-        : widget.isBusy
-        ? widget.submittedTranscript
-        : widget.partialTranscript;
+    final displayText = isSpeaking ? widget.latestAssistantText ?? '' : '';
 
     return Stack(
       children: [
@@ -899,7 +895,8 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
                 const SizedBox(height: 28),
                 Text(
                   phaseLabel,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: AiChatColors.textPrimary,
@@ -950,7 +947,8 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
                         child: Text(
                           displayText,
                           textAlign: TextAlign.left,
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             color: AiChatColors.textPrimary,
                             fontSize: 15,
                             height: 1.55,
@@ -1068,7 +1066,8 @@ class _RoundLiveButton extends StatelessWidget {
           const SizedBox(height: 5),
           Text(
             label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AiChatColors.textSecondary,

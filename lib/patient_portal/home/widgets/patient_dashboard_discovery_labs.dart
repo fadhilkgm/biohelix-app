@@ -28,7 +28,9 @@ class _HomeLabTestsPreviewSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.3,
+              ),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Center(
@@ -121,7 +123,8 @@ class _LabTestCard extends StatelessWidget {
                       ? Image.network(
                           imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => _LabTestImagePlaceholder(test: test),
+                          errorBuilder: (_, _, _) =>
+                              _LabTestImagePlaceholder(test: test),
                         )
                       : _LabTestImagePlaceholder(test: test),
                 ),
@@ -134,9 +137,14 @@ class _LabTestCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                      color: theme.colorScheme.primaryContainer.withValues(
+                        alpha: 0.3,
+                      ),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -166,7 +174,9 @@ class _LabTestCard extends StatelessWidget {
                       Icon(
                         Icons.access_time_rounded,
                         size: 14,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Expanded(
@@ -182,9 +192,14 @@ class _LabTestCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.secondary.withValues(alpha: 0.1),
+                          color: theme.colorScheme.secondary.withValues(
+                            alpha: 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -237,4 +252,3 @@ class _LabTestImagePlaceholder extends StatelessWidget {
     );
   }
 }
-

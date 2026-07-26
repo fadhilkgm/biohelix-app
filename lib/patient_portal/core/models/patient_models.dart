@@ -59,10 +59,10 @@ class PatientIdentity {
       email: json['email'] as String?,
       bloodGroup:
           json['bloodGroup'] as String? ?? json['blood_group'] as String?,
-      allergies: json['allergies'] as String?,
-      chronicConditions:
-          json['chronicConditions'] as String? ??
-          json['chronic_conditions'] as String?,
+      allergies: _nullableText(json['allergies']),
+      chronicConditions: _nullableText(
+        json['chronicConditions'] ?? json['chronic_conditions'],
+      ),
     );
   }
 
@@ -173,6 +173,28 @@ Map<String, dynamic> _map(dynamic value) {
   return <String, dynamic>{};
 }
 
+/// Patient profile fields are strings in older API responses, while newer
+/// responses can expose JSON-array health data. Keep the UI's text-based model
+/// compatible with both shapes.
+String? _nullableText(dynamic value) {
+  if (value == null) return null;
+  if (value is String) {
+    final text = value.trim();
+    return text.isEmpty ? null : text;
+  }
+  if (value is Iterable) {
+    final text = value
+        .where((item) => item != null)
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .join(', ');
+    return text.isEmpty ? null : text;
+  }
+
+  final text = value.toString().trim();
+  return text.isEmpty ? null : text;
+}
+
 class PortalMetrics {
   const PortalMetrics({
     required this.totalRecords,
@@ -207,7 +229,9 @@ class BookingItem {
     required this.status,
     required this.doctorId,
     required this.doctorName,
+    this.tokenNumber,
     this.doctorSpecialization,
+    this.doctorImageUrl,
     this.bookingType,
     this.testName,
     this.packageName,
@@ -219,7 +243,9 @@ class BookingItem {
   final String status;
   final int doctorId;
   final String doctorName;
+  final int? tokenNumber;
   final String? doctorSpecialization;
+  final String? doctorImageUrl;
   final String? bookingType;
   final String? testName;
   final String? packageName;
@@ -262,6 +288,9 @@ class BookingItem {
           (json['doctorId'] as num?)?.toInt() ??
           (json['doctor_id'] as num?)?.toInt() ??
           0,
+      tokenNumber:
+          (json['tokenNumber'] as num?)?.toInt() ??
+          (json['token_number'] as num?)?.toInt(),
       doctorName:
           json['doctorName'] as String? ??
           nameFromRelation ??
@@ -273,6 +302,11 @@ class BookingItem {
       doctorSpecialization:
           json['doctorSpecialization'] as String? ??
           doctor['specialization'] as String?,
+      doctorImageUrl:
+          json['doctorImageUrl'] as String? ??
+          json['doctor_image_url'] as String? ??
+          doctor['imageUrl'] as String? ??
+          doctor['profile_photo_url'] as String?,
       bookingType: bookingType,
       testName: testName,
       packageName: packageName,

@@ -64,11 +64,13 @@ List<EmergencyTipData> buildEmergencyTips(String? bloodGroup) {
     ),
     const EmergencyTipData(
       icon: Icons.bolt_rounded,
-      message: 'Stroke symptoms: face drooping, arm weakness, speech difficulty',
+      message:
+          'Stroke symptoms: face drooping, arm weakness, speech difficulty',
     ),
     const EmergencyTipData(
       icon: Icons.water_drop_rounded,
-      message: 'Severe bleeding - apply firm pressure and call emergency services',
+      message:
+          'Severe bleeding - apply firm pressure and call emergency services',
     ),
   ];
 
@@ -111,14 +113,17 @@ List<EmergencyContact> _resolveContacts(List<EmergencyContact> contacts) {
   final unique = <EmergencyContact>[];
 
   for (final contact in resolved) {
-    final key = '${contact.name.toLowerCase()}|${_normalizedNumber(contact.number)}';
+    final key =
+        '${contact.name.toLowerCase()}|${_normalizedNumber(contact.number)}';
     if (seenKeys.add(key)) {
       unique.add(contact);
     }
   }
 
   if (!unique.any((contact) => _normalizedNumber(contact.number) == '108')) {
-    unique.add(const EmergencyContact(name: 'Emergency Helpline', number: '108'));
+    unique.add(
+      const EmergencyContact(name: 'Emergency Helpline', number: '108'),
+    );
   }
 
   return unique;

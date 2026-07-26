@@ -30,9 +30,8 @@ class ChatHeaderWidget extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
       child: Row(
         children: [
-          _HeaderIconButton(
+          AppChevronBackButton(
             onPressed: onBack,
-            icon: Icons.arrow_back_rounded,
             tooltip: strings.assistantBack,
           ),
           const SizedBox(width: 8),
@@ -41,7 +40,8 @@ class ChatHeaderWidget extends StatelessWidget {
               strings.assistantTitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 color: AiChatColors.textPrimary,
                 fontSize: 21,
                 fontWeight: FontWeight.w700,

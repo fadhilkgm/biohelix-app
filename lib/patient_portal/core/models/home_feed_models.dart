@@ -24,8 +24,7 @@ class TickerMessageItem {
           0,
       isActive:
           json['isActive'] as bool? ??
-          json['is_active'] == 1 ||
-          json['is_active'] == true,
+          json['is_active'] == 1 || json['is_active'] == true,
     );
   }
 }
@@ -83,8 +82,7 @@ class HomeOfferItem {
           0,
       isActive:
           json['isActive'] as bool? ??
-          json['is_active'] == 1 ||
-          json['is_active'] == true,
+          json['is_active'] == 1 || json['is_active'] == true,
     );
   }
 }

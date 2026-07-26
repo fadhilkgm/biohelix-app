@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -70,7 +69,10 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
             ),
             title: Text(
               'Add New Member',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontWeight: FontWeight.w800,
+              ),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -125,7 +127,10 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                     controlAffinity: ListTileControlAffinity.leading,
                     title: Text(
                       'Use logged-in phone number',
-                      style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -227,7 +232,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                         padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
+                            colors: [Color(0xFF06489B), Color(0xFF759BF1)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -334,7 +339,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                           ),
                                           border: Border.all(
                                             color: isActive
-                                                ? const Color(0xFF5A88F1)
+                                                ? const Color(0xFF06489B)
                                                 : const Color(0xFFE5E9F0),
                                             width: isActive ? 1.6 : 1,
                                           ),
@@ -347,7 +352,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                               decoration: const BoxDecoration(
                                                 gradient: LinearGradient(
                                                   colors: [
-                                                    Color(0xFF5A88F1),
+                                                    Color(0xFF06489B),
                                                     Color(0xFF759BF1),
                                                   ],
                                                 ),
@@ -397,7 +402,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                                         .bodySmall
                                                         ?.copyWith(
                                                           color: const Color(
-                                                            0xFF5A88F1,
+                                                            0xFF06489B,
                                                           ),
                                                           fontWeight:
                                                               FontWeight.w700,
@@ -437,7 +442,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                                 child: const Text(
                                                   'Active',
                                                   style: TextStyle(
-                                                    color: Color(0xFF5A88F1),
+                                                    color: Color(0xFF06489B),
                                                     fontWeight: FontWeight.w800,
                                                   ),
                                                 ),
@@ -463,7 +468,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                   _showAddPatientDialog();
                                 },
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF5A88F1),
+                                  backgroundColor: const Color(0xFF06489B),
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 16,
@@ -631,7 +636,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
       appBar: AppBar(
         title: Text(
           'Complete Booking',
-          style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -662,7 +667,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 children: [
                   Text(
                     widget.package.name,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFF192233),
@@ -674,7 +680,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                     children: [
                       Text(
                         'Package Price',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF192233).withValues(alpha: 0.5),
@@ -682,10 +689,11 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       ),
                       Text(
                         '₹${widget.package.discountedPrice ?? widget.package.basePrice}',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF5A88F1),
+                          color: const Color(0xFF06489B),
                         ),
                       ),
                     ],
@@ -694,7 +702,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                     const Divider(height: 32),
                     Text(
                       'Tests Included ${hasTests ? "(${widget.package.includedTests.length})" : ""}',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF192233),
@@ -711,21 +720,22 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
                                   color: const Color(
-                                    0xFF5A88F1,
+                                    0xFF06489B,
                                   ).withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
                                   Icons.check,
                                   size: 12,
-                                  color: Color(0xFF5A88F1),
+                                  color: Color(0xFF06489B),
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   test,
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(
@@ -741,7 +751,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                     ] else if (hasDescription) ...[
                       Text(
                         widget.package.description!,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 14,
                           color: const Color(0xFF192233).withValues(alpha: 0.6),
                           height: 1.5,
@@ -758,7 +769,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
             // Collection Type
             Text(
               'Sample Collection Mode',
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
@@ -793,7 +805,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
               const SizedBox(height: 24),
               Text(
                 'Collection Address',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF192233),
@@ -825,7 +838,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
             // Patient
             Text(
               'Patient Details',
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
@@ -872,7 +886,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                     ),
                     child: const Icon(
                       Icons.person_outline,
-                      color: Color(0xFF5A88F1),
+                      color: Color(0xFF06489B),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -882,7 +896,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       children: [
                         Text(
                           _selectedPatient?.name ?? 'Select Patient',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: const Color(0xFF192233),
@@ -891,7 +906,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                         if (_selectedPatient != null)
                           Text(
                             _patientSubtitle(_selectedPatient!),
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
                               fontSize: 13,
                               color: const Color(
                                 0xFF192233,
@@ -907,9 +923,10 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       icon: const Icon(Icons.swap_horiz_rounded, size: 18),
                       label: Text(
                         'Switch User',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF5A88F1),
+                          color: const Color(0xFF06489B),
                         ),
                       ),
                     ),
@@ -925,7 +942,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
               children: [
                 Text(
                   'Select Date',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF192233),
@@ -933,10 +951,11 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 ),
                 Text(
                   DateFormat('MMMM yyyy').format(_selectedDate),
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF5A88F1),
+                    color: const Color(0xFF06489B),
                   ),
                 ),
               ],
@@ -957,7 +976,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
             // Slot Selection
             Text(
               'Available Slots',
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
@@ -982,7 +1002,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                     child: Text(
                       'No slots available for this date. Please choose another date.',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         color: const Color(0xFF192233).withValues(alpha: 0.5),
                       ),
                     ),
@@ -1020,7 +1041,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 ? null
                 : _handleBooking,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5A88F1),
+              backgroundColor: const Color(0xFF06489B),
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 18),
@@ -1039,7 +1060,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                   )
                 : Text(
                     'Confirm & Book',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontWeight: FontWeight.w900,
                       fontSize: 18,
                     ),
@@ -1092,17 +1114,18 @@ class _CollectionTab extends StatelessWidget {
                 icon,
                 size: 18,
                 color: selected
-                    ? const Color(0xFF5A88F1)
+                    ? const Color(0xFF06489B)
                     : const Color(0xFF192233).withValues(alpha: 0.4),
               ),
               const SizedBox(width: 8),
               Text(
                 label,
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 14,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   color: selected
-                      ? const Color(0xFF5A88F1)
+                      ? const Color(0xFF06489B)
                       : const Color(0xFF192233).withValues(alpha: 0.4),
                 ),
               ),
@@ -1144,7 +1167,7 @@ class _HorizontalDatePicker extends StatelessWidget {
               width: 64,
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF5A88F1) : Colors.white,
+                color: isSelected ? const Color(0xFF06489B) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Column(
@@ -1152,7 +1175,8 @@ class _HorizontalDatePicker extends StatelessWidget {
                 children: [
                   Text(
                     DateFormat('EEE').format(date).toUpperCase(),
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       color: isSelected
@@ -1163,7 +1187,8 @@ class _HorizontalDatePicker extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     date.day.toString(),
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                       color: isSelected

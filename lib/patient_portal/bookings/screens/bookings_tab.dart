@@ -5,7 +5,9 @@ enum _BookingsView { all, appointments, tests, packages }
 enum _BookingsTimeline { upcoming, history }
 
 class _BookingsTab extends StatefulWidget {
-  const _BookingsTab();
+  const _BookingsTab({this.onBack});
+
+  final VoidCallback? onBack;
 
   @override
   State<_BookingsTab> createState() => _BookingsTabState();
@@ -119,18 +121,11 @@ class _BookingsTabState extends State<_BookingsTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // ── Back Button ─────────────────────────────────────
-                        IconButton(
-                          onPressed: () => PatientAppShell.of(context).goHome(),
+                        AppChevronBackButton(
+                          onPressed:
+                              widget.onBack ??
+                              () => PatientAppShell.of(context).goHome(),
                           tooltip: 'Back to Home',
-                          icon: const Icon(Icons.arrow_back_rounded, size: 24),
-                          style: IconButton.styleFrom(
-                            backgroundColor: theme.colorScheme.surface,
-                            foregroundColor: theme.colorScheme.onSurface,
-                            fixedSize: const Size(48, 48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
                         ),
                         const SizedBox(height: 16),
                         // ── Header ──────────────────────────────────────────
@@ -143,7 +138,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                                 children: [
                                   Text(
                                     'My Bookings',
-                                    style: GoogleFonts.manrope(
+                                    style: TextStyle(
+                                      fontFamily: 'Manrope',
                                       fontSize: 26,
                                       fontWeight: FontWeight.w800,
                                       color: theme.colorScheme.onSurface,
@@ -153,7 +149,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Consultations & diagnostics',
-                                    style: GoogleFonts.manrope(
+                                    style: TextStyle(
+                                      fontFamily: 'Manrope',
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
                                       color: theme.colorScheme.onSurfaceVariant,
@@ -372,7 +369,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                             children: [
                               Text(
                                 booking.doctorName,
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
                                   color: theme.colorScheme.onSurface,
@@ -383,7 +381,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                               Text(
                                 booking.doctorSpecialization ??
                                     'Doctor consultation',
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                   color: theme.colorScheme.onSurfaceVariant,
@@ -445,7 +444,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                                 isExpanded
                                     ? 'Managing this appointment'
                                     : 'Tap to manage',
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.primary,
@@ -565,7 +565,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                             children: [
                               Text(
                                 order.testName,
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
                                   color: theme.colorScheme.onSurface,
@@ -575,7 +576,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                               const SizedBox(height: 3),
                               Text(
                                 order.categoryName ?? 'Lab test',
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                   color: theme.colorScheme.onSurfaceVariant,
@@ -707,7 +709,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                             children: [
                               Text(
                                 order.packageName,
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
                                   color: theme.colorScheme.onSurface,
@@ -717,7 +720,8 @@ class _BookingsTabState extends State<_BookingsTab> {
                               const SizedBox(height: 3),
                               Text(
                                 order.packageCategory ?? 'Health package',
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                   color: theme.colorScheme.onSurfaceVariant,
@@ -1007,7 +1011,7 @@ class _TimelineSwitcher extends StatelessWidget {
             label: 'Upcoming',
             icon: Icons.upcoming_rounded,
             selected: isUpcoming,
-            activeColor: const Color(0xFF5A88F1),
+            activeColor: const Color(0xFF06489B),
             onTap: () => onChanged(_BookingsTimeline.upcoming),
           ),
           _SwitcherItem(
@@ -1064,7 +1068,8 @@ class _SwitcherItem extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               label,
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: selected
@@ -1095,7 +1100,7 @@ class _BookingsFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const activeColor = Color(0xFF5A88F1);
+    const activeColor = Color(0xFF06489B);
 
     return GestureDetector(
       onTap: onTap,
@@ -1128,7 +1133,8 @@ class _BookingsFilterChip extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 color: selected
@@ -1174,7 +1180,8 @@ class _TimelineSectionHeader extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             title,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 13,
               fontWeight: FontWeight.w800,
               color: theme.colorScheme.onSurface,
@@ -1190,7 +1197,8 @@ class _TimelineSectionHeader extends StatelessWidget {
             ),
             child: Text(
               '$count',
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 color: color,
@@ -1240,7 +1248,8 @@ class _CompactActionButton extends StatelessWidget {
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: color,
@@ -1286,7 +1295,8 @@ class _MetaLine extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurfaceVariant,
@@ -1337,7 +1347,8 @@ class _EmptyBookingsState extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 16,
               fontWeight: FontWeight.w800,
               color: theme.colorScheme.onSurface,
@@ -1347,7 +1358,8 @@ class _EmptyBookingsState extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurfaceVariant,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class BookForAnotherPersonPrompt extends StatelessWidget {
   const BookForAnotherPersonPrompt({
@@ -22,7 +21,7 @@ class BookForAnotherPersonPrompt extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: value ? const Color(0xFF5A88F1) : const Color(0xFFE5E9F0),
+            color: value ? const Color(0xFF06489B) : const Color(0xFFE5E9F0),
           ),
           boxShadow: [
             BoxShadow(
@@ -43,7 +42,7 @@ class BookForAnotherPersonPrompt extends StatelessWidget {
               ),
               child: const Icon(
                 Icons.group_add_outlined,
-                color: Color(0xFF5A88F1),
+                color: Color(0xFF06489B),
                 size: 20,
               ),
             ),
@@ -51,7 +50,8 @@ class BookForAnotherPersonPrompt extends StatelessWidget {
             Expanded(
               child: Text(
                 'Book for another person?',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF192233),
@@ -61,7 +61,7 @@ class BookForAnotherPersonPrompt extends StatelessWidget {
             IgnorePointer(
               child: Switch.adaptive(
                 value: value,
-                activeThumbColor: const Color(0xFF5A88F1),
+                activeThumbColor: const Color(0xFF06489B),
                 onChanged: (_) {},
               ),
             ),

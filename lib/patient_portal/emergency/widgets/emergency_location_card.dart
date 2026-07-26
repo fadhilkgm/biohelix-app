@@ -1,12 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'emergency_support_content.dart';
 
 class EmergencyLocationCard extends StatelessWidget {
-  const EmergencyLocationCard({
-    super.key,
-    required this.info,
-  });
+  const EmergencyLocationCard({super.key, required this.info});
 
   final EmergencyHospitalInfo info;
 
@@ -17,10 +14,7 @@ class EmergencyLocationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.grey.shade200,
-          width: 1,
-        ),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,4 +71,3 @@ class EmergencyLocationCard extends StatelessWidget {
     );
   }
 }
-

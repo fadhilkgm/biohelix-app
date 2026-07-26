@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 import 'app_text_styles.dart';
@@ -11,6 +10,8 @@ class AppTheme {
   static const EdgeInsets defaultPadding = EdgeInsets.all(16.0);
 
   static ThemeData light() {
+    final textTheme = _textTheme(color: AppColors.textPrimaryLight);
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
@@ -28,24 +29,8 @@ class AppTheme {
       primaryColor: AppColors.primary,
 
       // Typography
-      textTheme:
-          GoogleFonts.manropeTextTheme(
-            const TextTheme(
-              displayLarge: AppTextStyles.h1,
-              displayMedium: AppTextStyles.h2,
-              displaySmall: AppTextStyles.h3,
-              titleLarge: AppTextStyles.subtitle1,
-              titleMedium: AppTextStyles.subtitle2,
-              bodyLarge: AppTextStyles.body1,
-              bodyMedium: AppTextStyles.body2,
-              labelLarge: AppTextStyles.button,
-              bodySmall: AppTextStyles.caption,
-            ),
-          ).apply(
-            bodyColor: AppColors.textPrimaryLight,
-            displayColor: AppColors.textPrimaryLight,
-          ),
-      fontFamily: GoogleFonts.manrope().fontFamily,
+      textTheme: textTheme,
+      fontFamily: 'Manrope',
 
       // Card Theme
       cardTheme: CardThemeData(
@@ -67,7 +52,7 @@ class AppTheme {
         elevation: 0.5,
         scrolledUnderElevation: 0,
         toolbarHeight: 72,
-        titleTextStyle: GoogleFonts.manrope(
+        titleTextStyle: _fontStyle(
           fontSize: 22,
           fontWeight: FontWeight.w800,
           color: AppColors.textPrimaryLight,
@@ -134,6 +119,8 @@ class AppTheme {
   }
 
   static ThemeData dark() {
+    final textTheme = _textTheme(color: AppColors.textPrimaryDark);
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -151,24 +138,8 @@ class AppTheme {
       primaryColor: AppColors.primaryLight,
 
       // Typography
-      textTheme:
-          GoogleFonts.manropeTextTheme(
-            const TextTheme(
-              displayLarge: AppTextStyles.h1,
-              displayMedium: AppTextStyles.h2,
-              displaySmall: AppTextStyles.h3,
-              titleLarge: AppTextStyles.subtitle1,
-              titleMedium: AppTextStyles.subtitle2,
-              bodyLarge: AppTextStyles.body1,
-              bodyMedium: AppTextStyles.body2,
-              labelLarge: AppTextStyles.button,
-              bodySmall: AppTextStyles.caption,
-            ),
-          ).apply(
-            bodyColor: AppColors.textPrimaryDark,
-            displayColor: AppColors.textPrimaryDark,
-          ),
-      fontFamily: GoogleFonts.manrope().fontFamily,
+      textTheme: textTheme,
+      fontFamily: 'Manrope',
 
       // Card Theme
       cardTheme: CardThemeData(
@@ -190,7 +161,7 @@ class AppTheme {
         elevation: 0.5,
         scrolledUnderElevation: 0,
         toolbarHeight: 72,
-        titleTextStyle: GoogleFonts.manrope(
+        titleTextStyle: _fontStyle(
           fontSize: 22,
           fontWeight: FontWeight.w800,
           color: AppColors.textPrimaryDark,
@@ -253,6 +224,63 @@ class AppTheme {
         actionTextColor: Colors.white,
         disabledActionTextColor: Colors.white70,
       ),
+    );
+  }
+
+  static TextTheme _textTheme({required Color color}) {
+    const base = TextTheme(
+      displayLarge: AppTextStyles.h1,
+      displayMedium: AppTextStyles.h2,
+      displaySmall: AppTextStyles.h3,
+      titleLarge: AppTextStyles.subtitle1,
+      titleMedium: AppTextStyles.subtitle2,
+      bodyLarge: AppTextStyles.body1,
+      bodyMedium: AppTextStyles.body2,
+      labelLarge: AppTextStyles.button,
+      bodySmall: AppTextStyles.caption,
+    );
+
+    final themed = base.apply(fontFamily: 'Manrope');
+
+    return _withMalayalamFallback(
+      themed.apply(bodyColor: color, displayColor: color),
+    );
+  }
+
+  static TextStyle _fontStyle({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+  }) {
+    return TextStyle(
+      fontFamily: 'Manrope',
+      fontFamilyFallback: const ['AnekMalayalam'],
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+    );
+  }
+
+  static TextTheme _withMalayalamFallback(TextTheme theme) {
+    TextStyle? addFallback(TextStyle? style) =>
+        style?.copyWith(fontFamilyFallback: const ['AnekMalayalam']);
+
+    return theme.copyWith(
+      displayLarge: addFallback(theme.displayLarge),
+      displayMedium: addFallback(theme.displayMedium),
+      displaySmall: addFallback(theme.displaySmall),
+      headlineLarge: addFallback(theme.headlineLarge),
+      headlineMedium: addFallback(theme.headlineMedium),
+      headlineSmall: addFallback(theme.headlineSmall),
+      titleLarge: addFallback(theme.titleLarge),
+      titleMedium: addFallback(theme.titleMedium),
+      titleSmall: addFallback(theme.titleSmall),
+      bodyLarge: addFallback(theme.bodyLarge),
+      bodyMedium: addFallback(theme.bodyMedium),
+      bodySmall: addFallback(theme.bodySmall),
+      labelLarge: addFallback(theme.labelLarge),
+      labelMedium: addFallback(theme.labelMedium),
+      labelSmall: addFallback(theme.labelSmall),
     );
   }
 }

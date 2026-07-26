@@ -56,8 +56,7 @@ class _MessageBubbleWidget extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 340),
               padding: const EdgeInsets.all(AppSpacing.s14),
               decoration: BoxDecoration(
-                gradient: isUser ? AiChatColors.userBubbleGradient : null,
-                color: isUser ? null : AiChatColors.bubbleAi,
+                color: isUser ? AiChatColors.userBubble : AiChatColors.bubbleAi,
                 border: isUser ? null : Border.all(color: AiChatColors.border),
                 borderRadius: radius,
               ),
@@ -417,7 +416,7 @@ class _TestSuggestionCard extends StatelessWidget {
           color: const Color(0xFFEFF4FF),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: const Color(0xFF5A88F1).withValues(alpha: 0.4),
+            color: const Color(0xFF06489B).withValues(alpha: 0.4),
           ),
         ),
         child: Row(
@@ -425,7 +424,7 @@ class _TestSuggestionCard extends StatelessWidget {
             const Icon(
               Icons.biotech_rounded,
               size: 18,
-              color: Color(0xFF5A88F1),
+              color: Color(0xFF06489B),
             ),
             const SizedBox(width: AppSpacing.s8),
             Expanded(
@@ -456,14 +455,14 @@ class _TestSuggestionCard extends StatelessWidget {
                   style: AppTextStyles.bubbleAi(context).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
-                    color: const Color(0xFF5A88F1),
+                    color: const Color(0xFF06489B),
                   ),
                 ),
                 const SizedBox(height: 4),
                 FilledButton(
                   onPressed: () => _addAndBook(context),
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF5A88F1),
+                    backgroundColor: const Color(0xFF06489B),
                     foregroundColor: Colors.white,
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.symmetric(

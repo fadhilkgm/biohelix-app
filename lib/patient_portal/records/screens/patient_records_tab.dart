@@ -10,6 +10,107 @@ class _RecordsTab extends StatefulWidget {
 class _RecordsTabState extends State<_RecordsTab> {
   String _filter = 'all';
 
+  Future<void> _addDocument(PatientPortalProvider portal) async {
+    final reportType = await showModalBottomSheet<_PatientReportType>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => const _ReportTypeSheet(),
+    );
+    if (reportType == null || !mounted) return;
+
+    final source = await showModalBottomSheet<_MedicalRecordUploadSource>(
+      context: context,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => const _MedicalRecordSourceSheet(),
+    );
+    if (source == null || !mounted) return;
+
+    final files = <({String path, String name})>[];
+    if (source == _MedicalRecordUploadSource.gallery) {
+      final photos = await ImagePicker().pickMultiImage(imageQuality: 92);
+      files.addAll(photos.map((photo) => (path: photo.path, name: photo.name)));
+    } else {
+      final picked = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
+        allowMultiple: true,
+        withData: false,
+      );
+      if (picked != null) {
+        files.addAll(
+          picked.files
+              .where(
+                (file) => file.path != null && file.path!.trim().isNotEmpty,
+              )
+              .map((file) => (path: file.path!, name: file.name)),
+        );
+      }
+    }
+    if (files.isEmpty || !mounted) return;
+
+    try {
+      for (final file in files) {
+        await portal.uploadDocument(
+          file.path,
+          fileName: file.name,
+          documentType: reportType.value,
+        );
+      }
+      if (!mounted) return;
+      final itemLabel = files.length == 1 ? reportType.label : 'records';
+      _showSuccessBanner(
+        files.length == 1
+            ? '$itemLabel added successfully.'
+            : '${files.length} $itemLabel added successfully.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  void _showSuccessBanner(String message) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF14845D),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        action: SnackBarAction(
+          label: 'Close',
+          textColor: Colors.white,
+          onPressed: messenger.hideCurrentSnackBar,
+        ),
+      ),
+    );
+  }
+
   void setFilter(String filter) {
     if (!mounted) return;
     setState(() {
@@ -41,7 +142,10 @@ class _RecordsTabState extends State<_RecordsTab> {
     );
   }
 
-  Future<void> _openDocument(String documentPath) async {
+  Future<void> _openDocument({
+    required String title,
+    required String documentPath,
+  }) async {
     final trimmed = documentPath.trim();
     if (trimmed.isEmpty) return;
 
@@ -60,18 +164,12 @@ class _RecordsTabState extends State<_RecordsTab> {
       return;
     }
 
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppStrings.of(
-              context.read<LanguageProvider>().language,
-            ).couldNotOpenReport,
-          ),
-        ),
-      );
-    }
+    await InAppDocumentViewer.open(
+      context,
+      title: title,
+      url: uri.toString(),
+      authToken: context.read<SessionProvider>().authToken,
+    );
   }
 
   @override
@@ -99,34 +197,51 @@ class _RecordsTabState extends State<_RecordsTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ── Back Button ─────────────────────────────────────
-                      IconButton(
+                      AppChevronBackButton(
                         onPressed: () => PatientAppShell.of(context).goHome(),
                         tooltip: 'Back to Home',
-                        icon: const Icon(Icons.arrow_back_rounded, size: 24),
-                        style: IconButton.styleFrom(
-                          backgroundColor: theme.colorScheme.surface,
-                          foregroundColor: theme.colorScheme.onSurface,
-                          fixedSize: const Size(48, 48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
                       ),
                       const SizedBox(height: 16),
                       // ── Header ──────────────────────────────────────────
-                      Text(
-                        'Medical Records',
-                        style: GoogleFonts.manrope(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: theme.colorScheme.onSurface,
-                          height: 1.1,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Medical Records',
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                                color: theme.colorScheme.onSurface,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          FilledButton.icon(
+                            onPressed: portal.isUploadingDocument
+                                ? null
+                                : () => _addDocument(portal),
+                            icon: portal.isUploadingDocument
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.add_rounded),
+                            label: Text(
+                              portal.isUploadingDocument ? 'Adding…' : 'Add',
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${items.length} records in your vault',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: theme.colorScheme.onSurfaceVariant,
@@ -226,7 +341,10 @@ class _RecordsTabState extends State<_RecordsTab> {
             onTap: record.category == 'prescription'
                 ? () => _openPrescriptionDetail(record: record)
                 : (record.documentPath ?? '').trim().isNotEmpty
-                ? () => _openDocument(record.documentPath!)
+                ? () => _openDocument(
+                    title: record.title,
+                    documentPath: record.documentPath!,
+                  )
                 : (record.summary ?? '').trim().isNotEmpty
                 ? () => _openRecordDetail(record: record)
                 : null,
@@ -321,6 +439,186 @@ class _RecordsTabState extends State<_RecordsTab> {
   }
 }
 
+enum _MedicalRecordUploadSource { gallery, files }
+
+class _MedicalRecordSourceSheet extends StatelessWidget {
+  const _MedicalRecordSourceSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Add medical record',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Choose photos from your gallery or select documents from Files.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 18),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            leading: const CircleAvatar(
+              backgroundColor: Color(0xFFE8F1FC),
+              foregroundColor: Color(0xFF06489B),
+              child: Icon(Icons.photo_library_outlined),
+            ),
+            title: const Text(
+              'Choose from Gallery',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            subtitle: const Text('Select one or multiple photos'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () =>
+                Navigator.of(context).pop(_MedicalRecordUploadSource.gallery),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            leading: const CircleAvatar(
+              backgroundColor: Color(0xFFE8F1FC),
+              foregroundColor: Color(0xFF06489B),
+              child: Icon(Icons.folder_open_outlined),
+            ),
+            title: const Text(
+              'Choose from Files',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            subtitle: const Text('PDF, JPG, PNG or WebP'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () =>
+                Navigator.of(context).pop(_MedicalRecordUploadSource.files),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PatientReportType {
+  const _PatientReportType({
+    required this.value,
+    required this.label,
+    required this.description,
+    required this.icon,
+  });
+
+  final String value;
+  final String label;
+  final String description;
+  final IconData icon;
+}
+
+class _ReportTypeSheet extends StatelessWidget {
+  const _ReportTypeSheet();
+
+  static const _types = <_PatientReportType>[
+    _PatientReportType(
+      value: 'lab_report',
+      label: 'Lab test report',
+      description: 'Blood tests, urine tests, pathology, or other lab results',
+      icon: Icons.science_rounded,
+    ),
+    _PatientReportType(
+      value: 'prescription',
+      label: 'Prescription',
+      description: 'A doctor’s prescription or medicine list',
+      icon: Icons.medication_rounded,
+    ),
+    _PatientReportType(
+      value: 'radiology_report',
+      label: 'Scan or radiology report',
+      description: 'X-ray, ultrasound, CT, MRI, or imaging report',
+      icon: Icons.center_focus_strong_rounded,
+    ),
+    _PatientReportType(
+      value: 'discharge_summary',
+      label: 'Discharge summary',
+      description: 'Hospital discharge notes and follow-up instructions',
+      icon: Icons.assignment_turned_in_rounded,
+    ),
+    _PatientReportType(
+      value: 'other',
+      label: 'Other medical document',
+      description: 'Any medical document that does not match the types above',
+      icon: Icons.description_rounded,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'What type of report is this?',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Choose the type yourself so we can organize your document correctly.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ..._types.map(
+            (type) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                onTap: () => Navigator.of(context).pop(type),
+                leading: CircleAvatar(
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  foregroundColor: theme.colorScheme.onPrimaryContainer,
+                  child: Icon(type.icon),
+                ),
+                title: Text(
+                  type.label,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(type.description),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _RecordsTabItem {
   const _RecordsTabItem({
     required this.category,
@@ -363,7 +661,7 @@ class _RecordsFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const activeColor = Color(0xFF5A88F1);
+    const activeColor = Color(0xFF06489B);
 
     return GestureDetector(
       onTap: onTap,
@@ -396,7 +694,8 @@ class _RecordsFilterChip extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 14,
                 fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 color: selected
@@ -457,7 +756,8 @@ class _RecordsListCard extends StatelessWidget {
                             item.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                               color: theme.colorScheme.onSurface,
@@ -469,7 +769,8 @@ class _RecordsListCard extends StatelessWidget {
                             item.subtitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                               color: theme.colorScheme.onSurfaceVariant,
@@ -487,7 +788,8 @@ class _RecordsListCard extends StatelessWidget {
                               const SizedBox(width: 6),
                               Text(
                                 item.meta,
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: theme.colorScheme.onSurfaceVariant,
@@ -515,7 +817,7 @@ class _RecordsListCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
                             color: const Color(
-                              0xFF5A88F1,
+                              0xFF06489B,
                             ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -524,17 +826,18 @@ class _RecordsListCard extends StatelessWidget {
                             children: [
                               Text(
                                 'View Details',
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 12,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF5A88F1),
+                                  color: const Color(0xFF06489B),
                                 ),
                               ),
                               const SizedBox(width: 4),
                               const Icon(
                                 Icons.chevron_right_rounded,
                                 size: 16,
-                                color: Color(0xFF5A88F1),
+                                color: Color(0xFF06489B),
                               ),
                             ],
                           ),
@@ -600,7 +903,8 @@ class _RecordsAvailabilityBadge extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               color: accentColor,
               fontWeight: FontWeight.w800,
               fontSize: 11,
@@ -655,7 +959,8 @@ class _RecordsEmptyState extends StatelessWidget {
           Text(
             'No $label yet',
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 16,
               fontWeight: FontWeight.w800,
               color: theme.colorScheme.onSurface,
@@ -665,7 +970,8 @@ class _RecordsEmptyState extends StatelessWidget {
           Text(
             'Your medical vault is empty. New reports will appear here automatically after your consultations.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurfaceVariant,

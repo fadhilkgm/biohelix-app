@@ -62,7 +62,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [Color(0xFF5A88F1), Color(0xFF8ECAE6)],
+                            colors: [Color(0xFF06489B), Color(0xFF8ECAE6)],
                           ),
                         ),
                       ),
@@ -95,29 +95,8 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.arrow_back_ios_new_rounded,
-                                    color: Color(0xFF192233),
-                                    size: 20,
-                                  ),
-                                ),
+                              AppChevronBackButton(
+                                onPressed: () => Navigator.pop(context),
                               ),
                             ],
                           ),
@@ -176,7 +155,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF5A88F1),
+                                  color: Color(0xFF06489B),
                                   letterSpacing: 1.2,
                                 ),
                               ),
@@ -227,7 +206,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                                   icon: Icons.medical_services_outlined,
                                   label: widget.doctor.specialization,
                                   sublabel: 'Specialty',
-                                  color: const Color(0xFF5A88F1),
+                                  color: const Color(0xFF06489B),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -374,7 +353,9 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                             selectedSlot: _selectedSlot,
                             onSlotSelected: (slot) {
                               setState(() {
-                                _selectedSlot = _selectedSlot == slot ? null : slot;
+                                _selectedSlot = _selectedSlot == slot
+                                    ? null
+                                    : slot;
                               });
                             },
                           ),
@@ -409,10 +390,10 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                     ? null
                     : () => _bookNow(portal),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5A88F1),
+                  backgroundColor: const Color(0xFF06489B),
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: const Color(
-                    0xFF5A88F1,
+                    0xFF06489B,
                   ).withValues(alpha: 0.5),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -506,10 +487,11 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
           MaterialPageRoute(
             builder: (_) => BookingSuccessScreen(
               bookingId: confirmation.reference,
+              tokenNumber: confirmation.tokenNumber,
+              showMedicalSuccessIcon: true,
               title: 'Appointment Booked!',
               subtitle:
                   'Your session has been successfully scheduled. You can track your upcoming sessions in the bookings tab.',
-              imagePath: 'assets/images/appoiment-success.png',
               doctorName: widget.doctor.name,
               doctorSpecialization: widget.doctor.specialization,
               doctorImageUrl: doctorImageUrl,
@@ -524,8 +506,9 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppStrings.of(context.read<LanguageProvider>().language)
-                  .errorWithMessage(e.toString()),
+              AppStrings.of(
+                context.read<LanguageProvider>().language,
+              ).errorWithMessage(e.toString()),
             ),
             backgroundColor: Colors.red,
           ),
@@ -543,7 +526,6 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
         : cleanValue;
     return '$apiBase/$cleanUrl';
   }
-
 }
 
 class _DoctorMetricChip extends StatelessWidget {
@@ -658,13 +640,13 @@ class _HorizontalDatePicker extends StatelessWidget {
               margin: const EdgeInsets.only(right: 14),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF5A88F1)
+                    ? const Color(0xFF06489B)
                     : const Color(0xFFF4F7FB),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF5A88F1).withValues(alpha: 0.2),
+                          color: const Color(0xFF06489B).withValues(alpha: 0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -726,7 +708,7 @@ class _DoctorAvailableSlotGrid extends StatelessWidget {
         child: Center(
           child: CircularProgressIndicator(
             strokeWidth: 3,
-            color: Color(0xFF5A88F1),
+            color: Color(0xFF06489B),
           ),
         ),
       );
@@ -777,11 +759,11 @@ class _DoctorAvailableSlotGrid extends StatelessWidget {
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF5A88F1) : Colors.white,
+              color: isSelected ? const Color(0xFF06489B) : Colors.white,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected
-                    ? const Color(0xFF5A88F1)
+                    ? const Color(0xFF06489B)
                     : const Color(0xFFE1E8F2),
               ),
             ),
@@ -836,7 +818,7 @@ class _ScheduleWindowHint extends StatelessWidget {
           children: [
             const Icon(
               Icons.schedule_rounded,
-              color: Color(0xFF5A88F1),
+              color: Color(0xFF06489B),
               size: 20,
             ),
             const SizedBox(width: 10),
@@ -920,4 +902,3 @@ DateTime _nextWorkingDateForDoctor(DoctorListing doctor, DateTime fromDate) {
   }
   return fromDate;
 }
-

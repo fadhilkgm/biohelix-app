@@ -556,8 +556,6 @@ extension _AssistantActions on _AssistantTabState {
         _isSpeaking = false;
         _isLiveTurnInFlight = false;
         _soundLevel = 0;
-        _livePartialTranscript = '';
-        _liveSubmittedTranscript = '';
         _liveVoiceError = null;
         _liveConversationId = null;
       });
@@ -579,8 +577,6 @@ extension _AssistantActions on _AssistantTabState {
     updateAssistantState(() {
       _isLiveVoiceMode = true;
       _liveConversationId = portal.activeChatThreadId;
-      _livePartialTranscript = '';
-      _liveSubmittedTranscript = '';
       _liveVoiceError = null;
     });
     await liveVoiceController.start(locale: _ttsLanguageCode);

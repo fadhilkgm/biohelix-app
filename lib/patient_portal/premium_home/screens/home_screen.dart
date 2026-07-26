@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
@@ -160,11 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             width: double.infinity,
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
-              ),
+              color: Color(0xFF06489B),
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
             ),
             child: SafeArea(
@@ -256,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       label: 'Book Doctors',
                       icon: Icons.person_add_alt_1_rounded,
                       onTap: widget.onViewAllDoctors,
-                      color: const Color(0xFF5A88F1),
+                      color: const Color(0xFF06489B),
                     ),
                     const SizedBox(width: 12),
                     _QuickLink(
@@ -276,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 20),
                 _HomeActionBanner(
-                  label: 'Book a consultation for your loved ones?',
+                  label: strings.bookConsultationForLovedOne,
                   icon: Icons.family_restroom_rounded,
                   imageAsset: 'assets/images/family-care-cutout.png',
                   onTap: widget.onViewAllDoctors,
@@ -291,6 +286,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => widget.onActionTap('home_care'),
                 ),
                 const SizedBox(height: 32),
+                // Banners Carousel
+                if (widget.banners.isNotEmpty)
+                  _buildBannerCarousel(context)
+                else if (widget.isLoading)
+                  _buildBannerSkeleton(context),
+                if (widget.banners.isNotEmpty || widget.isLoading)
+                  const SizedBox(height: 24),
                 if (widget.healthSnapshot != null)
                   _HealthSnapshotCard(snapshot: widget.healthSnapshot!),
                 if (widget.healthSnapshot != null) const SizedBox(height: 24),
@@ -300,11 +302,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     onAccept: widget.onAcceptSuggestion,
                   ),
                 if (widget.aiSuggestions.isNotEmpty) const SizedBox(height: 24),
-                // Banners Carousel
-                if (widget.banners.isNotEmpty)
-                  _buildBannerCarousel(context)
-                else if (widget.isLoading)
-                  _buildBannerSkeleton(context),
                 const SizedBox(height: 32),
                 OffersAndAppointmentsSectionWidget(
                   bookings: widget.bookings,
@@ -384,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: const Text(
                           'View All',
                           style: TextStyle(
-                            color: Color(0xFF5A88F1),
+                            color: Color(0xFF06489B),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -439,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: const Text(
                             'View All',
                             style: TextStyle(
-                              color: Color(0xFF5A88F1),
+                              color: Color(0xFF06489B),
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -585,7 +582,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ElevatedButton(
                                 onPressed: () => widget.onBannerTap(banner),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF5A88F1),
+                                  backgroundColor: const Color(0xFF06489B),
                                   foregroundColor: Colors.white,
                                   minimumSize: const Size(0, 36),
                                   tapTargetSize:
@@ -672,7 +669,7 @@ class _TestCard extends StatelessWidget {
               color: const Color(0xFFF4F7FF),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: const Color(0xFF5A88F1).withValues(alpha: 0.15),
+                color: const Color(0xFF06489B).withValues(alpha: 0.15),
                 width: 1.2,
               ),
             ),
@@ -683,7 +680,8 @@ class _TestCard extends StatelessWidget {
               children: [
                 Text(
                   test.testName,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF192233),
@@ -692,10 +690,11 @@ class _TestCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   "${test.resultEta?.replaceAll(' hrs', '') ?? '24'} hrs",
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF5A88F1),
+                    color: const Color(0xFF06489B),
                   ),
                 ),
               ],
@@ -829,7 +828,7 @@ class _PackageCard extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900,
-                                  color: Color(0xFF5A88F1),
+                                  color: Color(0xFF06489B),
                                 ),
                               ),
                             ),
@@ -868,7 +867,7 @@ class _PackageCard extends StatelessWidget {
                             '${pkg.totalTests ?? pkg.includedTests.length} Tests included',
                             style: const TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF5A88F1),
+                              color: Color(0xFF06489B),
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -880,7 +879,7 @@ class _PackageCard extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: onTap,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5A88F1),
+                          backgroundColor: const Color(0xFF06489B),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -890,7 +889,8 @@ class _PackageCard extends StatelessWidget {
                         ),
                         child: Text(
                           'View Package',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
                           ),
@@ -912,7 +912,7 @@ class _PackageCard extends StatelessWidget {
       child: Icon(
         Icons.inventory_2_outlined,
         size: 60,
-        color: Color(0xFF5A88F1),
+        color: Color(0xFF06489B),
       ),
     );
   }
@@ -1021,7 +1021,7 @@ class _DoctorCard extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: onTap,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5A88F1),
+                          backgroundColor: const Color(0xFF06489B),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1087,12 +1087,12 @@ class _CategoryChip extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF5A88F1) : const Color(0xFFF4F7FF),
+          color: isActive ? const Color(0xFF06489B) : const Color(0xFFF4F7FF),
           borderRadius: BorderRadius.circular(20),
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: const Color(0xFF5A88F1).withValues(alpha: 0.2),
+                    color: const Color(0xFF06489B).withValues(alpha: 0.2),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -1116,14 +1116,14 @@ class _CategoryChip extends StatelessWidget {
                 errorBuilder: (_, _, _) => Icon(
                   icon ?? Icons.health_and_safety_outlined,
                   size: 30,
-                  color: isActive ? Colors.white : const Color(0xFF5A88F1),
+                  color: isActive ? Colors.white : const Color(0xFF06489B),
                 ),
               ),
             ] else if (icon != null) ...[
               Icon(
                 icon,
                 size: 34,
-                color: isActive ? Colors.white : const Color(0xFF5A88F1),
+                color: isActive ? Colors.white : const Color(0xFF06489B),
               ),
             ],
             const SizedBox(height: 12),
@@ -1243,7 +1243,8 @@ class _EmergencyStrip extends StatelessWidget {
                       children: [
                         Text(
                           'Medical Emergency?',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
@@ -1254,7 +1255,8 @@ class _EmergencyStrip extends StatelessWidget {
                           '24/7 Casualty & Ambulance helpline',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Colors.white.withValues(alpha: 0.85),
@@ -1284,7 +1286,8 @@ class _EmergencyStrip extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           'Call',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 14,
                             fontWeight: FontWeight.w900,
                             color: const Color(0xFFE53935),
@@ -1373,7 +1376,8 @@ class _EmergencyQuickCall extends StatelessWidget {
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: textColor,
@@ -1435,7 +1439,8 @@ class _QuickLink extends StatelessWidget {
                 Text(
                   label,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF192233),
@@ -1456,7 +1461,7 @@ class _HomeActionBanner extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onTap,
-    this.accentColor = const Color(0xFF5A88F1),
+    this.accentColor = const Color(0xFF06489B),
     this.solidColor,
     this.foregroundColor = const Color(0xFF192233),
     this.imageAsset,
@@ -1479,12 +1484,12 @@ class _HomeActionBanner extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: Ink(
-            height: 148,
+            height: 172,
             decoration: BoxDecoration(
               color: const Color(0xFFE8F1FF),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: const Color(0xFF5A88F1).withValues(alpha: 0.16),
+                color: const Color(0xFF06489B).withValues(alpha: 0.16),
               ),
             ),
             child: Stack(
@@ -1493,13 +1498,13 @@ class _HomeActionBanner extends StatelessWidget {
                   child: Image.asset(
                     imageAsset!,
                     fit: BoxFit.contain,
-                    alignment: Alignment.bottomCenter,
+                    alignment: Alignment.bottomRight,
                   ),
                 ),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Container(
-                    width: 185,
+                    width: 210,
                     margin: const EdgeInsets.all(10),
                     padding: const EdgeInsets.fromLTRB(12, 10, 12, 9),
                     child: Column(
@@ -1508,9 +1513,9 @@ class _HomeActionBanner extends StatelessWidget {
                       children: [
                         Text(
                           label,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.manrope(
+                          maxLines: 4,
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             color: const Color(0xFF183B68),
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
@@ -1536,7 +1541,8 @@ class _HomeActionBanner extends StatelessWidget {
                             ),
                             child: Text(
                               'Book now',
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1605,7 +1611,8 @@ class _HomeActionBanner extends StatelessWidget {
                   Expanded(
                     child: Text(
                       label,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         color: foregroundColor,
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
@@ -1698,13 +1705,9 @@ class _HealthSnapshotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final language = context.watch<LanguageProvider>().language;
+    final strings = AppStrings.of(language);
     final score = snapshot.healthScore;
-    final risk = snapshot.riskScore;
-    final summary = (snapshot.aiSummary ?? '').trim().isNotEmpty
-        ? snapshot.aiSummary!.trim()
-        : snapshot.isEmpty
-        ? 'No readings recorded yet — add today\'s readings to get your score.'
-        : 'Your health snapshot is ready.';
     final generatedLabel = _formatGeneratedAt(snapshot.generatedAt);
     final snapshotDateLabel = _formatSnapshotDate(snapshot.snapshotDate);
 
@@ -1796,14 +1799,16 @@ class _HealthSnapshotCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Padding(
-                          padding: EdgeInsets.only(top: 7),
+                          padding: const EdgeInsets.only(top: 7),
                           child: Text(
-                            'Health Status',
-                            style: TextStyle(
+                            strings.healthStatus,
+                            style: const TextStyle(
+                              fontFamily: 'Manrope',
+                              fontFamilyFallback: ['AnekMalayalam'],
                               color: Color(0xFF173B63),
-                              fontSize: 12,
+                              fontSize: 14.4,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.8,
                             ),
@@ -1812,7 +1817,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                       ),
                       _CardIconButton(
                         icon: Icons.history_rounded,
-                        tooltip: 'View history',
+                        tooltip: strings.viewHealthHistory,
                         accentColor: Color(0xFF225B9E),
                         onTap: () {
                           Navigator.of(context).push(
@@ -1826,7 +1831,7 @@ class _HealthSnapshotCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       _CardIconButton(
                         icon: Icons.add_rounded,
-                        tooltip: "Add/update today's readings",
+                        tooltip: strings.addTodayReadings,
                         accentColor: Color(0xFF225B9E),
                         onTap: () => showHealthSnapshotEntrySheet(context),
                       ),
@@ -1835,10 +1840,12 @@ class _HealthSnapshotCard extends StatelessWidget {
                   if (snapshotDateLabel != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'For $snapshotDateLabel',
+                      strings.forHealthDate(snapshotDateLabel),
                       style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontFamilyFallback: ['AnekMalayalam'],
                         color: Color(0xFF52708F),
-                        fontSize: 11,
+                        fontSize: 13.2,
                       ),
                     ),
                   ],
@@ -1847,18 +1854,10 @@ class _HealthSnapshotCard extends StatelessWidget {
                     children: [
                       if (score != null)
                         _SnapshotMetric(
-                          label: 'Health',
+                          label: strings.healthMetric,
                           value: score.toStringAsFixed(0),
                           accentColor: const Color(0xFF147D73),
                         ),
-                      if (risk != null) ...[
-                        const SizedBox(width: 16),
-                        _SnapshotMetric(
-                          label: 'Risk',
-                          value: risk.toStringAsFixed(0),
-                          accentColor: const Color(0xFFD05A45),
-                        ),
-                      ],
                       if (snapshot.bmi != null) ...[
                         const SizedBox(width: 16),
                         _SnapshotMetric(
@@ -1869,26 +1868,18 @@ class _HealthSnapshotCard extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  Text(
-                    summary,
-                    style: const TextStyle(
-                      color: Color(0xFF173B63),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      height: 1.4,
-                    ),
-                  ),
                   if (extraFacts.isNotEmpty) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 14),
                     ...extraFacts.map(
                       (fact) => Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           fact,
                           style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontFamilyFallback: ['AnekMalayalam'],
                             color: Color(0xFF52708F),
-                            fontSize: 13,
+                            fontSize: 15.6,
                             height: 1.4,
                             fontWeight: FontWeight.w500,
                           ),
@@ -1910,19 +1901,26 @@ class _HealthSnapshotCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: const Text(
-                          "Add Today's Readings",
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        child: Text(
+                          strings.addTodayReadings,
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontFamilyFallback: ['AnekMalayalam'],
+                            fontSize: 16.8,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
                   ] else if (generatedLabel != null) ...[
                     const SizedBox(height: 12),
                     Text(
-                      'Updated $generatedLabel',
+                      strings.updatedHealthAt(generatedLabel),
                       style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontFamilyFallback: ['AnekMalayalam'],
                         color: Color(0xFF52708F),
-                        fontSize: 11,
+                        fontSize: 13.2,
                       ),
                     ),
                   ],
@@ -1987,16 +1985,20 @@ class _SnapshotMetric extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
+            fontFamily: 'Manrope',
+            fontFamilyFallback: ['AnekMalayalam'],
             color: Colors.black,
-            fontSize: 11,
+            fontSize: 13.2,
             fontWeight: FontWeight.w800,
           ),
         ),
         Text(
           value,
           style: TextStyle(
+            fontFamily: 'Manrope',
+            fontFamilyFallback: const ['AnekMalayalam'],
             color: accentColor,
-            fontSize: 22,
+            fontSize: 26.4,
             fontWeight: FontWeight.w900,
           ),
         ),

@@ -34,12 +34,13 @@ class LiveVoiceState {
   final String? errorMessage;
   final double soundLevel;
 
-  bool get isActive => phase != LiveVoicePhase.idle &&
+  bool get isActive =>
+      phase != LiveVoicePhase.idle &&
       phase != LiveVoicePhase.closed &&
       phase != LiveVoicePhase.error;
 
-  bool get isListening => phase == LiveVoicePhase.listening ||
-      phase == LiveVoicePhase.transcribing;
+  bool get isListening =>
+      phase == LiveVoicePhase.listening || phase == LiveVoicePhase.transcribing;
 
   bool get isSpeaking => phase == LiveVoicePhase.speaking;
 

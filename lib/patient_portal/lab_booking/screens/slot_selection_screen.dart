@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../state/lab_booking_controller.dart';
 import '../widgets/slot_selector_widget.dart';
@@ -22,7 +21,8 @@ class SlotSelectionScreen extends StatelessWidget {
         centerTitle: false,
         title: Text(
           'Select Slot',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: 'Manrope',
             fontWeight: FontWeight.w800,
             color: const Color(0xFF2D3142),
           ),
@@ -37,7 +37,8 @@ class SlotSelectionScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'When should we arrive?',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontWeight: FontWeight.w800,
                   fontSize: 18,
                   color: const Color(0xFF2D3142),
@@ -45,7 +46,7 @@ class SlotSelectionScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Date Selection Card
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -60,7 +61,7 @@ class SlotSelectionScreen extends StatelessWidget {
                       return Theme(
                         data: Theme.of(context).copyWith(
                           colorScheme: const ColorScheme.light(
-                            primary: Color(0xFF5A88F1),
+                            primary: Color(0xFF06489B),
                           ),
                         ),
                         child: child!,
@@ -92,7 +93,7 @@ class SlotSelectionScreen extends StatelessWidget {
                         ),
                         child: const Icon(
                           Icons.calendar_today_rounded,
-                          color: Color(0xFF5A88F1),
+                          color: Color(0xFF06489B),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -102,7 +103,8 @@ class SlotSelectionScreen extends StatelessWidget {
                           children: [
                             Text(
                               'Appointment Date',
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 13,
                                 color: Colors.grey,
                                 fontWeight: FontWeight.w600,
@@ -111,7 +113,8 @@ class SlotSelectionScreen extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               DateFormat('EEEE, dd MMM yyyy').format(c.date),
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
                                 color: const Color(0xFF2D3142),
@@ -120,7 +123,11 @@ class SlotSelectionScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
                     ],
                   ),
                 ),
@@ -134,7 +141,8 @@ class SlotSelectionScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Available Time Slots',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: const Color(0xFF2D3142),
@@ -147,7 +155,7 @@ class SlotSelectionScreen extends StatelessWidget {
               selectedSlot: c.slot,
               onSelect: c.setSlot,
             ),
-            
+
             const SizedBox(height: 100),
           ],
         ),
@@ -169,7 +177,7 @@ class SlotSelectionScreen extends StatelessWidget {
               ? () => _push(context, const PaymentScreen())
               : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5A88F1),
+            backgroundColor: const Color(0xFF06489B),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
@@ -182,7 +190,8 @@ class SlotSelectionScreen extends StatelessWidget {
             children: [
               Text(
                 'Proceed to Payment',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
                 ),

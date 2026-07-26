@@ -48,10 +48,7 @@ class HomeHeaderContentMapper {
 
   static String _resolveGreeting(LocalizedStrings strings) {
     final hour = DateTime.now().hour;
-    if (hour < 12) return strings.goodMorning;
-    if (hour < 17) return strings.goodAfternoon;
-    if (hour < 21) return strings.goodEvening;
-    return strings.goodNight;
+    return hour >= 5 && hour < 21 ? strings.goodDay : strings.goodNight;
   }
 
   static String _resolveDisplayName(String patientName) {

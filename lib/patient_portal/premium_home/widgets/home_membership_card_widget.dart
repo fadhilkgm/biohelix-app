@@ -14,7 +14,6 @@ class HomeMembershipCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(

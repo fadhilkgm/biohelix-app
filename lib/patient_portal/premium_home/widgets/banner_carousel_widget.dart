@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter/material.dart';
 
@@ -177,7 +176,8 @@ class _BannerCarouselWidgetState extends State<BannerCarouselWidget> {
                     alignment: Alignment.bottomLeft,
                     child: Text(
                       'Explore doctors',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -200,4 +200,3 @@ class _BannerCarouselWidgetState extends State<BannerCarouselWidget> {
     );
   }
 }
-

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../models/lab_booking_models.dart';
@@ -18,7 +17,7 @@ class CartScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Your Cart',
-          style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -37,7 +36,8 @@ class CartScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   Text(
                     'Your cart is empty',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFF192233),
@@ -46,7 +46,8 @@ class CartScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Add tests to continue booking',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       color: const Color(0xFF192233).withValues(alpha: 0.5),
                     ),
@@ -58,10 +59,12 @@ class CartScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               children: [
                 // Cart items
-                ...c.cart.map((item) => _CartItemCard(
-                      item: item,
-                      onRemove: () => c.updateQty(item.test.id, 0),
-                    )),
+                ...c.cart.map(
+                  (item) => _CartItemCard(
+                    item: item,
+                    onRemove: () => c.updateQty(item.test.id, 0),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 // Price summary
                 Container(
@@ -123,7 +126,7 @@ class CartScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => _pushCheckout(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5A88F1),
+                    backgroundColor: const Color(0xFF06489B),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 18),
@@ -136,21 +139,26 @@ class CartScreen extends StatelessWidget {
                     children: [
                       Text(
                         'Proceed to Checkout',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontWeight: FontWeight.w900,
                           fontSize: 18,
                         ),
                       ),
                       const SizedBox(width: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '${c.cart.length}',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
                             color: Colors.white,
@@ -209,10 +217,7 @@ class _CartItemCard extends StatelessWidget {
               color: const Color(0xFFF4F7FF),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.biotech_outlined,
-              color: Color(0xFF5A88F1),
-            ),
+            child: const Icon(Icons.biotech_outlined, color: Color(0xFF06489B)),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -221,7 +226,8 @@ class _CartItemCard extends StatelessWidget {
               children: [
                 Text(
                   item.test.name,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF192233),
@@ -231,8 +237,11 @@ class _CartItemCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item.test.bodyPoints.isNotEmpty ? item.test.bodyPoints.first.name : 'Lab test',
-                  style: GoogleFonts.manrope(
+                  item.test.bodyPoints.isNotEmpty
+                      ? item.test.bodyPoints.first.name
+                      : 'Lab test',
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 13,
                     color: const Color(0xFF192233).withValues(alpha: 0.5),
                   ),
@@ -240,10 +249,11 @@ class _CartItemCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '\u20B9${item.test.price.toStringAsFixed(0)}',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
-                    color: const Color(0xFF5A88F1),
+                    color: const Color(0xFF06489B),
                   ),
                 ),
               ],
@@ -283,19 +293,24 @@ class _SummaryRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 14,
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-              color: const Color(0xFF192233).withValues(alpha: isBold ? 1 : 0.6),
+              color: const Color(
+                0xFF192233,
+              ).withValues(alpha: isBold ? 1 : 0.6),
             ),
           ),
           const Spacer(),
           Text(
             value,
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+              fontFamily: 'Manrope',
               fontSize: 14,
               fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
-              color: valueColor ??
+              color:
+                  valueColor ??
                   (isBold
                       ? const Color(0xFF192233)
                       : const Color(0xFF192233).withValues(alpha: 0.8)),

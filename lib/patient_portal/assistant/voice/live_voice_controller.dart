@@ -46,10 +46,10 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Fetches short-lived ICE/session configuration ahead of the voice tap.
   /// This does not open the microphone or create an Inworld call.
-  Future<void> prewarm() async {
+  Future<void> prewarm({required String locale}) async {
     if (_disposed || _state.isActive) return;
     try {
-      await _signalingApi.bootstrap();
+      await _signalingApi.bootstrap(locale: locale);
       _debugLog('voice bootstrap prewarmed');
     } catch (error) {
       // A warm-up failure must not prevent the normal start path from retrying.
@@ -67,7 +67,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     _setState(const LiveVoiceState(phase: LiveVoicePhase.connecting));
 
     try {
-      final bootstrap = await _signalingApi.bootstrap();
+      final bootstrap = await _signalingApi.bootstrap(locale: locale);
       _debugLog(
         'bootstrap received: iceServers=${bootstrap.iceServers.length}, '
         'sessionEvent=${bootstrap.sessionUpdate['type']}, '

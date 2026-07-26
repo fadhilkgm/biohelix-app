@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const background = Color(0xFFF4F7F8);
   static const surface = Color(0xFFFFFFFF);
-  static const primary = Color(0xFF1E9D8B);
+  static const primary = Color(0xFF06489B);
   static const secondary = Color(0xFF2A7CCF);
   static const accent = Color(0xFF66BCEB);
   static const textPrimary = Color(0xFF17212B);
@@ -22,7 +22,7 @@ class AppColors {
   ];
 
   static const List<Color> pillGradient = [
-    Color(0x1A1E9D8B),
+    Color(0x1A06489B),
     Color(0x1A2A7CCF),
   ];
 }

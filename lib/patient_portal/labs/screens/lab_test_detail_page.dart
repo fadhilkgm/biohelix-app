@@ -46,12 +46,12 @@ class LabTestDetailPage extends StatelessWidget {
       await portal.refresh();
       if (!context.mounted) return;
       if (portal.labTests.isEmpty) {
-        final strings = AppStrings.of(context.read<LanguageProvider>().language);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(strings.noLabTestsAvailable),
-          ),
+        final strings = AppStrings.of(
+          context.read<LanguageProvider>().language,
         );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.noLabTestsAvailable)));
         return;
       }
     }
@@ -89,7 +89,7 @@ class LabTestDetailPage extends StatelessWidget {
             expandedHeight: 320,
             pinned: true,
             stretch: true,
-            backgroundColor: const Color(0xFF5A88F1),
+            backgroundColor: const Color(0xFF06489B),
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
@@ -115,9 +115,7 @@ class LabTestDetailPage extends StatelessWidget {
                     }
 
                     if (resolvedUrl.isEmpty) {
-                      return const AppLogoPlaceholder(
-                        padding: 32,
-                      );
+                      return const AppLogoPlaceholder(padding: 32);
                     }
 
                     return Image.network(
@@ -132,9 +130,8 @@ class LabTestDetailPage extends StatelessWidget {
                           ),
                         );
                       },
-                      errorBuilder: (_, _, _) => const AppLogoPlaceholder(
-                        padding: 32,
-                      ),
+                      errorBuilder: (_, _, _) =>
+                          const AppLogoPlaceholder(padding: 32),
                     );
                   },
                 ),

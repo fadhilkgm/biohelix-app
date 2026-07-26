@@ -1,10 +1,7 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 class _ChatAttachmentWidget extends StatelessWidget {
-  const _ChatAttachmentWidget({
-    required this.attachment,
-    required this.onTap,
-  });
+  const _ChatAttachmentWidget({required this.attachment, required this.onTap});
 
   final _ChatAttachment attachment;
   final VoidCallback onTap;
@@ -35,8 +32,13 @@ class _ChatAttachmentWidget extends StatelessWidget {
                   height: 56,
                   fit: BoxFit.cover,
                   headers: {
-                    if (Provider.of<SessionProvider>(context, listen: false).authToken != null)
-                      'Authorization': 'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
+                    if (Provider.of<SessionProvider>(
+                          context,
+                          listen: false,
+                        ).authToken !=
+                        null)
+                      'Authorization':
+                          'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
                   },
                   loadingBuilder: (context, child, progress) {
                     if (progress == null) return child;

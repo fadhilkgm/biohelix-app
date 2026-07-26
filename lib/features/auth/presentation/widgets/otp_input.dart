@@ -41,8 +41,7 @@ class _OtpInputState extends State<OtpInput> {
     super.dispose();
   }
 
-  String get _currentValue =>
-      _controllers.map((c) => c.text).join();
+  String get _currentValue => _controllers.map((c) => c.text).join();
 
   void _onDigitChanged(int index, String value) {
     if (value.length > 1) {
@@ -82,12 +81,15 @@ class _OtpInputState extends State<OtpInput> {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: List.generate(_length, (i) => _DigitBox(
-        controller: _controllers[i],
-        focusNode: _focusNodes[i],
-        onChanged: (v) => _onDigitChanged(i, v),
-        onKeyEvent: (e) => _onKeyEvent(i, e),
-      )),
+      children: List.generate(
+        _length,
+        (i) => _DigitBox(
+          controller: _controllers[i],
+          focusNode: _focusNodes[i],
+          onChanged: (v) => _onDigitChanged(i, v),
+          onKeyEvent: (e) => _onKeyEvent(i, e),
+        ),
+      ),
     );
   }
 }
@@ -107,6 +109,8 @@ class _DigitBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return SizedBox(
       width: 44,
       height: 52,
@@ -126,22 +130,22 @@ class _DigitBox extends StatelessWidget {
             fontWeight: FontWeight.w700,
             color: Color(0xFF111827),
           ),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             counterText: '',
             filled: true,
-            fillColor: Color(0xFFF3F4F6),
+            fillColor: colorScheme.surfaceContainerHighest,
             contentPadding: EdgeInsets.zero,
-            border: OutlineInputBorder(
+            border: const OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(12)),
               borderSide: BorderSide(color: Color(0xFFE5E7EB), width: 1.5),
             ),
-            enabledBorder: OutlineInputBorder(
+            enabledBorder: const OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(12)),
               borderSide: BorderSide(color: Color(0xFFE5E7EB), width: 1.5),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-              borderSide: BorderSide(color: Color(0xFF537DE8), width: 2),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+              borderSide: BorderSide(color: colorScheme.primary, width: 2),
             ),
           ),
         ),

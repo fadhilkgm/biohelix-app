@@ -40,7 +40,8 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
       appBar: AppBar(
         title: Text(
           'Our Specialists',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: 'Manrope',
             fontWeight: FontWeight.w800,
             color: const Color(0xFF192233),
           ),
@@ -48,13 +49,10 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            color: Color(0xFF192233),
-            size: 30,
-          ),
-          onPressed: () => Navigator.pop(context),
+        leadingWidth: 64,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: AppChevronBackButton(onPressed: () => Navigator.pop(context)),
         ),
       ),
       body: Consumer<PatientPortalProvider>(
@@ -101,14 +99,16 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: TextField(
                     controller: _searchController,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
                       color: const Color(0xFF192233),
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                     decoration: InputDecoration(
                       hintText: 'Search for doctors...',
-                      hintStyle: GoogleFonts.manrope(
+                      hintStyle: TextStyle(
+                        fontFamily: 'Manrope',
                         color: const Color(0xFF192233).withValues(alpha: 0.4),
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -148,7 +148,7 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: Color(0xFF5A88F1),
+                          color: Color(0xFF06489B),
                           width: 1.5,
                         ),
                       ),
@@ -165,7 +165,8 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                         _searchQuery.isEmpty
                             ? 'No doctors available right now.'
                             : 'No doctors found matching "$_searchQuery"',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 14,
                           color: const Color(0xFF192233).withValues(alpha: 0.6),
                         ),
@@ -188,14 +189,15 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                                   width: 4,
                                   height: 24,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF5A88F1),
+                                    color: const Color(0xFF06489B),
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
                                   department,
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 20,
                                     fontWeight: FontWeight.w900,
                                     color: const Color(0xFF192233),
@@ -204,10 +206,11 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                                 const Spacer(),
                                 Text(
                                   '${departmentDoctors.length} Doctors',
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF5A88F1),
+                                    color: const Color(0xFF06489B),
                                   ),
                                 ),
                               ],
@@ -310,7 +313,8 @@ class _DoctorShortCard extends StatelessWidget {
                     children: [
                       Text(
                         doc.name,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF192233),
@@ -319,10 +323,11 @@ class _DoctorShortCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         doc.specialization,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF5A88F1),
+                          color: const Color(0xFF06489B),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -341,7 +346,8 @@ class _DoctorShortCard extends StatelessWidget {
                               doc.availabilityWindowLabel,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: const Color(
@@ -364,7 +370,7 @@ class _DoctorShortCard extends StatelessWidget {
                   ),
                   child: const Icon(
                     Icons.chevron_right_rounded,
-                    color: Color(0xFF5A88F1),
+                    color: Color(0xFF06489B),
                     size: 24,
                   ),
                 ),
@@ -383,7 +389,7 @@ class _DoctorShortCard extends StatelessWidget {
         child: Icon(
           Icons.person_outline_rounded,
           size: 50,
-          color: const Color(0xFF5A88F1),
+          color: const Color(0xFF06489B),
         ),
       ),
     );

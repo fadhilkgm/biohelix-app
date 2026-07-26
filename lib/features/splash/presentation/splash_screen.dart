@@ -59,15 +59,14 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _textController, curve: Curves.easeIn),
-    );
+    _textOpacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeIn));
     _textSlide = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _textController, curve: Curves.easeOut),
-    );
+    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeOut));
 
     _runSequence();
   }
@@ -85,10 +84,8 @@ class _SplashScreenState extends State<SplashScreen>
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
         reverseTransitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (context, animation, _) => FadeTransition(
-          opacity: animation,
-          child: const HomeScreen(),
-        ),
+        pageBuilder: (context, animation, _) =>
+            FadeTransition(opacity: animation, child: const HomeScreen()),
       ),
     );
   }
@@ -104,14 +101,20 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor =
-        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final secondaryTextColor =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final logoWidth = (MediaQuery.sizeOf(context).width * 0.48)
+        .clamp(180.0, 204.0)
+        .toDouble();
+    final primaryTextColor = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final secondaryTextColor = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       body: FadeTransition(
         opacity: _bgOpacity,
         child: DecoratedBox(
@@ -120,14 +123,8 @@ class _SplashScreenState extends State<SplashScreen>
               center: Alignment.center,
               radius: 1.4,
               colors: isDark
-                  ? [
-                      AppColors.surfaceDark,
-                      AppColors.backgroundDark,
-                    ]
-                  : [
-                      Colors.white,
-                      AppColors.backgroundLight,
-                    ],
+                  ? [AppColors.surfaceDark, AppColors.backgroundDark]
+                  : [Colors.white, AppColors.backgroundLight],
             ),
           ),
           child: SafeArea(
@@ -145,13 +142,13 @@ class _SplashScreenState extends State<SplashScreen>
                             scale: _logoScale,
                             child: FadeTransition(
                               opacity: _logoOpacity,
-                              child: const AppLogo(
-                                width: 160,
+                              child: AppLogo(
+                                width: logoWidth,
                                 borderRadius: 20,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 30),
                           FadeTransition(
                             opacity: _textOpacity,
                             child: SlideTransition(
@@ -167,20 +164,46 @@ class _SplashScreenState extends State<SplashScreen>
                                         ?.copyWith(
                                           fontWeight: FontWeight.w900,
                                           color: primaryTextColor,
-                                          letterSpacing: -1.0,
+                                          fontSize: 40,
+                                          letterSpacing: 3.2,
+                                          height: 1,
                                         ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 12),
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 330,
+                                    ),
+                                    child: Text(
+                                      'BioHelix Health and Research Center',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            color: secondaryTextColor,
+                                            fontSize: 16,
+                                            letterSpacing: 0.35,
+                                            fontWeight: FontWeight.w600,
+                                            height: 1.35,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
                                   Text(
-                                    'BioHelix Health and Research center',
+                                    'Where care meets innovation',
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context)
                                         .textTheme
-                                        .bodyLarge
+                                        .bodyMedium
                                         ?.copyWith(
-                                          color: secondaryTextColor,
-                                          letterSpacing: 0.5,
-                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.78,
+                                          ),
+                                          fontSize: 14,
+                                          fontStyle: FontStyle.italic,
+                                          fontWeight: FontWeight.w400,
+                                          letterSpacing: 0.15,
                                         ),
                                   ),
                                 ],

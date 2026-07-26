@@ -203,7 +203,12 @@ class _ProfileTabState extends State<_ProfileTab> {
       return;
     }
 
-    await launchUrl(Uri.parse(resolved), mode: LaunchMode.externalApplication);
+    await InAppDocumentViewer.open(
+      context,
+      title: document.documentType,
+      url: resolved,
+      authToken: context.read<SessionProvider>().authToken,
+    );
   }
 
   Future<void> _deleteReport(
@@ -413,6 +418,9 @@ class _ProfileTabState extends State<_ProfileTab> {
     }
   }
 
+  // Kept for the legacy profile block below; the redesigned profile no longer
+  // exposes profile switching.
+  // ignore: unused_element
   Future<void> _showFamilyProfilesSheet(
     BuildContext context,
     PatientPortalProvider portal,
@@ -451,7 +459,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                         padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Color(0xFF5A88F1), Color(0xFF759BF1)],
+                            colors: [Color(0xFF06489B), Color(0xFF759BF1)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -544,7 +552,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                                           ),
                                           border: Border.all(
                                             color: isActive
-                                                ? const Color(0xFF5A88F1)
+                                                ? const Color(0xFF06489B)
                                                 : const Color(0xFFE5E9F0),
                                             width: isActive ? 1.6 : 1,
                                           ),
@@ -557,7 +565,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                                               decoration: BoxDecoration(
                                                 gradient: const LinearGradient(
                                                   colors: [
-                                                    Color(0xFF5A88F1),
+                                                    Color(0xFF06489B),
                                                     Color(0xFF759BF1),
                                                   ],
                                                 ),
@@ -606,7 +614,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                                                         .bodySmall
                                                         ?.copyWith(
                                                           color: const Color(
-                                                            0xFF5A88F1,
+                                                            0xFF06489B,
                                                           ),
                                                           fontWeight:
                                                               FontWeight.w700,
@@ -646,7 +654,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                                                 child: const Text(
                                                   'Active',
                                                   style: TextStyle(
-                                                    color: Color(0xFF5A88F1),
+                                                    color: Color(0xFF06489B),
                                                     fontWeight: FontWeight.w800,
                                                   ),
                                                 ),
@@ -675,7 +683,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                                   );
                                 },
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF5A88F1),
+                                  backgroundColor: const Color(0xFF06489B),
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 16,
@@ -1357,12 +1365,18 @@ class _ProfileTabState extends State<_ProfileTab> {
                 patient: patient,
                 idCard: idCard,
                 myClub: myClub,
-                onOpenTestsHub: widget.onOpenTestsHub,
-                onSwitchProfiles: () =>
-                    _showFamilyProfilesSheet(context, portal),
+                familyMembers: portal.familyMembers,
+                onManageFamily: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const _FamilyMembersScreen(),
+                    ),
+                  );
+                },
                 onSignOut: () {
                   unawaited(session.signOut());
                 },
+                onDeleteAccount: session.deleteAccount,
               ),
               /*
               Padding(

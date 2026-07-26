@@ -40,9 +40,9 @@ class _PersonalInfoCard extends StatelessWidget {
 }
 
 class _ProfileSettingsCard extends StatelessWidget {
-  const _ProfileSettingsCard({required this.onOpenTestsHub});
+  const _ProfileSettingsCard({required this.onDeleteAccount});
 
-  final VoidCallback onOpenTestsHub;
+  final Future<void> Function() onDeleteAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -51,18 +51,6 @@ class _ProfileSettingsCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Column(
         children: [
-          _ProfileInfoTile(
-            icon: Icons.favorite_outline_rounded,
-            label: 'Health Profile',
-            value: 'Conditions, medications and allergies',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const HealthProfileScreen(),
-                ),
-              );
-            },
-          ),
           // const _ProfileInfoTile(
           //   icon: Icons.notifications_none_rounded,
           //   label: 'Notifications',
@@ -78,10 +66,29 @@ class _ProfileSettingsCard extends StatelessWidget {
             icon: Icons.verified_user_outlined,
             label: 'Privacy Policy',
             value: '',
-            onTap: () async {
-              final url = Uri.parse('https://www.bhrchospital.com/privacy-policy');
-              await launchUrl(url, mode: LaunchMode.externalApplication);
-            },
+            onTap: () => _showLegalDocument(
+              context,
+              title: 'Privacy Policy',
+              selectDocument: (content) => content.privacyPolicy,
+            ),
+          ),
+          _ProfileInfoTile(
+            icon: Icons.description_outlined,
+            label: 'Terms & Conditions',
+            value: '',
+            onTap: () => _showLegalDocument(
+              context,
+              title: 'Terms & Conditions',
+              selectDocument: (content) => content.termsAndConditions,
+            ),
+          ),
+          _ProfileInfoTile(
+            icon: Icons.delete_outline_rounded,
+            label: 'Delete my account',
+            value: '',
+            foregroundColor: const Color(0xFFD94444),
+            isLast: true,
+            onTap: () => _confirmDeleteAccount(context),
           ),
           // const _ProfileInfoTile(
           //   icon: Icons.translate_rounded,
@@ -90,6 +97,210 @@ class _ProfileSettingsCard extends StatelessWidget {
           //   isLast: true,
           // ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showLegalDocument(
+    BuildContext context, {
+    required String title,
+    required LocalizedLegalDocument Function(LegalContent content)
+    selectDocument,
+  }) {
+    final apiClient = context.read<ApiClient>();
+    final language = context.read<LanguageProvider>().language;
+    final strings = AppStrings.of(language);
+    final contentFuture = apiClient
+        .getJson('/legal-content')
+        .then(LegalContent.fromJson);
+
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => FractionallySizedBox(
+        heightFactor: 0.9,
+        child: Column(
+          children: [
+            Container(
+              width: 42,
+              height: 4,
+              margin: const EdgeInsets.only(top: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD1D9E6),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: strings.close,
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: FutureBuilder<LegalContent>(
+                future: contentFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final document = snapshot.hasData
+                      ? selectDocument(snapshot.data!).forLanguage(language)
+                      : '';
+                  final markdown = document.trim().isEmpty
+                      ? strings.legalContentUnavailable
+                      : document;
+
+                  return Markdown(
+                    data: markdown,
+                    padding: const EdgeInsets.all(20),
+                    selectable: true,
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => const _DeleteAccountConfirmationDialog(),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await onDeleteAccount();
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete account: $error')),
+      );
+    }
+  }
+}
+
+class _DeleteAccountConfirmationDialog extends StatefulWidget {
+  const _DeleteAccountConfirmationDialog();
+
+  @override
+  State<_DeleteAccountConfirmationDialog> createState() =>
+      _DeleteAccountConfirmationDialogState();
+}
+
+class _DeleteAccountConfirmationDialogState
+    extends State<_DeleteAccountConfirmationDialog> {
+  final TextEditingController _confirmationController = TextEditingController();
+
+  bool get _canDelete => _confirmationController.text.trim() == 'CONFIRM';
+
+  @override
+  void dispose() {
+    _confirmationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      icon: const Icon(
+        Icons.warning_amber_rounded,
+        color: Color(0xFFD94444),
+        size: 34,
+      ),
+      title: const Text('Delete your account?', textAlign: TextAlign.center),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'This action cannot be undone. You will lose portal access and be '
+            'signed out on every device. Clinical records held by BHRC will '
+            'be retained for medical and legal requirements.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Type CONFIRM to continue',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _confirmationController,
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            textAlign: TextAlign.center,
+            decoration: const InputDecoration(
+              hintText: 'CONFIRM',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _canDelete ? () => Navigator.of(context).pop(true) : null,
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFD94444),
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Delete my account'),
+        ),
+      ],
+    );
+  }
+}
+
+class _HealthProfileCard extends StatelessWidget {
+  const _HealthProfileCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: _ProfileInfoTile(
+        icon: Icons.favorite_outline_rounded,
+        label: 'View Health Profile',
+        value: 'Conditions, medications and allergies',
+        isLast: true,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const HealthProfileScreen(),
+            ),
+          );
+        },
       ),
     );
   }
@@ -102,6 +313,7 @@ class _ProfileInfoTile extends StatelessWidget {
     required this.value,
     this.onTap,
     this.isLast = false,
+    this.foregroundColor,
   });
 
   final IconData icon;
@@ -109,6 +321,7 @@ class _ProfileInfoTile extends StatelessWidget {
   final String value;
   final VoidCallback? onTap;
   final bool isLast;
+  final Color? foregroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -124,10 +337,13 @@ class _ProfileInfoTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF5A88F1)),
+            Icon(icon, color: foregroundColor ?? const Color(0xFF06489B)),
             const SizedBox(width: 12),
             Expanded(child: _buildContent()),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFF9CA6B8)),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: foregroundColor ?? const Color(0xFF9CA6B8),
+            ),
           ],
         ),
       ),
@@ -136,7 +352,10 @@ class _ProfileInfoTile extends StatelessWidget {
 
   Widget _buildContent() {
     if (value.isEmpty) {
-      return Text(label, style: const TextStyle(fontWeight: FontWeight.w600));
+      return Text(
+        label,
+        style: TextStyle(color: foregroundColor, fontWeight: FontWeight.w600),
+      );
     }
 
     return Column(

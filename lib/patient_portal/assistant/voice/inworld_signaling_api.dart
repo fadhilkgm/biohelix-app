@@ -42,27 +42,31 @@ class InworldSignalingApi {
   final ApiClient _client;
   InworldSessionBootstrap? _cachedBootstrap;
   DateTime? _cachedAt;
+  String? _cachedLanguage;
   Future<InworldSessionBootstrap>? _bootstrapInFlight;
 
   static const _bootstrapCacheTtl = Duration(seconds: 45);
 
-  Future<InworldSessionBootstrap> bootstrap() async {
+  Future<InworldSessionBootstrap> bootstrap({required String locale}) async {
+    final language = locale.toLowerCase().startsWith('ml') ? 'ml' : 'en';
     final cached = _cachedBootstrap;
     final cachedAt = _cachedAt;
     if (cached != null &&
         cachedAt != null &&
+        _cachedLanguage == language &&
         DateTime.now().difference(cachedAt) < _bootstrapCacheTtl) {
       return cached;
     }
     final inFlight = _bootstrapInFlight;
     if (inFlight != null) return inFlight;
 
-    final request = _fetchBootstrap();
+    final request = _fetchBootstrap(language);
     _bootstrapInFlight = request;
     try {
       final bootstrap = await request;
       _cachedBootstrap = bootstrap;
       _cachedAt = DateTime.now();
+      _cachedLanguage = language;
       return bootstrap;
     } finally {
       _bootstrapInFlight = null;
@@ -72,12 +76,16 @@ class InworldSignalingApi {
   void invalidateBootstrap() {
     _cachedBootstrap = null;
     _cachedAt = null;
+    _cachedLanguage = null;
   }
 
-  Future<InworldSessionBootstrap> _fetchBootstrap() async {
+  Future<InworldSessionBootstrap> _fetchBootstrap(String language) async {
     final responses = await Future.wait([
       _client.getJson('/realtime/ice'),
-      _client.getJson('/realtime/session-config'),
+      _client.getJson(
+        '/realtime/session-config',
+        queryParameters: {'language': language},
+      ),
     ]);
     final rawIce = responses[0]['ice_servers'] as List<dynamic>? ?? const [];
     final sessionUpdate = Map<String, dynamic>.from(responses[1]);

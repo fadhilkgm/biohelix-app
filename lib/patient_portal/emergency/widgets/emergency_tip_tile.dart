@@ -1,12 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'emergency_support_content.dart';
 
 class EmergencyTipTile extends StatelessWidget {
-  const EmergencyTipTile({
-    super.key,
-    required this.tip,
-  });
+  const EmergencyTipTile({super.key, required this.tip});
 
   final EmergencyTipData tip;
 
@@ -24,11 +21,7 @@ class EmergencyTipTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            tip.icon,
-            color: const Color(0xFFF59E0B),
-            size: 20,
-          ),
+          Icon(tip.icon, color: const Color(0xFFF59E0B), size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -46,4 +39,3 @@ class EmergencyTipTile extends StatelessWidget {
     );
   }
 }
-
