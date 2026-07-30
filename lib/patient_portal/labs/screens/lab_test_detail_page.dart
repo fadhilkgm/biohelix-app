@@ -4,6 +4,7 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/widgets/app_logo.dart';
+import '../../../features/session/providers/session_provider.dart';
 import '../../core/models/patient_models.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../lab_booking/models/lab_booking_models.dart';
@@ -59,10 +60,12 @@ class LabTestDetailPage extends StatelessWidget {
     final targetController =
         controller ??
         () {
-          final patientName = portal.dashboard?.patient.name ?? 'Patient';
+          final patient = context.read<SessionProvider>().patient;
           return LabBookingController(
-            patientName: patientName,
-            patientPhone: portal.dashboard?.patient.phone,
+            patientName: patient?.name ?? 'Patient',
+            patientPhone: patient?.phone,
+            patientAge: patient?.age,
+            patientGender: patient?.gender,
             tests: portal.labTests,
             bodyPoints: portal.bodyPoints,
           );

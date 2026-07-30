@@ -10,7 +10,6 @@ import '../../core/widgets/booking_success_screen.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../models/lab_booking_models.dart';
 import '../state/lab_booking_controller.dart';
-import '../widgets/book_for_another_person_prompt.dart';
 import '../widgets/slot_selector_widget.dart';
 
 class TestBookingScreen extends StatefulWidget {
@@ -22,7 +21,6 @@ class TestBookingScreen extends StatefulWidget {
 
 class _TestBookingScreenState extends State<TestBookingScreen> {
   bool _isSubmitting = false;
-  bool _bookForAnotherPerson = false;
   final TextEditingController _addressController = TextEditingController();
 
   @override
@@ -292,7 +290,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
   }
 
   String _patientSubtitle(PatientProfile patient) {
-    final parts = <String>['${patient.age} yrs'];
+    final parts = <String>[if (patient.age > 0) '${patient.age} yrs'];
     if (patient.phone?.trim().isNotEmpty ?? false) {
       parts.add(patient.phone!.trim());
     } else if (patient.gender.trim().isNotEmpty) {
@@ -301,18 +299,22 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
     return parts.join(' • ');
   }
 
+  // Retained for a future explicit delegated-booking flow. The current UI
+  // always uses the globally active authenticated patient.
+  // ignore: unused_element
   void _usePrimaryPatient() {
     final session = context.read<SessionProvider>();
     final patient = session.patient;
     if (patient == null) return;
     context.read<LabBookingController>().setPrimaryPatient(
       name: patient.name,
-      age: patient.age ?? 29,
-      gender: patient.gender ?? 'Male',
+      age: patient.age ?? 0,
+      gender: patient.gender ?? '',
       phone: patient.phone,
     );
   }
 
+  // ignore: unused_element
   Future<void> _showSwitchUserSheet() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -812,20 +814,13 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            BookForAnotherPersonPrompt(
-              value: _bookForAnotherPerson,
-              onChanged: (value) {
-                setState(() => _bookForAnotherPerson = value);
-                if (value) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted && _bookForAnotherPerson) {
-                      _showSwitchUserSheet();
-                    }
-                  });
-                } else {
-                  _usePrimaryPatient();
-                }
-              },
+            Text(
+              'Booking for the active patient selected on Home.',
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 13,
+                color: const Color(0xFF192233).withValues(alpha: 0.58),
+              ),
             ),
             const SizedBox(height: 12),
             Container(
@@ -882,19 +877,6 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                       ],
                     ),
                   ),
-                  if (_bookForAnotherPerson)
-                    TextButton.icon(
-                      onPressed: _showSwitchUserSheet,
-                      icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                      label: Text(
-                        'Switch User',
-                        style: TextStyle(
-                          fontFamily: 'Manrope',
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF06489B),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),

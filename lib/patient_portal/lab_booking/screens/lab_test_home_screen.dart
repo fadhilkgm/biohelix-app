@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../../core/widgets/app_chevron_back_button.dart';
+import '../../../features/session/providers/session_provider.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../lab_booking/design/app_colors.dart';
 import '../../lab_booking/design/app_spacing.dart';
@@ -24,11 +25,13 @@ class LabTestHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final portal = context.watch<PatientPortalProvider>();
-    final patientName = portal.dashboard?.patient.name ?? 'Patient';
+    final patient = context.watch<SessionProvider>().patient;
     return ChangeNotifierProvider(
       create: (_) => LabBookingController(
-        patientName: patientName,
-        patientPhone: portal.dashboard?.patient.phone,
+        patientName: patient?.name ?? 'Patient',
+        patientPhone: patient?.phone,
+        patientAge: patient?.age,
+        patientGender: patient?.gender,
         tests: portal.labTests,
         bodyPoints: portal.bodyPoints,
       ),

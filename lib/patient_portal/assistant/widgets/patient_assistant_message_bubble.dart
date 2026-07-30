@@ -514,9 +514,12 @@ class _TestSuggestionCard extends StatelessWidget {
 
   void _addAndBook(BuildContext context) {
     final portal = context.read<PatientPortalProvider>();
+    final patient = context.read<SessionProvider>().patient;
     final controller = LabBookingController(
-      patientName: portal.dashboard?.patient.name ?? 'Patient',
-      patientPhone: portal.dashboard?.patient.phone,
+      patientName: patient?.name ?? 'Patient',
+      patientPhone: patient?.phone,
+      patientAge: patient?.age,
+      patientGender: patient?.gender,
       tests: portal.labTests,
       bodyPoints: portal.bodyPoints,
     );

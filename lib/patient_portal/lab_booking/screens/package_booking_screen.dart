@@ -9,7 +9,6 @@ import '../../core/providers/patient_portal_provider.dart';
 import '../../core/widgets/booking_success_screen.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../models/lab_booking_models.dart';
-import '../widgets/book_for_another_person_prompt.dart';
 import '../widgets/slot_selector_widget.dart';
 
 class PackageBookingScreen extends StatefulWidget {
@@ -30,7 +29,6 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   List<String> _slots = [];
   bool _isLoadingSlots = false;
   bool _isSubmitting = false;
-  bool _bookForAnotherPerson = false;
 
   @override
   void initState() {
@@ -44,8 +42,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
       _selectedPatient = PatientProfile(
         id: session.patient!.uuid,
         name: session.patient!.name,
-        age: session.patient!.age ?? 29,
-        gender: session.patient!.gender ?? 'Male',
+        age: session.patient!.age ?? 0,
+        gender: session.patient!.gender ?? '',
         phone: session.patient!.phone,
       );
     }
@@ -174,7 +172,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   }
 
   String _patientSubtitle(PatientProfile patient) {
-    final parts = <String>['${patient.age} yrs'];
+    final parts = <String>[if (patient.age > 0) '${patient.age} yrs'];
     if (patient.phone?.trim().isNotEmpty ?? false) {
       parts.add(patient.phone!.trim());
     } else if (patient.gender.trim().isNotEmpty) {
@@ -183,6 +181,9 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
     return parts.join(' • ');
   }
 
+  // Retained for a future explicit delegated-booking flow. The current UI
+  // always uses the globally active authenticated patient.
+  // ignore: unused_element
   void _usePrimaryPatient() {
     final patient = context.read<SessionProvider>().patient;
     if (patient == null) return;
@@ -190,13 +191,14 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
       _selectedPatient = PatientProfile(
         id: patient.uuid,
         name: patient.name,
-        age: patient.age ?? 29,
-        gender: patient.gender ?? 'Male',
+        age: patient.age ?? 0,
+        gender: patient.gender ?? '',
         phone: patient.phone,
       );
     });
   }
 
+  // ignore: unused_element
   Future<void> _showSwitchUserSheet() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -846,20 +848,13 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            BookForAnotherPersonPrompt(
-              value: _bookForAnotherPerson,
-              onChanged: (value) {
-                setState(() => _bookForAnotherPerson = value);
-                if (value) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted && _bookForAnotherPerson) {
-                      _showSwitchUserSheet();
-                    }
-                  });
-                } else {
-                  _usePrimaryPatient();
-                }
-              },
+            Text(
+              'Booking for the active patient selected on Home.',
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 13,
+                color: const Color(0xFF192233).withValues(alpha: 0.58),
+              ),
             ),
             const SizedBox(height: 12),
             Container(
@@ -917,19 +912,6 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       ],
                     ),
                   ),
-                  if (_bookForAnotherPerson)
-                    TextButton.icon(
-                      onPressed: _showSwitchUserSheet,
-                      icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                      label: Text(
-                        'Switch User',
-                        style: TextStyle(
-                          fontFamily: 'Manrope',
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF06489B),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),

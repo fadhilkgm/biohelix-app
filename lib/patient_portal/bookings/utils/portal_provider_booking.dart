@@ -59,7 +59,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
       final confirmation = await _repository.createLabOrder(
         labTestId: labTestId,
         labTestIds: labTestIds,
-        doctorId: null, // Keep null as requested
+        doctorId: doctorId,
         date: date,
         slot: slot,
         collectionType: collectionType,
@@ -126,7 +126,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     try {
       final confirmation = await _repository.createLabPackageOrder(
         labPackageId: labPackageId,
-        doctorId: null, // Keep null as requested
+        doctorId: doctorId,
         date: date,
         slot: slot,
         collectionType: collectionType,
