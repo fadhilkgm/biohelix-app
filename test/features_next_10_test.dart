@@ -36,10 +36,15 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
-    expect(harness.repository.dashboardCalls, greaterThan(initialDashboardCalls));
+    expect(
+      harness.repository.dashboardCalls,
+      greaterThan(initialDashboardCalls),
+    );
   });
 
-  testWidgets('12. back button returns to home before exit dialog', (tester) async {
+  testWidgets('12. back button returns to home before exit dialog', (
+    tester,
+  ) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
     await tester.pumpAndSettle();
@@ -58,7 +63,9 @@ void main() {
     expect(find.text('Exit BioHelix?'), findsNothing);
   });
 
-  testWidgets('13. back button on home shows exit confirmation dialog', (tester) async {
+  testWidgets('13. back button on home shows exit confirmation dialog', (
+    tester,
+  ) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
     await tester.pumpAndSettle();
@@ -71,20 +78,25 @@ void main() {
     expect(find.text('Exit'), findsOneWidget);
   });
 
-  testWidgets('14. home floating assistant shortcut opens the assistant screen', (tester) async {
-    final harness = await _buildHarness();
-    await tester.pumpWidget(harness.widget);
-    await tester.pumpAndSettle();
+  testWidgets(
+    '14. home floating assistant shortcut opens the assistant screen',
+    (tester) async {
+      final harness = await _buildHarness();
+      await tester.pumpWidget(harness.widget);
+      await tester.pumpAndSettle();
 
-    expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
 
-    await tester.tap(find.byType(FloatingActionButton));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Health AI'), findsOneWidget);
-  });
+      expect(find.text('Health AI'), findsOneWidget);
+    },
+  );
 
-  testWidgets('15. home shows patient greeting and hero content', (tester) async {
+  testWidgets('15. home shows patient greeting and hero content', (
+    tester,
+  ) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
     await tester.pumpAndSettle();
@@ -116,7 +128,10 @@ void main() {
     await tester.pumpWidget(harness.widget);
     await tester.pumpAndSettle();
 
-    expect(find.text('Stay hydrated and monitor your blood pressure.'), findsWidgets);
+    expect(
+      find.text('Stay hydrated and monitor your blood pressure.'),
+      findsWidgets,
+    );
   });
 
   testWidgets('18. home shows special offers', (tester) async {
@@ -175,7 +190,9 @@ Future<_ShellHarness> _buildHarness() async {
         ChangeNotifierProvider<SessionProvider>.value(value: session),
         ChangeNotifierProvider<PatientPortalProvider>.value(value: portal),
         ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider<LanguageProvider>(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider<LanguageProvider>(
+          create: (_) => LanguageProvider(),
+        ),
       ],
       child: const MaterialApp(home: PatientAppShell()),
     ),
@@ -183,7 +200,8 @@ Future<_ShellHarness> _buildHarness() async {
 }
 
 void _mockVoiceChannels() {
-  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   messenger.setMockMethodCallHandler(
     const MethodChannel('flutter_tts'),
     (call) async => null,
@@ -191,14 +209,16 @@ void _mockVoiceChannels() {
   messenger.setMockMethodCallHandler(
     const MethodChannel('speech_to_text_windows'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      if (call.method == 'initialize' || call.method == 'hasPermission')
+        return true;
       return null;
     },
   );
   messenger.setMockMethodCallHandler(
     const MethodChannel('plugin.csdcorp.com/speech_to_text'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      if (call.method == 'initialize' || call.method == 'hasPermission')
+        return true;
       return null;
     },
   );
@@ -218,10 +238,7 @@ AppConfig _testConfig() {
 }
 
 class _ShellHarness {
-  const _ShellHarness({
-    required this.repository,
-    required this.widget,
-  });
+  const _ShellHarness({required this.repository, required this.widget});
 
   final _FakePortalRepository repository;
   final Widget widget;
@@ -320,17 +337,21 @@ class _FakePortalRepository extends PatientRepository {
     ),
   ];
 
-  static const _departments = [
-    DepartmentItem(id: 1, name: 'Cardiology'),
-  ];
+  static const _departments = [DepartmentItem(id: 1, name: 'Cardiology')];
 
   @override
   Future<OtpSendResult> sendOtp({required String phone, String? mrn}) async {
-    return const OtpSendResult(devOtp: '123456', message: 'OTP sent to your WhatsApp');
+    return const OtpSendResult(
+      devOtp: '123456',
+      message: 'OTP sent to your WhatsApp',
+    );
   }
 
   @override
-  Future<OtpSession> verifyOtp({required String phone, required String otp}) async {
+  Future<OtpSession> verifyOtp({
+    required String phone,
+    required String otp,
+  }) async {
     return const OtpSession(token: 'portal-token', patient: _patient);
   }
 
@@ -428,5 +449,6 @@ class _FakePortalRepository extends PatientRepository {
   }
 
   @override
-  Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async => const [];
+  Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async =>
+      const [];
 }

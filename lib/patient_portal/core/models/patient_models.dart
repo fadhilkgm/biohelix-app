@@ -575,13 +575,16 @@ class VitalRecord {
   factory VitalRecord.fromSnapshotJson(Map<String, dynamic> json) {
     int? systolic;
     int? diastolic;
-    final bpRaw = json['bp'] as String? ?? json['blood_pressure'] as String?;
+    final bpValue = json['bp'] ?? json['blood_pressure'];
+    final bpRaw = bpValue?.toString();
     if (bpRaw != null && bpRaw.contains('/')) {
       final parts = bpRaw.split('/');
       systolic = int.tryParse(parts[0].trim());
       if (parts.length > 1) {
         diastolic = int.tryParse(parts[1].trim());
       }
+    } else if (bpRaw != null) {
+      systolic = int.tryParse(bpRaw.trim());
     }
     systolic ??=
         (json['bp_systolic'] as num?)?.toInt() ??
@@ -648,6 +651,35 @@ class MyClubTransaction {
   }
 }
 
+class MyClubLeaderboardEntry {
+  const MyClubLeaderboardEntry({
+    required this.rank,
+    required this.displayName,
+    required this.lifetimePoints,
+    required this.level,
+    required this.levelColor,
+    required this.isCurrentPatient,
+  });
+
+  final int rank;
+  final String displayName;
+  final int lifetimePoints;
+  final String level;
+  final String levelColor;
+  final bool isCurrentPatient;
+
+  factory MyClubLeaderboardEntry.fromJson(Map<String, dynamic> json) {
+    return MyClubLeaderboardEntry(
+      rank: (json['rank'] as num?)?.toInt() ?? 0,
+      displayName: json['display_name']?.toString() ?? 'BHRC Member',
+      lifetimePoints: (json['lifetime_points'] as num?)?.toInt() ?? 0,
+      level: json['level']?.toString() ?? 'Member',
+      levelColor: json['level_color']?.toString() ?? '#64748B',
+      isCurrentPatient: json['is_current_patient'] == true,
+    );
+  }
+}
+
 class MyClubSummary {
   const MyClubSummary({
     required this.patientId,
@@ -663,6 +695,13 @@ class MyClubSummary {
     this.redemptionRateCurrency = 10,
     this.pointsExpiryMonths = 0,
     this.benefits = const [],
+    this.levelName = 'Member',
+    this.levelColor = '#64748B',
+    this.lifetimePoints = 0,
+    this.leaderboardRank = 0,
+    this.leaderboard = const [],
+    this.currentLeaderboardEntry,
+    this.leaderboardPrivacyNote = '',
   });
 
   final int patientId;
@@ -678,11 +717,23 @@ class MyClubSummary {
   final int redemptionRateCurrency;
   final int pointsExpiryMonths;
   final List<String> benefits;
+  final String levelName;
+  final String levelColor;
+  final int lifetimePoints;
+  final int leaderboardRank;
+  final List<MyClubLeaderboardEntry> leaderboard;
+  final MyClubLeaderboardEntry? currentLeaderboardEntry;
+  final String leaderboardPrivacyNote;
 
   factory MyClubSummary.fromJson(Map<String, dynamic> json) {
     final membership = _map(json['membership']);
+    final gamification = _map(json['gamification']);
+    final level = _map(gamification['level']);
     final transactionJson = json['transactions'] as List<dynamic>? ?? const [];
     final benefitsJson = json['benefits'] as List<dynamic>? ?? const [];
+    final leaderboardJson =
+        gamification['leaderboard'] as List<dynamic>? ?? const [];
+    final currentLeaderboard = gamification['current_patient'];
     final pointsBalance = json['pointsBalance'] ?? json['points_balance'];
     return MyClubSummary(
       patientId:
@@ -716,6 +767,33 @@ class MyClubSummary {
           .map((item) => MyClubTransaction.fromJson(_map(item)))
           .toList(),
       benefits: benefitsJson.map((item) => item.toString()).toList(),
+      levelName:
+          level['name']?.toString() ??
+          json['levelName']?.toString() ??
+          'Member',
+      levelColor: level['color']?.toString() ?? '#64748B',
+      lifetimePoints:
+          (gamification['lifetime_points'] as num?)?.toInt() ??
+          (json['lifetimePoints'] as num?)?.toInt() ??
+          0,
+      leaderboardRank:
+          (gamification['rank'] as num?)?.toInt() ??
+          (json['leaderboardRank'] as num?)?.toInt() ??
+          0,
+      leaderboard: leaderboardJson
+          .whereType<Map>()
+          .map(
+            (item) => MyClubLeaderboardEntry.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(),
+      currentLeaderboardEntry: currentLeaderboard is Map
+          ? MyClubLeaderboardEntry.fromJson(
+              Map<String, dynamic>.from(currentLeaderboard),
+            )
+          : null,
+      leaderboardPrivacyNote: gamification['privacy_note']?.toString() ?? '',
     );
   }
 }

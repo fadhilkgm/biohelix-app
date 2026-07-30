@@ -165,7 +165,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                 children: [
                   Text(
                     'Keep your conditions, medications and allergies up to date. '
-                    'Each save is stored as a new timestamped snapshot and helps '
+                    'Each save is stored as a new health update and helps '
                     'personalise your AI health assessments.',
                     style: TextStyle(
                       fontFamily: 'Manrope',

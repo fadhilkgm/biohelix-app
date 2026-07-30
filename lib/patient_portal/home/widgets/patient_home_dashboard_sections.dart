@@ -24,6 +24,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
     required this.onPackageTap,
     required this.onSeeAllAppointments,
     required this.onQuickActionTap,
+    required this.onSwitchPatient,
     this.isLoading = false,
     this.healthSnapshot,
     this.aiSuggestions = const [],
@@ -52,6 +53,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
   final ValueChanged<LabPackageItem> onPackageTap;
   final VoidCallback onSeeAllAppointments;
   final ValueChanged<String> onQuickActionTap;
+  final VoidCallback onSwitchPatient;
   final bool isLoading;
   final HealthSnapshot? healthSnapshot;
   final List<AiSuggestionItem> aiSuggestions;
@@ -76,6 +78,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
       onTickerTap: onTickerTap,
       onOfferTap: onOfferTap,
       onActionTap: onQuickActionTap,
+      onSwitchPatient: onSwitchPatient,
       apiBaseUrl: apiBase,
       isLoading: isLoading,
       onDoctorTap: (doctor) {

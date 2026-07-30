@@ -654,7 +654,7 @@ class _EnStrings extends LocalizedStrings {
   String get noHealthReadings =>
       "No readings recorded yet — add today's readings to get your score.";
   @override
-  String get healthSnapshotReady => 'Your health snapshot is ready.';
+  String get healthSnapshotReady => 'Your health update is ready.';
   @override
   String get healthStatusSubtitle =>
       'Review recent health trends and summaries for a selected date range.';
@@ -1146,7 +1146,7 @@ class _MlStrings extends LocalizedStrings {
   String get noHealthReadings =>
       'ഇതുവരെ അളവുകളൊന്നും രേഖപ്പെടുത്തിയിട്ടില്ല — സ്കോർ ലഭിക്കാൻ ഇന്നത്തെ അളവുകൾ ചേർക്കുക.';
   @override
-  String get healthSnapshotReady => 'നിങ്ങളുടെ ആരോഗ്യ സംഗ്രഹം തയ്യാറാണ്.';
+  String get healthSnapshotReady => 'നിങ്ങളുടെ ആരോഗ്യ അപ്ഡേറ്റ് തയ്യാറാണ്.';
   @override
   String get healthStatusSubtitle =>
       'തിരഞ്ഞെടുത്ത തീയതി പരിധിയിലെ സമീപകാല ആരോഗ്യ പ്രവണതകളും സംഗ്രഹവും കാണുക.';

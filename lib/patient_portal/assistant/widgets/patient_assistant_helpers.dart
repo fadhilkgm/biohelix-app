@@ -549,6 +549,7 @@ extension _AssistantActions on _AssistantTabState {
   Future<void> _toggleLiveVoiceMode(PatientPortalProvider portal) async {
     if (isLiveVoiceMode) {
       await liveVoiceController.stop();
+      await portal.refreshMyClub();
       if (!mounted) return;
       updateAssistantState(() {
         _isLiveVoiceMode = false;
@@ -579,7 +580,14 @@ extension _AssistantActions on _AssistantTabState {
       _liveConversationId = portal.activeChatThreadId;
       _liveVoiceError = null;
     });
-    await liveVoiceController.start(locale: _ttsLanguageCode);
+    await liveVoiceController.start(
+      locale: _ttsLanguageCode,
+      conversationId: _liveConversationId!,
+      initialResponseInstructions:
+          'Start the conversation now. Greet the patient warmly in the '
+          'session language, introduce yourself as the BHRC health assistant, '
+          'and ask how you can help. Keep it to one short spoken response.',
+    );
   }
 
   Future<void> _interruptAiSpeechAndListen(PatientPortalProvider portal) async {

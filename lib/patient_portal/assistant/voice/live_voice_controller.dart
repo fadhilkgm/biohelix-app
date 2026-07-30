@@ -34,10 +34,16 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   Completer<void>? _iceGathering;
   Timer? _connectTimeout;
   Timer? _audioLevelTimer;
+  Timer? _usageHeartbeatTimer;
   bool _disposed = false;
   bool _stopping = false;
+  bool _usageStartInFlight = false;
+  String _conversationId = '';
+  String? _usageSessionId;
   String _currentInputItemId = '';
   String _currentResponseId = '';
+  String _initialResponseInstructions = '';
+  bool _initialResponseRequested = false;
   final Map<String, StringBuffer> _inputTranscripts = {};
   final Map<String, StringBuffer> _responseText = {};
   final Map<String, StringBuffer> _responseAudioTranscripts = {};
@@ -57,11 +63,18 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> start({required String locale}) async {
+  Future<void> start({
+    required String locale,
+    required String conversationId,
+    String initialResponseInstructions = '',
+  }) async {
     if (_state.isActive) {
       _debugLog('start ignored: session is already active');
       return;
     }
+    _initialResponseInstructions = initialResponseInstructions.trim();
+    _initialResponseRequested = false;
+    _conversationId = conversationId;
     _debugLog('start requested locale=$locale');
     final startup = Stopwatch()..start();
     _setState(const LiveVoiceState(phase: LiveVoicePhase.connecting));
@@ -361,6 +374,8 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
             clearError: true,
           ),
         );
+        unawaited(_beginUsageTracking());
+        _requestInitialResponse();
       case 'input_audio_buffer.speech_started':
         if (_state.isSpeaking) {
           unawaited(interrupt());
@@ -465,6 +480,23 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  void _requestInitialResponse() {
+    if (_initialResponseRequested || _initialResponseInstructions.isEmpty) {
+      return;
+    }
+    _initialResponseRequested = true;
+    _debugLog('requesting initial assistant response');
+    unawaited(
+      _sendEvent({
+        'type': 'response.create',
+        'response': {
+          'output_modalities': ['audio', 'text'],
+          'instructions': _initialResponseInstructions,
+        },
+      }),
+    );
+  }
+
   Future<void> _failContextTurn(String message) async {
     _setError(message);
     await _releaseResources();
@@ -547,6 +579,9 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     _responseAudioTranscripts.clear();
     _currentInputItemId = '';
     _currentResponseId = '';
+    _initialResponseInstructions = '';
+    _initialResponseRequested = false;
+    _conversationId = '';
   }
 
   String _firstNonEmpty(Iterable<String?> values) {
@@ -561,6 +596,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     _connectTimeout?.cancel();
     _audioLevelTimer?.cancel();
     _audioLevelTimer = null;
+    await _finishUsageTracking();
     _iceGathering = null;
     final events = _events;
     _events = null;
@@ -576,6 +612,68 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     await peer?.close();
     await peer?.dispose();
     _debugLog('realtime resources released');
+  }
+
+  Future<void> _beginUsageTracking() async {
+    if (_usageSessionId != null ||
+        _usageStartInFlight ||
+        _conversationId.isEmpty ||
+        _disposed ||
+        _stopping) {
+      return;
+    }
+    _usageStartInFlight = true;
+    try {
+      final update = await _signalingApi.startUsage(
+        conversationId: _conversationId,
+      );
+      if (_disposed || _stopping || !_state.isActive) {
+        await _signalingApi.finishUsage(update.sessionId);
+        return;
+      }
+      _usageSessionId = update.sessionId;
+      final interval = update.heartbeatIntervalSeconds.clamp(15, 60);
+      _usageHeartbeatTimer?.cancel();
+      _usageHeartbeatTimer = Timer.periodic(
+        Duration(seconds: interval),
+        (_) => unawaited(_heartbeatUsage()),
+      );
+      _debugLog('voice reward tracking started: session=${update.sessionId}');
+    } catch (error) {
+      // Reward tracking must never interrupt a clinical voice conversation.
+      _debugLog('voice reward tracking unavailable: ${_safeError(error)}');
+    } finally {
+      _usageStartInFlight = false;
+    }
+  }
+
+  Future<void> _heartbeatUsage() async {
+    final sessionId = _usageSessionId;
+    if (sessionId == null || _disposed || _stopping) return;
+    try {
+      final update = await _signalingApi.heartbeatUsage(sessionId);
+      if (update.awardedPoints > 0) {
+        _debugLog(
+          'voice activity reward earned: ${update.awardedPoints} points',
+        );
+      }
+    } catch (error) {
+      _debugLog('voice reward heartbeat failed: ${_safeError(error)}');
+    }
+  }
+
+  Future<void> _finishUsageTracking() async {
+    _usageHeartbeatTimer?.cancel();
+    _usageHeartbeatTimer = null;
+    final sessionId = _usageSessionId;
+    _usageSessionId = null;
+    if (sessionId == null) return;
+    try {
+      await _signalingApi.finishUsage(sessionId);
+      _debugLog('voice reward tracking finished: session=$sessionId');
+    } catch (error) {
+      _debugLog('voice reward finish failed: ${_safeError(error)}');
+    }
   }
 
   String _friendlyError(Object error) {

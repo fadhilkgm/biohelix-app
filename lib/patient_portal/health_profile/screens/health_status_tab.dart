@@ -10,6 +10,7 @@ import '../../../core/providers/language_provider.dart';
 import '../../../core/widgets/app_chevron_back_button.dart';
 import '../../core/models/patient_models.dart';
 import '../../core/providers/patient_portal_provider.dart';
+import 'health_snapshot_screen.dart';
 
 class HealthStatusTab extends StatefulWidget {
   const HealthStatusTab({super.key, required this.onBack});
@@ -99,6 +100,11 @@ class _HealthStatusTabState extends State<HealthStatusTab> {
           final date = _dateOf(snapshot)!;
           return !date.isBefore(from) && !date.isAfter(to);
         }).toList();
+        final currentSnapshot = dated.last;
+        final recentSnapshots = dated.reversed.take(5).toList(growable: false);
+        final hasMoreSnapshots =
+            dated.length > recentSnapshots.length ||
+            portal.hasMoreHealthSnapshotHistory;
 
         return RefreshIndicator(
           onRefresh: portal.loadHealthSnapshotHistory,
@@ -130,6 +136,19 @@ class _HealthStatusTabState extends State<HealthStatusTab> {
                 ),
               ),
               const SizedBox(height: 20),
+              _CurrentHealthValuesCard(
+                snapshot: currentSnapshot,
+                strings: strings,
+              ),
+              const SizedBox(height: 18),
+              _ComprehensiveSummaryCard(
+                snapshots: selected,
+                fallbackSnapshot: currentSnapshot,
+                from: from,
+                to: to,
+                strings: strings,
+              ),
+              const SizedBox(height: 18),
               Row(
                 children: [
                   Expanded(
@@ -162,15 +181,17 @@ class _HealthStatusTabState extends State<HealthStatusTab> {
               const SizedBox(height: 18),
               _HealthTrendCard(snapshots: selected, strings: strings),
               const SizedBox(height: 18),
-              _RangeSummaryCard(
-                snapshots: selected,
-                from: from,
-                to: to,
-                strings: strings,
+              _SnapshotUpdatesCard(
+                snapshots: recentSnapshots,
+                hasMore: hasMoreSnapshots,
+                onViewAll: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const HealthSnapshotHistoryScreen(),
+                    ),
+                  );
+                },
               ),
-              const SizedBox(height: 18),
-              if (selected.isNotEmpty)
-                _RecentReportCard(snapshot: selected.last, strings: strings),
             ],
           ),
         );
@@ -279,21 +300,26 @@ class _HealthTrendCard extends StatelessWidget {
   }
 }
 
-class _RangeSummaryCard extends StatelessWidget {
-  const _RangeSummaryCard({
+class _ComprehensiveSummaryCard extends StatelessWidget {
+  const _ComprehensiveSummaryCard({
     required this.snapshots,
+    required this.fallbackSnapshot,
     required this.from,
     required this.to,
     required this.strings,
   });
 
   final List<HealthSnapshot> snapshots;
+  final HealthSnapshot fallbackSnapshot;
   final DateTime from;
   final DateTime to;
   final LocalizedStrings strings;
 
   @override
   Widget build(BuildContext context) {
+    final latestSnapshot = snapshots.isEmpty
+        ? fallbackSnapshot
+        : snapshots.last;
     final scores = snapshots
         .map((snapshot) => snapshot.healthScore)
         .whereType<double>()
@@ -301,42 +327,299 @@ class _RangeSummaryCard extends StatelessWidget {
     final average = scores.isEmpty
         ? null
         : scores.reduce((a, b) => a + b) / scores.length;
-    final latest = scores.isEmpty ? null : scores.last;
     final change = scores.length < 2 ? null : scores.last - scores.first;
     final range =
         '${DateFormat('dd MMM yyyy').format(from)} – ${DateFormat('dd MMM yyyy').format(to)}';
+    final narrative = _buildNarrative(
+      latest: latestSnapshot,
+      count: snapshots.length,
+      average: average,
+      change: change,
+    );
 
     return _HealthCard(
       title: strings.comprehensiveSummary,
       subtitle: range,
-      child: GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 1.6,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SummaryMetric(
-            label: strings.latestScore,
-            value: latest?.toStringAsFixed(0) ?? '—',
+          Text(
+            narrative,
+            style: const TextStyle(
+              color: Color(0xFF2F4056),
+              fontSize: 14,
+              height: 1.55,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          _SummaryMetric(
-            label: strings.averageScore,
-            value: average?.toStringAsFixed(1) ?? '—',
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _SummaryBadge(
+                label:
+                    '${strings.latestScore}: ${latestSnapshot.healthScore?.toStringAsFixed(0) ?? '—'}',
+              ),
+              _SummaryBadge(
+                label:
+                    '${strings.averageScore}: ${average?.toStringAsFixed(1) ?? '—'}',
+              ),
+              _SummaryBadge(
+                label: '${strings.reportsInRange}: ${snapshots.length}',
+              ),
+            ],
           ),
-          _SummaryMetric(
-            label: strings.scoreChange,
-            value: change == null
-                ? '—'
-                : '${change >= 0 ? '+' : ''}${change.toStringAsFixed(0)}',
-            valueColor: change == null || change >= 0
-                ? const Color(0xFF13866F)
-                : const Color(0xFFD05A45),
+        ],
+      ),
+    );
+  }
+
+  String _buildNarrative({
+    required HealthSnapshot latest,
+    required int count,
+    required double? average,
+    required double? change,
+  }) {
+    final date = _formatSnapshotDate(latest.snapshotDate);
+    final readings = <String>[
+      if (latest.latestVitals?.bloodPressureSystolic != null)
+        'blood pressure ${_bloodPressure(latest)} mmHg',
+      if (latest.bloodSugar != null)
+        'blood sugar ${latest.bloodSugar!.toStringAsFixed(0)} mg/dL',
+      if (latest.cholesterol != null)
+        'cholesterol ${latest.cholesterol!.toStringAsFixed(0)} mg/dL',
+      if (latest.bmi != null) 'BMI ${latest.bmi!.toStringAsFixed(1)}',
+      if (latest.latestVitals?.heartRate != null)
+        'heart rate ${latest.latestVitals!.heartRate} bpm',
+      if (latest.latestVitals?.oxygenSaturation != null)
+        'oxygen saturation ${latest.latestVitals!.oxygenSaturation}%',
+    ];
+
+    final parts = <String>[];
+    if (readings.isNotEmpty) {
+      parts.add(
+        'The latest health update${date == null ? '' : ' from $date'} records ${_joinReadings(readings)}.',
+      );
+    }
+    if (latest.healthScore != null || latest.riskScore != null) {
+      parts.add(
+        'The current health score is ${latest.healthScore?.toStringAsFixed(0) ?? 'not available'} out of 100, with a risk score of ${latest.riskScore?.toStringAsFixed(0) ?? 'not available'} out of 100.',
+      );
+    }
+    if (count > 1 && average != null) {
+      final direction = change == null || change.abs() < 0.5
+          ? 'has remained broadly stable'
+          : change > 0
+          ? 'has improved by ${change.toStringAsFixed(0)} points'
+          : 'has reduced by ${change.abs().toStringAsFixed(0)} points';
+      parts.add(
+        'Across $count health updates in the selected period, the average health score is ${average.toStringAsFixed(1)} and the score $direction.',
+      );
+    }
+    final generated = (latest.aiSummary ?? '').trim();
+    if (generated.isNotEmpty) parts.add(generated);
+    if (parts.isEmpty) {
+      return 'There is not enough recorded information to prepare a comprehensive summary for this period.';
+    }
+
+    return parts.join(' ');
+  }
+}
+
+class _CurrentHealthValuesCard extends StatelessWidget {
+  const _CurrentHealthValuesCard({
+    required this.snapshot,
+    required this.strings,
+  });
+
+  final HealthSnapshot snapshot;
+  final LocalizedStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final vitals = snapshot.latestVitals;
+    final readings = <_HealthReading>[
+      if (vitals?.bloodPressureSystolic != null)
+        _HealthReading(
+          label: 'Blood pressure',
+          value: _bloodPressure(snapshot),
+          unit: 'mmHg',
+          icon: Icons.favorite_outline_rounded,
+          color: const Color(0xFFD05A45),
+        ),
+      if (snapshot.bloodSugar != null)
+        _HealthReading(
+          label: strings.bloodSugarLabel,
+          value: snapshot.bloodSugar!.toStringAsFixed(0),
+          unit: 'mg/dL',
+          icon: Icons.water_drop_outlined,
+          color: const Color(0xFF7C3AED),
+        ),
+      if (snapshot.cholesterol != null)
+        _HealthReading(
+          label: strings.cholesterolLabel,
+          value: snapshot.cholesterol!.toStringAsFixed(0),
+          unit: 'mg/dL',
+          icon: Icons.science_outlined,
+          color: const Color(0xFFD97706),
+        ),
+      if (snapshot.bmi != null)
+        _HealthReading(
+          label: 'BMI',
+          value: snapshot.bmi!.toStringAsFixed(1),
+          unit: '',
+          icon: Icons.monitor_weight_outlined,
+          color: const Color(0xFF147D73),
+        ),
+      if (vitals?.heartRate != null)
+        _HealthReading(
+          label: 'Heart rate',
+          value: '${vitals!.heartRate}',
+          unit: 'bpm',
+          icon: Icons.monitor_heart_outlined,
+          color: const Color(0xFFDB4C4C),
+        ),
+      if (vitals?.oxygenSaturation != null)
+        _HealthReading(
+          label: 'Oxygen',
+          value: '${vitals!.oxygenSaturation}',
+          unit: '%',
+          icon: Icons.air_rounded,
+          color: const Color(0xFF0284C7),
+        ),
+      if (vitals?.weight != null)
+        _HealthReading(
+          label: 'Weight',
+          value: vitals!.weight!.toStringAsFixed(1),
+          unit: 'kg',
+          icon: Icons.scale_outlined,
+          color: const Color(0xFF4F46E5),
+        ),
+      if (snapshot.healthScore != null)
+        _HealthReading(
+          label: strings.healthMetric,
+          value: snapshot.healthScore!.toStringAsFixed(0),
+          unit: '/100',
+          icon: Icons.health_and_safety_outlined,
+          color: const Color(0xFF13866F),
+        ),
+      if (snapshot.riskScore != null)
+        _HealthReading(
+          label: strings.riskMetric,
+          value: snapshot.riskScore!.toStringAsFixed(0),
+          unit: '/100',
+          icon: Icons.warning_amber_rounded,
+          color: const Color(0xFFD05A45),
+        ),
+    ];
+
+    return _HealthCard(
+      title: 'Current health values',
+      subtitle: snapshot.snapshotDate == null
+          ? null
+          : DateFormat(
+              'dd MMM yyyy',
+            ).format(DateTime.parse(snapshot.snapshotDate!)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = (constraints.maxWidth - 10) / 2;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (readings.isEmpty)
+                const Text('No current readings are available.')
+              else
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: readings
+                      .map(
+                        (reading) => SizedBox(
+                          width: itemWidth,
+                          child: _HealthReadingTile(reading: reading),
+                        ),
+                      )
+                      .toList(),
+                ),
+              if ((snapshot.otherConditions ?? '').trim().isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    'Reported conditions: ${snapshot.otherConditions!.trim()}',
+                    style: const TextStyle(
+                      color: Color(0xFF9A4D13),
+                      fontSize: 13,
+                      height: 1.4,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HealthReadingTile extends StatelessWidget {
+  const _HealthReadingTile({required this.reading});
+
+  final _HealthReading reading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 96),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F8FC),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(reading.icon, color: reading.color, size: 20),
+          const SizedBox(height: 8),
+          Text(
+            reading.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF6B788B),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          _SummaryMetric(
-            label: strings.reportsInRange,
-            value: '${snapshots.length}',
+          const SizedBox(height: 3),
+          Text.rich(
+            TextSpan(
+              text: reading.value,
+              style: TextStyle(
+                color: reading.color,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+              children: [
+                if (reading.unit.isNotEmpty)
+                  TextSpan(
+                    text: ' ${reading.unit}',
+                    style: const TextStyle(
+                      color: Color(0xFF6B788B),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -344,56 +627,112 @@ class _RangeSummaryCard extends StatelessWidget {
   }
 }
 
-class _RecentReportCard extends StatelessWidget {
-  const _RecentReportCard({required this.snapshot, required this.strings});
+class _SnapshotUpdatesCard extends StatelessWidget {
+  const _SnapshotUpdatesCard({
+    required this.snapshots,
+    required this.hasMore,
+    required this.onViewAll,
+  });
 
-  final HealthSnapshot snapshot;
-  final LocalizedStrings strings;
+  final List<HealthSnapshot> snapshots;
+  final bool hasMore;
+  final VoidCallback onViewAll;
 
   @override
   Widget build(BuildContext context) {
-    final facts = <String>[
-      if (snapshot.bmi != null) 'BMI ${snapshot.bmi!.toStringAsFixed(1)}',
-      if (snapshot.bloodSugar != null)
-        '${strings.bloodSugarLabel} ${snapshot.bloodSugar!.toStringAsFixed(0)} mg/dL',
-      if (snapshot.cholesterol != null)
-        '${strings.cholesterolLabel} ${snapshot.cholesterol!.toStringAsFixed(0)} mg/dL',
-    ];
     return _HealthCard(
-      title: strings.recentHealthReport,
-      subtitle: snapshot.snapshotDate == null
-          ? null
-          : DateFormat(
-              'dd MMM yyyy',
-            ).format(DateTime.parse(snapshot.snapshotDate!)),
+      title: 'Health update history',
+      subtitle: 'Latest ${snapshots.length} updates',
+      child: Column(
+        children: [
+          ...snapshots.map(_SnapshotUpdateRow.new),
+          if (hasMore) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onViewAll,
+                icon: const Icon(Icons.history_rounded),
+                label: const Text('View all history & filters'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SnapshotUpdateRow extends StatelessWidget {
+  const _SnapshotUpdateRow(this.snapshot);
+
+  final HealthSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final details = <String>[
+      if (snapshot.healthScore != null)
+        'Health ${snapshot.healthScore!.toStringAsFixed(0)}',
+      if (snapshot.riskScore != null)
+        'Risk ${snapshot.riskScore!.toStringAsFixed(0)}',
+      if (snapshot.latestVitals?.bloodPressureSystolic != null)
+        'BP ${_bloodPressure(snapshot)}',
+      if (snapshot.bloodSugar != null)
+        'Sugar ${snapshot.bloodSugar!.toStringAsFixed(0)}',
+    ];
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F9FC),
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            (snapshot.aiSummary ?? '').trim().isEmpty
-                ? strings.healthSnapshotReady
-                : snapshot.aiSummary!.trim(),
-            style: const TextStyle(
-              color: Color(0xFF2F4056),
-              fontSize: 14,
-              height: 1.5,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              const Icon(
+                Icons.update_rounded,
+                size: 18,
+                color: Color(0xFF06489B),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _formatSnapshotDate(snapshot.snapshotDate) ?? 'Unknown date',
+                  style: const TextStyle(
+                    color: Color(0xFF192233),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
-          if (facts.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: facts
-                  .map(
-                    (fact) => Chip(
-                      label: Text(fact),
-                      backgroundColor: const Color(0xFFEAF3FD),
-                      side: BorderSide.none,
-                    ),
-                  )
-                  .toList(),
+          if (details.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              details.join('  •  '),
+              style: const TextStyle(
+                color: Color(0xFF526176),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if ((snapshot.aiSummary ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              snapshot.aiSummary!.trim(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF6B788B),
+                fontSize: 12,
+                height: 1.4,
+              ),
             ),
           ],
         ],
@@ -448,51 +787,68 @@ class _HealthCard extends StatelessWidget {
   }
 }
 
-class _SummaryMetric extends StatelessWidget {
-  const _SummaryMetric({
-    required this.label,
-    required this.value,
-    this.valueColor = const Color(0xFF06489B),
-  });
+class _SummaryBadge extends StatelessWidget {
+  const _SummaryBadge({required this.label});
 
   final String label;
-  final String value;
-  final Color valueColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F8FC),
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFEAF3FD),
+        borderRadius: BorderRadius.circular(999),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            maxLines: 2,
-            style: const TextStyle(
-              color: Color(0xFF6B788B),
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              color: valueColor,
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF06489B),
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
+}
+
+class _HealthReading {
+  const _HealthReading({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final String unit;
+  final IconData icon;
+  final Color color;
+}
+
+String _bloodPressure(HealthSnapshot snapshot) {
+  final systolic = snapshot.latestVitals?.bloodPressureSystolic;
+  final diastolic = snapshot.latestVitals?.bloodPressureDiastolic;
+  if (systolic == null) return '—';
+
+  return diastolic == null ? '$systolic' : '$systolic/$diastolic';
+}
+
+String? _formatSnapshotDate(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return null;
+  final parsed = DateTime.tryParse(raw);
+  if (parsed == null) return raw;
+
+  return DateFormat('dd MMM yyyy').format(parsed.toLocal());
+}
+
+String _joinReadings(List<String> values) {
+  if (values.length == 1) return values.first;
+  if (values.length == 2) return '${values.first} and ${values.last}';
+
+  return '${values.take(values.length - 1).join(', ')}, and ${values.last}';
 }
 
 class _EmptyHealthStatus extends StatelessWidget {

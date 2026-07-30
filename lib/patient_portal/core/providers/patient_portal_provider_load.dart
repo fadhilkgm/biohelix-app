@@ -223,4 +223,14 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
   Future<void> refresh() async {
     await loadPortal();
   }
+
+  Future<void> refreshMyClub() async {
+    try {
+      _myClub = await _repository.getMyClub();
+      _errorMessage = null;
+    } catch (error) {
+      _errorMessage = error.toString();
+    }
+    _notify();
+  }
 }
