@@ -62,7 +62,11 @@ class _BioHelixAppState extends State<BioHelixApp> {
     _authStorage = AuthStorage();
     _apiClient = ApiClient(config: _config);
     _apiClient.setOnUnauthorized(() {
-      if (_sessionProvider.isAuthenticated) {
+      // SessionProvider owns recovery while bootstrapping or switching saved
+      // patient profiles. Only a stable signed-in session should be globally
+      // signed out by an unrelated 401 response.
+      if (_sessionProvider.state == SessionState.signedIn &&
+          _sessionProvider.isAuthenticated) {
         unawaited(_sessionProvider.signOut());
       }
     });

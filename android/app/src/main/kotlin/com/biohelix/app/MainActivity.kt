@@ -14,7 +14,7 @@ import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -26,7 +26,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private companion object {
         const val CHANNEL = "com.biohelix.app/fitness"
         const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
@@ -46,7 +46,7 @@ class MainActivity : FlutterActivity() {
         super.onCreate(savedInstanceState)
         permissionLauncher = registerForActivityResult(
             PermissionController.createRequestPermissionResultContract(),
-        ) { granted ->
+        ) { granted: Set<String> ->
             pendingPermissionResult?.success(
                 mapOf(
                     "granted" to granted.containsAll(readPermissions),

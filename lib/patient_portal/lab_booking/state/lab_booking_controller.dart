@@ -11,13 +11,15 @@ class LabBookingController extends ChangeNotifier {
     required List<LabTestItem> tests,
     required List<BodyPointItem> bodyPoints,
     String? patientPhone,
+    int? patientAge,
+    String? patientGender,
   }) {
     _patients = [
       PatientProfile(
         id: 'self',
         name: patientName,
-        age: 29,
-        gender: 'Male',
+        age: patientAge ?? 0,
+        gender: patientGender ?? '',
         phone: patientPhone,
       ),
     ];

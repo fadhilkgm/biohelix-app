@@ -429,6 +429,8 @@ class SessionProvider extends ChangeNotifier {
       throw StateError('Selected family profile is unavailable.');
     }
 
+    final previousToken = _authToken;
+    final previousPatient = _patient;
     _errorMessage = null;
     _state = SessionState.bootstrapping;
     notifyListeners();
@@ -443,17 +445,11 @@ class SessionProvider extends ChangeNotifier {
       _state = SessionState.signedIn;
     } catch (error) {
       _errorMessage = error.toString();
-      final fallbackToken = _familyProfiles
-          .where((profile) => profile.token != token)
-          .map((profile) => profile.token)
-          .cast<String?>()
-          .firstWhere((value) => (value ?? '').isNotEmpty, orElse: () => null);
-
-      if ((fallbackToken ?? '').isNotEmpty) {
-        _authToken = fallbackToken;
-        await _authStorage.writeToken(fallbackToken!);
-        _apiClient.updateAuthToken(fallbackToken);
-        _patient = await _patientRepository.getCurrentPatient();
+      if ((previousToken ?? '').isNotEmpty && previousPatient != null) {
+        _authToken = previousToken;
+        await _authStorage.writeToken(previousToken!);
+        _apiClient.updateAuthToken(previousToken);
+        _patient = previousPatient;
         _state = SessionState.signedIn;
       } else {
         await _authStorage.clearAll();
@@ -463,6 +459,8 @@ class SessionProvider extends ChangeNotifier {
         _apiClient.updateAuthToken(null);
         _state = SessionState.signedOut;
       }
+      notifyListeners();
+      rethrow;
     }
 
     notifyListeners();
