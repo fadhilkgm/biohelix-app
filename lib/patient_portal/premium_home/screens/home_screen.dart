@@ -9,6 +9,7 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../emergency/widgets/emergency_call_launcher.dart';
 import '../../health_profile/screens/health_snapshot_screen.dart';
+import '../../fitness/widgets/fitness_activity_card.dart';
 import '../utils/home_header_content_mapper.dart';
 import '../widgets/home_hero_header_widget.dart';
 import '../widgets/offers_and_appointments_section_widget.dart';
@@ -37,6 +38,7 @@ class HomeScreen extends StatefulWidget {
     required this.onTickerTap,
     required this.onOfferTap,
     required this.onActionTap,
+    this.onSwitchPatient,
     this.isLoading = false,
     this.departments = const [],
     this.healthSnapshot,
@@ -69,6 +71,7 @@ class HomeScreen extends StatefulWidget {
   final Future<void> Function(TickerMessageItem item) onTickerTap;
   final Future<void> Function(HomeOfferItem item) onOfferTap;
   final ValueChanged<String> onActionTap;
+  final VoidCallback? onSwitchPatient;
   final bool isLoading;
   final HealthSnapshot? healthSnapshot;
   final List<AiSuggestionItem> aiSuggestions;
@@ -174,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: HomeHeroHeaderWidget(
                         greeting: headerContent.greeting,
                         patientName: headerContent.displayName,
+                        onSwitchPatient: widget.onSwitchPatient,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -296,6 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (widget.healthSnapshot != null)
                   _HealthSnapshotCard(snapshot: widget.healthSnapshot!),
                 if (widget.healthSnapshot != null) const SizedBox(height: 24),
+                const FitnessActivityCard(),
                 if (widget.aiSuggestions.isNotEmpty)
                   _AiSuggestionsSection(
                     suggestions: widget.aiSuggestions,
@@ -1850,22 +1855,29 @@ class _HealthSnapshotCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 12),
-                  Row(
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 8,
                     children: [
                       if (score != null)
                         _SnapshotMetric(
                           label: strings.healthMetric,
-                          value: score.toStringAsFixed(0),
+                          value: '${score.toStringAsFixed(0)}/100',
                           accentColor: const Color(0xFF147D73),
                         ),
-                      if (snapshot.bmi != null) ...[
-                        const SizedBox(width: 16),
+                      if (snapshot.riskScore != null)
+                        _SnapshotMetric(
+                          label: strings.riskMetric,
+                          value:
+                              '${snapshot.riskScore!.toStringAsFixed(0)}/100',
+                          accentColor: const Color(0xFFD2691E),
+                        ),
+                      if (snapshot.bmi != null)
                         _SnapshotMetric(
                           label: 'BMI',
                           value: snapshot.bmi!.toStringAsFixed(1),
                           accentColor: const Color(0xFF3B65C4),
                         ),
-                      ],
                     ],
                   ),
                   if (extraFacts.isNotEmpty) ...[

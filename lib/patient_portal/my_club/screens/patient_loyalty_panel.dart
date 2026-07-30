@@ -55,6 +55,22 @@ class PatientLoyaltyPanel extends StatelessWidget {
                   strings.tierLabel(myClub.tier),
                   style: theme.textTheme.bodyMedium,
                 ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _LevelBadge(
+                      label: myClub.levelName,
+                      color: _parseColor(myClub.levelColor),
+                    ),
+                    if (myClub.leaderboardRank > 0)
+                      _LevelBadge(
+                        label: 'Leaderboard #${myClub.leaderboardRank}',
+                        color: const Color(0xFF7C3AED),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 Text(
                   'Estimated value: ₹${myClub.currencyValue.toStringAsFixed(2)}',
@@ -71,7 +87,7 @@ class PatientLoyaltyPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${myClub.pointsToNextTier} pts to next tier',
+                  '${myClub.pointsToNextTier} lifetime pts to next level',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -152,11 +168,13 @@ class PatientLoyaltyDetailsContent extends StatelessWidget {
     required this.idCard,
     required this.myClub,
     this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 24),
+    this.showRedemptionSetup = false,
   });
 
   final IdCardInfo idCard;
   final MyClubSummary myClub;
   final EdgeInsetsGeometry padding;
+  final bool showRedemptionSetup;
 
   List<MyClubTransaction> get _creditTransactions => myClub.transactions
       .where((item) => item.points > 0)
@@ -177,58 +195,63 @@ class PatientLoyaltyDetailsContent extends StatelessWidget {
       children: [
         PatientLoyaltyPanel(idCard: idCard, myClub: myClub),
         const SizedBox(height: 16),
-        Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Redemption setup',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+        _LeaderboardSection(myClub: myClub),
+        const SizedBox(height: 16),
+        if (showRedemptionSetup) ...[
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Redemption setup',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _WalletStatRow(
-                  label: 'Current balance',
-                  value: '${myClub.points} pts',
-                  icon: Icons.stars_rounded,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(height: 10),
-                _WalletStatRow(
-                  label: 'Estimated redemption value',
-                  value: '₹${myClub.currencyValue.toStringAsFixed(2)}',
-                  icon: Icons.account_balance_wallet_outlined,
-                  color: const Color(0xFF0F766E),
-                ),
-                const SizedBox(height: 10),
-                _WalletStatRow(
-                  label: 'Redeem rule',
-                  value: myClub.redemptionEnabled
-                      ? '${myClub.redemptionRatePoints} pts = ₹${myClub.redemptionRateCurrency}'
-                      : 'Redemption not enabled yet',
-                  icon: Icons.tune_rounded,
-                  color: const Color(0xFFB45309),
-                ),
-                if (myClub.pointsExpiryMonths > 0) ...[
+                  const SizedBox(height: 12),
+                  _WalletStatRow(
+                    label: 'Current balance',
+                    value: '${myClub.points} pts',
+                    icon: Icons.stars_rounded,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(height: 10),
                   _WalletStatRow(
-                    label: 'Points expiry',
-                    value: '${myClub.pointsExpiryMonths} month validity window',
-                    icon: Icons.schedule_outlined,
-                    color: const Color(0xFF7C3AED),
+                    label: 'Estimated redemption value',
+                    value: '₹${myClub.currencyValue.toStringAsFixed(2)}',
+                    icon: Icons.account_balance_wallet_outlined,
+                    color: const Color(0xFF0F766E),
                   ),
+                  const SizedBox(height: 10),
+                  _WalletStatRow(
+                    label: 'Redeem rule',
+                    value: myClub.redemptionEnabled
+                        ? '${myClub.redemptionRatePoints} pts = ₹${myClub.redemptionRateCurrency}'
+                        : 'Redemption not enabled yet',
+                    icon: Icons.tune_rounded,
+                    color: const Color(0xFFB45309),
+                  ),
+                  if (myClub.pointsExpiryMonths > 0) ...[
+                    const SizedBox(height: 10),
+                    _WalletStatRow(
+                      label: 'Points expiry',
+                      value:
+                          '${myClub.pointsExpiryMonths} month validity window',
+                      icon: Icons.schedule_outlined,
+                      color: const Color(0xFF7C3AED),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
+        ],
         _HistorySection(
           title: 'Points credit history',
           emptyLabel:
@@ -245,6 +268,157 @@ class PatientLoyaltyDetailsContent extends StatelessWidget {
       ],
     );
   }
+}
+
+class _LeaderboardSection extends StatelessWidget {
+  const _LeaderboardSection({required this.myClub});
+
+  final MyClubSummary myClub;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final entries = [...myClub.leaderboard];
+    final current = myClub.currentLeaderboardEntry;
+    if (current != null && !entries.any((entry) => entry.isCurrentPatient)) {
+      entries.add(current);
+    }
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.emoji_events_rounded,
+                  color: Color(0xFFD97706),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'MyClub leaderboard',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Ranked by lifetime earned points. Redeeming points does not reduce your level.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (entries.isEmpty)
+              const Text('No leaderboard activity yet.')
+            else
+              ...entries.map(
+                (entry) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: entry.isCurrentPatient
+                        ? AppColors.primary.withValues(alpha: 0.08)
+                        : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: entry.isCurrentPatient
+                        ? Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.25),
+                          )
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 34,
+                        child: Text(
+                          '#${entry.rank}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.displayName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              entry.level,
+                              style: TextStyle(
+                                color: _parseColor(entry.levelColor),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${entry.lifetimePoints} pts',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (myClub.leaderboardPrivacyNote.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                myClub.leaderboardPrivacyNote,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LevelBadge extends StatelessWidget {
+  const _LevelBadge({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+Color _parseColor(String value) {
+  final normalized = value.replaceFirst('#', '');
+  final parsed = int.tryParse(normalized, radix: 16);
+  return parsed == null ? const Color(0xFF64748B) : Color(0xFF000000 | parsed);
 }
 
 class _MemberCard extends StatelessWidget {

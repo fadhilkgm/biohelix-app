@@ -9,6 +9,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/utils/phone_utils.dart';
 import '../models/home_feed_models.dart';
 import '../models/patient_models.dart';
+import '../../fitness/models/fitness_activity_models.dart';
 
 Map<String, dynamic> _map(dynamic value) {
   if (value is Map<String, dynamic>) return value;
@@ -235,6 +236,25 @@ class PatientRepository {
   PatientRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
   final ApiClient _apiClient;
+
+  Future<FitnessActivitySummary> getFitnessActivity() async {
+    final response = await _apiClient.getJson('/patients/me/fitness/activity');
+    return FitnessActivitySummary.fromJson(_map(response['fitness']));
+  }
+
+  Future<FitnessActivitySummary> syncFitnessActivity({
+    required List<DailyFitnessActivity> days,
+    required String timezone,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/patients/me/fitness/activity/sync',
+      data: {
+        'timezone': timezone,
+        'days': days.map((day) => day.toSyncJson()).toList(),
+      },
+    );
+    return FitnessActivitySummary.fromJson(_map(response['fitness']));
+  }
 
   Future<OtpSendResult> sendOtp({required String phone, String? mrn}) async {
     final response = await _apiClient.postJson(

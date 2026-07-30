@@ -15,6 +15,7 @@ import 'patient_portal/core/data/patient_repository.dart';
 import 'patient_portal/core/providers/patient_portal_provider.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'features/session/providers/session_provider.dart';
+import 'patient_portal/fitness/providers/fitness_provider.dart';
 
 class _ClampedScrollBehavior extends MaterialScrollBehavior {
   const _ClampedScrollBehavior();
@@ -49,6 +50,7 @@ class _BioHelixAppState extends State<BioHelixApp> {
   late final SessionProvider _sessionProvider;
   late final PatientPortalProvider _patientPortalProvider;
   late final LanguageProvider _languageProvider;
+  late final FitnessProvider _fitnessProvider;
   late final Future<void> _languageInitialization;
   final ThemeProvider _themeProvider = ThemeProvider();
   bool _languageSyncedForSession = false;
@@ -77,6 +79,11 @@ class _BioHelixAppState extends State<BioHelixApp> {
       repository: _patientRepository,
       sessionProvider: _sessionProvider,
     );
+    _fitnessProvider = FitnessProvider(
+      repository: _patientRepository,
+      sessionProvider: _sessionProvider,
+      onRewardsChanged: _patientPortalProvider.refreshMyClub,
+    )..initialize();
   }
 
   void _handleSessionChanged() {
@@ -98,6 +105,7 @@ class _BioHelixAppState extends State<BioHelixApp> {
   void dispose() {
     _sessionProvider.removeListener(_handleSessionChanged);
     _patientPortalProvider.dispose();
+    _fitnessProvider.dispose();
     _sessionProvider.dispose();
     _themeProvider.dispose();
     _languageProvider.dispose();
@@ -116,6 +124,7 @@ class _BioHelixAppState extends State<BioHelixApp> {
         ChangeNotifierProvider<PatientPortalProvider>.value(
           value: _patientPortalProvider,
         ),
+        ChangeNotifierProvider<FitnessProvider>.value(value: _fitnessProvider),
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
         ChangeNotifierProvider<LanguageProvider>.value(
           value: _languageProvider,

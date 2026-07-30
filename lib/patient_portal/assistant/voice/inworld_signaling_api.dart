@@ -36,6 +36,30 @@ class InworldSessionBootstrap {
   final Map<String, dynamic> sessionUpdate;
 }
 
+class LiveVoiceUsageUpdate {
+  const LiveVoiceUsageUpdate({
+    required this.sessionId,
+    required this.verifiedSeconds,
+    required this.awardedPoints,
+    required this.heartbeatIntervalSeconds,
+  });
+
+  final String sessionId;
+  final int verifiedSeconds;
+  final int awardedPoints;
+  final int heartbeatIntervalSeconds;
+
+  factory LiveVoiceUsageUpdate.fromJson(Map<String, dynamic> json) {
+    return LiveVoiceUsageUpdate(
+      sessionId: json['session_id']?.toString() ?? '',
+      verifiedSeconds: (json['verified_seconds'] as num?)?.toInt() ?? 0,
+      awardedPoints: (json['awarded_points'] as num?)?.toInt() ?? 0,
+      heartbeatIntervalSeconds:
+          (json['heartbeat_interval_seconds'] as num?)?.toInt() ?? 30,
+    );
+  }
+}
+
 class InworldSignalingApi {
   InworldSignalingApi(this._client);
 
@@ -149,5 +173,33 @@ class InworldSignalingApi {
         'idempotency_key': idempotencyKey,
       },
     );
+  }
+
+  Future<LiveVoiceUsageUpdate> startUsage({
+    required String conversationId,
+  }) async {
+    final response = await _client.postJson(
+      '/realtime/usage',
+      data: {'conversation_id': int.tryParse(conversationId) ?? conversationId},
+    );
+    final update = LiveVoiceUsageUpdate.fromJson(response);
+    if (update.sessionId.isEmpty) {
+      throw const FormatException('Voice usage session response is invalid.');
+    }
+    return update;
+  }
+
+  Future<LiveVoiceUsageUpdate> heartbeatUsage(String sessionId) async {
+    final response = await _client.postJson(
+      '/realtime/usage/$sessionId/heartbeat',
+    );
+    return LiveVoiceUsageUpdate.fromJson(response);
+  }
+
+  Future<LiveVoiceUsageUpdate> finishUsage(String sessionId) async {
+    final response = await _client.postJson(
+      '/realtime/usage/$sessionId/finish',
+    );
+    return LiveVoiceUsageUpdate.fromJson(response);
   }
 }

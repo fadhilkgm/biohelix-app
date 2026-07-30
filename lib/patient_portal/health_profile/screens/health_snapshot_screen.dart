@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/data/patient_repository.dart';
 import '../../core/models/patient_models.dart';
 import '../../core/providers/patient_portal_provider.dart';
+import '../models/health_snapshot_filters.dart';
 
 const Color _bg = Color(0xFFF8F9FB);
 const Color _ink = Color(0xFF192233);
@@ -123,9 +124,9 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
       );
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Health snapshot recorded.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Health update saved.')));
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = error.toString());
@@ -362,6 +363,9 @@ class HealthSnapshotHistoryScreen extends StatefulWidget {
 class _HealthSnapshotHistoryScreenState
     extends State<HealthSnapshotHistoryScreen> {
   final _scrollController = ScrollController();
+  DateTimeRange? _dateRange;
+  HealthSnapshotMetricFilter _metricFilter = HealthSnapshotMetricFilter.all;
+  HealthSnapshotRiskFilter _riskFilter = HealthSnapshotRiskFilter.all;
 
   @override
   void initState() {
@@ -397,13 +401,33 @@ class _HealthSnapshotHistoryScreenState
     }
   }
 
+  Future<void> _pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+      initialDateRange: _dateRange,
+      helpText: 'Filter health update dates',
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _dateRange = picked);
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _dateRange = null;
+      _metricFilter = HealthSnapshotMetricFilter.all;
+      _riskFilter = HealthSnapshotRiskFilter.all;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
         title: Text(
-          'Health Snapshot History',
+          'Health Update History',
           style: TextStyle(
             fontFamily: 'Manrope',
             fontSize: 18,
@@ -420,29 +444,17 @@ class _HealthSnapshotHistoryScreenState
       body: Consumer<PatientPortalProvider>(
         builder: (context, portal, _) {
           final history = portal.healthSnapshotHistory;
+          final filtered = filterHealthSnapshots(
+            history,
+            from: _dateRange?.start,
+            to: _dateRange?.end,
+            metric: _metricFilter,
+            risk: _riskFilter,
+          );
 
           if (portal.isLoadingHealthSnapshotHistory && history.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(color: _accent),
-            );
-          }
-
-          if (history.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  portal.errorMessage != null
-                      ? 'Could not load history. Pull to retry.'
-                      : 'No past snapshots yet.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Manrope',
-                    fontSize: 14,
-                    color: _ink.withValues(alpha: 0.6),
-                  ),
-                ),
-              ),
             );
           }
 
@@ -451,34 +463,114 @@ class _HealthSnapshotHistoryScreenState
             onRefresh: () => context
                 .read<PatientPortalProvider>()
                 .loadHealthSnapshotHistory(),
-            notificationPredicate: (_) => false,
-            child: ListView.builder(
+            child: ListView(
               controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-              itemCount:
-                  history.length +
-                  (portal.hasMoreHealthSnapshotHistory ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index >= history.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: _accent,
+              children: [
+                _HistoryFilterPanel(
+                  dateRange: _dateRange,
+                  metricFilter: _metricFilter,
+                  riskFilter: _riskFilter,
+                  onPickDates: _pickDateRange,
+                  onMetricChanged: (value) {
+                    setState(() => _metricFilter = value);
+                  },
+                  onRiskChanged: (value) {
+                    setState(() => _riskFilter = value);
+                  },
+                  onClear: _clearFilters,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Showing ${filtered.length} of ${history.length} loaded health updates',
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
+                          color: _ink.withValues(alpha: 0.68),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                  );
-                }
-                return _historyCard(history[index]);
-              },
+                    if (portal.hasMoreHealthSnapshotHistory)
+                      const Text(
+                        'More available',
+                        style: TextStyle(
+                          color: _accent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (history.isEmpty)
+                  _historyMessage(
+                    portal.errorMessage != null
+                        ? 'Could not load history. Pull to retry.'
+                        : 'No past health updates yet.',
+                  )
+                else if (filtered.isEmpty)
+                  _historyMessage(
+                    portal.hasMoreHealthSnapshotHistory
+                        ? 'No loaded health updates match these filters. Load more history or clear the filters.'
+                        : 'No health updates match the selected filters.',
+                  )
+                else
+                  ...filtered.map(_historyCard),
+                if (portal.hasMoreHealthSnapshotHistory) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: portal.isLoadingMoreHealthSnapshotHistory
+                          ? null
+                          : portal.loadMoreHealthSnapshotHistory,
+                      icon: portal.isLoadingMoreHealthSnapshotHistory
+                          ? const SizedBox(
+                              width: 17,
+                              height: 17,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: _accent,
+                              ),
+                            )
+                          : const Icon(Icons.expand_more_rounded),
+                      label: Text(
+                        portal.isLoadingMoreHealthSnapshotHistory
+                            ? 'Loading history…'
+                            : 'Load more history',
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _historyMessage(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E9F0)),
+      ),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: 'Manrope',
+          fontSize: 14,
+          color: _ink.withValues(alpha: 0.65),
+        ),
       ),
     );
   }
@@ -490,6 +582,12 @@ class _HealthSnapshotHistoryScreenState
       if (snapshot.riskScore != null)
         'Risk ${snapshot.riskScore!.toStringAsFixed(0)}',
       if (snapshot.bmi != null) 'BMI ${snapshot.bmi!.toStringAsFixed(1)}',
+      if (snapshot.latestVitals?.bloodPressureSystolic != null)
+        'BP ${_historyBloodPressure(snapshot)}',
+      if (snapshot.bloodSugar != null)
+        'Sugar ${snapshot.bloodSugar!.toStringAsFixed(0)} mg/dL',
+      if (snapshot.cholesterol != null)
+        'Cholesterol ${snapshot.cholesterol!.toStringAsFixed(0)} mg/dL',
     ];
 
     return Container(
@@ -554,6 +652,147 @@ class _HealthSnapshotHistoryScreenState
               ),
             ),
           ],
+          if ((snapshot.otherConditions ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Reported conditions: ${snapshot.otherConditions!.trim()}',
+              style: const TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 12,
+                height: 1.4,
+                color: Color(0xFF9A4D13),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _historyBloodPressure(HealthSnapshot snapshot) {
+    final systolic = snapshot.latestVitals?.bloodPressureSystolic;
+    final diastolic = snapshot.latestVitals?.bloodPressureDiastolic;
+    if (systolic == null) return '—';
+
+    return diastolic == null ? '$systolic' : '$systolic/$diastolic';
+  }
+}
+
+class _HistoryFilterPanel extends StatelessWidget {
+  const _HistoryFilterPanel({
+    required this.dateRange,
+    required this.metricFilter,
+    required this.riskFilter,
+    required this.onPickDates,
+    required this.onMetricChanged,
+    required this.onRiskChanged,
+    required this.onClear,
+  });
+
+  final DateTimeRange? dateRange;
+  final HealthSnapshotMetricFilter metricFilter;
+  final HealthSnapshotRiskFilter riskFilter;
+  final VoidCallback onPickDates;
+  final ValueChanged<HealthSnapshotMetricFilter> onMetricChanged;
+  final ValueChanged<HealthSnapshotRiskFilter> onRiskChanged;
+  final VoidCallback onClear;
+
+  bool get _hasFilters =>
+      dateRange != null ||
+      metricFilter != HealthSnapshotMetricFilter.all ||
+      riskFilter != HealthSnapshotRiskFilter.all;
+
+  @override
+  Widget build(BuildContext context) {
+    final dateLabel = dateRange == null
+        ? 'All dates'
+        : '${DateFormat('dd MMM yyyy').format(dateRange!.start)} – '
+              '${DateFormat('dd MMM yyyy').format(dateRange!.end)}';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E9F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.filter_alt_outlined, color: _accent),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Filter history',
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: _ink,
+                  ),
+                ),
+              ),
+              if (_hasFilters)
+                TextButton(onPressed: onClear, child: const Text('Clear all')),
+            ],
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: onPickDates,
+            icon: const Icon(Icons.date_range_outlined),
+            label: Text(dateLabel),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Measurement',
+            style: TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF526176),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: HealthSnapshotMetricFilter.values
+                .map(
+                  (filter) => FilterChip(
+                    label: Text(filter.label),
+                    selected: metricFilter == filter,
+                    onSelected: (_) => onMetricChanged(filter),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Risk score',
+            style: TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF526176),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: HealthSnapshotRiskFilter.values
+                .map(
+                  (filter) => FilterChip(
+                    label: Text(filter.label),
+                    selected: riskFilter == filter,
+                    onSelected: (_) => onRiskChanged(filter),
+                  ),
+                )
+                .toList(),
+          ),
         ],
       ),
     );

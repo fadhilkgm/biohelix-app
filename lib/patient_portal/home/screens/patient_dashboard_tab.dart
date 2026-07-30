@@ -15,6 +15,154 @@ class _DashboardTab extends StatelessWidget {
   final VoidCallback onOpenLabTestsDirectory;
   final VoidCallback onOpenHomeCare;
 
+  Future<void> _showPatientSwitcher(BuildContext context) async {
+    final shellContext = context;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Consumer<SessionProvider>(
+          builder: (context, session, _) {
+            final activePatientId = session.patient?.id;
+            final profiles = session.familyProfiles;
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Switch patient',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'The whole app will reload with the selected patient’s '
+                      'health information, records, bookings, and chats.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 18),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.48,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: profiles.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final profile = profiles[index];
+                          final patient = profile.patient;
+                          final isActive = patient.id == activePatientId;
+
+                          return Material(
+                            color: isActive
+                                ? const Color(0xFFEAF2FF)
+                                : Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(18),
+                            child: InkWell(
+                              key: ValueKey('patient-profile-${patient.id}'),
+                              onTap: isActive
+                                  ? null
+                                  : () async {
+                                      Navigator.of(sheetContext).pop();
+                                      try {
+                                        await shellContext
+                                            .read<SessionProvider>()
+                                            .switchFamilyProfile(profile.token);
+                                      } catch (error) {
+                                        if (!shellContext.mounted) return;
+                                        ScaffoldMessenger.of(
+                                          shellContext,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(error.toString()),
+                                          ),
+                                        );
+                                      }
+                                    },
+                              borderRadius: BorderRadius.circular(18),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: const Color(0xFF06489B),
+                                      foregroundColor: Colors.white,
+                                      child: Text(
+                                        patient.name.trim().isEmpty
+                                            ? 'P'
+                                            : patient.name
+                                                  .trim()
+                                                  .characters
+                                                  .first
+                                                  .toUpperCase(),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            patient.name,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            patient.registrationNumber,
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (isActive)
+                                      const Icon(
+                                        Icons.check_circle_rounded,
+                                        color: Color(0xFF06489B),
+                                      )
+                                    else
+                                      const Icon(Icons.chevron_right_rounded),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop();
+                          onNavigate(3);
+                        },
+                        icon: const Icon(Icons.manage_accounts_rounded),
+                        label: const Text('Manage or add family accounts'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   List<DoctorListing> _resolveHomeDoctors(
     PatientPortalProvider portal,
     PatientDashboard dashboard,
@@ -123,6 +271,7 @@ class _DashboardTab extends StatelessWidget {
           },
           onSeeAllAppointments: onOpenBookings,
           onQuickActionTap: quickActionHandler.open,
+          onSwitchPatient: () => _showPatientSwitcher(context),
           isLoading: portal.isLoading,
           healthSnapshot: portal.healthSnapshot,
           aiSuggestions: portal.aiSuggestions,

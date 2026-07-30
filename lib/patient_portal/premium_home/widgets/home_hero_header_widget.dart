@@ -7,11 +7,13 @@ class HomeHeroHeaderWidget extends StatelessWidget {
     super.key,
     required this.greeting,
     required this.patientName,
+    this.onSwitchPatient,
     this.hospitalName = 'BHRC Hospital',
   });
 
   final String greeting;
   final String patientName;
+  final VoidCallback? onSwitchPatient;
   final String hospitalName;
 
   @override
@@ -52,16 +54,69 @@ class HomeHeroHeaderWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 5),
-              Text(
-                patientName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
-                ),
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      patientName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                  if (onSwitchPatient != null) ...[
+                    const SizedBox(width: 10),
+                    Semantics(
+                      button: true,
+                      label: 'Switch patient',
+                      child: Tooltip(
+                        message: 'Switch patient',
+                        child: InkWell(
+                          key: const ValueKey('home-switch-patient-button'),
+                          onTap: onSwitchPatient,
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.switch_account_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                SizedBox(width: 5),
+                                Text(
+                                  'Switch',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
