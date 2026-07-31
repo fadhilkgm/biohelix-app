@@ -13,7 +13,7 @@ class FitnessActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<FitnessProvider>(
       builder: (context, fitness, _) {
-        if (!fitness.isAndroid) return const SizedBox.shrink();
+        if (!fitness.isSupportedPlatform) return const SizedBox.shrink();
 
         final action = switch (fitness.state) {
           FitnessConnectionState.disconnected => _ConnectContent(
@@ -23,17 +23,15 @@ class FitnessActivityCard extends StatelessWidget {
           ),
           FitnessConnectionState.updateRequired => _MessageContent(
             icon: Icons.system_update_rounded,
-            title: 'Update Health Connect',
-            message:
-                'Install or update Health Connect to track activity on this phone.',
-            actionLabel: 'Open Health Connect',
+            title: 'Update ${fitness.platformName}',
+            message: 'Update ${fitness.platformName} to track activity on this phone.',
+            actionLabel: 'Open ${fitness.platformName}',
             onAction: fitness.openHealthConnect,
           ),
           FitnessConnectionState.unavailable => const _MessageContent(
-            icon: Icons.phone_android_rounded,
+            icon: Icons.smartphone_rounded,
             title: 'Fitness tracking unavailable',
-            message:
-                'Health Connect requires Android 9 or newer and a supported device.',
+            message: 'Activity tracking is unavailable on this device.',
           ),
           FitnessConnectionState.blockedForDifferentPatient =>
             const _MessageContent(
@@ -85,7 +83,7 @@ class FitnessActivityCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     CircleAvatar(
                       radius: 20,
@@ -97,7 +95,7 @@ class FitnessActivityCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'Activity Rewards',
                             style: TextStyle(
                               color: Color(0xFF173B63),
@@ -106,8 +104,8 @@ class FitnessActivityCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Powered by Android Health Connect',
-                            style: TextStyle(
+                            'Powered by ${fitness.platformName}',
+                            style: const TextStyle(
                               color: Color(0xFF52708F),
                               fontSize: 12,
                             ),
@@ -272,7 +270,8 @@ class _ConnectedContent extends StatelessWidget {
               ),
           ],
         ),
-        if (fitness.platformStatus?.nativePhoneStepTracking == false) ...[
+        if (!fitness.isIOS &&
+            fitness.platformStatus?.nativePhoneStepTracking == false) ...[
           const SizedBox(height: 12),
           const Text(
             'This Android version may need a compatible phone fitness app to '

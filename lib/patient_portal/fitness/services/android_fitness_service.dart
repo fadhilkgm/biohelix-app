@@ -17,7 +17,13 @@ class AndroidFitnessService {
   final MethodChannel _channel;
 
   bool get isSupportedPlatform =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  bool get isIOS => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  String get platformName => isIOS ? 'Apple Health' : 'Android Health Connect';
 
   Future<FitnessPlatformStatus> status() async {
     if (!isSupportedPlatform) {

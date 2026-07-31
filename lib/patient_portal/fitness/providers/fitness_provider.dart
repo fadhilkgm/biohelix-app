@@ -53,7 +53,9 @@ class FitnessProvider extends ChangeNotifier {
   DailyFitnessActivity? get today => _summary.today;
   String? get errorMessage => _errorMessage;
   bool get isSyncing => _isSyncing;
-  bool get isAndroid => _service.isSupportedPlatform;
+  bool get isSupportedPlatform => _service.isSupportedPlatform;
+  bool get isIOS => _service.isIOS;
+  String get platformName => _service.platformName;
   bool get isConnected => _state == FitnessConnectionState.connected;
 
   Future<void> initialize() async {

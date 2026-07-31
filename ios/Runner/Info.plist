@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>BioHelix uses your microphone for voice chat with Health AI.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>BHRC reads your steps, active energy and walking distance to calculate your daily wellness score and eligible MyClub rewards.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>BioHelix converts your speech to text so you can chat hands-free.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
