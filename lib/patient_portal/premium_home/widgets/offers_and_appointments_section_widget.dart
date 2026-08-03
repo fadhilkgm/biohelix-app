@@ -26,12 +26,14 @@ class OffersAndAppointmentsSectionWidget extends StatelessWidget {
     required this.onSeeAllAppointments,
     required this.onOfferTap,
     this.homeOffers = const [],
+    this.showAppointments = true,
   });
 
   final List<BookingItem> bookings;
   final VoidCallback onSeeAllAppointments;
   final Future<void> Function(HomeOfferItem item) onOfferTap;
   final List<HomeOfferItem> homeOffers;
+  final bool showAppointments;
 
   static const _fallbackOffers = [
     _OfferItem(
@@ -110,11 +112,13 @@ class OffersAndAppointmentsSectionWidget extends StatelessWidget {
             onOfferTap: (offer) => onOfferTap(offer.source),
           ),
         ),
-        const SizedBox(height: AppSpacing.sectionGap),
-        UpcomingAppointmentsWidget(
-          bookings: bookings,
-          onSeeAllAppointments: onSeeAllAppointments,
-        ),
+        if (showAppointments) ...[
+          const SizedBox(height: AppSpacing.sectionGap),
+          UpcomingAppointmentsWidget(
+            bookings: bookings,
+            onSeeAllAppointments: onSeeAllAppointments,
+          ),
+        ],
       ],
     );
   }

@@ -9,6 +9,44 @@ class FitnessActivityCard extends StatelessWidget {
 
   static const _blue = Color(0xFF06489B);
 
+  Future<void> _handleMenuAction(
+    BuildContext context,
+    FitnessProvider fitness,
+    _FitnessMenuAction action,
+  ) async {
+    switch (action) {
+      case _FitnessMenuAction.refresh:
+        await fitness.refreshAndSync();
+      case _FitnessMenuAction.disconnect:
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text('Disconnect ${fitness.platformName}?'),
+            content: const Text(
+              'This removes the link between activity data on this phone and '
+              'the patient profile. Health data on the phone will not be deleted.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Disconnect'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true) return;
+        await fitness.disconnect();
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${fitness.platformName} disconnected.')),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<FitnessProvider>(
@@ -24,8 +62,10 @@ class FitnessActivityCard extends StatelessWidget {
           FitnessConnectionState.updateRequired => _MessageContent(
             icon: Icons.system_update_rounded,
             title: 'Update ${fitness.platformName}',
-            message: 'Update ${fitness.platformName} to track activity on this phone.',
+            message:
+                'Update ${fitness.platformName} to track activity on this phone.',
             actionLabel: 'Open ${fitness.platformName}',
+            actionIcon: Icons.open_in_new_rounded,
             onAction: fitness.openHealthConnect,
           ),
           FitnessConnectionState.unavailable => const _MessageContent(
@@ -48,49 +88,67 @@ class FitnessActivityCard extends StatelessWidget {
                 fitness.errorMessage ??
                 'Fitness data could not be refreshed right now.',
             actionLabel: 'Try again',
+            actionIcon: Icons.refresh_rounded,
             onAction: fitness.refreshAndSync,
           ),
           FitnessConnectionState.connected => _ConnectedContent(
             fitness: fitness,
           ),
-          FitnessConnectionState.loading => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 22),
-            child: Center(child: CircularProgressIndicator()),
+          FitnessConnectionState.loading => const Row(
+            children: [
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+              SizedBox(width: 10),
+              Text(
+                'Loading activity…',
+                style: TextStyle(
+                  color: Color(0xFF52708F),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         };
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.only(bottom: 18),
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFF0F8FF), Color(0xFFE8F7F2)],
+                colors: [Color(0xFFF4F9FF), Color(0xFFEEF9F5)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFB9D9E8)),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFC9DFEA)),
               boxShadow: [
                 BoxShadow(
-                  color: _blue.withValues(alpha: 0.08),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
+                  color: _blue.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Color(0xFFD9EEFF),
-                      child: Icon(Icons.directions_walk_rounded, color: _blue),
+                    const CircleAvatar(
+                      radius: 17,
+                      backgroundColor: Color(0xFFDCEFFF),
+                      child: Icon(
+                        Icons.directions_walk_rounded,
+                        color: _blue,
+                        size: 20,
+                      ),
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +157,7 @@ class FitnessActivityCard extends StatelessWidget {
                             'Activity Rewards',
                             style: TextStyle(
                               color: Color(0xFF173B63),
-                              fontSize: 17,
+                              fontSize: 16,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -107,15 +165,77 @@ class FitnessActivityCard extends StatelessWidget {
                             'Powered by ${fitness.platformName}',
                             style: const TextStyle(
                               color: Color(0xFF52708F),
-                              fontSize: 12,
+                              fontSize: 11,
                             ),
                           ),
                         ],
                       ),
                     ),
+                    if (fitness.hasDeviceOwner)
+                      PopupMenuButton<_FitnessMenuAction>(
+                        key: const Key('fitness-more-menu'),
+                        enabled: !fitness.isSyncing,
+                        tooltip: 'More activity options',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 220,
+                          maxWidth: 260,
+                        ),
+                        position: PopupMenuPosition.under,
+                        offset: const Offset(0, 6),
+                        elevation: 8,
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE5F1FC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFC6DDED)),
+                          ),
+                          child: const Icon(
+                            Icons.more_horiz_rounded,
+                            color: _blue,
+                            size: 21,
+                          ),
+                        ),
+                        onSelected: (action) =>
+                            _handleMenuAction(context, fitness, action),
+                        itemBuilder: (context) => [
+                          if (fitness.state ==
+                                  FitnessConnectionState.connected ||
+                              fitness.state == FitnessConnectionState.error)
+                            const PopupMenuItem(
+                              value: _FitnessMenuAction.refresh,
+                              height: 52,
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: _ActivityMenuTile(
+                                icon: Icons.refresh_rounded,
+                                label: 'Refresh activity',
+                              ),
+                            ),
+                          if (fitness.state ==
+                                  FitnessConnectionState.connected ||
+                              fitness.state == FitnessConnectionState.error)
+                            const PopupMenuDivider(height: 8),
+                          const PopupMenuItem(
+                            value: _FitnessMenuAction.disconnect,
+                            height: 52,
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: _ActivityMenuTile(
+                              icon: Icons.link_off_rounded,
+                              label: 'Disconnect activity',
+                              isDestructive: true,
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 action,
               ],
             ),
@@ -143,29 +263,30 @@ class _ConnectContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Use this phone’s steps, active calories and distance to build a '
-          'daily wellness score. $rewardLabel',
-          style: const TextStyle(color: Color(0xFF385A78), height: 1.4),
+          'Turn your daily movement into rewards. $rewardLabel',
+          style: const TextStyle(
+            color: Color(0xFF385A78),
+            fontSize: 13,
+            height: 1.3,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         const Text(
-          'Only daily totals are sent to your BHRC profile. A watch or band is '
-          'not required for compatible phones.',
-          style: TextStyle(color: Color(0xFF627D95), fontSize: 12, height: 1.4),
+          'Only daily totals are securely synced to your BHRC profile.',
+          style: TextStyle(color: Color(0xFF627D95), fontSize: 11, height: 1.3),
         ),
-        const SizedBox(height: 14),
-        FilledButton.icon(
+        const SizedBox(height: 10),
+        _CompactActionButton(
           onPressed: isBusy ? null : onConnect,
           icon: isBusy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
+              ? const SizedBox.square(
+                  dimension: 15,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: Colors.white,
                   ),
                 )
-              : const Icon(Icons.link_rounded),
+              : const Icon(Icons.link_rounded, size: 18),
           label: Text(isBusy ? 'Connecting…' : 'Connect activity'),
         ),
       ],
@@ -194,32 +315,35 @@ class _ConnectedContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
-              width: 78,
-              height: 78,
+              width: 64,
+              height: 64,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   CircularProgressIndicator(
                     value: score / 100,
-                    strokeWidth: 9,
+                    strokeWidth: 7,
                     backgroundColor: const Color(0xFFD4E5E8),
                     color: const Color(0xFF147D73),
                     strokeCap: StrokeCap.round,
                   ),
                   Center(
-                    child: Text(
-                      '$score',
-                      style: const TextStyle(
-                        color: Color(0xFF147D73),
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
+                    child: SizedBox.square(
+                      dimension: 46,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/walk.gif',
+                          fit: BoxFit.cover,
+                          gaplessPlayback: true,
+                          semanticLabel: 'Animated walking activity',
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,7 +356,7 @@ class _ConnectedContent extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   LinearProgressIndicator(
                     value: goal == 0 ? 0 : (steps / goal).clamp(0, 1),
                     minHeight: 7,
@@ -240,7 +364,7 @@ class _ConnectedContent extends StatelessWidget {
                     color: const Color(0xFF06489B),
                     backgroundColor: const Color(0xFFD4E5F1),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     '${calories.toStringAsFixed(0)} active kcal  •  '
                     '${distanceKm.toStringAsFixed(1)} km',
@@ -254,7 +378,7 @@ class _ConnectedContent extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -272,7 +396,7 @@ class _ConnectedContent extends StatelessWidget {
         ),
         if (!fitness.isIOS &&
             fitness.platformStatus?.nativePhoneStepTracking == false) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           const Text(
             'This Android version may need a compatible phone fitness app to '
             'write steps into Health Connect.',
@@ -283,34 +407,25 @@ class _ConnectedContent extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            TextButton.icon(
-              onPressed: fitness.isSyncing ? null : fitness.refreshAndSync,
-              icon: fitness.isSyncing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.refresh_rounded),
-              label: const Text('Refresh'),
-            ),
-            TextButton(
-              onPressed: fitness.openHealthConnect,
-              child: const Text('Manage access'),
-            ),
-          ],
-        ),
+        if (fitness.isSyncing) ...[
+          const SizedBox(height: 8),
+          const LinearProgressIndicator(),
+        ],
+        const SizedBox(height: 8),
         Text(
           fitness.summary.rewardProgram.disclaimer,
-          style: const TextStyle(color: Color(0xFF71869A), fontSize: 11),
+          style: const TextStyle(
+            color: Color(0xFF71869A),
+            fontSize: 10,
+            height: 1.25,
+          ),
         ),
       ],
     );
   }
 }
+
+enum _FitnessMenuAction { refresh, disconnect }
 
 class _MessageContent extends StatelessWidget {
   const _MessageContent({
@@ -318,6 +433,7 @@ class _MessageContent extends StatelessWidget {
     required this.title,
     required this.message,
     this.actionLabel,
+    this.actionIcon,
     this.onAction,
   });
 
@@ -325,6 +441,7 @@ class _MessageContent extends StatelessWidget {
   final String title;
   final String message;
   final String? actionLabel;
+  final IconData? actionIcon;
   final Future<void> Function()? onAction;
 
   @override
@@ -332,21 +449,47 @@ class _MessageContent extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: const Color(0xFF52708F)),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: const Color(0xFFDCEFFF),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 19, color: const Color(0xFF06489B)),
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF173B63),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
               Text(
                 message,
-                style: const TextStyle(color: Color(0xFF52708F), height: 1.35),
+                style: const TextStyle(
+                  color: Color(0xFF52708F),
+                  fontSize: 12,
+                  height: 1.3,
+                ),
               ),
               if (actionLabel != null && onAction != null) ...[
-                const SizedBox(height: 10),
-                OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
+                const SizedBox(height: 8),
+                _CompactActionButton(
+                  onPressed: onAction,
+                  icon: Icon(
+                    actionIcon ?? Icons.arrow_forward_rounded,
+                    size: 18,
+                  ),
+                  label: Text(actionLabel!),
+                ),
               ],
             ],
           ),
@@ -365,7 +508,7 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: const Color(0xFFDDF2E9),
         borderRadius: BorderRadius.circular(20),
@@ -386,6 +529,94 @@ class _StatusPill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ActivityMenuTile extends StatelessWidget {
+  const _ActivityMenuTile({
+    required this.icon,
+    required this.label,
+    this.isDestructive = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isDestructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = isDestructive
+        ? const Color(0xFFC73A48)
+        : const Color(0xFF06489B);
+    final background = isDestructive
+        ? const Color(0xFFFFEFF1)
+        : const Color(0xFFF0F6FC);
+    final iconBackground = isDestructive
+        ? const Color(0xFFFFDDE2)
+        : const Color(0xFFDCEBFA);
+
+    return Container(
+      height: 42,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: iconBackground,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 18, color: foreground),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: foreground,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactActionButton extends StatelessWidget {
+  const _CompactActionButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+  });
+
+  final VoidCallback? onPressed;
+  final Widget icon;
+  final Widget label;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: icon,
+      label: label,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 36),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        visualDensity: VisualDensity.compact,
+        backgroundColor: const Color(0xFF06489B),
+        foregroundColor: Colors.white,
+        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }

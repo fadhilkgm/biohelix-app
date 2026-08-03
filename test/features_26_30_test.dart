@@ -23,7 +23,9 @@ void main() {
     _mockVoiceChannels();
   });
 
-  testWidgets('26. doctor directory section is visible on home', (tester) async {
+  testWidgets('26. doctor directory section is visible on home', (
+    tester,
+  ) async {
     await tester.pumpWidget(await _buildHarness());
     await tester.pumpAndSettle();
     expect(find.text('Find Doctors'), findsOneWidget);
@@ -49,7 +51,9 @@ void main() {
     expect(find.text('Cardiology'), findsWidgets);
   });
 
-  testWidgets('30. bookings tab shows appointment list entries', (tester) async {
+  testWidgets('30. bookings tab shows appointment list entries', (
+    tester,
+  ) async {
     await tester.pumpWidget(await _buildHarness());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bookings'));
@@ -60,23 +64,32 @@ void main() {
 }
 
 void _mockVoiceChannels() {
-  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  messenger.setMockMethodCallHandler(const MethodChannel('flutter_tts'), (call) async => null);
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('flutter_tts'),
+    (call) async => null,
+  );
   messenger.setMockMethodCallHandler(
     const MethodChannel('speech_to_text_windows'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      if (call.method == 'initialize' || call.method == 'hasPermission')
+        return true;
       return null;
     },
   );
   messenger.setMockMethodCallHandler(
     const MethodChannel('plugin.csdcorp.com/speech_to_text'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      if (call.method == 'initialize' || call.method == 'hasPermission')
+        return true;
       return null;
     },
   );
-  messenger.setMockMethodCallHandler(const MethodChannel('com.ryanheise.audio_session'), (call) async => null);
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('com.ryanheise.audio_session'),
+    (call) async => null,
+  );
 }
 
 Future<Widget> _buildHarness() async {
@@ -101,7 +114,9 @@ Future<Widget> _buildHarness() async {
       ChangeNotifierProvider<SessionProvider>.value(value: session),
       ChangeNotifierProvider<PatientPortalProvider>.value(value: portal),
       ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
-      ChangeNotifierProvider<LanguageProvider>(create: (_) => LanguageProvider()),
+      ChangeNotifierProvider<LanguageProvider>(
+        create: (_) => LanguageProvider(),
+      ),
     ],
     child: const MaterialApp(home: PatientAppShell()),
   );
@@ -170,12 +185,17 @@ class _FakePortalRepository extends PatientRepository {
 
   @override
   Future<OtpSendResult> sendOtp({required String phone, String? mrn}) async {
-    return const OtpSendResult(devOtp: '123456', message: 'OTP sent to your WhatsApp');
+    return const OtpSendResult(
+      devOtp: '123456',
+      message: 'OTP sent to your WhatsApp',
+    );
   }
 
   @override
-  Future<OtpSession> verifyOtp({required String phone, required String otp}) async =>
-      const OtpSession(token: 'portal-token', patient: _patient);
+  Future<OtpSession> verifyOtp({
+    required String phone,
+    required String otp,
+  }) async => const OtpSession(token: 'portal-token', patient: _patient);
 
   @override
   Future<PatientIdentity> getCurrentPatient() async => _patient;
@@ -211,18 +231,21 @@ class _FakePortalRepository extends PatientRepository {
   );
 
   @override
-  Future<List<BookingItem>> getBookings() async => _bookings;
+  Future<List<BookingItem>> getBookings({int? patientId}) async => _bookings;
   @override
   Future<List<DoctorListing>> getDoctors() async => _doctors;
   @override
-  Future<List<DepartmentItem>> getDepartments() async =>
-      const [DepartmentItem(id: 1, name: 'Cardiology')];
+  Future<List<DepartmentItem>> getDepartments() async => const [
+    DepartmentItem(id: 1, name: 'Cardiology'),
+  ];
   @override
-  Future<List<HomeBannerItem>> getHomeBanners() async =>
-      const [HomeBannerItem(id: 1, title: 'Monsoon Wellness', imageUrl: '')];
+  Future<List<HomeBannerItem>> getHomeBanners() async => const [
+    HomeBannerItem(id: 1, title: 'Monsoon Wellness', imageUrl: ''),
+  ];
   @override
-  Future<List<TickerMessageItem>> getTickerMessages() async =>
-      const [TickerMessageItem(id: 1, message: 'Free camp on Friday')];
+  Future<List<TickerMessageItem>> getTickerMessages() async => const [
+    TickerMessageItem(id: 1, message: 'Free camp on Friday'),
+  ];
   @override
   Future<List<HomeOfferItem>> getHomeOffers() async => const [];
   @override
@@ -247,7 +270,12 @@ class _FakePortalRepository extends PatientRepository {
   Future<List<ChatThreadSummary>> getGlobalChatThreads() async => const [];
   @override
   Future<ChatThreadSummary> createGlobalChatThread({String? title}) async =>
-      const ChatThreadSummary(id: 'thread-1', title: 'New chat', messageCount: 0);
+      const ChatThreadSummary(
+        id: 'thread-1',
+        title: 'New chat',
+        messageCount: 0,
+      );
   @override
-  Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async => const [];
+  Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async =>
+      const [];
 }

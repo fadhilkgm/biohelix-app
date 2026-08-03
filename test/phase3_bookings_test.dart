@@ -103,39 +103,38 @@ void main() {
     final adapter = _BookingAdapter({'success': true, 'batchId': 'x-y-z'});
     final repository = _repository(adapter);
 
-    await repository.createLabOrder(
-      labTestIds: [3],
-      date: '2026-06-25',
-    );
+    await repository.createLabOrder(labTestIds: [3], date: '2026-06-25');
 
     expect((adapter.lastData as Map).containsKey('slot'), isFalse);
   });
 
-  test('lab package order posts camelCase payload to /patient/lab-package-orders',
-      () async {
-    final adapter = _BookingAdapter({'success': true, 'bookingId': 60});
-    final repository = _repository(adapter);
+  test(
+    'lab package order posts camelCase payload to /patient/lab-package-orders',
+    () async {
+      final adapter = _BookingAdapter({'success': true, 'bookingId': 60});
+      final repository = _repository(adapter);
 
-    final confirmation = await repository.createLabPackageOrder(
-      labPackageId: 1,
-      date: '2026-06-25',
-      slot: '08:30',
-      notes: 'Morning preferred.',
-    );
+      final confirmation = await repository.createLabPackageOrder(
+        labPackageId: 1,
+        date: '2026-06-25',
+        slot: '08:30',
+        notes: 'Morning preferred.',
+      );
 
-    expect(adapter.lastPath, '/patient/lab-package-orders');
-    expect(adapter.lastData, {
-      'packageId': 1,
-      'date': '2026-06-25',
-      'slot': '08:30',
-      'paymentStatus': 'pending',
-      'collectionType': 'home',
-      'urgency': 'routine',
-      'notes': 'Morning preferred.',
-    });
-    expect(confirmation.reference, 'BKG-60');
-    expect(confirmation.id, 60);
-  });
+      expect(adapter.lastPath, '/patient/lab-package-orders');
+      expect(adapter.lastData, {
+        'packageId': 1,
+        'date': '2026-06-25',
+        'slot': '08:30',
+        'paymentStatus': 'pending',
+        'collectionType': 'home',
+        'urgency': 'routine',
+        'notes': 'Morning preferred.',
+      });
+      expect(confirmation.reference, 'BKG-60');
+      expect(confirmation.id, 60);
+    },
+  );
 
   test('cancel booking calls correct PATCH path', () async {
     final adapter = _BookingAdapter({'success': true});
@@ -147,30 +146,33 @@ void main() {
     expect(adapter.lastMethod, 'PATCH');
   });
 
-  test('cancel lab order sends status=cancelled to /patient/lab-orders/{id}',
-      () async {
-    final adapter = _BookingAdapter({'success': true});
-    final repository = _repository(adapter);
+  test(
+    'cancel lab order sends status=cancelled to /patient/lab-orders/{id}',
+    () async {
+      final adapter = _BookingAdapter({'success': true});
+      final repository = _repository(adapter);
 
-    await repository.cancelLabOrder(3);
+      await repository.cancelLabOrder(3);
 
-    expect(adapter.lastPath, '/patient/lab-orders/3');
-    expect(adapter.lastMethod, 'PATCH');
-    expect(adapter.lastData, {'status': 'cancelled'});
-  });
+      expect(adapter.lastPath, '/patient/lab-orders/3');
+      expect(adapter.lastMethod, 'PATCH');
+      expect(adapter.lastData, {'status': 'cancelled'});
+    },
+  );
 
   test(
-      'cancel lab package order sends status=cancelled to /patient/lab-package-orders/{id}',
-      () async {
-    final adapter = _BookingAdapter({'success': true});
-    final repository = _repository(adapter);
+    'cancel lab package order sends status=cancelled to /patient/lab-package-orders/{id}',
+    () async {
+      final adapter = _BookingAdapter({'success': true});
+      final repository = _repository(adapter);
 
-    await repository.cancelLabPackageOrder(8);
+      await repository.cancelLabPackageOrder(8);
 
-    expect(adapter.lastPath, '/patient/lab-package-orders/8');
-    expect(adapter.lastMethod, 'PATCH');
-    expect(adapter.lastData, {'status': 'cancelled'});
-  });
+      expect(adapter.lastPath, '/patient/lab-package-orders/8');
+      expect(adapter.lastMethod, 'PATCH');
+      expect(adapter.lastData, {'status': 'cancelled'});
+    },
+  );
 
   test('reschedule booking calls /patients/bookings/{id}/reschedule', () async {
     final adapter = _BookingAdapter({'success': true});
@@ -214,8 +216,8 @@ void main() {
           'status': true,
           'basePrice': 0,
           'bodyPoints': [],
-        }
-      ]
+        },
+      ],
     });
     final repository = _repository(adapter);
 
@@ -238,10 +240,10 @@ void main() {
           'basePrice': 1200,
           'totalTests': 2,
           'includedTests': [
-            {'testName': 'CBC'}
+            {'testName': 'CBC'},
           ],
-        }
-      ]
+        },
+      ],
     });
     final repository = _repository(adapter);
 
@@ -355,58 +357,88 @@ void main() {
     expect(snapshot.bmi, closeTo(24.2, 0.01));
   });
 
-  test(
-    'HealthSnapshot parses full documented payload incl. manual fields and '
-    'combined-bp latest_vitals',
-    () {
-      final snapshot = HealthSnapshot.fromJson({
-        'success': true,
-        'snapshot': {
-          'snapshot_date': '2026-07-02',
+  test('HealthSnapshot parses full documented payload incl. manual fields and '
+      'combined-bp latest_vitals', () {
+    final snapshot = HealthSnapshot.fromJson({
+      'success': true,
+      'snapshot': {
+        'snapshot_date': '2026-07-02',
+        'bmi': 24.3,
+        'blood_sugar': 110.0,
+        'blood_sugar_context': 'fasting',
+        'cholesterol': 205.0,
+        'risk_score': 45.0,
+        'health_score': 55.0,
+        'latest_vitals': {
+          'bp': '128/82',
+          'heart_rate': null,
+          'temperature': 37.1,
+          'weight': 74.5,
+          'height': 172,
           'bmi': 24.3,
-          'blood_sugar': 110.0,
-          'cholesterol': 205.0,
-          'risk_score': 45.0,
-          'health_score': 55.0,
-          'latest_vitals': {
-            'bp': '128/82',
-            'heart_rate': null,
-            'temperature': 37.1,
-            'weight': 74.5,
-            'height': 172,
-            'bmi': 24.3,
-            'oxygen_saturation': 98,
-            'recorded_at': '2026-07-01T09:00:00+00:00',
-          },
-          'latest_results': null,
-          'other_conditions': 'Mild fever since yesterday, sore throat',
-          'ai_summary': 'Health score: 55/100. Key findings: ...',
-          'generated_at': '2026-07-02T10:20:00+00:00',
+          'oxygen_saturation': 98,
+          'recorded_at': '2026-07-01T09:00:00+00:00',
         },
-      });
+        'latest_results': null,
+        'other_conditions': 'Mild fever since yesterday, sore throat',
+        'ai_summary': 'Health score: 55/100. Key findings: ...',
+        'generated_at': '2026-07-02T10:20:00+00:00',
+        'updated_by': {'id': 9, 'name': 'Nurse Fathima'},
+      },
+    });
 
-      expect(snapshot.snapshotDate, '2026-07-02');
-      expect(snapshot.healthScore, 55.0);
-      expect(snapshot.riskScore, 45.0);
-      expect(snapshot.bloodSugar, 110.0);
-      expect(snapshot.cholesterol, 205.0);
-      expect(
-        snapshot.otherConditions,
-        'Mild fever since yesterday, sore throat',
-      );
-      expect(snapshot.latestResults, isNull);
-      expect(snapshot.isEmpty, isFalse);
+    expect(snapshot.snapshotDate, '2026-07-02');
+    expect(snapshot.healthScore, 55.0);
+    expect(snapshot.riskScore, 45.0);
+    expect(snapshot.bloodSugar, 110.0);
+    expect(snapshot.bloodSugarContext, 'fasting');
+    expect(snapshot.updatedByName, 'Nurse Fathima');
+    expect(snapshot.cholesterol, 205.0);
+    expect(snapshot.otherConditions, 'Mild fever since yesterday, sore throat');
+    expect(snapshot.latestResults, isNull);
+    expect(snapshot.isEmpty, isFalse);
 
-      final vitals = snapshot.latestVitals;
-      expect(vitals, isNotNull);
-      expect(vitals!.bloodPressureSystolic, 128);
-      expect(vitals.bloodPressureDiastolic, 82);
-      expect(vitals.bodyTemperature, closeTo(37.1, 0.01));
-      expect(vitals.oxygenSaturation, 98);
-      expect(vitals.weight, closeTo(74.5, 0.01));
-      expect(vitals.heartRate, isNull);
-    },
-  );
+    final vitals = snapshot.latestVitals;
+    expect(vitals, isNotNull);
+    expect(vitals!.bloodPressureSystolic, 128);
+    expect(vitals.bloodPressureDiastolic, 82);
+    expect(vitals.bodyTemperature, closeTo(37.1, 0.01));
+    expect(vitals.oxygenSaturation, 98);
+    expect(vitals.weight, closeTo(74.5, 0.01));
+    expect(vitals.heartRate, isNull);
+  });
+
+  test('HealthSnapshot parses decimal strings returned by the Laravel API', () {
+    final snapshot = HealthSnapshot.fromJson({
+      'snapshot': {
+        'snapshot_date': '2026-08-02',
+        'bmi': '22.68',
+        'health_score': '80.00',
+        'risk_score': '20.00',
+        'latest_vitals': {
+          'bp': '120/80',
+          'height': '164.00',
+          'weight': '61.00',
+          'bmi': '22.68',
+          'heart_rate': '72',
+          'temperature': '36.80',
+          'oxygen_saturation': '98',
+          'respiratory_rate': '16',
+          'recorded_at': '2026-08-02T09:00:00+00:00',
+        },
+      },
+    });
+
+    expect(snapshot.healthScore, 80);
+    expect(snapshot.riskScore, 20);
+    expect(snapshot.bmi, closeTo(22.68, 0.001));
+    expect(snapshot.latestVitals?.height, 164);
+    expect(snapshot.latestVitals?.weight, 61);
+    expect(snapshot.latestVitals?.heartRate, 72);
+    expect(snapshot.latestVitals?.bodyTemperature, closeTo(36.8, 0.001));
+    expect(snapshot.latestVitals?.oxygenSaturation, 98);
+    expect(snapshot.latestVitals?.respiratoryRate, 16);
+  });
 
   test('HealthSnapshot.isEmpty is true when no data has been recorded', () {
     const snapshot = HealthSnapshot();
@@ -452,6 +484,7 @@ void main() {
           bloodPressureSystolic: 128,
           bloodPressureDiastolic: 82,
           bloodSugar: 110,
+          bloodSugarContext: 'fasting',
           cholesterol: 205,
           weight: 74.5,
           otherConditions: 'Sore throat',
@@ -464,6 +497,7 @@ void main() {
         'bloodPressureSystolic': 128,
         'bloodPressureDiastolic': 82,
         'bloodSugar': 110.0,
+        'bloodSugarContext': 'fasting',
         'cholesterol': 205.0,
         'weight': 74.5,
         'otherConditions': 'Sore throat',
@@ -506,11 +540,7 @@ void main() {
       'reason': 'Based on your profile',
       'score': 0.91,
       'is_accepted': false,
-      'item': {
-        'type': 'lab_test',
-        'id': 12,
-        'test_name': 'Lipid Profile',
-      },
+      'item': {'type': 'lab_test', 'id': 12, 'test_name': 'Lipid Profile'},
     });
 
     expect(item.isLabTest, isTrue);

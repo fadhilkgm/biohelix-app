@@ -51,9 +51,6 @@ class _HomeCareScreenState extends State<_HomeCareScreen> {
         builder: (context, session, portal, _) {
           final patient = session.patient;
           final services = portal.homeCareServices;
-          final members = portal.familyMembers
-              .where((member) => member.canBookAppointments)
-              .toList();
           HomeCareServiceItem? selectedService;
           for (final service in services) {
             if (service.id == _selectedServiceId) {
@@ -66,14 +63,6 @@ class _HomeCareScreenState extends State<_HomeCareScreen> {
             _selectedServiceId = services.first.id;
             selectedService = services.first;
           }
-          FamilyMember? selectedMember;
-          for (final member in members) {
-            if (member.patientId == _selectedPatientId) {
-              selectedMember = member;
-              break;
-            }
-          }
-
           return RefreshIndicator(
             onRefresh: portal.refreshHomeCare,
             notificationPredicate: (_) => false,
@@ -145,72 +134,6 @@ class _HomeCareScreenState extends State<_HomeCareScreen> {
                             }
                           },
                         ),
-                ),
-                const SizedBox(height: 16),
-                _HomeCareSection(
-                  title: 'Book for',
-                  child: Column(
-                    children: [
-                      _HomeCareDropdownTile(
-                        icon: Icons.person_outline_rounded,
-                        label: 'Patient',
-                        value:
-                            selectedMember?.name ?? patient?.name ?? 'Myself',
-                        subtitle: selectedMember == null
-                            ? 'Self'
-                            : _formatRelationship(selectedMember.relationship),
-                        onTap: () async {
-                          final selected = await _showSelectionSheet<int>(
-                            title: 'Who is this booking for?',
-                            selectedValue: _selectedPatientId ?? 0,
-                            options: [
-                              _HomeCareSelectionOption<int>(
-                                value: 0,
-                                title: patient?.name ?? 'Myself',
-                                subtitle: 'Self',
-                                icon: Icons.person_outline_rounded,
-                              ),
-                              ...members.map(
-                                (member) => _HomeCareSelectionOption<int>(
-                                  value: member.patientId,
-                                  title: member.name,
-                                  subtitle: _formatRelationship(
-                                    member.relationship,
-                                  ),
-                                  icon: Icons.family_restroom_rounded,
-                                ),
-                              ),
-                            ],
-                          );
-                          if (selected != null && mounted) {
-                            setState(() {
-                              _selectedPatientId = selected == 0
-                                  ? null
-                                  : selected;
-                            });
-                          }
-                        },
-                      ),
-                      if (members.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Text(
-                            'Add family members from Profile to book care for them.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: _openFamilyMembers,
-                          icon: const Icon(Icons.group_add_rounded),
-                          label: const Text('Manage family members'),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 16),
                 _HomeCareSection(
@@ -476,6 +399,8 @@ class _HomeCareScreenState extends State<_HomeCareScreen> {
     }
   }
 
+  // Kept temporarily for compatibility with the legacy in-booking selector.
+  // ignore: unused_element
   Future<void> _openFamilyMembers() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const _FamilyMembersScreen()),

@@ -1,5 +1,17 @@
 import 'dart:convert';
 
+double? _doubleValue(dynamic value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value.trim());
+  return null;
+}
+
+int? _intValue(dynamic value) {
+  if (value is num) return value.toInt();
+  if (value is String) return double.tryParse(value.trim())?.toInt();
+  return null;
+}
+
 class PatientIdentity {
   const PatientIdentity({
     required this.id,
@@ -15,6 +27,8 @@ class PatientIdentity {
     this.bloodGroup,
     this.allergies,
     this.chronicConditions,
+    this.legalConsentAcceptedAt,
+    this.hasCompletedInitialHealthAssessment = true,
   });
 
   final int id;
@@ -30,6 +44,10 @@ class PatientIdentity {
   final String? bloodGroup;
   final String? allergies;
   final String? chronicConditions;
+  final String? legalConsentAcceptedAt;
+  final bool hasCompletedInitialHealthAssessment;
+  bool get hasAcceptedLegalConsent =>
+      (legalConsentAcceptedAt ?? '').trim().isNotEmpty;
 
   factory PatientIdentity.fromJson(Map<String, dynamic> json) {
     final firstName = json['first_name'] as String?;
@@ -63,6 +81,14 @@ class PatientIdentity {
       chronicConditions: _nullableText(
         json['chronicConditions'] ?? json['chronic_conditions'],
       ),
+      legalConsentAcceptedAt:
+          json['legalConsentAcceptedAt'] as String? ??
+          json['legal_consent_accepted_at'] as String?,
+      hasCompletedInitialHealthAssessment:
+          json['hasCompletedInitialHealthAssessment'] as bool? ??
+          json['has_completed_initial_health_assessment'] as bool? ??
+          (json['initialHealthAssessmentCompletedAt'] != null ||
+              json['initial_health_assessment_completed_at'] != null),
     );
   }
 
@@ -95,6 +121,9 @@ class PatientIdentity {
       'bloodGroup': bloodGroup,
       'allergies': allergies,
       'chronicConditions': chronicConditions,
+      'legalConsentAcceptedAt': legalConsentAcceptedAt,
+      'hasCompletedInitialHealthAssessment':
+          hasCompletedInitialHealthAssessment,
     }..removeWhere((key, value) => value == null);
   }
 
@@ -108,6 +137,8 @@ class PatientIdentity {
     String? bloodGroup,
     String? allergies,
     String? chronicConditions,
+    String? legalConsentAcceptedAt,
+    bool? hasCompletedInitialHealthAssessment,
   }) {
     return PatientIdentity(
       id: id,
@@ -123,6 +154,11 @@ class PatientIdentity {
       bloodGroup: bloodGroup ?? this.bloodGroup,
       allergies: allergies ?? this.allergies,
       chronicConditions: chronicConditions ?? this.chronicConditions,
+      legalConsentAcceptedAt:
+          legalConsentAcceptedAt ?? this.legalConsentAcceptedAt,
+      hasCompletedInitialHealthAssessment:
+          hasCompletedInitialHealthAssessment ??
+          this.hasCompletedInitialHealthAssessment,
     );
   }
 }
@@ -261,6 +297,109 @@ class BookingItem {
     if ((testName ?? '').trim().isNotEmpty) return false;
     if ((packageName ?? '').trim().isNotEmpty) return false;
     return true;
+  }
+
+  String effectiveStatus({DateTime? now}) {
+    final normalized = status.trim().toLowerCase();
+    if (normalized == 'no_show' || normalized == 'no-show') {
+      return 'missed';
+    }
+    if (_closedStatuses.contains(normalized)) {
+      return status;
+    }
+    return hasEnded(now: now) ? 'missed' : status;
+  }
+
+  bool hasEnded({DateTime? now}) {
+    final date = _parseBookingDate(bookingDate);
+    if (date == null) return false;
+
+    final current = now ?? DateTime.now();
+    final appointmentEnd = _appointmentEnd(date, timeslot);
+    if (appointmentEnd != null) {
+      return !current.isBefore(appointmentEnd);
+    }
+
+    final nextDay = DateTime(date.year, date.month, date.day + 1);
+    return !current.isBefore(nextDay);
+  }
+
+  static const _closedStatuses = {
+    'cancelled',
+    'canceled',
+    'completed',
+    'complete',
+    'checked_in',
+    'checked-in',
+    'done',
+    'expired',
+    'missed',
+  };
+
+  static DateTime? _parseBookingDate(String raw) {
+    final normalized = raw.trim();
+    if (normalized.isEmpty) return null;
+
+    final direct = DateTime.tryParse(normalized);
+    if (direct != null) {
+      return DateTime(direct.year, direct.month, direct.day);
+    }
+
+    final parts = normalized.split(RegExp(r'[-/]'));
+    if (parts.length != 3) return null;
+    final first = int.tryParse(parts[0]);
+    final second = int.tryParse(parts[1]);
+    final third = int.tryParse(parts[2]);
+    if (first == null || second == null || third == null) return null;
+
+    try {
+      return first > 999
+          ? DateTime(first, second, third)
+          : DateTime(third, second, first);
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  static DateTime? _appointmentEnd(DateTime date, String rawTimeslot) {
+    final matches = RegExp(
+      r'(\d{1,2}):(\d{2})(?:\s*([ap]m))?',
+      caseSensitive: false,
+    ).allMatches(rawTimeslot).toList(growable: false);
+    if (matches.isEmpty) return null;
+
+    int? minutesFromMidnight(RegExpMatch match) {
+      var hour = int.tryParse(match.group(1) ?? '');
+      final minute = int.tryParse(match.group(2) ?? '');
+      if (hour == null || minute == null || minute > 59) return null;
+
+      final meridiem = match.group(3)?.toLowerCase();
+      if (meridiem != null) {
+        if (hour < 1 || hour > 12) return null;
+        hour %= 12;
+        if (meridiem == 'pm') hour += 12;
+      } else if (hour > 23) {
+        return null;
+      }
+      return (hour * 60) + minute;
+    }
+
+    final startMinutes = minutesFromMidnight(matches.first);
+    final parsedEndMinutes = minutesFromMidnight(matches.last);
+    if (parsedEndMinutes == null) return null;
+
+    var endMinutes = parsedEndMinutes;
+    if (matches.length == 1) {
+      endMinutes += 15;
+    } else if (startMinutes != null && endMinutes <= startMinutes) {
+      endMinutes += const Duration(days: 1).inMinutes;
+    }
+
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).add(Duration(minutes: endMinutes));
   }
 
   factory BookingItem.fromJson(Map<String, dynamic> json) {
@@ -539,30 +678,27 @@ class VitalRecord {
 
   factory VitalRecord.fromJson(Map<String, dynamic> json) {
     return VitalRecord(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: _intValue(json['id']) ?? 0,
       recordedAt:
           json['recordedAt'] as String? ?? json['recorded_at'] as String? ?? '',
-      height: (json['height'] as num?)?.toDouble(),
-      weight: (json['weight'] as num?)?.toDouble(),
-      bmi: (json['bmi'] as num?)?.toDouble(),
+      height: _doubleValue(json['height']),
+      weight: _doubleValue(json['weight']),
+      bmi: _doubleValue(json['bmi']),
       bloodPressureSystolic:
-          (json['bloodPressureSystolic'] as num?)?.toInt() ??
-          (json['bp_systolic'] as num?)?.toInt(),
+          _intValue(json['bloodPressureSystolic']) ??
+          _intValue(json['bp_systolic']),
       bloodPressureDiastolic:
-          (json['bloodPressureDiastolic'] as num?)?.toInt() ??
-          (json['bp_diastolic'] as num?)?.toInt(),
-      heartRate:
-          (json['heartRate'] as num?)?.toInt() ??
-          (json['heart_rate'] as num?)?.toInt(),
+          _intValue(json['bloodPressureDiastolic']) ??
+          _intValue(json['bp_diastolic']),
+      heartRate: _intValue(json['heartRate']) ?? _intValue(json['heart_rate']),
       bodyTemperature:
-          (json['bodyTemperature'] as num?)?.toDouble() ??
-          (json['body_temperature'] as num?)?.toDouble(),
+          _doubleValue(json['bodyTemperature']) ??
+          _doubleValue(json['body_temperature']),
       oxygenSaturation:
-          (json['oxygenSaturation'] as num?)?.toInt() ??
-          (json['spo2'] as num?)?.toInt(),
+          _intValue(json['oxygenSaturation']) ?? _intValue(json['spo2']),
       respiratoryRate:
-          (json['respiratoryRate'] as num?)?.toInt() ??
-          (json['respiratory_rate'] as num?)?.toInt(),
+          _intValue(json['respiratoryRate']) ??
+          _intValue(json['respiratory_rate']),
       notes: json['notes'] as String?,
     );
   }
@@ -587,33 +723,30 @@ class VitalRecord {
       systolic = int.tryParse(bpRaw.trim());
     }
     systolic ??=
-        (json['bp_systolic'] as num?)?.toInt() ??
-        (json['bloodPressureSystolic'] as num?)?.toInt();
+        _intValue(json['bp_systolic']) ??
+        _intValue(json['bloodPressureSystolic']);
     diastolic ??=
-        (json['bp_diastolic'] as num?)?.toInt() ??
-        (json['bloodPressureDiastolic'] as num?)?.toInt();
+        _intValue(json['bp_diastolic']) ??
+        _intValue(json['bloodPressureDiastolic']);
 
     return VitalRecord(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: _intValue(json['id']) ?? 0,
       recordedAt:
           json['recorded_at'] as String? ?? json['recordedAt'] as String? ?? '',
-      height: (json['height'] as num?)?.toDouble(),
-      weight: (json['weight'] as num?)?.toDouble(),
-      bmi: (json['bmi'] as num?)?.toDouble(),
+      height: _doubleValue(json['height']),
+      weight: _doubleValue(json['weight']),
+      bmi: _doubleValue(json['bmi']),
       bloodPressureSystolic: systolic,
       bloodPressureDiastolic: diastolic,
-      heartRate:
-          (json['heart_rate'] as num?)?.toInt() ??
-          (json['heartRate'] as num?)?.toInt(),
+      heartRate: _intValue(json['heart_rate']) ?? _intValue(json['heartRate']),
       bodyTemperature:
-          (json['temperature'] as num?)?.toDouble() ??
-          (json['body_temperature'] as num?)?.toDouble(),
+          _doubleValue(json['temperature']) ??
+          _doubleValue(json['body_temperature']),
       oxygenSaturation:
-          (json['oxygen_saturation'] as num?)?.toInt() ??
-          (json['spo2'] as num?)?.toInt(),
+          _intValue(json['oxygen_saturation']) ?? _intValue(json['spo2']),
       respiratoryRate:
-          (json['respiratory_rate'] as num?)?.toInt() ??
-          (json['respiratoryRate'] as num?)?.toInt(),
+          _intValue(json['respiratory_rate']) ??
+          _intValue(json['respiratoryRate']),
       notes: json['notes'] as String?,
     );
   }
@@ -647,6 +780,147 @@ class MyClubTransaction {
       type: json['type'] as String? ?? 'earn',
       referenceType: json['referenceType'] as String?,
       referenceId: json['referenceId'] as String?,
+    );
+  }
+}
+
+class ReferralRelationship {
+  const ReferralRelationship({
+    required this.id,
+    required this.patientId,
+    required this.name,
+    required this.patientNumber,
+    required this.status,
+    this.attributedAt,
+    this.verifiedAt,
+    this.qualifiedAt,
+    this.rewardedAt,
+  });
+
+  final int id;
+  final int patientId;
+  final String name;
+  final String patientNumber;
+  final String status;
+  final String? attributedAt;
+  final String? verifiedAt;
+  final String? qualifiedAt;
+  final String? rewardedAt;
+
+  factory ReferralRelationship.fromJson(Map<String, dynamic> json) {
+    return ReferralRelationship(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      patientId: (json['patient_id'] as num?)?.toInt() ?? 0,
+      name: json['name']?.toString() ?? 'BHRC Patient',
+      patientNumber: json['patient_number']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'attributed',
+      attributedAt: json['attributed_at']?.toString(),
+      verifiedAt: json['verified_at']?.toString(),
+      qualifiedAt: json['qualified_at']?.toString(),
+      rewardedAt: json['rewarded_at']?.toString(),
+    );
+  }
+}
+
+class ReferralStats {
+  const ReferralStats({
+    this.invited = 0,
+    this.verified = 0,
+    this.rewarded = 0,
+    this.pointsEarned = 0,
+  });
+
+  final int invited;
+  final int verified;
+  final int rewarded;
+  final int pointsEarned;
+
+  factory ReferralStats.fromJson(Map<String, dynamic> json) {
+    return ReferralStats(
+      invited: (json['invited'] as num?)?.toInt() ?? 0,
+      verified: (json['verified'] as num?)?.toInt() ?? 0,
+      rewarded: (json['rewarded'] as num?)?.toInt() ?? 0,
+      pointsEarned: (json['points_earned'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class ReferralRewardTerms {
+  const ReferralRewardTerms({
+    this.referrerPoints = 0,
+    this.newPatientPoints = 0,
+    this.qualification = '',
+  });
+
+  final int referrerPoints;
+  final int newPatientPoints;
+  final String qualification;
+
+  factory ReferralRewardTerms.fromJson(Map<String, dynamic> json) {
+    return ReferralRewardTerms(
+      referrerPoints: (json['referrer_points'] as num?)?.toInt() ?? 0,
+      newPatientPoints: (json['new_patient_points'] as num?)?.toInt() ?? 0,
+      qualification: json['qualification']?.toString() ?? '',
+    );
+  }
+}
+
+class ReferralSummary {
+  const ReferralSummary({
+    this.code = '',
+    this.shareUrl = '',
+    this.invitedBy,
+    this.invitedUsers = const [],
+    this.stats = const ReferralStats(),
+    this.rewardTerms = const ReferralRewardTerms(),
+  });
+
+  final String code;
+  final String shareUrl;
+  final ReferralRelationship? invitedBy;
+  final List<ReferralRelationship> invitedUsers;
+  final ReferralStats stats;
+  final ReferralRewardTerms rewardTerms;
+
+  factory ReferralSummary.fromJson(Map<String, dynamic> json) {
+    final invitedBy = json['invited_by'];
+    final invitedUsers = json['invited_users'] as List<dynamic>? ?? const [];
+    return ReferralSummary(
+      code: json['code']?.toString() ?? '',
+      shareUrl: json['share_url']?.toString() ?? '',
+      invitedBy: invitedBy is Map
+          ? ReferralRelationship.fromJson(Map<String, dynamic>.from(invitedBy))
+          : null,
+      invitedUsers: invitedUsers
+          .whereType<Map>()
+          .map(
+            (item) =>
+                ReferralRelationship.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(),
+      stats: ReferralStats.fromJson(_map(json['stats'])),
+      rewardTerms: ReferralRewardTerms.fromJson(_map(json['reward_terms'])),
+    );
+  }
+}
+
+class ReferralCodeResolution {
+  const ReferralCodeResolution({
+    required this.code,
+    required this.inviterName,
+    required this.inviterPatientNumber,
+  });
+
+  final String code;
+  final String inviterName;
+  final String inviterPatientNumber;
+
+  factory ReferralCodeResolution.fromJson(Map<String, dynamic> json) {
+    final inviter = _map(json['inviter']);
+    return ReferralCodeResolution(
+      code: json['code']?.toString() ?? '',
+      inviterName: inviter['name']?.toString() ?? 'BHRC Patient',
+      inviterPatientNumber: inviter['patient_number']?.toString() ?? '',
     );
   }
 }
@@ -702,6 +976,7 @@ class MyClubSummary {
     this.leaderboard = const [],
     this.currentLeaderboardEntry,
     this.leaderboardPrivacyNote = '',
+    this.referrals = const ReferralSummary(),
   });
 
   final int patientId;
@@ -724,6 +999,7 @@ class MyClubSummary {
   final List<MyClubLeaderboardEntry> leaderboard;
   final MyClubLeaderboardEntry? currentLeaderboardEntry;
   final String leaderboardPrivacyNote;
+  final ReferralSummary referrals;
 
   factory MyClubSummary.fromJson(Map<String, dynamic> json) {
     final membership = _map(json['membership']);
@@ -794,6 +1070,7 @@ class MyClubSummary {
             )
           : null,
       leaderboardPrivacyNote: gamification['privacy_note']?.toString() ?? '',
+      referrals: ReferralSummary.fromJson(_map(json['referrals'])),
     );
   }
 }
@@ -1079,6 +1356,46 @@ class DoctorSchedule {
       sessionName: json['session_name'] as String? ?? '',
       startTime: json['start_time'] as String? ?? '',
       endTime: json['end_time'] as String? ?? '',
+    );
+  }
+}
+
+class DoctorSlotAvailability {
+  const DoctorSlotAvailability({
+    required this.slot,
+    required this.bookedCount,
+    required this.capacity,
+    required this.remainingCapacity,
+    required this.isAvailable,
+  });
+
+  final String slot;
+  final int bookedCount;
+  final int capacity;
+  final int remainingCapacity;
+  final bool isAvailable;
+
+  factory DoctorSlotAvailability.fromJson(Map<String, dynamic> json) {
+    final capacity = (json['capacity'] as num?)?.toInt() ?? 2;
+    final bookedCount = (json['bookedCount'] as num?)?.toInt() ?? 0;
+    return DoctorSlotAvailability(
+      slot: json['slot'] as String? ?? '',
+      bookedCount: bookedCount,
+      capacity: capacity,
+      remainingCapacity:
+          (json['remainingCapacity'] as num?)?.toInt() ??
+          (capacity - bookedCount).clamp(0, capacity),
+      isAvailable: json['isAvailable'] as bool? ?? bookedCount < capacity,
+    );
+  }
+
+  factory DoctorSlotAvailability.available(String slot, {int capacity = 2}) {
+    return DoctorSlotAvailability(
+      slot: slot,
+      bookedCount: 0,
+      capacity: capacity,
+      remainingCapacity: capacity,
+      isAvailable: true,
     );
   }
 }
@@ -1991,10 +2308,12 @@ class HealthSnapshot {
     this.healthScore,
     this.riskScore,
     this.bloodSugar,
+    this.bloodSugarContext,
     this.cholesterol,
     this.otherConditions,
     this.aiSummary,
     this.generatedAt,
+    this.updatedByName,
     this.latestVitals,
     this.latestResults,
   });
@@ -2007,10 +2326,12 @@ class HealthSnapshot {
   final double? riskScore;
   // Manual-entry only fields (mg/dL).
   final double? bloodSugar;
+  final String? bloodSugarContext;
   final double? cholesterol;
   final String? otherConditions;
   final String? aiSummary;
   final String? generatedAt;
+  final String? updatedByName;
   final VitalRecord? latestVitals;
 
   /// Reserved for lab results; currently always `null` per the API contract.
@@ -2020,21 +2341,25 @@ class HealthSnapshot {
   factory HealthSnapshot.fromJson(Map<String, dynamic> json) {
     final snapshot = _map(json['snapshot'] ?? json['data'] ?? json);
     final vitalsRaw = snapshot['latest_vitals'] ?? snapshot['latestVitals'];
+    final updatedBy = _map(snapshot['updated_by'] ?? snapshot['updatedBy']);
     return HealthSnapshot(
       snapshotDate:
           snapshot['snapshot_date'] as String? ??
           snapshot['snapshotDate'] as String?,
-      bmi: (snapshot['bmi'] as num?)?.toDouble(),
+      bmi: _doubleValue(snapshot['bmi']),
       healthScore:
-          (snapshot['health_score'] as num?)?.toDouble() ??
-          (snapshot['healthScore'] as num?)?.toDouble(),
+          _doubleValue(snapshot['health_score']) ??
+          _doubleValue(snapshot['healthScore']),
       riskScore:
-          (snapshot['risk_score'] as num?)?.toDouble() ??
-          (snapshot['riskScore'] as num?)?.toDouble(),
+          _doubleValue(snapshot['risk_score']) ??
+          _doubleValue(snapshot['riskScore']),
       bloodSugar:
-          (snapshot['blood_sugar'] as num?)?.toDouble() ??
-          (snapshot['bloodSugar'] as num?)?.toDouble(),
-      cholesterol: (snapshot['cholesterol'] as num?)?.toDouble(),
+          _doubleValue(snapshot['blood_sugar']) ??
+          _doubleValue(snapshot['bloodSugar']),
+      bloodSugarContext:
+          snapshot['blood_sugar_context'] as String? ??
+          snapshot['bloodSugarContext'] as String?,
+      cholesterol: _doubleValue(snapshot['cholesterol']),
       otherConditions:
           snapshot['other_conditions'] as String? ??
           snapshot['otherConditions'] as String?,
@@ -2043,6 +2368,7 @@ class HealthSnapshot {
       generatedAt:
           snapshot['generated_at'] as String? ??
           snapshot['generatedAt'] as String?,
+      updatedByName: updatedBy['name'] as String?,
       latestVitals: vitalsRaw is Map
           ? VitalRecord.fromSnapshotJson(_map(vitalsRaw))
           : null,
@@ -2053,6 +2379,7 @@ class HealthSnapshot {
   /// True when the snapshot carries no meaningful data yet (e.g. a brand new
   /// patient with no clinical vitals and no manual entries).
   bool get isEmpty =>
+      (snapshotDate ?? '').trim().isEmpty &&
       healthScore == null &&
       riskScore == null &&
       bmi == null &&
@@ -2060,6 +2387,17 @@ class HealthSnapshot {
       cholesterol == null &&
       (otherConditions ?? '').trim().isEmpty &&
       (aiSummary ?? '').trim().isEmpty;
+
+  bool get hasClinicalData =>
+      healthScore != null ||
+      riskScore != null ||
+      bmi != null ||
+      bloodSugar != null ||
+      cholesterol != null ||
+      latestVitals != null ||
+      latestResults != null ||
+      (otherConditions ?? '').trim().isNotEmpty ||
+      (aiSummary ?? '').trim().isNotEmpty;
 }
 
 /// One page of `GET /patients/me/health-snapshot/history` results.

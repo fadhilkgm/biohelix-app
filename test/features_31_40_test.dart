@@ -73,7 +73,9 @@ void main() {
     expect(find.text('Cancel'), findsWidgets);
   });
 
-  testWidgets('36. cancelling appointment triggers repository call', (tester) async {
+  testWidgets('36. cancelling appointment triggers repository call', (
+    tester,
+  ) async {
     final repo = _FakePortalRepository();
     await tester.pumpWidget(await _buildHarness(repository: repo));
     await tester.pumpAndSettle();
@@ -139,23 +141,32 @@ void main() {
 }
 
 void _mockVoiceChannels() {
-  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  messenger.setMockMethodCallHandler(const MethodChannel('flutter_tts'), (call) async => null);
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('flutter_tts'),
+    (call) async => null,
+  );
   messenger.setMockMethodCallHandler(
     const MethodChannel('speech_to_text_windows'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      if (call.method == 'initialize' || call.method == 'hasPermission')
+        return true;
       return null;
     },
   );
   messenger.setMockMethodCallHandler(
     const MethodChannel('plugin.csdcorp.com/speech_to_text'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      if (call.method == 'initialize' || call.method == 'hasPermission')
+        return true;
       return null;
     },
   );
-  messenger.setMockMethodCallHandler(const MethodChannel('com.ryanheise.audio_session'), (call) async => null);
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('com.ryanheise.audio_session'),
+    (call) async => null,
+  );
 }
 
 Future<Widget> _buildHarness({_FakePortalRepository? repository}) async {
@@ -167,7 +178,10 @@ Future<Widget> _buildHarness({_FakePortalRepository? repository}) async {
   );
   await session.sendOtp(phone: '9998887777');
   await session.verifyOtp(otp: '123456');
-  final portal = PatientPortalProvider(repository: repo, sessionProvider: session);
+  final portal = PatientPortalProvider(
+    repository: repo,
+    sessionProvider: session,
+  );
   await portal.loadPortal();
   return MultiProvider(
     providers: [
@@ -175,7 +189,9 @@ Future<Widget> _buildHarness({_FakePortalRepository? repository}) async {
       ChangeNotifierProvider<SessionProvider>.value(value: session),
       ChangeNotifierProvider<PatientPortalProvider>.value(value: portal),
       ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
-      ChangeNotifierProvider<LanguageProvider>(create: (_) => LanguageProvider()),
+      ChangeNotifierProvider<LanguageProvider>(
+        create: (_) => LanguageProvider(),
+      ),
     ],
     child: const MaterialApp(home: PatientAppShell()),
   );
@@ -189,13 +205,20 @@ AppConfig _testConfig() => AppConfig(
 );
 
 class _FakePortalRepository extends PatientRepository {
-  _FakePortalRepository() : apiClient = superApiClient, super(apiClient: superApiClient);
+  _FakePortalRepository()
+    : apiClient = superApiClient,
+      super(apiClient: superApiClient);
   static final superApiClient = ApiClient(config: _testConfig());
   final ApiClient apiClient;
   int cancelBookingCalls = 0;
 
   static const _patient = PatientIdentity(
-    id: 108, name: 'Amina Patient', phone: '9998887777', registrationNumber: 'BHRC-108', uuid: 'patient-108');
+    id: 108,
+    name: 'Amina Patient',
+    phone: '9998887777',
+    registrationNumber: 'BHRC-108',
+    uuid: 'patient-108',
+  );
 
   static String _getFutureDateString(int daysAhead) {
     final futureDate = DateTime.now().add(Duration(days: daysAhead));
@@ -207,8 +230,14 @@ class _FakePortalRepository extends PatientRepository {
 
   static List<BookingItem> get _bookings => [
     BookingItem(
-      id: 1, bookingDate: _getFutureDateString(2), timeslot: '10:30 AM', status: 'confirmed',
-      doctorId: 7, doctorName: 'Dr Sana Rahman', doctorSpecialization: 'Cardiology')
+      id: 1,
+      bookingDate: _getFutureDateString(2),
+      timeslot: '10:30 AM',
+      status: 'confirmed',
+      doctorId: 7,
+      doctorName: 'Dr Sana Rahman',
+      doctorSpecialization: 'Cardiology',
+    ),
   ];
 
   @override
@@ -224,23 +253,50 @@ class _FakePortalRepository extends PatientRepository {
 
   @override
   Future<OtpSendResult> sendOtp({required String phone, String? mrn}) async {
-    return const OtpSendResult(devOtp: '123456', message: 'OTP sent to your WhatsApp');
+    return const OtpSendResult(
+      devOtp: '123456',
+      message: 'OTP sent to your WhatsApp',
+    );
   }
+
   @override
-  Future<OtpSession> verifyOtp({required String phone, required String otp}) async =>
-      const OtpSession(token: 'portal-token', patient: _patient);
+  Future<OtpSession> verifyOtp({
+    required String phone,
+    required String otp,
+  }) async => const OtpSession(token: 'portal-token', patient: _patient);
   @override
   Future<PatientIdentity> getCurrentPatient() async => _patient;
   @override
   Future<PatientDashboard> getDashboard() async => PatientDashboard(
     patient: _patient,
-    metrics: const PortalMetrics(totalRecords: 3, availableRecords: 3, processingRecords: 0, showingRecords: 3, upcomingBookings: 1),
-    recentBookings: _bookings, recentPrescriptions: const [], recentDocuments: const [], recentSummaries: const [],
-    idCard: const IdCardInfo(registrationNumber: 'BHRC-108', patientName: 'Amina Patient', membershipTier: 'Classic', qrValue: 'patient-108'),
-    myClub: const MyClubSummary(patientId: 108, points: 240, currencyValue: 24, tier: 'Classic', transactions: []),
-    emergencyContacts: const []);
+    metrics: const PortalMetrics(
+      totalRecords: 3,
+      availableRecords: 3,
+      processingRecords: 0,
+      showingRecords: 3,
+      upcomingBookings: 1,
+    ),
+    recentBookings: _bookings,
+    recentPrescriptions: const [],
+    recentDocuments: const [],
+    recentSummaries: const [],
+    idCard: const IdCardInfo(
+      registrationNumber: 'BHRC-108',
+      patientName: 'Amina Patient',
+      membershipTier: 'Classic',
+      qrValue: 'patient-108',
+    ),
+    myClub: const MyClubSummary(
+      patientId: 108,
+      points: 240,
+      currencyValue: 24,
+      tier: 'Classic',
+      transactions: [],
+    ),
+    emergencyContacts: const [],
+  );
   @override
-  Future<List<BookingItem>> getBookings() async => _bookings;
+  Future<List<BookingItem>> getBookings({int? patientId}) async => _bookings;
   @override
   Future<List<LabOrderItem>> getLabOrders() async => [
     LabOrderItem(
@@ -252,7 +308,7 @@ class _FakePortalRepository extends PatientRepository {
       doctorId: 7,
       doctorName: 'Dr Sana Rahman',
       slot: '09:00 - 10:00 AM',
-    )
+    ),
   ];
   @override
   Future<List<LabPackageOrderItem>> getLabPackageOrders() async => [
@@ -265,18 +321,32 @@ class _FakePortalRepository extends PatientRepository {
       doctorId: 7,
       doctorName: 'Dr Sana Rahman',
       slot: '10:00 - 11:00 AM',
-    )
+    ),
   ];
   @override
   Future<List<DoctorListing>> getDoctors() async => const [
-    DoctorListing(id: 7, name: 'Dr Sana Rahman', specialization: 'Cardiology', departmentName: 'Cardiology', availableTime: '10:00 AM - 2:00 PM', consultationFee: 500, imageUrl: '')
+    DoctorListing(
+      id: 7,
+      name: 'Dr Sana Rahman',
+      specialization: 'Cardiology',
+      departmentName: 'Cardiology',
+      availableTime: '10:00 AM - 2:00 PM',
+      consultationFee: 500,
+      imageUrl: '',
+    ),
   ];
   @override
-  Future<List<DepartmentItem>> getDepartments() async => const [DepartmentItem(id: 1, name: 'Cardiology')];
+  Future<List<DepartmentItem>> getDepartments() async => const [
+    DepartmentItem(id: 1, name: 'Cardiology'),
+  ];
   @override
-  Future<List<HomeBannerItem>> getHomeBanners() async => const [HomeBannerItem(id: 1, title: 'Monsoon', imageUrl: '')];
+  Future<List<HomeBannerItem>> getHomeBanners() async => const [
+    HomeBannerItem(id: 1, title: 'Monsoon', imageUrl: ''),
+  ];
   @override
-  Future<List<TickerMessageItem>> getTickerMessages() async => const [TickerMessageItem(id: 1, message: 'Free camp on Friday')];
+  Future<List<TickerMessageItem>> getTickerMessages() async => const [
+    TickerMessageItem(id: 1, message: 'Free camp on Friday'),
+  ];
   @override
   Future<List<HomeOfferItem>> getHomeOffers() async => const [];
   @override
@@ -297,7 +367,12 @@ class _FakePortalRepository extends PatientRepository {
   Future<List<ChatThreadSummary>> getGlobalChatThreads() async => const [];
   @override
   Future<ChatThreadSummary> createGlobalChatThread({String? title}) async =>
-      const ChatThreadSummary(id: 'thread-1', title: 'New chat', messageCount: 0);
+      const ChatThreadSummary(
+        id: 'thread-1',
+        title: 'New chat',
+        messageCount: 0,
+      );
   @override
-  Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async => const [];
+  Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async =>
+      const [];
 }

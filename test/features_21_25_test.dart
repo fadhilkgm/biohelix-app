@@ -42,7 +42,9 @@ void main() {
     expect(find.text('Complete Blood Count'), findsWidgets);
   });
 
-  testWidgets('23. home language toggle is visible on hero header', (tester) async {
+  testWidgets('23. home language toggle is visible on hero header', (
+    tester,
+  ) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness);
     await tester.pumpAndSettle();
@@ -75,23 +77,32 @@ void main() {
 }
 
 void _mockVoiceChannels() {
-  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  messenger.setMockMethodCallHandler(const MethodChannel('flutter_tts'), (call) async => null);
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('flutter_tts'),
+    (call) async => null,
+  );
   messenger.setMockMethodCallHandler(
     const MethodChannel('speech_to_text_windows'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      if (call.method == 'initialize' || call.method == 'hasPermission')
+        return true;
       return null;
     },
   );
   messenger.setMockMethodCallHandler(
     const MethodChannel('plugin.csdcorp.com/speech_to_text'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission') return true;
+      if (call.method == 'initialize' || call.method == 'hasPermission')
+        return true;
       return null;
     },
   );
-  messenger.setMockMethodCallHandler(const MethodChannel('com.ryanheise.audio_session'), (call) async => null);
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('com.ryanheise.audio_session'),
+    (call) async => null,
+  );
 }
 
 Future<Widget> _buildHarness() async {
@@ -117,7 +128,9 @@ Future<Widget> _buildHarness() async {
       ChangeNotifierProvider<SessionProvider>.value(value: session),
       ChangeNotifierProvider<PatientPortalProvider>.value(value: portal),
       ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
-      ChangeNotifierProvider<LanguageProvider>(create: (_) => LanguageProvider()),
+      ChangeNotifierProvider<LanguageProvider>(
+        create: (_) => LanguageProvider(),
+      ),
     ],
     child: const MaterialApp(home: PatientAppShell()),
   );
@@ -224,17 +237,21 @@ class _FakePortalRepository extends PatientRepository {
     ),
   ];
 
-  static const _departments = [
-    DepartmentItem(id: 1, name: 'Cardiology'),
-  ];
+  static const _departments = [DepartmentItem(id: 1, name: 'Cardiology')];
 
   @override
   Future<OtpSendResult> sendOtp({required String phone, String? mrn}) async {
-    return const OtpSendResult(devOtp: '123456', message: 'OTP sent to your WhatsApp');
+    return const OtpSendResult(
+      devOtp: '123456',
+      message: 'OTP sent to your WhatsApp',
+    );
   }
 
   @override
-  Future<OtpSession> verifyOtp({required String phone, required String otp}) async {
+  Future<OtpSession> verifyOtp({
+    required String phone,
+    required String otp,
+  }) async {
     return const OtpSession(token: 'portal-token', patient: _patient);
   }
 
@@ -283,7 +300,7 @@ class _FakePortalRepository extends PatientRepository {
   Future<List<HomeOfferItem>> getHomeOffers() async => _offers;
 
   @override
-  Future<List<BookingItem>> getBookings() async => _bookings;
+  Future<List<BookingItem>> getBookings({int? patientId}) async => _bookings;
 
   @override
   Future<List<PrescriptionRecord>> getPrescriptions() async => const [];
@@ -331,5 +348,6 @@ class _FakePortalRepository extends PatientRepository {
   }
 
   @override
-  Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async => const [];
+  Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async =>
+      const [];
 }

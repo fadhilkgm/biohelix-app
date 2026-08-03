@@ -76,40 +76,37 @@ class HomeHeroHeaderWidget extends StatelessWidget {
                       label: 'Switch patient',
                       child: Tooltip(
                         message: 'Switch patient',
-                        child: InkWell(
+                        child: Material(
                           key: const ValueKey('home-switch-patient-button'),
-                          onTap: onSwitchPatient,
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.4),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          child: InkWell(
+                            onTap: onSwitchPatient,
+                            borderRadius: BorderRadius.circular(14),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 11,
+                                vertical: 8,
                               ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.switch_account_rounded,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                                SizedBox(width: 5),
-                                Text(
-                                  'Switch',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.swap_horiz_rounded,
+                                    color: Color(0xFF06489B),
+                                    size: 19,
                                   ),
-                                ),
-                              ],
+                                  SizedBox(width: 5),
+                                  Text(
+                                    'Switch',
+                                    style: TextStyle(
+                                      color: Color(0xFF06489B),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

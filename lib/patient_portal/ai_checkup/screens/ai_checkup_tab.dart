@@ -1,645 +1,971 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
-import '../../../core/l10n/app_strings.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../../core/widgets/app_chevron_back_button.dart';
-import '../../core/models/patient_models.dart';
 import '../../../features/session/providers/session_provider.dart';
-import '../../lab_booking/screens/package_booking_screen.dart';
-import '../services/ai_checkup_service.dart';
+import '../../assistant/voice/inworld_signaling_api.dart';
+import '../../assistant/voice/live_voice_controller.dart';
+import '../../assistant/voice/live_voice_state.dart';
 import '../../shell/patient_app_shell.dart';
+import '../services/ai_checkup_service.dart';
 
 typedef AiCheckupServiceFactory =
     AiCheckupService Function(BuildContext context);
 
-AiCheckupService _defaultAiCheckupServiceFactory(BuildContext context) {
-  final config = context.read<AppConfig>();
-  final session = context.read<SessionProvider>();
+typedef AiCheckupVoiceControllerFactory =
+    LiveVoiceController Function({
+      required InworldSignalingApi signalingApi,
+      required RealtimeTurnCompleted onTurnCompleted,
+      required RealtimeTurnContext onTurnContext,
+    });
+
+AiCheckupService _defaultServiceFactory(BuildContext context) {
   return AiCheckupService(
-    apiBaseUrl: config.apiBaseUrl,
-    authToken: session.authToken ?? '',
+    apiBaseUrl: context.read<AppConfig>().apiBaseUrl,
+    authToken: context.read<SessionProvider>().authToken ?? '',
   );
 }
 
-const _kInk = Color(0xFF192233);
-const _kAccent = Color(0xFF06489B);
-const _kBg = Color(0xFFF8F9FB);
-
-int _parsePrice(String? raw) {
-  if (raw == null) return 0;
-  return double.tryParse(raw)?.round() ?? int.tryParse(raw) ?? 0;
+LiveVoiceController _defaultVoiceControllerFactory({
+  required InworldSignalingApi signalingApi,
+  required RealtimeTurnCompleted onTurnCompleted,
+  required RealtimeTurnContext onTurnContext,
+}) {
+  return LiveVoiceController(
+    signalingApi: signalingApi,
+    onTurnCompleted: onTurnCompleted,
+    onTurnContext: onTurnContext,
+  );
 }
 
-/// AI Health Checkup, backed by the documented `/health-assessment` flow:
-/// start a session -> answer the generated multiple-choice questions ->
-/// submit for evaluation -> view risk level, insights and recommendations.
+enum _CheckupView { connecting, conversation, result, history, error }
+
+class _ConversationMessage {
+  const _ConversationMessage({required this.patient, required this.text});
+
+  final bool patient;
+  final String text;
+}
+
+/// Phase-one AI Checkup: a repeatable, voice-first clinical intake that
+/// produces a safe disposition but never creates a lab or doctor booking.
 class AiCheckupTab extends StatefulWidget {
-  const AiCheckupTab({super.key, this.serviceFactory});
+  const AiCheckupTab({
+    super.key,
+    this.serviceFactory,
+    this.voiceControllerFactory,
+  });
 
   final AiCheckupServiceFactory? serviceFactory;
+  final AiCheckupVoiceControllerFactory? voiceControllerFactory;
 
   @override
   State<AiCheckupTab> createState() => _AiCheckupTabState();
 }
 
 class _AiCheckupTabState extends State<AiCheckupTab> {
-  String _step = 'welcome';
-  String _language = 'en';
+  late final LiveVoiceController _voice;
+  final _textController = TextEditingController();
+  final _scrollController = ScrollController();
+  final List<_ConversationMessage> _messages = [];
 
-  AssessmentSession? _session;
-  int _currentIndex = 0;
-  final Map<String, String> _answers = {};
-  AssessmentResults? _results;
+  _CheckupView _view = _CheckupView.connecting;
+  VoiceAssessmentSession? _session;
+  VoiceAssessmentTurnDecision? _pendingDecision;
+  AssessmentResults? _result;
   String? _error;
+  bool _textFallback = false;
+  bool _sendingText = false;
+  bool _ending = false;
+  Timer? _sessionTimer;
 
   AiCheckupService get _service =>
-      (widget.serviceFactory ?? _defaultAiCheckupServiceFactory)(context);
+      (widget.serviceFactory ?? _defaultServiceFactory)(context);
+
+  bool get _isMalayalam =>
+      context.read<LanguageProvider>().language == AppLanguage.ml;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_step == 'welcome' && _session == null) {
-      _language = context.read<LanguageProvider>().language == AppLanguage.ml
-          ? 'ml'
-          : 'en';
+  void initState() {
+    super.initState();
+    final signalingApi = InworldSignalingApi(context.read<ApiClient>());
+    _voice = (widget.voiceControllerFactory ?? _defaultVoiceControllerFactory)(
+      signalingApi: signalingApi,
+      onTurnCompleted: _onVoiceTurnCompleted,
+      onTurnContext: _onVoiceTurnContext,
+    );
+    _voice.addListener(_onVoiceStateChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_startAssessment());
+    });
+  }
+
+  @override
+  void dispose() {
+    _sessionTimer?.cancel();
+    _voice.removeListener(_onVoiceStateChanged);
+    _voice.dispose();
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _startAssessment() async {
+    _sessionTimer?.cancel();
+    if (_voice.state.isActive) {
+      await _voice.stop(reason: 'new_assessment');
     }
-  }
-
-  void _reset() {
+    if (!mounted) return;
     setState(() {
-      _step = 'welcome';
-      _language = context.read<LanguageProvider>().language == AppLanguage.ml
-          ? 'ml'
-          : 'en';
+      _view = _CheckupView.connecting;
       _session = null;
-      _currentIndex = 0;
-      _answers.clear();
-      _results = null;
+      _pendingDecision = null;
+      _result = null;
+      _messages.clear();
       _error = null;
+      _textFallback = false;
+      _ending = false;
     });
-  }
 
-  Future<void> _start() async {
-    setState(() {
-      _step = 'starting';
-      _error = null;
-    });
     try {
-      final session = await _service.startAssessment(language: _language);
+      final session = await _service.startVoiceAssessment(
+        language: _isMalayalam ? 'ml' : 'en',
+      );
       if (!mounted) return;
-      if (session.questions.isEmpty) {
-        setState(() {
-          _step = 'welcome';
-          _error = 'No questions are available right now. Please try again.';
-        });
-        return;
-      }
       setState(() {
         _session = session;
-        _currentIndex = 0;
-        _answers.clear();
-        _step = 'questions';
+        _view = _CheckupView.conversation;
+        _messages.add(
+          _ConversationMessage(
+            patient: false,
+            text: session.initialInstructions,
+          ),
+        );
       });
+      _sessionTimer = Timer(Duration(seconds: session.maxSeconds), () {
+        if (mounted) unawaited(_finishForTimeLimit());
+      });
+      await _voice.start(
+        locale: _isMalayalam ? 'ml-IN' : 'en-IN',
+        conversationId: session.sessionToken,
+        initialResponseInstructions:
+            'Speak exactly the following text naturally, without adding '
+            'anything: ${session.initialInstructions}',
+        enableUsageTracking: false,
+      );
+      if (!mounted) return;
+      if (_voice.state.phase == LiveVoicePhase.error) {
+        setState(() {
+          _textFallback = true;
+          _error = _voice.state.errorMessage;
+        });
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _step = 'welcome';
-        _error = error.toString();
+        _view = _CheckupView.error;
+        _error = _friendlyError(error);
       });
     }
   }
 
-  void _answer(AssessmentQuestion question, String optionKey) {
-    _answers[question.id.toString()] = optionKey;
-    final isLast = _currentIndex >= (_session!.questions.length - 1);
-    if (isLast) {
-      _submit();
+  Future<String> _onVoiceTurnContext(String transcript) async {
+    final session = _session;
+    if (session == null) {
+      throw StateError('The voice assessment session is unavailable.');
+    }
+    _appendMessage(patient: true, text: transcript);
+    final decision = await _service.submitVoiceTurn(
+      sessionToken: session.sessionToken,
+      transcript: transcript,
+    );
+    if (mounted) {
+      setState(() {
+        _pendingDecision = decision;
+        _result = decision.result ?? _result;
+      });
+    }
+    return decision.responseInstructions;
+  }
+
+  Future<void> _onVoiceTurnCompleted(String transcript, String response) async {
+    final session = _session;
+    if (session == null || !mounted) return;
+    _appendMessage(patient: false, text: response);
+    try {
+      await _service.recordVoiceResponse(
+        sessionToken: session.sessionToken,
+        transcript: transcript,
+        response: response,
+      );
+    } catch (_) {
+      // The assessment decision is already saved. A transcript persistence
+      // retry must not keep the microphone open or lose the completed result.
+    }
+    final decision = _pendingDecision;
+    if (decision?.completed == true) {
+      await _showCompletedResult(decision!.result);
+    }
+  }
+
+  void _onVoiceStateChanged() {
+    if (!mounted) return;
+    final state = _voice.state;
+    if (state.phase == LiveVoicePhase.error) {
+      setState(() {
+        _textFallback = true;
+        _error = state.errorMessage;
+      });
     } else {
-      setState(() => _currentIndex++);
+      setState(() {});
     }
   }
 
-  void _back() {
-    if (_currentIndex > 0) {
-      setState(() => _currentIndex--);
-    }
-  }
-
-  void _openHistory() {
+  Future<void> _sendText() async {
+    final text = _textController.text.trim();
+    final session = _session;
+    if (text.isEmpty || session == null || _sendingText) return;
+    _textController.clear();
+    _appendMessage(patient: true, text: text);
     setState(() {
-      _step = 'history';
-      _error = null;
-    });
-  }
-
-  Future<void> _openHistoryItem(AssessmentHistoryItem item) async {
-    setState(() {
-      _language = item.language;
-      _step = 'analyzing';
+      _sendingText = true;
       _error = null;
     });
     try {
-      final results = await _service.getResults(item.sessionToken);
-      if (!mounted) return;
-      setState(() {
-        _results = results;
-        _step = 'results';
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _step = 'history');
-      final strings = AppStrings.of(context.read<LanguageProvider>().language);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.couldNotLoadResult(error.toString()))),
+      final decision = await _service.submitVoiceTurn(
+        sessionToken: session.sessionToken,
+        transcript: text,
       );
+      if (!mounted) return;
+      _appendMessage(patient: false, text: decision.spokenResponse);
+      await _service.recordVoiceResponse(
+        sessionToken: session.sessionToken,
+        transcript: text,
+        response: decision.spokenResponse,
+      );
+      if (decision.completed) {
+        await _showCompletedResult(decision.result);
+      }
+    } catch (error) {
+      if (mounted) setState(() => _error = _friendlyError(error));
+    } finally {
+      if (mounted) setState(() => _sendingText = false);
     }
   }
 
-  Future<void> _submit() async {
-    setState(() => _step = 'analyzing');
-    try {
-      final results = await _service.submitAnswers(
-        sessionToken: _session!.sessionToken,
-        answers: _answers,
-      );
-      if (!mounted) return;
-      setState(() {
-        _results = results;
-        _step = 'results';
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _step = 'questions');
-      final strings = AppStrings.of(context.read<LanguageProvider>().language);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.analysisFailed(error.toString()))),
-      );
+  Future<void> _showCompletedResult(AssessmentResults? result) async {
+    if (_ending) return;
+    _ending = true;
+    _sessionTimer?.cancel();
+    await _voice.stop(reason: 'assessment_completed');
+    if (!mounted) return;
+    setState(() {
+      _result = result ?? _result;
+      _view = _CheckupView.result;
+      _ending = false;
+    });
+  }
+
+  Future<void> _finishForTimeLimit() async {
+    if (_ending || _view != _CheckupView.conversation) return;
+    _ending = true;
+    await _voice.stop(reason: 'time_limit');
+    final session = _session;
+    if (session != null) {
+      try {
+        await _service.cancelVoiceAssessment(session.sessionToken);
+      } catch (_) {}
     }
+    if (!mounted) return;
+    setState(() {
+      _view = _CheckupView.error;
+      _error = _isMalayalam
+          ? 'അഞ്ച് മിനിറ്റ് സമയപരിധി കഴിഞ്ഞു. പുതിയ പരിശോധന ആരംഭിക്കാം.'
+          : 'The five-minute limit was reached. You can start a new checkup.';
+      _ending = false;
+    });
+  }
+
+  Future<void> _endAssessment() async {
+    if (_ending) return;
+    _ending = true;
+    _sessionTimer?.cancel();
+    await _voice.stop(reason: 'patient_ended');
+    final session = _session;
+    if (session != null) {
+      try {
+        await _service.cancelVoiceAssessment(session.sessionToken);
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    setState(() {
+      _view = _CheckupView.error;
+      _error = _isMalayalam
+          ? 'പരിശോധന അവസാനിപ്പിച്ചു.'
+          : 'The checkup was ended.';
+      _ending = false;
+    });
+  }
+
+  void _appendMessage({required bool patient, required String text}) {
+    if (!mounted || text.trim().isEmpty) return;
+    setState(() {
+      _messages.add(_ConversationMessage(patient: patient, text: text.trim()));
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  Future<void> _openHistory() async {
+    if (_voice.state.isActive) {
+      await _endAssessment();
+    }
+    if (mounted) setState(() => _view = _CheckupView.history);
+  }
+
+  Future<void> _openHistoryResult(AssessmentHistoryItem item) async {
+    setState(() {
+      _view = _CheckupView.connecting;
+      _error = null;
+    });
+    try {
+      final result = await _service.getResults(item.sessionToken);
+      if (mounted) {
+        setState(() {
+          _result = result;
+          _view = _CheckupView.result;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _view = _CheckupView.history;
+          _error = _friendlyError(error);
+        });
+      }
+    }
+  }
+
+  String _friendlyError(Object error) {
+    return error.toString().replaceFirst('Exception: ', '');
+  }
+
+  void _goHome() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+    PatientAppShell.of(context).goHome();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: const Color(0xFFF6F8FC),
       appBar: AppBar(
-        title: Text(
-          'AI Health Checkup',
-          style: TextStyle(
-            fontFamily: 'Manrope',
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: _kInk,
-          ),
-        ),
-        backgroundColor: _kBg,
-        foregroundColor: _kInk,
+        backgroundColor: const Color(0xFFF6F8FC),
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        toolbarHeight: 72,
         leadingWidth: 64,
-        leading: _step != 'welcome'
-            ? Padding(
-                padding: const EdgeInsets.only(left: 12),
-                child: AppChevronBackButton(
-                  onPressed: () {
-                    if (_step == 'results' || _step == 'analyzing') {
-                      _reset();
-                      return;
-                    }
-                    if (_step == 'questions' && _currentIndex > 0) {
-                      _back();
-                      return;
-                    }
-                    setState(() {
-                      _step = switch (_step) {
-                        'questions' => 'welcome',
-                        _ => 'welcome',
-                      };
-                    });
-                  },
-                ),
-              )
-            : null,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: AppChevronBackButton(onPressed: _goHome),
+        ),
+        title: const Text(
+          'AI Health Checkup',
+          style: TextStyle(
+            color: Color(0xFF192233),
+            fontSize: 21,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
         actions: [
-          if (_step == 'welcome')
-            IconButton(
-              tooltip: _language == 'ml' ? 'ചരിത്രം' : 'History',
-              icon: const Icon(Icons.history_rounded, color: _kInk),
-              onPressed: _openHistory,
-            ),
+          IconButton(
+            tooltip: 'History',
+            onPressed: _view == _CheckupView.connecting ? null : _openHistory,
+            icon: const Icon(Icons.history_rounded),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: switch (_step) {
-        'welcome' => _WelcomeScreen(
-          language: _language,
+      body: switch (_view) {
+        _CheckupView.connecting => const _StatusMessage(
+          icon: Icons.graphic_eq_rounded,
+          title: 'Preparing private voice checkup',
+          subtitle: 'Connecting securely and loading your health context…',
+          loading: true,
+        ),
+        _CheckupView.conversation => _buildConversation(),
+        _CheckupView.result => _ResultView(
+          result: _result,
+          onNewCheckup: _startAssessment,
+          onHome: _goHome,
+        ),
+        _CheckupView.history => _HistoryView(
+          load: _service.listHistory,
+          onOpen: _openHistoryResult,
+          onStart: _startAssessment,
           error: _error,
-          onStart: _start,
         ),
-        'starting' => _LoadingScreen(
-          language: _language,
-          message: _language == 'ml'
-              ? 'നിങ്ങൾക്കായി ചോദ്യങ്ങൾ തയ്യാറാക്കുന്നു...'
-              : 'Preparing your questions...',
+        _CheckupView.error => _StatusMessage(
+          icon: Icons.mic_off_rounded,
+          title: _error ?? 'The voice checkup could not continue.',
+          subtitle: 'No test or consultation was booked.',
+          actionLabel: 'Start again',
+          onAction: _startAssessment,
         ),
-        'questions' =>
-          _session == null
-              ? const SizedBox.shrink()
-              : _QuestionScreen(
-                  language: _language,
-                  question: _session!.questions[_currentIndex],
-                  index: _currentIndex,
-                  total: _session!.questions.length,
-                  selectedKey:
-                      _answers[_session!.questions[_currentIndex].id
-                          .toString()],
-                  onAnswer: _answer,
-                  onBack: _currentIndex > 0 ? _back : null,
-                ),
-        'analyzing' => _LoadingScreen(
-          language: _language,
-          message: _language == 'ml'
-              ? 'നിങ്ങളുടെ ഉത്തരങ്ങൾ വിശകലനം ചെയ്യുന്നു...'
-              : 'Analyzing your answers...',
-        ),
-        'history' => _HistoryScreen(
-          language: _language,
-          loadHistory: _service.listHistory,
-          onOpen: _openHistoryItem,
-          onStartNew: _reset,
-        ),
-        'results' =>
-          _results != null
-              ? _ResultsScreen(
-                  language: _language,
-                  results: _results!,
-                  onReset: _reset,
-                )
-              : const SizedBox.shrink(),
-        _ => const SizedBox.shrink(),
       },
     );
   }
-}
 
-class _WelcomeScreen extends StatelessWidget {
-  const _WelcomeScreen({
-    required this.language,
-    required this.onStart,
-    this.error,
-  });
-
-  final String language;
-  final VoidCallback onStart;
-  final String? error;
-
-  @override
-  Widget build(BuildContext context) {
-    final isMl = language == 'ml';
+  Widget _buildConversation() {
+    final state = _voice.state;
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(24),
+      top: false,
+      child: Column(
         children: [
-          const SizedBox(height: 32),
-          Center(
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F7FF),
-                borderRadius: BorderRadius.circular(32),
-              ),
-              child: const Icon(
-                Icons.health_and_safety_rounded,
-                size: 56,
-                color: _kAccent,
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+            child: _VoiceHeader(
+              patientName: _session?.patientName ?? 'Patient',
+              state: state,
+              textMode: _textFallback,
             ),
           ),
-          const SizedBox(height: 32),
-          Text(
-            isMl ? 'എഐ ഹെൽത്ത് ചെക്കപ്പ്' : 'AI Health Checkup',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Manrope',
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              color: _kInk,
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) =>
+                  _MessageBubble(message: _messages[index]),
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            isMl
-                ? 'കുറച്ച് ചോദ്യങ്ങൾക്ക് മറുപടി നൽകുക. നിങ്ങളുടെ ഉത്തരങ്ങൾ വിലയിരുത്തി അനുയോജ്യമായ പരിശോധനകൾ നിർദ്ദേശിക്കും.'
-                : 'Answer a few questions about your health. Our AI will assess your risk and suggest preventive lab tests tailored for you.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Manrope',
-              fontSize: 15,
-              color: _kInk.withValues(alpha: 0.6),
-              height: 1.5,
+          if ((_error ?? '').isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _InlineError(message: _error!),
             ),
-          ),
-          if (error != null) ...[
-            const SizedBox(height: 16),
-            Text(
-              error!,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Manrope',
-                fontSize: 13,
-                color: const Color(0xFFDB4C4C),
+          if (_textFallback)
+            _TextFallbackComposer(
+              controller: _textController,
+              sending: _sendingText,
+              onSend: _sendText,
+            )
+          else
+            _VoiceControls(
+              state: state,
+              onInterrupt: state.isSpeaking ? _voice.interrupt : null,
+              onUseText: () => setState(() => _textFallback = true),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _ending ? null : _endAssessment,
+                icon: const Icon(Icons.stop_circle_outlined),
+                label: const Text('End checkup'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFC03D3D),
+                  side: const BorderSide(color: Color(0xFFE8BABA)),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                ),
               ),
             ),
-          ],
-          const SizedBox(height: 40),
-          _PrimaryButton(
-            label: isMl ? 'പരിശോധന ആരംഭിക്കുക' : 'Start Assessment',
-            onPressed: onStart,
           ),
-          const SizedBox(height: 32),
         ],
       ),
     );
   }
 }
 
-class _LoadingScreen extends StatelessWidget {
-  const _LoadingScreen({required this.language, required this.message});
+class _VoiceHeader extends StatelessWidget {
+  const _VoiceHeader({
+    required this.patientName,
+    required this.state,
+    required this.textMode,
+  });
 
-  final String language;
+  final String patientName;
+  final LiveVoiceState state;
+  final bool textMode;
+
+  String get _status {
+    if (textMode) return 'Text fallback';
+    return switch (state.phase) {
+      LiveVoicePhase.connecting => 'Connecting…',
+      LiveVoicePhase.speaking => 'AI is speaking',
+      LiveVoicePhase.thinking || LiveVoicePhase.transcribing => 'Thinking…',
+      LiveVoicePhase.reconnecting => 'Reconnecting…',
+      _ => 'Listening',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = state.isListening || state.isSpeaking;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF06489B), Color(0xFF1769C2)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: 58 + (active ? state.soundLevel * 12 : 0),
+            height: 58 + (active ? state.soundLevel * 12 : 0),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.17),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.55),
+                width: 2,
+              ),
+            ),
+            child: Icon(
+              textMode ? Icons.chat_bubble_outline : Icons.graphic_eq_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Checkup for $patientName',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 17,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _status,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.82),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              'Max 5 min',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MessageBubble extends StatelessWidget {
+  const _MessageBubble({required this.message});
+
+  final _ConversationMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: message.patient ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 320),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+        decoration: BoxDecoration(
+          color: message.patient ? const Color(0xFF06489B) : Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          border: message.patient
+              ? null
+              : Border.all(color: const Color(0xFFE0E6EF)),
+        ),
+        child: Text(
+          message.text,
+          style: TextStyle(
+            color: message.patient ? Colors.white : const Color(0xFF273348),
+            height: 1.4,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VoiceControls extends StatelessWidget {
+  const _VoiceControls({
+    required this.state,
+    required this.onInterrupt,
+    required this.onUseText,
+  });
+
+  final LiveVoiceState state;
+  final Future<void> Function()? onInterrupt;
+  final VoidCallback onUseText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          OutlinedButton.icon(
+            onPressed: onUseText,
+            icon: const Icon(Icons.keyboard_rounded),
+            label: const Text('Use text'),
+          ),
+          const SizedBox(width: 12),
+          FilledButton.icon(
+            onPressed: onInterrupt,
+            icon: Icon(
+              state.isSpeaking
+                  ? Icons.record_voice_over_rounded
+                  : Icons.mic_rounded,
+            ),
+            label: Text(state.isSpeaking ? 'Interrupt' : 'Listening'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TextFallbackComposer extends StatelessWidget {
+  const _TextFallbackComposer({
+    required this.controller,
+    required this.sending,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final bool sending;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      child: TextField(
+        controller: controller,
+        enabled: !sending,
+        textInputAction: TextInputAction.send,
+        onSubmitted: (_) => onSend(),
+        decoration: InputDecoration(
+          hintText: 'Type your answer…',
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFFDCE3ED)),
+          ),
+          suffixIcon: IconButton(
+            onPressed: sending ? null : onSend,
+            icon: sending
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.send_rounded),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message});
+
   final String message;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(
-            width: 60,
-            height: 60,
-            child: CircularProgressIndicator(strokeWidth: 4, color: _kAccent),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Manrope',
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: _kInk,
-            ),
-          ),
-        ],
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF1F1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF1CCCC)),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(color: Color(0xFF9A3333), fontSize: 12),
       ),
     );
   }
 }
 
-class _HistoryScreen extends StatefulWidget {
-  const _HistoryScreen({
-    required this.language,
-    required this.loadHistory,
-    required this.onOpen,
-    required this.onStartNew,
+class _ResultView extends StatelessWidget {
+  const _ResultView({
+    required this.result,
+    required this.onNewCheckup,
+    required this.onHome,
   });
 
-  final String language;
-  final Future<List<AssessmentHistoryItem>> Function() loadHistory;
-  final ValueChanged<AssessmentHistoryItem> onOpen;
-  final VoidCallback onStartNew;
+  final AssessmentResults? result;
+  final VoidCallback onNewCheckup;
+  final VoidCallback onHome;
+
+  String _outcome(String value) => switch (value) {
+    'test_package_only' => 'Test package may be suitable',
+    'consultation_only' => 'Consultation may be suitable',
+    'test_package_and_consultation' =>
+      'Testing and consultation may be suitable',
+    'emergency_escalation' => 'Emergency care recommended',
+    _ => 'Advice only',
+  };
+
+  IconData _icon(String value) => switch (value) {
+    'test_package_only' => Icons.science_outlined,
+    'consultation_only' => Icons.medical_services_outlined,
+    'test_package_and_consultation' => Icons.health_and_safety_outlined,
+    'emergency_escalation' => Icons.emergency_rounded,
+    _ => Icons.self_improvement_rounded,
+  };
 
   @override
-  State<_HistoryScreen> createState() => _HistoryScreenState();
+  Widget build(BuildContext context) {
+    final data = result;
+    if (data == null) {
+      return _StatusMessage(
+        icon: Icons.info_outline,
+        title: 'Checkup completed',
+        subtitle: 'No booking was created.',
+        actionLabel: 'Start new checkup',
+        onAction: onNewCheckup,
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFDDE5EF)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                _icon(data.outcome),
+                size: 38,
+                color: data.outcome == 'emergency_escalation'
+                    ? const Color(0xFFC83A3A)
+                    : const Color(0xFF06489B),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                _outcome(data.outcome),
+                style: const TextStyle(
+                  color: Color(0xFF192233),
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                data.summary,
+                style: const TextStyle(color: Color(0xFF56657A), height: 1.5),
+              ),
+              if (data.insights.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                const Text(
+                  'Key points',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF273348),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...data.insights.map(
+                  (insight) => Padding(
+                    padding: const EdgeInsets.only(bottom: 7),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Icon(
+                            Icons.circle,
+                            size: 6,
+                            color: Color(0xFF1769C2),
+                          ),
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(child: Text(insight)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F6FB),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Phase 1 provides an assessment outcome only. No test or '
+                  'consultation has been booked.',
+                  style: TextStyle(
+                    color: Color(0xFF53647A),
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: onNewCheckup,
+          child: const Text('Start new voice checkup'),
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton(onPressed: onHome, child: const Text('Back to home')),
+      ],
+    );
+  }
 }
 
-class _HistoryScreenState extends State<_HistoryScreen> {
-  late Future<List<AssessmentHistoryItem>> _future;
+class _HistoryView extends StatefulWidget {
+  const _HistoryView({
+    required this.load,
+    required this.onOpen,
+    required this.onStart,
+    required this.error,
+  });
+
+  final Future<List<AssessmentHistoryItem>> Function() load;
+  final ValueChanged<AssessmentHistoryItem> onOpen;
+  final VoidCallback onStart;
+  final String? error;
+
+  @override
+  State<_HistoryView> createState() => _HistoryViewState();
+}
+
+class _HistoryViewState extends State<_HistoryView> {
+  late Future<List<AssessmentHistoryItem>> _history;
 
   @override
   void initState() {
     super.initState();
-    _future = widget.loadHistory();
-  }
-
-  void _retry() {
-    setState(() => _future = widget.loadHistory());
-  }
-
-  ({Color color, String label}) _risk(String level) {
-    final isMl = widget.language == 'ml';
-    switch (level.toLowerCase()) {
-      case 'high':
-      case 'critical':
-        return (
-          color: const Color(0xFFFF5C5C),
-          label: isMl ? 'ഉയർന്നത്' : 'High',
-        );
-      case 'moderate':
-        return (
-          color: const Color(0xFFF5A623),
-          label: isMl ? 'മിതം' : 'Moderate',
-        );
-      default:
-        return (color: const Color(0xFF1F9A6D), label: isMl ? 'കുറവ്' : 'Low');
-    }
-  }
-
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return '';
-    final h = date.hour % 12 == 0 ? 12 : date.hour % 12;
-    final m = date.minute.toString().padLeft(2, '0');
-    final ap = date.hour < 12 ? 'AM' : 'PM';
-    return '${date.day} ${_months[date.month - 1]} ${date.year}, $h:$m $ap';
+    _history = widget.load();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isMl = widget.language == 'ml';
     return FutureBuilder<List<AssessmentHistoryItem>>(
-      future: _future,
+      future: _history,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: _kAccent),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return _HistoryMessage(
-            icon: Icons.error_outline_rounded,
-            title: isMl
-                ? 'ചരിത്രം ലോഡ് ചെയ്യാനായില്ല'
-                : 'Could not load history',
+          return _StatusMessage(
+            icon: Icons.cloud_off_rounded,
+            title: 'Could not load checkup history',
             subtitle: snapshot.error.toString(),
-            actionLabel: isMl ? 'വീണ്ടും ശ്രമിക്കുക' : 'Retry',
-            onAction: _retry,
+            actionLabel: 'Retry',
+            onAction: () => setState(() => _history = widget.load()),
           );
         }
         final items = snapshot.data ?? const [];
         if (items.isEmpty) {
-          return _HistoryMessage(
+          return _StatusMessage(
             icon: Icons.history_toggle_off_rounded,
-            title: isMl ? 'ചരിത്രമൊന്നുമില്ല' : 'No assessments yet',
-            subtitle: isMl
-                ? 'നിങ്ങൾ പൂർത്തിയാക്കുന്ന പരിശോധനകൾ ഇവിടെ കാണാം.'
-                : 'Assessments you complete will appear here.',
-            actionLabel: isMl ? 'പുതിയത് ആരംഭിക്കുക' : 'Start New Assessment',
-            onAction: widget.onStartNew,
+            title: 'No voice checkups yet',
+            subtitle: 'Completed checkups will appear here.',
+            actionLabel: 'Start voice checkup',
+            onAction: widget.onStart,
           );
         }
-        return RefreshIndicator(
-          color: _kAccent,
-          onRefresh: () async => _retry(),
-          notificationPredicate: (_) => false,
-          child: ListView.builder(
-            padding: const EdgeInsets.all(24),
-            itemCount: items.length,
-            itemBuilder: (context, i) {
-              final item = items[i];
-              final risk = _risk(item.riskLevel);
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => widget.onOpen(item),
-                    child: Ink(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE5E9F0)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: risk.color.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.shield_rounded,
-                                      size: 14,
-                                      color: risk.color,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      risk.label,
-                                      style: TextStyle(
-                                        fontFamily: 'Manrope',
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                        color: risk.color,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                _formatDate(item.createdAt),
-                                style: TextStyle(
-                                  fontFamily: 'Manrope',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: _kInk.withValues(alpha: 0.45),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (item.summary.trim().isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              item.summary.trim(),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: 'Manrope',
-                                fontSize: 13,
-                                height: 1.5,
-                                color: _kInk.withValues(alpha: 0.78),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text(
-                                isMl ? 'വിശദാംശങ്ങൾ കാണുക' : 'View details',
-                                style: TextStyle(
-                                  fontFamily: 'Manrope',
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: _kAccent,
-                                ),
-                              ),
-                              const Icon(
-                                Icons.chevron_right_rounded,
-                                color: _kAccent,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+          itemCount: items.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 10),
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return ListTile(
+              tileColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFFDDE5EF)),
+              ),
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFFE8F2FF),
+                child: Icon(Icons.graphic_eq_rounded, color: Color(0xFF06489B)),
+              ),
+              title: Text(
+                item.summary.isEmpty ? 'Health checkup' : item.summary,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(item.outcome.replaceAll('_', ' ')),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => widget.onOpen(item),
+            );
+          },
         );
       },
     );
   }
 }
 
-class _HistoryMessage extends StatelessWidget {
-  const _HistoryMessage({
+class _StatusMessage extends StatelessWidget {
+  const _StatusMessage({
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.actionLabel,
-    required this.onAction,
+    this.loading = false,
+    this.actionLabel,
+    this.onAction,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final String actionLabel;
-  final VoidCallback onAction;
+  final bool loading;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -647,765 +973,34 @@ class _HistoryMessage extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 64, color: _kInk.withValues(alpha: 0.25)),
-            const SizedBox(height: 20),
+            Icon(icon, size: 48, color: const Color(0xFF06489B)),
+            const SizedBox(height: 18),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Manrope',
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: _kInk,
+              style: const TextStyle(
+                color: Color(0xFF192233),
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Manrope',
-                fontSize: 14,
-                color: _kInk.withValues(alpha: 0.55),
-              ),
+              style: const TextStyle(color: Color(0xFF617086), height: 1.45),
             ),
-            const SizedBox(height: 24),
-            _PrimaryButton(label: actionLabel, onPressed: onAction),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuestionScreen extends StatelessWidget {
-  const _QuestionScreen({
-    required this.language,
-    required this.question,
-    required this.index,
-    required this.total,
-    required this.selectedKey,
-    required this.onAnswer,
-    required this.onBack,
-  });
-
-  final String language;
-  final AssessmentQuestion question;
-  final int index;
-  final int total;
-  final String? selectedKey;
-  final void Function(AssessmentQuestion question, String optionKey) onAnswer;
-  final VoidCallback? onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    final isMl = language == 'ml';
-    final progress = (index + 1) / total;
-
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFEBEDF2),
-              color: _kAccent,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isMl
-                    ? 'ചോദ്യം ${index + 1}/$total'
-                    : 'Question ${index + 1}/$total',
-                style: TextStyle(
-                  fontFamily: 'Manrope',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: _kAccent,
-                ),
-              ),
-              if (onBack != null)
-                TextButton.icon(
-                  onPressed: onBack,
-                  icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                  label: Text(
-                    isMl ? 'തിരികെ' : 'Back',
-                    style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF8DA0BA),
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
+            if (loading) ...[
+              const SizedBox(height: 22),
+              const CircularProgressIndicator(),
             ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            question.question,
-            style: TextStyle(
-              fontFamily: 'Manrope',
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: _kInk,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: ListView(
-              children: question.options
-                  .map(
-                    (option) => _OptionCard(
-                      label: option.text,
-                      isSelected: selectedKey == option.key,
-                      onTap: () => onAnswer(question, option.key),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OptionCard extends StatelessWidget {
-  const _OptionCard({
-    required this.label,
-    this.isSelected = false,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Ink(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFF4F7FF) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected ? _kAccent : const Color(0xFFE5E9F0),
-                width: isSelected ? 2 : 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? _kAccent : Colors.transparent,
-                    border: Border.all(color: _kAccent, width: 2),
-                  ),
-                  child: isSelected
-                      ? const Icon(Icons.check, size: 14, color: Colors.white)
-                      : null,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? _kAccent : _kInk,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: isSelected ? _kAccent : const Color(0xFF8DA0BA),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ResultsScreen extends StatelessWidget {
-  const _ResultsScreen({
-    required this.language,
-    required this.results,
-    required this.onReset,
-  });
-
-  final String language;
-  final AssessmentResults results;
-  final VoidCallback onReset;
-
-  ({Color color, String label}) _risk(String level) {
-    final isMl = language == 'ml';
-    switch (level.toLowerCase()) {
-      case 'high':
-        return (
-          color: const Color(0xFFFF5C5C),
-          label: isMl ? 'ഉയർന്ന അപകടസാധ്യത' : 'High Risk',
-        );
-      case 'moderate':
-        return (
-          color: const Color(0xFFF5A623),
-          label: isMl ? 'മിതമായ അപകടസാധ്യത' : 'Moderate Risk',
-        );
-      default:
-        return (
-          color: const Color(0xFF1F9A6D),
-          label: isMl ? 'കുറഞ്ഞ അപകടസാധ്യത' : 'Low Risk',
-        );
-    }
-  }
-
-  void _bookPackage(BuildContext context, int id, String name, String? price) {
-    final package = LabPackageItem(
-      id: id,
-      name: name,
-      slug: '',
-      status: true,
-      basePrice: _parsePrice(price),
-    );
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => PackageBookingScreen(package: package)),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isMl = language == 'ml';
-    final risk = _risk(results.riskLevel);
-
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        _RiskCard(risk: risk, summary: results.summary, language: language),
-        if (results.insights.isNotEmpty) ...[
-          const SizedBox(height: 28),
-          _SectionTitle(isMl ? 'പ്രധാന നിർദ്ദേശങ്ങൾ' : 'Key Insights'),
-          const SizedBox(height: 12),
-          _InsightsCard(insights: results.insights),
-        ],
-        if (results.recommendedPackages.isNotEmpty) ...[
-          const SizedBox(height: 28),
-          _SectionTitle(
-            isMl ? 'നിർദ്ദേശിച്ച പാക്കേജുകൾ' : 'Recommended Packages',
-          ),
-          const SizedBox(height: 12),
-          ...results.recommendedPackages.map(
-            (pkg) => _PackageCard(
-              title: pkg.packageName,
-              price: pkg.price,
-              testCount: pkg.tests.length,
-              onBook: () =>
-                  _bookPackage(context, pkg.id, pkg.packageName, pkg.price),
-            ),
-          ),
-        ],
-        if (results.customPackage != null) ...[
-          const SizedBox(height: 28),
-          _SectionTitle(isMl ? 'നിങ്ങൾക്കായുള്ള പാക്കേജ്' : 'Tailored For You'),
-          const SizedBox(height: 12),
-          _PackageCard(
-            title: results.customPackage!.name,
-            subtitle: results.customPackage!.reason,
-            price: results.customPackage!.price,
-            testCount: results.customPackage!.tests.length,
-          ),
-        ],
-        if (results.recommendedTests.isNotEmpty) ...[
-          const SizedBox(height: 28),
-          _SectionTitle(
-            isMl ? 'നിർദ്ദേശിച്ച പരിശോധനകൾ' : 'Suggested Individual Tests',
-          ),
-          const SizedBox(height: 12),
-          _TestsCard(tests: results.recommendedTests),
-        ],
-        const SizedBox(height: 28),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: onReset,
-            icon: const Icon(Icons.replay_rounded),
-            label: Text(
-              isMl ? 'വീണ്ടും പരിശോധിക്കുക' : 'Retake Assessment',
-              style: TextStyle(
-                fontFamily: 'Manrope',
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _kAccent,
-              side: const BorderSide(color: _kAccent),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {
-              onReset();
-              PatientAppShell.of(context).goHome();
-            },
-            icon: Icon(
-              Icons.home_rounded,
-              size: 20,
-              color: _kInk.withValues(alpha: 0.6),
-            ),
-            label: Text(
-              isMl ? 'ഹോമിലേക്ക് മടങ്ങുക' : 'Back to Home',
-              style: TextStyle(
-                fontFamily: 'Manrope',
-                fontWeight: FontWeight.w800,
-                color: _kInk.withValues(alpha: 0.6),
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: _kInk.withValues(alpha: 0.12)),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 40),
-      ],
-    );
-  }
-}
-
-class _RiskCard extends StatelessWidget {
-  const _RiskCard({
-    required this.risk,
-    required this.summary,
-    required this.language,
-  });
-
-  final ({Color color, String label}) risk;
-  final String summary;
-  final String language;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: risk.color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.shield_rounded, size: 18, color: risk.color),
-                const SizedBox(width: 8),
-                Text(
-                  risk.label,
-                  style: TextStyle(
-                    fontFamily: 'Manrope',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: risk.color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (summary.trim().isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              summary.trim(),
-              style: TextStyle(
-                fontFamily: 'Manrope',
-                fontSize: 14,
-                height: 1.6,
-                color: _kInk.withValues(alpha: 0.8),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _InsightsCard extends StatelessWidget {
-  const _InsightsCard({required this.insights});
-
-  final List<String> insights;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: insights
-            .map(
-              (insight) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
-                      child: Icon(
-                        Icons.lightbulb_outline_rounded,
-                        size: 18,
-                        color: _kAccent,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        insight,
-                        style: TextStyle(
-                          fontFamily: 'Manrope',
-                          fontSize: 13,
-                          height: 1.5,
-                          color: _kInk.withValues(alpha: 0.78),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
-}
-
-class _PackageCard extends StatelessWidget {
-  const _PackageCard({
-    required this.title,
-    this.subtitle,
-    this.price,
-    this.testCount = 0,
-    this.onBook,
-  });
-
-  final String title;
-  final String? subtitle;
-  final String? price;
-  final int testCount;
-  final VoidCallback? onBook;
-
-  @override
-  Widget build(BuildContext context) {
-    final priceValue = _parsePrice(price);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F7FF),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.inventory_2_outlined, color: _kAccent),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontFamily: 'Manrope',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: _kInk,
-                      ),
-                    ),
-                    if ((subtitle ?? '').trim().isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          subtitle!.trim(),
-                          style: TextStyle(
-                            fontFamily: 'Manrope',
-                            fontSize: 12,
-                            color: _kInk.withValues(alpha: 0.5),
-                          ),
-                        ),
-                      ),
-                    if (testCount > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          '$testCount tests',
-                          style: TextStyle(
-                            fontFamily: 'Manrope',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: _kInk.withValues(alpha: 0.4),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 22),
+              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
             ],
-          ),
-          if (priceValue > 0 || onBook != null) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                if (priceValue > 0)
-                  Text(
-                    '₹$priceValue',
-                    style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: _kAccent,
-                    ),
-                  ),
-                const Spacer(),
-                if (onBook != null)
-                  ElevatedButton(
-                    onPressed: onBook,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _kAccent,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Book Now',
-                      style: TextStyle(
-                        fontFamily: 'Manrope',
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _TestsCard extends StatelessWidget {
-  const _TestsCard({required this.tests});
-
-  final List<AssessmentRecommendedTest> tests;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: tests.map((test) {
-          final priceValue = _parsePrice(test.price);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF4F7FF),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.biotech_outlined,
-                    color: _kAccent,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        test.testName,
-                        style: TextStyle(
-                          fontFamily: 'Manrope',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: _kInk,
-                        ),
-                      ),
-                      if ((test.category ?? '').trim().isNotEmpty)
-                        Text(
-                          test.category!.trim(),
-                          style: TextStyle(
-                            fontFamily: 'Manrope',
-                            fontSize: 12,
-                            color: _kInk.withValues(alpha: 0.5),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (priceValue > 0)
-                  Text(
-                    '₹$priceValue',
-                    style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: _kAccent,
-                    ),
-                  ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontFamily: 'Manrope',
-        fontSize: 18,
-        fontWeight: FontWeight.w800,
-        color: _kInk,
-      ),
-    );
-  }
-}
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _kAccent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Manrope',
-            fontWeight: FontWeight.w900,
-            fontSize: 18,
-          ),
         ),
       ),
     );

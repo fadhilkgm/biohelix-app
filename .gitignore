@@ -52,3 +52,6 @@ app.*.map.json
 /gitignore
 gitignore/
 /.codex
+
+# Graphify output
+graphify-out/

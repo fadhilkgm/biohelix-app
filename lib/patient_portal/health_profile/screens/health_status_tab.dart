@@ -141,14 +141,16 @@ class _HealthStatusTabState extends State<HealthStatusTab> {
                 strings: strings,
               ),
               const SizedBox(height: 18),
-              _ComprehensiveSummaryCard(
-                snapshots: selected,
-                fallbackSnapshot: currentSnapshot,
-                from: from,
-                to: to,
-                strings: strings,
-              ),
-              const SizedBox(height: 18),
+              if (currentSnapshot.hasClinicalData) ...[
+                _ComprehensiveSummaryCard(
+                  snapshots: selected,
+                  fallbackSnapshot: currentSnapshot,
+                  from: from,
+                  to: to,
+                  strings: strings,
+                ),
+                const SizedBox(height: 18),
+              ],
               Row(
                 children: [
                   Expanded(
@@ -496,22 +498,20 @@ class _CurrentHealthValuesCard extends StatelessWidget {
           icon: Icons.scale_outlined,
           color: const Color(0xFF4F46E5),
         ),
-      if (snapshot.healthScore != null)
-        _HealthReading(
-          label: strings.healthMetric,
-          value: snapshot.healthScore!.toStringAsFixed(0),
-          unit: '/100',
-          icon: Icons.health_and_safety_outlined,
-          color: const Color(0xFF13866F),
-        ),
-      if (snapshot.riskScore != null)
-        _HealthReading(
-          label: strings.riskMetric,
-          value: snapshot.riskScore!.toStringAsFixed(0),
-          unit: '/100',
-          icon: Icons.warning_amber_rounded,
-          color: const Color(0xFFD05A45),
-        ),
+      _HealthReading(
+        label: strings.healthMetric,
+        value: snapshot.healthScore?.toStringAsFixed(0) ?? '-',
+        unit: '/100',
+        icon: Icons.health_and_safety_outlined,
+        color: const Color(0xFF13866F),
+      ),
+      _HealthReading(
+        label: strings.riskMetric,
+        value: snapshot.riskScore?.toStringAsFixed(0) ?? '-',
+        unit: '/100',
+        icon: Icons.warning_amber_rounded,
+        color: const Color(0xFFD05A45),
+      ),
     ];
 
     return _HealthCard(
@@ -671,10 +671,8 @@ class _SnapshotUpdateRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final details = <String>[
-      if (snapshot.healthScore != null)
-        'Health ${snapshot.healthScore!.toStringAsFixed(0)}',
-      if (snapshot.riskScore != null)
-        'Risk ${snapshot.riskScore!.toStringAsFixed(0)}',
+      'Health ${snapshot.healthScore?.toStringAsFixed(0) ?? '-'}/100',
+      'Risk ${snapshot.riskScore?.toStringAsFixed(0) ?? '-'}/100',
       if (snapshot.latestVitals?.bloodPressureSystolic != null)
         'BP ${_bloodPressure(snapshot)}',
       if (snapshot.bloodSugar != null)
@@ -718,6 +716,17 @@ class _SnapshotUpdateRow extends StatelessWidget {
               style: const TextStyle(
                 color: Color(0xFF526176),
                 fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (snapshot.updatedByName != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Updated by ${snapshot.updatedByName}',
+              style: const TextStyle(
+                color: Color(0xFF718096),
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
             ),

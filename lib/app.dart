@@ -8,6 +8,7 @@ import 'core/config/app_config.dart';
 import 'core/network/api_client.dart';
 import 'core/providers/language_provider.dart';
 import 'core/providers/theme_provider.dart';
+import 'core/referrals/referral_link_provider.dart';
 import 'core/storage/auth_storage.dart';
 
 import 'core/theme/app_theme.dart';
@@ -51,6 +52,7 @@ class _BioHelixAppState extends State<BioHelixApp> {
   late final PatientPortalProvider _patientPortalProvider;
   late final LanguageProvider _languageProvider;
   late final FitnessProvider _fitnessProvider;
+  late final ReferralLinkProvider _referralLinkProvider;
   late final Future<void> _languageInitialization;
   final ThemeProvider _themeProvider = ThemeProvider();
   bool _languageSyncedForSession = false;
@@ -61,6 +63,9 @@ class _BioHelixAppState extends State<BioHelixApp> {
     _config = AppConfig.fromEnvironment();
     _authStorage = AuthStorage();
     _apiClient = ApiClient(config: _config);
+    _referralLinkProvider = ReferralLinkProvider.production(
+      allowedHttpsHost: _config.referralLinkHost,
+    )..initialize();
     _apiClient.setOnUnauthorized(() {
       if (_sessionProvider.isAuthenticated) {
         unawaited(_sessionProvider.signOut());
@@ -109,6 +114,7 @@ class _BioHelixAppState extends State<BioHelixApp> {
     _sessionProvider.dispose();
     _themeProvider.dispose();
     _languageProvider.dispose();
+    _referralLinkProvider.dispose();
     super.dispose();
   }
 
@@ -120,6 +126,9 @@ class _BioHelixAppState extends State<BioHelixApp> {
         Provider<AuthStorage>.value(value: _authStorage),
         Provider<ApiClient>.value(value: _apiClient),
         Provider<PatientRepository>.value(value: _patientRepository),
+        ChangeNotifierProvider<ReferralLinkProvider>.value(
+          value: _referralLinkProvider,
+        ),
         ChangeNotifierProvider<SessionProvider>.value(value: _sessionProvider),
         ChangeNotifierProvider<PatientPortalProvider>.value(
           value: _patientPortalProvider,

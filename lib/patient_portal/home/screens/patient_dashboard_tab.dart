@@ -22,10 +22,20 @@ class _DashboardTab extends StatelessWidget {
       showDragHandle: true,
       isScrollControlled: true,
       builder: (sheetContext) {
-        return Consumer<SessionProvider>(
-          builder: (context, session, _) {
+        return Consumer2<SessionProvider, PatientPortalProvider>(
+          builder: (context, session, portal, _) {
             final activePatientId = session.patient?.id;
             final profiles = session.familyProfiles;
+            final profilePatientIds = profiles
+                .map((profile) => profile.patient.id)
+                .toSet();
+            final relatives = portal.familyMembers
+                .where(
+                  (member) =>
+                      member.status == 'active' &&
+                      !profilePatientIds.contains(member.patientId),
+                )
+                .toList(growable: false);
 
             return SafeArea(
               child: Padding(
@@ -40,41 +50,134 @@ class _DashboardTab extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'The whole app will reload with the selected patient’s '
-                      'health information, records, bookings, and chats.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
                     ConstrainedBox(
                       constraints: BoxConstraints(
                         maxHeight: MediaQuery.sizeOf(context).height * 0.48,
                       ),
-                      child: ListView.separated(
+                      child: ListView(
+                        padding: EdgeInsets.zero,
                         shrinkWrap: true,
-                        itemCount: profiles.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final profile = profiles[index];
-                          final patient = profile.patient;
-                          final isActive = patient.id == activePatientId;
+                        children: [
+                          ...profiles.map((profile) {
+                            final patient = profile.patient;
+                            final isActive = patient.id == activePatientId;
 
-                          return Material(
-                            color: isActive
-                                ? const Color(0xFFEAF2FF)
-                                : Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(18),
-                            child: InkWell(
-                              key: ValueKey('patient-profile-${patient.id}'),
-                              onTap: isActive
-                                  ? null
-                                  : () async {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Material(
+                                color: isActive
+                                    ? const Color(0xFFEAF2FF)
+                                    : Theme.of(context).colorScheme.surface,
+                                borderRadius: BorderRadius.circular(18),
+                                child: InkWell(
+                                  key: ValueKey(
+                                    'patient-profile-${patient.id}',
+                                  ),
+                                  onTap: isActive
+                                      ? null
+                                      : () async {
+                                          Navigator.of(sheetContext).pop();
+                                          try {
+                                            await shellContext
+                                                .read<SessionProvider>()
+                                                .switchFamilyProfile(
+                                                  profile.token,
+                                                );
+                                          } catch (error) {
+                                            if (!shellContext.mounted) return;
+                                            ScaffoldMessenger.of(
+                                              shellContext,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(error.toString()),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(14),
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundColor: const Color(
+                                            0xFF06489B,
+                                          ),
+                                          foregroundColor: Colors.white,
+                                          child: Text(
+                                            _patientInitial(patient.name),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                patient.name,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                patient.registrationNumber,
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.bodySmall,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (isActive)
+                                          const Icon(
+                                            Icons.check_circle_rounded,
+                                            color: Color(0xFF06489B),
+                                          )
+                                        else
+                                          const Icon(
+                                            Icons.chevron_right_rounded,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                          if (relatives.isNotEmpty) ...[
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(4, 6, 4, 10),
+                              child: Text(
+                                'Relatives',
+                                style: TextStyle(
+                                  color: Color(0xFF617086),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            ...relatives.map(
+                              (relative) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Material(
+                                  color: const Color(0xFFF7F9FC),
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: InkWell(
+                                    key: ValueKey(
+                                      'linked-relative-${relative.patientId}',
+                                    ),
+                                    borderRadius: BorderRadius.circular(18),
+                                    onTap: () async {
                                       Navigator.of(sheetContext).pop();
                                       try {
                                         await shellContext
                                             .read<SessionProvider>()
-                                            .switchFamilyProfile(profile.token);
+                                            .switchLinkedFamilyMember(
+                                              relative.linkId,
+                                            );
                                       } catch (error) {
                                         if (!shellContext.mounted) return;
                                         ScaffoldMessenger.of(
@@ -86,71 +189,98 @@ class _DashboardTab extends StatelessWidget {
                                         );
                                       }
                                     },
-                              borderRadius: BorderRadius.circular(18),
-                              child: Padding(
-                                padding: const EdgeInsets.all(14),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundColor: const Color(0xFF06489B),
-                                      foregroundColor: Colors.white,
-                                      child: Text(
-                                        patient.name.trim().isEmpty
-                                            ? 'P'
-                                            : patient.name
-                                                  .trim()
-                                                  .characters
-                                                  .first
-                                                  .toUpperCase(),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                          color: const Color(0xFFDCE5F0),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                      child: Row(
                                         children: [
-                                          Text(
-                                            patient.name,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w700,
+                                          CircleAvatar(
+                                            backgroundColor: const Color(
+                                              0xFFE6F0FC,
+                                            ),
+                                            foregroundColor: const Color(
+                                              0xFF06489B,
+                                            ),
+                                            child: Text(
+                                              _patientInitial(relative.name),
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                              ),
                                             ),
                                           ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            patient.registrationNumber,
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodySmall,
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  relative.name,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  _relativeSubtitle(relative),
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.copyWith(
+                                                        color: const Color(
+                                                          0xFF617086,
+                                                        ),
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const Icon(
+                                            Icons.chevron_right_rounded,
+                                            color: Color(0xFF7A8BA3),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    if (isActive)
-                                      const Icon(
-                                        Icons.check_circle_rounded,
-                                        color: Color(0xFF06489B),
-                                      )
-                                    else
-                                      const Icon(Icons.chevron_right_rounded),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
-                          );
-                        },
+                          ],
+                        ],
                       ),
                     ),
                     const SizedBox(height: 14),
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton.icon(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF06489B),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(54),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         onPressed: () {
                           Navigator.of(sheetContext).pop();
-                          onNavigate(3);
+                          Navigator.of(shellContext).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const _FamilyMembersScreen(),
+                            ),
+                          );
                         },
-                        icon: const Icon(Icons.manage_accounts_rounded),
-                        label: const Text('Manage or add family accounts'),
+                        icon: const Icon(Icons.group_add_rounded, size: 21),
+                        label: const Text('Manage family accounts'),
                       ),
                     ),
                   ],
@@ -161,6 +291,23 @@ class _DashboardTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _patientInitial(String name) {
+    final trimmed = name.trim();
+    return trimmed.isEmpty ? 'P' : trimmed.characters.first.toUpperCase();
+  }
+
+  String _relativeSubtitle(FamilyMember relative) {
+    final relationship = relative.relationship.trim();
+    final formattedRelationship = relationship.isEmpty
+        ? 'Relative'
+        : '${relationship[0].toUpperCase()}${relationship.substring(1)}';
+    final cardNumber = relative.cardNumber?.trim() ?? '';
+
+    return cardNumber.isEmpty
+        ? formattedRelationship
+        : '$formattedRelationship • $cardNumber';
   }
 
   List<DoctorListing> _resolveHomeDoctors(

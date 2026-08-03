@@ -125,51 +125,82 @@ class BookingSuccessScreen extends StatelessWidget {
           child: AppChevronBackButton(onPressed: () => _goBack(context)),
         ),
       ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+        child: SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: () => _goBack(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF06489B),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Text(
+              'Back',
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final isCompact = constraints.maxHeight < 640;
+
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 32),
+                    SizedBox(height: isCompact ? 4 : 20),
                     if (showMedicalSuccessIcon)
-                      const _MedicalSuccessIcon()
+                      _MedicalSuccessIcon(size: isCompact ? 112 : 140)
                     else
                       Image.asset(
                         imagePath,
-                        height: _hasSummary ? 180 : 320,
+                        height: _hasSummary
+                            ? (isCompact ? 120 : 160)
+                            : (isCompact ? 220 : 280),
                         fit: BoxFit.contain,
                       ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: isCompact ? 16 : 24),
                     Text(
                       title,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Manrope',
-                        fontSize: 28,
+                        fontSize: isCompact ? 24 : 28,
                         fontWeight: FontWeight.w900,
                         color: const Color(0xFF192233),
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: isCompact ? 8 : 12),
                     Text(
                       subtitle,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Manrope',
-                        fontSize: 16,
+                        fontSize: isCompact ? 14 : 16,
                         color: const Color(0xFF192233).withValues(alpha: 0.6),
-                        height: 1.5,
+                        height: isCompact ? 1.35 : 1.5,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (_hasSummary) ...[
-                      const SizedBox(height: 24),
+                      SizedBox(height: isCompact ? 16 : 20),
                       _BookingSummaryCard(
                         title: _resolvedSummaryTitle,
                         subtitle: _resolvedSummarySubtitle,
@@ -182,7 +213,7 @@ class BookingSuccessScreen extends StatelessWidget {
                       ),
                     ],
                     if (!showMedicalSuccessIcon) ...[
-                      const SizedBox(height: 24),
+                      SizedBox(height: isCompact ? 16 : 20),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
@@ -203,31 +234,7 @@ class BookingSuccessScreen extends StatelessWidget {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 60,
-                      child: ElevatedButton(
-                        onPressed: () => _goBack(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF06489B),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                        child: Text(
-                          'Back',
-                          style: TextStyle(
-                            fontFamily: 'Manrope',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: isCompact ? 16 : 24),
                   ],
                 ),
               ),
@@ -240,45 +247,49 @@ class BookingSuccessScreen extends StatelessWidget {
 }
 
 class _MedicalSuccessIcon extends StatelessWidget {
-  const _MedicalSuccessIcon();
+  const _MedicalSuccessIcon({required this.size});
+
+  final double size;
 
   @override
   Widget build(BuildContext context) {
+    final scale = size / 150;
+
     return SizedBox(
-      width: 150,
-      height: 150,
+      width: size,
+      height: size,
       child: Stack(
         alignment: Alignment.center,
         children: [
           Container(
-            width: 138,
-            height: 138,
+            width: 138 * scale,
+            height: 138 * scale,
             decoration: BoxDecoration(
               color: const Color(0xFFE8F3FF),
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0xFFB9D8F7), width: 2),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.medical_services_outlined,
-              color: Color(0xFF06489B),
-              size: 62,
+              color: const Color(0xFF06489B),
+              size: 62 * scale,
             ),
           ),
           Positioned(
-            right: 4,
-            bottom: 12,
+            right: 4 * scale,
+            bottom: 12 * scale,
             child: Container(
-              width: 48,
-              height: 48,
+              width: 48 * scale,
+              height: 48 * scale,
               decoration: BoxDecoration(
                 color: const Color(0xFF1F9A6D),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 4),
+                border: Border.all(color: Colors.white, width: 4 * scale),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.check_rounded,
-                color: Colors.white,
-                size: 28,
+                color: const Color(0xFFFFFFFF),
+                size: 28 * scale,
               ),
             ),
           ),

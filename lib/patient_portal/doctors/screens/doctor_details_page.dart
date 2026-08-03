@@ -1,5 +1,18 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
+String? _normalizedDoctorSlotStart(String raw) {
+  final start = raw.split('-').first.trim();
+  if (start.isEmpty) return null;
+
+  for (final pattern in const ['HH:mm', 'H:mm', 'hh:mm a', 'h:mm a']) {
+    try {
+      final parsed = DateFormat(pattern).parseStrict(start);
+      return DateFormat('HH:mm').format(parsed);
+    } catch (_) {}
+  }
+  return null;
+}
+
 class _DoctorDetailPage extends StatefulWidget {
   const _DoctorDetailPage({required this.doctor});
   final DoctorListing doctor;
@@ -11,8 +24,86 @@ class _DoctorDetailPage extends StatefulWidget {
 class _DoctorDetailPageState extends State<_DoctorDetailPage> {
   DateTime? _selectedDate;
   String? _selectedSlot;
-  List<String> _availableSlots = const [];
+  List<DoctorSlotAvailability> _availableSlots = const [];
+  List<BookingItem> _selectedPatientBookings = const [];
+  int? _selectedBookingPatientId;
   bool _loadingSlots = false;
+  bool _loadingPatientBookings = false;
+
+  Set<String> _bookedSlotStarts(PatientPortalProvider portal) {
+    final selectedDate = _selectedDate;
+    if (selectedDate == null) return const {};
+
+    final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+    const activeStatuses = {
+      'pending',
+      'confirmed',
+      'rescheduled',
+      'approved',
+      'active',
+    };
+
+    final bookings = _selectedBookingPatientId == null
+        ? portal.bookings
+        : _selectedPatientBookings;
+
+    return bookings
+        .where(
+          (booking) =>
+              booking.doctorId == widget.doctor.id &&
+              booking.bookingDate.trim().startsWith(dateKey) &&
+              activeStatuses.contains(
+                booking.effectiveStatus().trim().toLowerCase(),
+              ),
+        )
+        .map((booking) => _normalizedDoctorSlotStart(booking.timeslot))
+        .whereType<String>()
+        .toSet();
+  }
+
+  // Kept temporarily for compatibility with the legacy in-booking selector.
+  // ignore: unused_element
+  Future<void> _selectBookingPatient(
+    PatientPortalProvider portal,
+    int? patientId,
+  ) async {
+    if (_selectedBookingPatientId == patientId) return;
+
+    setState(() {
+      _selectedBookingPatientId = patientId;
+      _selectedPatientBookings = const [];
+      _selectedSlot = null;
+      _loadingPatientBookings = patientId != null;
+    });
+
+    if (patientId != null) {
+      try {
+        final bookings = await portal.getBookingsForPatient(patientId);
+        if (!mounted || _selectedBookingPatientId != patientId) return;
+        setState(() => _selectedPatientBookings = bookings);
+      } catch (_) {
+        if (!mounted || _selectedBookingPatientId != patientId) return;
+        setState(() {
+          _selectedBookingPatientId = null;
+          _selectedPatientBookings = const [];
+          _loadingPatientBookings = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not load this patient’s bookings.'),
+          ),
+        );
+      } finally {
+        if (mounted && _selectedBookingPatientId == patientId) {
+          setState(() => _loadingPatientBookings = false);
+        }
+      }
+    }
+
+    if (mounted && _selectedBookingPatientId == patientId) {
+      await _loadAvailableSlots(portal);
+    }
+  }
 
   @override
   void initState() {
@@ -41,6 +132,8 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
 
     return Consumer<PatientPortalProvider>(
       builder: (context, portal, _) {
+        final bookedSlotStarts = _bookedSlotStarts(portal);
+        final hasExistingBookingForDate = bookedSlotStarts.isNotEmpty;
         return Scaffold(
           backgroundColor: Colors.white,
           extendBodyBehindAppBar: true,
@@ -266,7 +359,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'Consultation Window',
+                                        'Consultation Time',
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
@@ -347,10 +440,52 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                             doctor: widget.doctor,
                             date: _selectedDate,
                           ),
+                          if (hasExistingBookingForDate)
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(bottom: 14),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF2FC),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFC6DDED),
+                                ),
+                              ),
+                              child: const Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.info_outline_rounded,
+                                    color: Color(0xFF06489B),
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'This patient already has an appointment '
+                                      'with this doctor on this date. Choose '
+                                      'another date or patient.',
+                                      style: TextStyle(
+                                        color: Color(0xFF315D91),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           _DoctorAvailableSlotGrid(
-                            loading: _loadingSlots,
+                            loading: _loadingSlots || _loadingPatientBookings,
                             availableSlots: _availableSlots,
                             selectedSlot: _selectedSlot,
+                            bookedSlotStarts: bookedSlotStarts,
+                            hasExistingBooking: hasExistingBookingForDate,
                             onSlotSelected: (slot) {
                               setState(() {
                                 _selectedSlot = _selectedSlot == slot
@@ -386,6 +521,8 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                 onPressed:
                     (_selectedSlot == null ||
                         _loadingSlots ||
+                        _loadingPatientBookings ||
+                        hasExistingBookingForDate ||
                         portal.isCreatingBooking)
                     ? null
                     : () => _bookNow(portal),
@@ -437,16 +574,30 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
     });
 
     try {
-      final slots = await portal.getDoctorAvailableSlots(
+      final slots = await portal.getDoctorSlotAvailability(
         doctorId: widget.doctor.id,
         date: DateFormat('yyyy-MM-dd').format(date),
       );
       if (!mounted) return;
+      final selectableSlots = slots
+          .where((item) => item.isAvailable)
+          .map((item) => item.slot)
+          .toList();
+      final bookedStarts = _bookedSlotStarts(portal);
+      final unbookedSlots = selectableSlots
+          .where(
+            (slot) => !bookedStarts.contains(_normalizedDoctorSlotStart(slot)),
+          )
+          .toList();
       setState(() {
         _availableSlots = slots;
-        _selectedSlot = slots.contains(_selectedSlot)
+        _selectedSlot = bookedStarts.isNotEmpty
+            ? null
+            : selectableSlots.contains(_selectedSlot)
             ? _selectedSlot
-            : (slots.isNotEmpty ? slots.first : null);
+            : unbookedSlots.isNotEmpty
+            ? unbookedSlots.first
+            : (selectableSlots.isNotEmpty ? selectableSlots.first : null);
       });
     } catch (_) {
       if (!mounted) return;
@@ -473,6 +624,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
         doctorId: widget.doctor.id,
         bookingDate: DateFormat('yyyy-MM-dd').format(date),
         timeslot: slot,
+        patientId: _selectedBookingPatientId,
         notes: 'Booked from BHRC patient app.',
       );
       if (mounted) {
@@ -692,13 +844,33 @@ class _DoctorAvailableSlotGrid extends StatelessWidget {
     required this.loading,
     required this.availableSlots,
     required this.selectedSlot,
+    required this.bookedSlotStarts,
+    required this.hasExistingBooking,
     required this.onSlotSelected,
   });
 
   final bool loading;
-  final List<String> availableSlots;
+  final List<DoctorSlotAvailability> availableSlots;
   final String? selectedSlot;
+  final Set<String> bookedSlotStarts;
+  final bool hasExistingBooking;
   final ValueChanged<String> onSlotSelected;
+
+  String _formatSlotLabel(String slot) {
+    final parts = slot.split('-').map((part) => part.trim()).toList();
+    if (parts.length != 2) return DoctorListing.formatTimeLabel(slot);
+
+    final start = DoctorListing.formatTimeLabel(parts.first);
+    final end = DoctorListing.formatTimeLabel(parts.last);
+    final startPeriod = RegExp(r'\b(AM|PM)$').firstMatch(start)?.group(1);
+    final endPeriod = RegExp(r'\b(AM|PM)$').firstMatch(end)?.group(1);
+
+    if (startPeriod != null && startPeriod == endPeriod) {
+      final compactStart = start.replaceFirst(RegExp(r'\s+(AM|PM)$'), '');
+      return '$compactStart - $end';
+    }
+    return '$start - $end';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -747,34 +919,89 @@ class _DoctorAvailableSlotGrid extends StatelessWidget {
         crossAxisCount: 3,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
-        childAspectRatio: 2.6,
+        childAspectRatio: 2.1,
       ),
       itemCount: availableSlots.length,
       itemBuilder: (context, index) {
-        final slot = availableSlots[index];
+        final availability = availableSlots[index];
+        final slot = availability.slot;
         final isSelected = selectedSlot == slot;
+        final isAvailable = availability.isAvailable;
+        final isBooked = bookedSlotStarts.contains(
+          _normalizedDoctorSlotStart(slot),
+        );
+        final isBlocked = hasExistingBooking && !isBooked;
         return InkWell(
-          onTap: () => onSlotSelected(slot),
+          onTap: isAvailable && !isBooked && !hasExistingBooking
+              ? () => onSlotSelected(slot)
+              : null,
           borderRadius: BorderRadius.circular(10),
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF06489B) : Colors.white,
+              color: isSelected
+                  ? const Color(0xFF06489B)
+                  : isBooked
+                  ? const Color(0xFFE5F7ED)
+                  : isBlocked
+                  ? const Color(0xFFF1F3F6)
+                  : isAvailable
+                  ? Colors.white
+                  : const Color(0xFFF1F3F6),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected
                     ? const Color(0xFF06489B)
+                    : isBooked
+                    ? const Color(0xFF38A169)
+                    : isBlocked
+                    ? const Color(0xFFD8DDE5)
+                    : !isAvailable
+                    ? const Color(0xFFD8DDE5)
                     : const Color(0xFFE1E8F2),
               ),
             ),
-            child: Text(
-              slot,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF192233),
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _formatSlotLabel(slot),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.1,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected
+                        ? Colors.white
+                        : isBooked
+                        ? const Color(0xFF147A4B)
+                        : isBlocked
+                        ? const Color(0xFF8B94A3)
+                        : isAvailable
+                        ? const Color(0xFF192233)
+                        : const Color(0xFF8B94A3),
+                  ),
+                ),
+                if (!isAvailable)
+                  const Text(
+                    'Full',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFB54747),
+                    ),
+                  ),
+                if (isBooked)
+                  const Text(
+                    'Booked',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF147A4B),
+                    ),
+                  ),
+              ],
             ),
           ),
         );

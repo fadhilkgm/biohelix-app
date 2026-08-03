@@ -13,6 +13,7 @@ import '../../fitness/widgets/fitness_activity_card.dart';
 import '../utils/home_header_content_mapper.dart';
 import '../widgets/home_hero_header_widget.dart';
 import '../widgets/offers_and_appointments_section_widget.dart';
+import '../widgets/upcoming_appointments_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -141,6 +142,63 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Widget _buildDoctorsSection(String emptyMessage) {
+    final doctors = _filteredDoctors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Find Doctors',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF192233),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _departments.map((department) {
+              return _CategoryChip(
+                label: department,
+                isActive: _selectedDepartment == department,
+                onTap: () => setState(() => _selectedDepartment = department),
+                icon: _getSpecialtyIcon(department),
+                iconUrl: _getDepartmentIconUrl(department),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 24),
+        if (doctors.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Text(emptyMessage),
+            ),
+          )
+        else
+          SizedBox(
+            height: 380,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: doctors.length,
+              itemBuilder: (context, index) {
+                final doctor = doctors[index];
+                return _DoctorCard(
+                  doc: doctor,
+                  onTap: () => widget.onDoctorTap(doctor),
+                  resolvedImageUrl: _resolveImageUrl(doctor.imageUrl ?? ''),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final language = context.watch<LanguageProvider>().language;
@@ -180,6 +238,57 @@ class _HomeScreenState extends State<HomeScreen> {
                         onSwitchPatient: widget.onSwitchPatient,
                       ),
                     ),
+                    if (widget.tickerMessages.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: SizedBox(
+                          height: 52,
+                          child: PageView.builder(
+                            itemCount: widget.tickerMessages.length,
+                            itemBuilder: (context, index) {
+                              final ticker = widget.tickerMessages[index];
+                              return Material(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  onTap: () => widget.onTickerTap(ticker),
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.campaign_rounded,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            ticker.message,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.1,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -190,53 +299,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         onDark: true,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    // Ticker Messages (Replacing Banners/Search)
-                    if (widget.tickerMessages.isNotEmpty)
-                      SizedBox(
-                        height: 48,
-                        child: PageView.builder(
-                          itemCount: widget.tickerMessages.length,
-                          itemBuilder: (context, index) {
-                            final ticker = widget.tickerMessages[index];
-                            return InkWell(
-                              onTap: () => widget.onTickerTap(ticker),
-                              child: Container(
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.tips_and_updates_outlined,
-                                      color: Colors.white,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Flexible(
-                                      child: Text(
-                                        '"${ticker.message}"',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.normal,
-                                          letterSpacing: 0.2,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -248,7 +310,15 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Quick Links Section
+                if (UpcomingAppointmentsWidget.hasUpcoming(
+                  widget.bookings,
+                )) ...[
+                  UpcomingAppointmentsWidget(
+                    bookings: widget.bookings,
+                    onSeeAllAppointments: widget.onSeeAllAppointments,
+                  ),
+                  const SizedBox(height: 24),
+                ],
                 Row(
                   children: [
                     _QuickLink(
@@ -273,7 +343,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
+                const FitnessActivityCard(),
+                _HealthSnapshotCard(
+                  snapshot: widget.healthSnapshot ?? const HealthSnapshot(),
+                ),
+                const SizedBox(height: 24),
+                _buildDoctorsSection(strings.noDoctorsInDepartment),
+                const SizedBox(height: 32),
+                if (widget.banners.isNotEmpty)
+                  _buildBannerCarousel(context)
+                else if (widget.isLoading)
+                  _buildBannerSkeleton(context),
+                if (widget.banners.isNotEmpty || widget.isLoading)
+                  const SizedBox(height: 24),
                 _HomeActionBanner(
                   label: strings.bookConsultationForLovedOne,
                   icon: Icons.family_restroom_rounded,
@@ -289,87 +372,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   foregroundColor: Colors.white,
                   onTap: () => widget.onActionTap('home_care'),
                 ),
-                const SizedBox(height: 32),
-                // Banners Carousel
-                if (widget.banners.isNotEmpty)
-                  _buildBannerCarousel(context)
-                else if (widget.isLoading)
-                  _buildBannerSkeleton(context),
-                if (widget.banners.isNotEmpty || widget.isLoading)
-                  const SizedBox(height: 24),
-                if (widget.healthSnapshot != null)
-                  _HealthSnapshotCard(snapshot: widget.healthSnapshot!),
-                if (widget.healthSnapshot != null) const SizedBox(height: 24),
-                const FitnessActivityCard(),
+                const SizedBox(height: 24),
                 if (widget.aiSuggestions.isNotEmpty)
                   _AiSuggestionsSection(
                     suggestions: widget.aiSuggestions,
                     onAccept: widget.onAcceptSuggestion,
                   ),
                 if (widget.aiSuggestions.isNotEmpty) const SizedBox(height: 24),
-                const SizedBox(height: 32),
                 OffersAndAppointmentsSectionWidget(
                   bookings: widget.bookings,
                   onSeeAllAppointments: widget.onSeeAllAppointments,
                   onOfferTap: widget.onOfferTap,
                   homeOffers: widget.homeOffers,
+                  showAppointments: false,
                 ),
                 const SizedBox(height: 32),
-                // Find Doctors Section
-                const Text(
-                  'Find Doctors',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF192233),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _departments.map((dept) {
-                      return _CategoryChip(
-                        label: dept,
-                        isActive: _selectedDepartment == dept,
-                        onTap: () => setState(() => _selectedDepartment = dept),
-                        icon: _getSpecialtyIcon(dept),
-                        iconUrl: _getDepartmentIconUrl(dept),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Doctors Carousel
-                if (_filteredDoctors.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40),
-                      child: Text(strings.noDoctorsInDepartment),
-                    ),
-                  )
-                else
-                  SizedBox(
-                    height: 380,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _filteredDoctors.length,
-                      itemBuilder: (context, index) {
-                        final doc = _filteredDoctors[index];
-                        return _DoctorCard(
-                          doc: doc,
-                          onTap: () => widget.onDoctorTap(doc),
-                          resolvedImageUrl: _resolveImageUrl(
-                            doc.imageUrl ?? '',
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
                 // 3. Health Packages Section
                 if (widget.labPackages.isNotEmpty) ...[
-                  const SizedBox(height: 40),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1715,15 +1734,7 @@ class _HealthSnapshotCard extends StatelessWidget {
     final score = snapshot.healthScore;
     final generatedLabel = _formatGeneratedAt(snapshot.generatedAt);
     final snapshotDateLabel = _formatSnapshotDate(snapshot.snapshotDate);
-
-    final extraFacts = <String>[
-      if (snapshot.bloodSugar != null)
-        'Blood sugar ${snapshot.bloodSugar!.toStringAsFixed(0)} mg/dL',
-      if (snapshot.cholesterol != null)
-        'Cholesterol ${snapshot.cholesterol!.toStringAsFixed(0)} mg/dL',
-      if ((snapshot.otherConditions ?? '').trim().isNotEmpty)
-        snapshot.otherConditions!.trim(),
-    ];
+    final healthSummary = (snapshot.aiSummary ?? '').trim();
 
     return Container(
       width: double.infinity,
@@ -1833,13 +1844,6 @@ class _HealthSnapshotCard extends StatelessWidget {
                           );
                         },
                       ),
-                      const SizedBox(width: 8),
-                      _CardIconButton(
-                        icon: Icons.add_rounded,
-                        tooltip: strings.addTodayReadings,
-                        accentColor: Color(0xFF225B9E),
-                        onTap: () => showHealthSnapshotEntrySheet(context),
-                      ),
                     ],
                   ),
                   if (snapshotDateLabel != null) ...[
@@ -1859,19 +1863,17 @@ class _HealthSnapshotCard extends StatelessWidget {
                     spacing: 16,
                     runSpacing: 8,
                     children: [
-                      if (score != null)
-                        _SnapshotMetric(
-                          label: strings.healthMetric,
-                          value: '${score.toStringAsFixed(0)}/100',
-                          accentColor: const Color(0xFF147D73),
-                        ),
-                      if (snapshot.riskScore != null)
-                        _SnapshotMetric(
-                          label: strings.riskMetric,
-                          value:
-                              '${snapshot.riskScore!.toStringAsFixed(0)}/100',
-                          accentColor: const Color(0xFFD2691E),
-                        ),
+                      _SnapshotMetric(
+                        label: strings.healthMetric,
+                        value: '${score?.toStringAsFixed(0) ?? '-'}/100',
+                        accentColor: const Color(0xFF147D73),
+                      ),
+                      _SnapshotMetric(
+                        label: strings.riskMetric,
+                        value:
+                            '${snapshot.riskScore?.toStringAsFixed(0) ?? '-'}/100',
+                        accentColor: const Color(0xFFD2691E),
+                      ),
                       if (snapshot.bmi != null)
                         _SnapshotMetric(
                           label: 'BMI',
@@ -1880,54 +1882,76 @@ class _HealthSnapshotCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  if (extraFacts.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    ...extraFacts.map(
-                      (fact) => Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          fact,
-                          style: const TextStyle(
-                            fontFamily: 'Manrope',
-                            fontFamilyFallback: ['AnekMalayalam'],
-                            color: Color(0xFF52708F),
-                            fontSize: 15.6,
-                            height: 1.4,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                  if (!snapshot.hasClinicalData) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      strings.noHealthStatusData,
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontFamilyFallback: ['AnekMalayalam'],
+                        color: Color(0xFF52708F),
+                        fontSize: 13.2,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
-                  if (snapshot.isEmpty) ...[
+                  if (healthSummary.isNotEmpty) ...[
                     const SizedBox(height: 14),
-                    SizedBox(
+                    Container(
                       width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => showHealthSnapshotEntrySheet(context),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF225B9E),
-                          side: const BorderSide(color: Color(0xFF9EC4EC)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.62),
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(color: const Color(0xFFC9DFF5)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.auto_awesome_rounded,
+                                color: Color(0xFF225B9E),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                strings.comprehensiveSummary,
+                                style: const TextStyle(
+                                  fontFamily: 'Manrope',
+                                  fontFamilyFallback: ['AnekMalayalam'],
+                                  color: Color(0xFF225B9E),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        child: Text(
-                          strings.addTodayReadings,
-                          style: const TextStyle(
-                            fontFamily: 'Manrope',
-                            fontFamilyFallback: ['AnekMalayalam'],
-                            fontSize: 16.8,
-                            fontWeight: FontWeight.w700,
+                          const SizedBox(height: 7),
+                          Text(
+                            healthSummary,
+                            style: const TextStyle(
+                              fontFamily: 'Manrope',
+                              fontFamilyFallback: ['AnekMalayalam'],
+                              color: Color(0xFF425E7A),
+                              fontSize: 13,
+                              height: 1.45,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
-                  ] else if (generatedLabel != null) ...[
+                  ],
+                  if (generatedLabel != null) ...[
                     const SizedBox(height: 12),
                     Text(
-                      strings.updatedHealthAt(generatedLabel),
+                      snapshot.updatedByName == null
+                          ? strings.updatedHealthAt(generatedLabel)
+                          : language == AppLanguage.ml
+                          ? '${snapshot.updatedByName} അപ്ഡേറ്റ് ചെയ്തത് · $generatedLabel'
+                          : 'Updated by ${snapshot.updatedByName} · $generatedLabel',
                       style: const TextStyle(
                         fontFamily: 'Manrope',
                         fontFamilyFallback: ['AnekMalayalam'],

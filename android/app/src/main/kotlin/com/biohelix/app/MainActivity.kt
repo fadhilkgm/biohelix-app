@@ -14,12 +14,15 @@ import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import com.android.installreferrer.api.InstallReferrerClient
+import com.android.installreferrer.api.InstallReferrerStateListener
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,6 +32,7 @@ import kotlinx.coroutines.launch
 class MainActivity : FlutterActivity() {
     private companion object {
         const val CHANNEL = "com.biohelix.app/fitness"
+        const val INSTALL_REFERRER_CHANNEL = "com.biohelix.app/install_referrer"
         const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
     }
 
@@ -61,6 +65,60 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler(::handleFitnessCall)
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            INSTALL_REFERRER_CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getInstallReferrer" -> getInstallReferrer(result)
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun getInstallReferrer(result: MethodChannel.Result) {
+        val client = InstallReferrerClient.newBuilder(this).build()
+        val delivered = AtomicBoolean(false)
+        fun finish(value: String?) {
+            if (delivered.compareAndSet(false, true)) {
+                result.success(value)
+            }
+        }
+        client.startConnection(
+            object : InstallReferrerStateListener {
+                override fun onInstallReferrerSetupFinished(responseCode: Int) {
+                    when (responseCode) {
+                        InstallReferrerClient.InstallReferrerResponse.OK -> {
+                            try {
+                                finish(client.installReferrer.installReferrer)
+                            } catch (error: Exception) {
+                                if (delivered.compareAndSet(false, true)) {
+                                    result.error("install_referrer_read", error.message, null)
+                                }
+                            } finally {
+                                client.endConnection()
+                            }
+                        }
+                        InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED -> {
+                            client.endConnection()
+                            finish(null)
+                        }
+                        InstallReferrerClient.InstallReferrerResponse.SERVICE_UNAVAILABLE -> {
+                            client.endConnection()
+                            finish(null)
+                        }
+                        else -> {
+                            client.endConnection()
+                            finish(null)
+                        }
+                    }
+                }
+
+                override fun onInstallReferrerServiceDisconnected() {
+                    finish(null)
+                }
+            },
+        )
     }
 
     private fun handleFitnessCall(call: MethodCall, result: MethodChannel.Result) {

@@ -1,10 +1,17 @@
 part of 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
 
 extension PatientPortalLoadMixin on PatientPortalProvider {
-  Future<void> loadPortal() async {
+  /// Loads the data needed to render the home screen, then starts the rest of
+  /// the portal data in a second phase.
+  ///
+  /// Existing callers keep the original "everything is ready" contract. The
+  /// login flow opts out of waiting so that non-home data does not block the
+  /// first useful frame.
+  Future<void> loadPortal({bool waitForDeferred = true}) async {
     if (!_sessionProvider.isAuthenticated) return;
 
     final currentPatientId = _sessionProvider.patient?.id;
+    final generation = ++_loadGeneration;
     if (_loadedPatientId != currentPatientId) {
       _resetPatientScopedState();
       _loadedPatientId = currentPatientId;
@@ -15,161 +22,249 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
     _notify();
 
     final loadErrors = <String>[];
-
-    Future<T?> safeLoad<T>(
-      Future<T> Function() loader,
-      String label, {
-      bool reportError = false,
-    }) async {
-      try {
-        return await loader();
-      } catch (error) {
-        if (reportError) {
-          loadErrors.add('$label: $error');
-        }
-        return null;
-      }
-    }
-
-    final dashboardResult = await safeLoad<PatientDashboard>(
-      _repository.getDashboard,
-      'dashboard',
-    );
-
     final results = await Future.wait<dynamic>([
-      safeLoad<List<HomeBannerItem>>(
+      _safeLoad<PatientDashboard>(_repository.getDashboard, 'dashboard'),
+      _safeLoad<List<HomeBannerItem>>(
         _repository.getHomeBanners,
         'home banners',
       ),
-      safeLoad<List<BookingItem>>(_repository.getBookings, 'bookings'),
-      safeLoad<List<PrescriptionRecord>>(
-        _repository.getPrescriptions,
-        'prescriptions',
-      ),
-      safeLoad<List<MedicalRecordItem>>(
-        _repository.getMedicalRecords,
-        'medical records',
-      ),
-      safeLoad<List<DocumentRecord>>(_repository.getDocuments, 'documents'),
-      safeLoad<List<SummaryRecord>>(_repository.getSummaries, 'summaries'),
-      safeLoad<List<VitalRecord>>(_repository.getVitalTrend, 'vitals'),
-      safeLoad<List<DoctorListing>>(
+      _safeLoad<List<BookingItem>>(_repository.getBookings, 'bookings'),
+      _safeLoad<List<DoctorListing>>(
         _repository.getDoctors,
         'doctors',
-        reportError: true,
+        errors: loadErrors,
       ),
-      safeLoad<List<LabTestItem>>(
+      _safeLoad<List<LabTestItem>>(
         _repository.getLabTests,
         'lab tests',
-        reportError: true,
+        errors: loadErrors,
       ),
-      safeLoad<List<LabOrderItem>>(_repository.getLabOrders, 'lab orders'),
-      safeLoad<List<LabPackageItem>>(
+      _safeLoad<List<LabPackageItem>>(
         _repository.getLabPackages,
         'lab packages',
-        reportError: true,
+        errors: loadErrors,
       ),
-      safeLoad<List<LabPackageOrderItem>>(
-        _repository.getLabPackageOrders,
-        'lab package orders',
-      ),
-      safeLoad<List<ChatThreadSummary>>(
-        _repository.getGlobalChatThreads,
-        'global chat threads',
-      ),
-      safeLoad<List<TickerMessageItem>>(
+      _safeLoad<List<TickerMessageItem>>(
         _repository.getTickerMessages,
         'ticker messages',
       ),
-      safeLoad<List<HomeOfferItem>>(_repository.getHomeOffers, 'home offers'),
-      safeLoad<List<DepartmentItem>>(_repository.getDepartments, 'departments'),
-      safeLoad<List<BodyPointItem>>(_repository.getBodyPoints, 'body points'),
-      safeLoad<MyClubSummary>(_repository.getMyClub, 'my club'),
-      safeLoad<HealthSnapshot?>(
+      _safeLoad<List<HomeOfferItem>>(_repository.getHomeOffers, 'home offers'),
+      _safeLoad<List<DepartmentItem>>(
+        _repository.getDepartments,
+        'departments',
+      ),
+      _safeLoad<MyClubSummary>(_repository.getMyClub, 'my club'),
+      _safeLoad<HealthSnapshot?>(
         _repository.getHealthSnapshot,
         'health snapshot',
       ),
-      safeLoad<List<AiSuggestionItem>>(
+      _safeLoad<List<AiSuggestionItem>>(
         _repository.getAiSuggestions,
         'ai suggestions',
       ),
-      safeLoad<List<FamilyMember>>(
+    ]);
+
+    if (!_isCurrentLoad(generation, currentPatientId)) {
+      if (generation == _loadGeneration) {
+        _isLoading = false;
+        _notify();
+      }
+      return;
+    }
+
+    _dashboard = results[0] as PatientDashboard? ?? _buildFallbackDashboard();
+    _homeBanners = results[1] as List<HomeBannerItem>? ?? const [];
+    _bookings = (results[2] as List<BookingItem>? ?? const [])
+        .where((booking) => booking.isDoctorAppointment)
+        .toList();
+    _doctors = results[3] as List<DoctorListing>? ?? const [];
+    _labTests = results[4] as List<LabTestItem>? ?? const [];
+    _labPackages = results[5] as List<LabPackageItem>? ?? const [];
+    _tickerMessages = results[6] as List<TickerMessageItem>? ?? const [];
+    _homeOffers = results[7] as List<HomeOfferItem>? ?? const [];
+    _departments = results[8] as List<DepartmentItem>? ?? const [];
+    _myClub = results[9] as MyClubSummary?;
+    _healthSnapshot = results[10] as HealthSnapshot?;
+    _aiSuggestions = results[11] as List<AiSuggestionItem>? ?? const [];
+    _mergeMyClubIntoDashboard();
+
+    if (loadErrors.isNotEmpty) {
+      _errorMessage = loadErrors.first;
+    }
+    _isLoading = false;
+    _notify();
+
+    final deferred = _loadDeferredPortalData(
+      generation: generation,
+      patientId: currentPatientId,
+    );
+    if (waitForDeferred) {
+      await deferred;
+    } else {
+      unawaited(deferred);
+    }
+  }
+
+  Future<void> _loadDeferredPortalData({
+    required int generation,
+    required int? patientId,
+  }) async {
+    _isLoadingDeferred = true;
+    _notify();
+
+    final labOrdersRevision = _labOrdersRevision;
+    final labPackageOrdersRevision = _labPackageOrdersRevision;
+    final results = await Future.wait<dynamic>([
+      _safeLoad<List<PrescriptionRecord>>(
+        _repository.getPrescriptions,
+        'prescriptions',
+      ),
+      _safeLoad<List<MedicalRecordItem>>(
+        _repository.getMedicalRecords,
+        'medical records',
+      ),
+      _safeLoad<List<DocumentRecord>>(_repository.getDocuments, 'documents'),
+      _safeLoad<List<SummaryRecord>>(_repository.getSummaries, 'summaries'),
+      _safeLoad<List<VitalRecord>>(_repository.getVitalTrend, 'vitals'),
+      _safeLoad<List<LabOrderItem>>(_repository.getLabOrders, 'lab orders'),
+      _safeLoad<List<LabPackageOrderItem>>(
+        _repository.getLabPackageOrders,
+        'lab package orders',
+      ),
+      _safeLoad<List<BodyPointItem>>(_repository.getBodyPoints, 'body points'),
+      _safeLoad<List<FamilyMember>>(
         _repository.getFamilyMembers,
         'family members',
       ),
-      safeLoad<List<HomeCareServiceItem>>(
+      _safeLoad<List<HomeCareServiceItem>>(
         _repository.getHomeCareServices,
         'home care services',
       ),
-      safeLoad<List<HomeCareBookingItem>>(
+      _safeLoad<List<HomeCareBookingItem>>(
         _repository.getHomeCareBookings,
         'home care bookings',
       ),
     ]);
 
-    _dashboard = dashboardResult ?? _buildFallbackDashboard();
-    _homeBanners = results[0] as List<HomeBannerItem>? ?? const [];
-    _bookings = (results[1] as List<BookingItem>? ?? const [])
-        .where((booking) => booking.isDoctorAppointment)
-        .toList();
-    _prescriptions = results[2] as List<PrescriptionRecord>? ?? const [];
-    _medicalRecords = results[3] as List<MedicalRecordItem>? ?? const [];
-    _documents = results[4] as List<DocumentRecord>? ?? const [];
-    _summaries = results[5] as List<SummaryRecord>? ?? const [];
-    _vitalTrend = results[6] as List<VitalRecord>? ?? const [];
-    _doctors = results[7] as List<DoctorListing>? ?? const [];
-    _labTests = results[8] as List<LabTestItem>? ?? const [];
-    _labOrders = results[9] as List<LabOrderItem>? ?? const [];
-    _labPackages = results[10] as List<LabPackageItem>? ?? const [];
-    _labPackageOrders = results[11] as List<LabPackageOrderItem>? ?? const [];
-    _chatThreads = results[12] as List<ChatThreadSummary>? ?? const [];
-    _tickerMessages = results[13] as List<TickerMessageItem>? ?? const [];
-    _homeOffers = results[14] as List<HomeOfferItem>? ?? const [];
-    _departments = results[15] as List<DepartmentItem>? ?? const [];
-    _bodyPoints = results[16] as List<BodyPointItem>? ?? const [];
-    _myClub = results[17] as MyClubSummary?;
-    _healthSnapshot = results[18] as HealthSnapshot?;
-    _aiSuggestions = results[19] as List<AiSuggestionItem>? ?? const [];
-    _familyMembers = results[20] as List<FamilyMember>? ?? const [];
-    _homeCareServices = results[21] as List<HomeCareServiceItem>? ?? const [];
-    _homeCareBookings = results[22] as List<HomeCareBookingItem>? ?? const [];
-
-    if (_myClub != null && _dashboard != null) {
-      _dashboard = PatientDashboard(
-        patient: _dashboard!.patient,
-        metrics: _dashboard!.metrics,
-        recentBookings: _dashboard!.recentBookings,
-        recentPrescriptions: _dashboard!.recentPrescriptions,
-        recentDocuments: _dashboard!.recentDocuments,
-        recentSummaries: _dashboard!.recentSummaries,
-        idCard: _dashboard!.idCard,
-        myClub: _myClub!,
-        emergencyContacts: _dashboard!.emergencyContacts,
-        latestVitals: _dashboard!.latestVitals,
-      );
-    }
-
-    if (_chatThreads.isNotEmpty) {
-      if (_activeChatThreadId == null ||
-          _chatThreads.every((thread) => thread.id != _activeChatThreadId)) {
-        _activeChatThreadId = _chatThreads.first.id;
+    if (!_isCurrentLoad(generation, patientId)) {
+      if (generation == _loadGeneration) {
+        _isLoadingDeferred = false;
+        _notify();
       }
-      final threadId = _activeChatThreadId!;
-      final history = await safeLoad<List<ChatMessage>>(
-        () => _repository.getGlobalChatHistory(threadId),
-        'global chat history',
-      );
-      _chatHistories[threadId] = history ?? const [];
-    } else {
-      _activeChatThreadId = null;
-      _chatHistories.clear();
+      return;
     }
 
-    if (loadErrors.isNotEmpty) {
-      _errorMessage = loadErrors.first;
+    _prescriptions = results[0] as List<PrescriptionRecord>? ?? const [];
+    _medicalRecords = results[1] as List<MedicalRecordItem>? ?? const [];
+    _documents = results[2] as List<DocumentRecord>? ?? const [];
+    _summaries = results[3] as List<SummaryRecord>? ?? const [];
+    _vitalTrend = results[4] as List<VitalRecord>? ?? const [];
+    if (_labOrdersRevision == labOrdersRevision) {
+      _labOrders = results[5] as List<LabOrderItem>? ?? const [];
     }
+    if (_labPackageOrdersRevision == labPackageOrdersRevision) {
+      _labPackageOrders = results[6] as List<LabPackageOrderItem>? ?? const [];
+    }
+    _bodyPoints = results[7] as List<BodyPointItem>? ?? const [];
+    _familyMembers = results[8] as List<FamilyMember>? ?? const [];
+    _homeCareServices = results[9] as List<HomeCareServiceItem>? ?? const [];
+    _homeCareBookings = results[10] as List<HomeCareBookingItem>? ?? const [];
+    _isLoadingDeferred = false;
+    _notify();
+  }
 
-    _isLoading = false;
+  Future<T?> _safeLoad<T>(
+    Future<T> Function() loader,
+    String label, {
+    List<String>? errors,
+  }) async {
+    try {
+      return await loader();
+    } catch (error) {
+      errors?.add('$label: $error');
+      return null;
+    }
+  }
+
+  bool _isCurrentLoad(int generation, int? patientId) {
+    return generation == _loadGeneration &&
+        patientId == _loadedPatientId &&
+        patientId == _sessionProvider.patient?.id &&
+        _sessionProvider.isAuthenticated;
+  }
+
+  void _mergeMyClubIntoDashboard() {
+    if (_myClub == null || _dashboard == null) return;
+    _dashboard = PatientDashboard(
+      patient: _dashboard!.patient,
+      metrics: _dashboard!.metrics,
+      recentBookings: _dashboard!.recentBookings,
+      recentPrescriptions: _dashboard!.recentPrescriptions,
+      recentDocuments: _dashboard!.recentDocuments,
+      recentSummaries: _dashboard!.recentSummaries,
+      idCard: _dashboard!.idCard,
+      myClub: _myClub!,
+      emergencyContacts: _dashboard!.emergencyContacts,
+      latestVitals: _dashboard!.latestVitals,
+    );
+  }
+
+  Future<void> _refreshDoctorBookings() async {
+    final generation = _loadGeneration;
+    final patientId = _sessionProvider.patient?.id;
+    final results = await Future.wait<dynamic>([
+      _safeLoad<PatientDashboard>(_repository.getDashboard, 'dashboard'),
+      _safeLoad<List<BookingItem>>(_repository.getBookings, 'bookings'),
+    ]);
+    if (!_isCurrentLoad(generation, patientId)) return;
+    _dashboard = results[0] as PatientDashboard? ?? _dashboard;
+    final bookings = results[1] as List<BookingItem>?;
+    if (bookings != null) {
+      _bookings = bookings
+          .where((booking) => booking.isDoctorAppointment)
+          .toList();
+    }
+    _mergeMyClubIntoDashboard();
+    _notify();
+  }
+
+  Future<void> _refreshLabOrders() async {
+    final generation = _loadGeneration;
+    final patientId = _sessionProvider.patient?.id;
+    final revision = ++_labOrdersRevision;
+    final results = await Future.wait<dynamic>([
+      _safeLoad<PatientDashboard>(_repository.getDashboard, 'dashboard'),
+      _safeLoad<List<LabOrderItem>>(_repository.getLabOrders, 'lab orders'),
+    ]);
+    if (revision != _labOrdersRevision ||
+        !_isCurrentLoad(generation, patientId)) {
+      return;
+    }
+    _dashboard = results[0] as PatientDashboard? ?? _dashboard;
+    _labOrders = results[1] as List<LabOrderItem>? ?? _labOrders;
+    _mergeMyClubIntoDashboard();
+    _notify();
+  }
+
+  Future<void> _refreshLabPackageOrders() async {
+    final generation = _loadGeneration;
+    final patientId = _sessionProvider.patient?.id;
+    final revision = ++_labPackageOrdersRevision;
+    final results = await Future.wait<dynamic>([
+      _safeLoad<PatientDashboard>(_repository.getDashboard, 'dashboard'),
+      _safeLoad<List<LabPackageOrderItem>>(
+        _repository.getLabPackageOrders,
+        'lab package orders',
+      ),
+    ]);
+    if (revision != _labPackageOrdersRevision ||
+        !_isCurrentLoad(generation, patientId)) {
+      return;
+    }
+    _dashboard = results[0] as PatientDashboard? ?? _dashboard;
+    _labPackageOrders =
+        results[1] as List<LabPackageOrderItem>? ?? _labPackageOrders;
+    _mergeMyClubIntoDashboard();
     _notify();
   }
 
@@ -227,6 +322,7 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
   Future<void> refreshMyClub() async {
     try {
       _myClub = await _repository.getMyClub();
+      _mergeMyClubIntoDashboard();
       _errorMessage = null;
     } catch (error) {
       _errorMessage = error.toString();

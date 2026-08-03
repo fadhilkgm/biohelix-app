@@ -35,12 +35,9 @@ class SessionProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _pendingPhone;
   String? _pendingMrn;
-  String? _pendingSignupName;
-  String? _pendingSignupDob;
-  String? _pendingSignupPlace;
-  String? _pendingSignupEmail;
-  String? _pendingSignupGender;
+  bool _pendingSignup = false;
   String? _pendingSignupBloodGroup;
+  bool _shouldOfferInitialHealthAssessment = false;
   String? _devOtp;
   String? _otpStatusMessage;
   List<SavedPatientProfile> _familyProfiles = const [];
@@ -53,7 +50,9 @@ class SessionProvider extends ChangeNotifier {
   String? get pendingMrn => _pendingMrn;
   String? get devOtp => _devOtp;
   String? get otpStatusMessage => _otpStatusMessage;
-  bool get isPendingSignupOtp => (_pendingSignupName ?? '').isNotEmpty;
+  bool get isPendingSignupOtp => _pendingSignup;
+  bool get shouldOfferInitialHealthAssessment =>
+      _shouldOfferInitialHealthAssessment;
   List<SavedPatientProfile> get familyProfiles =>
       List.unmodifiable(_familyProfiles);
 
@@ -145,6 +144,7 @@ class SessionProvider extends ChangeNotifier {
     String? email,
     String? gender,
     String? bloodGroup,
+    String? referralCode,
   }) async {
     final normalizedPhone = normalizePatientPhone(phone);
     if (normalizedPhone.isEmpty ||
@@ -168,16 +168,13 @@ class SessionProvider extends ChangeNotifier {
         place: place.trim(),
         email: email,
         gender: gender,
+        referralCode: referralCode,
       );
       _devOtp = result.devOtp;
       _otpStatusMessage = result.message;
       _pendingPhone = normalizedPhone;
       _pendingMrn = null;
-      _pendingSignupName = name.trim();
-      _pendingSignupDob = dob.trim();
-      _pendingSignupPlace = place.trim();
-      _pendingSignupEmail = email?.trim();
-      _pendingSignupGender = gender?.trim();
+      _pendingSignup = true;
       _pendingSignupBloodGroup = bloodGroup?.trim();
       _state = SessionState.signedOut;
     } catch (error) {
@@ -197,15 +194,19 @@ class SessionProvider extends ChangeNotifier {
     }
 
     if (isPendingSignupOtp) {
-      await signUp(
-        phone: phone!,
-        name: _pendingSignupName!,
-        dob: _pendingSignupDob ?? '',
-        place: _pendingSignupPlace!,
-        email: _pendingSignupEmail,
-        gender: _pendingSignupGender,
-        bloodGroup: _pendingSignupBloodGroup,
-      );
+      _state = SessionState.sendingOtp;
+      _errorMessage = null;
+      notifyListeners();
+      try {
+        final result = await _patientRepository.sendOtp(phone: phone!);
+        _devOtp = result.devOtp;
+        _otpStatusMessage = result.message;
+        _state = SessionState.signedOut;
+      } catch (error) {
+        _errorMessage = error.toString();
+        _state = SessionState.signedOut;
+      }
+      notifyListeners();
       return;
     }
 
@@ -315,7 +316,10 @@ class SessionProvider extends ChangeNotifier {
         dateOfBirth: dateOfBirth,
         bloodGroup: bloodGroup,
       );
-      await _applyAuthenticatedSession(session);
+      await _applyAuthenticatedSession(
+        session,
+        offerInitialHealthAssessment: true,
+      );
     } catch (error) {
       _errorMessage = error.toString();
       _state = SessionState.signedOut;
@@ -335,11 +339,7 @@ class SessionProvider extends ChangeNotifier {
   }
 
   void _clearPendingSignupDetails() {
-    _pendingSignupName = null;
-    _pendingSignupDob = null;
-    _pendingSignupPlace = null;
-    _pendingSignupEmail = null;
-    _pendingSignupGender = null;
+    _pendingSignup = false;
     _pendingSignupBloodGroup = null;
   }
 
@@ -371,6 +371,8 @@ class SessionProvider extends ChangeNotifier {
           _patient!.copyWith(bloodGroup: pendingBloodGroup),
         );
       }
+      _shouldOfferInitialHealthAssessment =
+          wasSignup && !_patient!.hasCompletedInitialHealthAssessment;
       await _saveFamilyProfile(token: session.token, patient: _patient!);
       _state = SessionState.signedIn;
       _devOtp = null;
@@ -408,8 +410,29 @@ class SessionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> acceptLegalConsent() async {
+    if (!isAuthenticated) return;
+
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _patient = await _patientRepository.acceptLegalConsent();
+      await _saveFamilyProfile(token: _authToken!, patient: _patient!);
+    } catch (error) {
+      _errorMessage = error.toString();
+      notifyListeners();
+      rethrow;
+    }
+
+    notifyListeners();
+  }
+
   void updatePatient(PatientIdentity patient) {
     _patient = patient;
+    if (patient.hasCompletedInitialHealthAssessment) {
+      _shouldOfferInitialHealthAssessment = false;
+    }
     final token = _authToken;
     if ((token ?? '').isNotEmpty) {
       unawaited(_saveFamilyProfile(token: token!, patient: patient));
@@ -439,6 +462,7 @@ class SessionProvider extends ChangeNotifier {
       _apiClient.updateAuthToken(token);
       final nextPatient = await _patientRepository.getCurrentPatient();
       _patient = nextPatient;
+      _shouldOfferInitialHealthAssessment = false;
       await _saveFamilyProfile(token: token, patient: nextPatient);
       _state = SessionState.signedIn;
     } catch (error) {
@@ -454,6 +478,7 @@ class SessionProvider extends ChangeNotifier {
         await _authStorage.writeToken(fallbackToken!);
         _apiClient.updateAuthToken(fallbackToken);
         _patient = await _patientRepository.getCurrentPatient();
+        _shouldOfferInitialHealthAssessment = false;
         _state = SessionState.signedIn;
       } else {
         await _authStorage.clearAll();
@@ -463,6 +488,24 @@ class SessionProvider extends ChangeNotifier {
         _apiClient.updateAuthToken(null);
         _state = SessionState.signedOut;
       }
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> switchLinkedFamilyMember(int linkId) async {
+    _errorMessage = null;
+    _state = SessionState.bootstrapping;
+    notifyListeners();
+
+    try {
+      final session = await _patientRepository.switchToFamilyMember(linkId);
+      await _applyAuthenticatedSession(session);
+    } catch (error) {
+      _errorMessage = error.toString();
+      _state = SessionState.signedIn;
+      notifyListeners();
+      rethrow;
     }
 
     notifyListeners();
@@ -486,6 +529,7 @@ class SessionProvider extends ChangeNotifier {
     _devOtp = null;
     _otpStatusMessage = null;
     _clearPendingSignupDetails();
+    _shouldOfferInitialHealthAssessment = false;
     _state = SessionState.signedOut;
     notifyListeners();
   }
@@ -502,15 +546,22 @@ class SessionProvider extends ChangeNotifier {
     _devOtp = null;
     _otpStatusMessage = null;
     _clearPendingSignupDetails();
+    _shouldOfferInitialHealthAssessment = false;
     _state = SessionState.signedOut;
     notifyListeners();
   }
 
-  Future<void> _applyAuthenticatedSession(PatientAuthSession session) async {
+  Future<void> _applyAuthenticatedSession(
+    PatientAuthSession session, {
+    bool offerInitialHealthAssessment = false,
+  }) async {
     _authToken = session.token;
     await _authStorage.writeToken(session.token);
     _apiClient.updateAuthToken(session.token);
     _patient = session.patient;
+    _shouldOfferInitialHealthAssessment =
+        offerInitialHealthAssessment &&
+        !session.patient.hasCompletedInitialHealthAssessment;
     await _saveFamilyProfile(token: session.token, patient: _patient!);
     _state = SessionState.signedIn;
     _devOtp = null;

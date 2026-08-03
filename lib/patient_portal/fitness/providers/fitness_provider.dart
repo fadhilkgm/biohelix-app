@@ -57,6 +57,7 @@ class FitnessProvider extends ChangeNotifier {
   bool get isIOS => _service.isIOS;
   String get platformName => _service.platformName;
   bool get isConnected => _state == FitnessConnectionState.connected;
+  bool get hasDeviceOwner => _deviceOwnerPatientId != null;
 
   Future<void> initialize() async {
     final preferences = await SharedPreferences.getInstance();
@@ -154,6 +155,15 @@ class FitnessProvider extends ChangeNotifier {
   }
 
   Future<void> openHealthConnect() => _service.openHealthConnect();
+
+  Future<void> disconnect() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_ownerPatientKey);
+    _deviceOwnerPatientId = null;
+    _summary = const FitnessActivitySummary();
+    _errorMessage = null;
+    _setState(FitnessConnectionState.disconnected);
+  }
 
   Future<void> _refreshForCurrentPatient({required bool syncDevice}) async {
     final patientId = _sessionProvider.patient?.id;

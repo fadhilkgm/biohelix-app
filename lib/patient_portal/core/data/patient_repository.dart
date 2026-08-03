@@ -197,6 +197,7 @@ class HealthSnapshotInput {
     this.bloodPressureSystolic,
     this.bloodPressureDiastolic,
     this.bloodSugar,
+    this.bloodSugarContext,
     this.cholesterol,
     this.weight,
     this.otherConditions,
@@ -210,6 +211,9 @@ class HealthSnapshotInput {
 
   /// 0–1000 mg/dL.
   final double? bloodSugar;
+
+  /// Meal timing used to interpret [bloodSugar].
+  final String? bloodSugarContext;
 
   /// 0–1000 mg/dL.
   final double? cholesterol;
@@ -225,9 +229,70 @@ class HealthSnapshotInput {
       'bloodPressureSystolic': bloodPressureSystolic,
       'bloodPressureDiastolic': bloodPressureDiastolic,
       'bloodSugar': bloodSugar,
+      'bloodSugarContext': bloodSugarContext,
       'cholesterol': cholesterol,
       'weight': weight,
       'otherConditions': otherConditions,
+    }..removeWhere((key, value) => value == null);
+  }
+}
+
+class InitialHealthAssessmentInput {
+  const InitialHealthAssessmentInput({
+    this.dateOfBirth,
+    this.age,
+    this.height,
+    this.weight,
+    this.bloodPressureSystolic,
+    this.bloodPressureDiastolic,
+    this.bloodSugar,
+    this.bloodSugarContext,
+    this.cholesterol,
+    this.allergies = const [],
+    this.currentMedications = const [],
+    this.chronicConditions = const [],
+    this.activityLevel,
+    this.smokingStatus,
+    this.sleepQuality,
+  });
+
+  final String? dateOfBirth;
+  final int? age;
+  final double? height;
+  final double? weight;
+  final int? bloodPressureSystolic;
+  final int? bloodPressureDiastolic;
+  final double? bloodSugar;
+  final String? bloodSugarContext;
+  final double? cholesterol;
+  final List<String> allergies;
+  final List<String> currentMedications;
+  final List<String> chronicConditions;
+  final String? activityLevel;
+  final String? smokingStatus;
+  final String? sleepQuality;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'date_of_birth': dateOfBirth,
+      'age': age,
+      'height': height,
+      'weight': weight,
+      'blood_pressure_systolic': bloodPressureSystolic,
+      'blood_pressure_diastolic': bloodPressureDiastolic,
+      'blood_sugar': bloodSugar,
+      'blood_sugar_context': bloodSugar == null ? null : bloodSugarContext,
+      'cholesterol': cholesterol,
+      'allergies': allergies.isEmpty ? null : allergies,
+      'current_medications': currentMedications.isEmpty
+          ? null
+          : currentMedications,
+      'chronic_conditions': chronicConditions.isEmpty
+          ? null
+          : chronicConditions,
+      'activity_level': activityLevel,
+      'smoking_status': smokingStatus,
+      'sleep_quality': sleepQuality,
     }..removeWhere((key, value) => value == null);
   }
 }
@@ -333,6 +398,7 @@ class PatientRepository {
     required String place,
     String? email,
     String? gender,
+    String? referralCode,
   }) async {
     final response = await _apiClient.postJson(
       '/auth/signup',
@@ -343,6 +409,8 @@ class PatientRepository {
         'place': place.trim(),
         if ((email ?? '').trim().isNotEmpty) 'email': email!.trim(),
         if ((gender ?? '').trim().isNotEmpty) 'gender': gender!.trim(),
+        if ((referralCode ?? '').trim().isNotEmpty)
+          'referral_code': referralCode!.trim().toUpperCase(),
       },
     );
     if (response['success'] == false) {
@@ -402,6 +470,11 @@ class PatientRepository {
     );
   }
 
+  Future<PatientIdentity> acceptLegalConsent() async {
+    final response = await _apiClient.postJson('/auth/legal-consent');
+    return PatientIdentity.fromJson(_map(response['patient']));
+  }
+
   Future<void> logout() async {
     await _apiClient.postJson('/auth/logout');
   }
@@ -459,6 +532,16 @@ class PatientRepository {
     return HealthProfileSnapshot.fromJson(_map(response['data']));
   }
 
+  Future<PatientIdentity> completeInitialHealthAssessment(
+    InitialHealthAssessmentInput input,
+  ) async {
+    final response = await _apiClient.postJson(
+      '/patients/me/initial-health-assessment',
+      data: input.toJson(),
+    );
+    return PatientIdentity.fromJson(_map(response['patient']));
+  }
+
   /// Paginated list of all snapshots, newest first (self-reported plus
   /// auto-generated assessment/document derived entries).
   Future<List<HealthProfileSnapshot>> getHealthProfileHistory() async {
@@ -512,8 +595,11 @@ class PatientRepository {
     }).toList();
   }
 
-  Future<List<BookingItem>> getBookings() async {
-    final response = await _apiClient.getJson('/patients/bookings');
+  Future<List<BookingItem>> getBookings({int? patientId}) async {
+    final response = await _apiClient.getJson(
+      '/patients/bookings',
+      queryParameters: patientId == null ? null : {'patient_id': patientId},
+    );
     final bookings =
         response['bookings'] as List<dynamic>? ??
         response['data'] as List<dynamic>? ??
@@ -589,6 +675,19 @@ class PatientRepository {
     return MyClubSummary.fromJson(_map(response));
   }
 
+  Future<ReferralSummary> getReferrals() async {
+    final response = await _apiClient.getJson('/patients/me/referrals');
+    return ReferralSummary.fromJson(_map(response['referrals']));
+  }
+
+  Future<ReferralCodeResolution> resolveReferralCode(String code) async {
+    final response = await _apiClient.postJson(
+      '/referrals/resolve',
+      data: {'referral_code': code.trim().toUpperCase()},
+    );
+    return ReferralCodeResolution.fromJson(response);
+  }
+
   Future<List<FamilyMember>> getFamilyMembers() async {
     final response = await _apiClient.getJson('/patients/me/family-members');
     final members = response['members'] as List<dynamic>? ?? const [];
@@ -622,6 +721,13 @@ class PatientRepository {
       },
     );
     return FamilyMember.fromJson(_map(response['member']));
+  }
+
+  Future<PatientAuthSession> switchToFamilyMember(int linkId) async {
+    final response = await _apiClient.postJson(
+      '/patients/me/family-members/$linkId/switch',
+    );
+    return _authSessionFromResponse(response);
   }
 
   Future<List<HomeCareServiceItem>> getHomeCareServices() async {
@@ -671,11 +777,12 @@ class PatientRepository {
     return snapshot;
   }
 
-  Future<HealthSnapshot> refreshHealthSnapshot() async {
+  Future<HealthSnapshot?> refreshHealthSnapshot() async {
     final response = await _apiClient.postJson(
       '/patients/me/health-snapshot/refresh',
     );
-    return HealthSnapshot.fromJson(response);
+    final snapshot = HealthSnapshot.fromJson(response);
+    return snapshot.isEmpty ? null : snapshot;
   }
 
   /// Manual entry ("add" button) — upserts today's snapshot row. Calling
@@ -769,6 +876,7 @@ class PatientRepository {
     required int doctorId,
     required String bookingDate,
     required String timeslot,
+    int? patientId,
     String? notes,
   }) async {
     final response = await _apiClient.postJson(
@@ -777,6 +885,7 @@ class PatientRepository {
         'doctorId': doctorId,
         'bookingDate': bookingDate,
         'timeslot': timeslot,
+        ...?(patientId == null ? null : {'patient_id': patientId}),
         if ((notes ?? '').trim().isNotEmpty) 'notes': notes!.trim(),
       },
     );
@@ -811,6 +920,34 @@ class PatientRepository {
     );
     final slots = response['availableSlots'] as List<dynamic>? ?? const [];
     return slots.map((item) => item.toString()).toList();
+  }
+
+  Future<List<DoctorSlotAvailability>> getDoctorSlotAvailability({
+    required int doctorId,
+    required String date,
+  }) async {
+    final response = await _apiClient.getJson(
+      '/doctors/$doctorId/available-slots?date=$date',
+    );
+    final slots = response['slots'] as List<dynamic>? ?? const [];
+    if (slots.isNotEmpty) {
+      return slots
+          .map((item) => DoctorSlotAvailability.fromJson(_map(item)))
+          .where((item) => item.slot.isNotEmpty)
+          .toList();
+    }
+
+    final capacity = (response['slotCapacity'] as num?)?.toInt() ?? 2;
+    final availableSlots =
+        response['availableSlots'] as List<dynamic>? ?? const [];
+    return availableSlots
+        .map(
+          (item) => DoctorSlotAvailability.available(
+            item.toString(),
+            capacity: capacity,
+          ),
+        )
+        .toList();
   }
 
   Future<List<ChatThreadSummary>> getGlobalChatThreads() async {

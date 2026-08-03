@@ -1,109 +1,137 @@
 import 'package:biohelix_app/core/config/app_config.dart';
 import 'package:biohelix_app/core/network/api_client.dart';
+import 'package:biohelix_app/core/providers/language_provider.dart';
 import 'package:biohelix_app/core/storage/auth_storage.dart';
 import 'package:biohelix_app/features/session/providers/session_provider.dart';
 import 'package:biohelix_app/patient_portal/ai_checkup/screens/ai_checkup_tab.dart';
 import 'package:biohelix_app/patient_portal/ai_checkup/services/ai_checkup_service.dart';
+import 'package:biohelix_app/patient_portal/assistant/voice/inworld_signaling_api.dart';
+import 'package:biohelix_app/patient_portal/assistant/voice/live_voice_controller.dart';
+import 'package:biohelix_app/patient_portal/assistant/voice/live_voice_state.dart';
 import 'package:biohelix_app/patient_portal/core/data/patient_repository.dart';
-import 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   late _FakeAiCheckupService service;
+  late _FakeLiveVoiceController voice;
 
   setUp(() {
     SharedPreferences.setMockInitialValues(const {});
-    GoogleFonts.config.allowRuntimeFetching = false;
     service = _FakeAiCheckupService();
   });
 
-  testWidgets('completes the documented health-assessment flow', (
+  testWidgets('starts voice immediately and completes with controlled outcome', (
     tester,
   ) async {
-    await tester.pumpWidget(_buildSubject(service));
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+        );
+        return voice;
+      }),
+    );
     await tester.pumpAndSettle();
 
-    // Language selection.
-    expect(find.text('Choose Language'), findsOneWidget);
-    await tester.tap(find.text('English'));
+    expect(service.startVoiceCallCount, 1);
+    expect(voice.startCallCount, 1);
+    expect(find.text('Checkup for Fadhil P'), findsOneWidget);
+    expect(find.textContaining('Are you feeling unwell today'), findsOneWidget);
+
+    service.nextDecision = const VoiceAssessmentTurnDecision(
+      spokenResponse: 'How have your sleep and energy been?',
+      responseInstructions: 'Ask about sleep and energy.',
+      completed: false,
+      turnCount: 1,
+      maxTurns: 10,
+    );
+    await voice.simulateTurn(
+      'I have been tired for two weeks.',
+      'How have your sleep and energy been?',
+    );
     await tester.pumpAndSettle();
 
-    // Welcome -> start session (fetches questions).
-    expect(find.text('AI Health Checkup'), findsWidgets);
-    await tester.tap(find.text('Start Assessment'));
+    expect(find.text('I have been tired for two weeks.'), findsOneWidget);
+    expect(find.text('How have your sleep and energy been?'), findsOneWidget);
+
+    service.nextDecision = VoiceAssessmentTurnDecision(
+      spokenResponse:
+          'A consultation is the most suitable next step. Your result is saved.',
+      responseInstructions: 'Explain the consultation outcome.',
+      completed: true,
+      turnCount: 2,
+      maxTurns: 10,
+      result: AssessmentResults.fromJson(const {
+        'outcome': 'consultation_only',
+        'urgency': 'soon',
+        'risk_level': 'moderate',
+        'summary': 'Persistent fatigue should be reviewed by a clinician.',
+        'insights': ['Arrange a clinical review if fatigue continues.'],
+      }),
+    );
+    await voice.simulateTurn(
+      'I sleep five hours and still feel tired.',
+      'A consultation is the most suitable next step. Your result is saved.',
+    );
     await tester.pumpAndSettle();
 
-    expect(service.startCallCount, 1);
-
-    // Question 1.
-    expect(find.text('Question 1/2'), findsOneWidget);
-    expect(find.text('How severe has your fatigue been?'), findsOneWidget);
-    await tester.tap(find.text('Frequent fatigue'));
-    await tester.pumpAndSettle();
-
-    // Question 2 (last) -> submitting answers triggers evaluation.
-    expect(find.text('Question 2/2'), findsOneWidget);
-    expect(find.text('Do you sleep well?'), findsOneWidget);
-    await tester.tap(find.text('No'));
-    await tester.pumpAndSettle();
-
-    // Results.
-    expect(service.submitCallCount, 1);
-    expect(service.lastAnswers['1'], 'C');
-    expect(service.lastAnswers['2'], 'B');
-
-    expect(find.text('Moderate Risk'), findsOneWidget);
+    expect(find.text('Consultation may be suitable'), findsOneWidget);
     expect(
-      find.textContaining('metabolic health'),
+      find.text('Persistent fatigue should be reviewed by a clinician.'),
       findsOneWidget,
     );
-    expect(find.text('Key Insights'), findsOneWidget);
-    expect(find.text('Monitor your blood glucose regularly.'), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.text('Recommended Packages'),
-      200,
-      scrollable: find.byType(Scrollable).last,
+    expect(
+      find.textContaining('No test or consultation has been booked'),
+      findsOneWidget,
     );
-    expect(find.text('Comprehensive Health Package'), findsOneWidget);
+    expect(service.recordedResponses, 2);
+    expect(voice.stopCallCount, 1);
   });
 
-  testWidgets('opens a past result from History', (tester) async {
-    service.historyItems = [
-      AssessmentHistoryItem.fromJson(const {
-        'session_token': 'old-token',
-        'language': 'en',
-        'risk_level': 'low',
-        'summary': 'Previous assessment summary.',
-        'created_at': '2026-06-20T10:30:00Z',
+  testWidgets('shows text fallback when realtime voice fails', (tester) async {
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+          failOnStart: true,
+        );
+        return voice;
       }),
-    ];
-
-    await tester.pumpWidget(_buildSubject(service));
+    );
     await tester.pumpAndSettle();
 
-    // History button is on the language screen.
-    await tester.tap(find.byTooltip('History'));
+    expect(find.text('Text fallback'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+
+    service.nextDecision = const VoiceAssessmentTurnDecision(
+      spokenResponse: 'What is your main concern?',
+      responseInstructions: 'Ask the main concern.',
+      completed: false,
+      turnCount: 1,
+      maxTurns: 10,
+    );
+    await tester.enterText(find.byType(TextField), 'I feel tired');
+    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pumpAndSettle();
 
-    expect(service.historyCallCount, 1);
-    expect(find.textContaining('Previous assessment summary.'), findsWidgets);
-
-    // Open the past result.
-    await tester.tap(find.text('View details'));
-    await tester.pumpAndSettle();
-
-    expect(service.lastResultsToken, 'old-token');
-    expect(find.text('Low Risk'), findsOneWidget);
-    expect(find.text('Stay hydrated.'), findsOneWidget);
+    expect(find.text('I feel tired'), findsOneWidget);
+    expect(find.text('What is your main concern?'), findsOneWidget);
   });
 }
 
-Widget _buildSubject(_FakeAiCheckupService service) {
+Widget _buildSubject(
+  _FakeAiCheckupService service,
+  _FakeLiveVoiceController Function(
+    RealtimeTurnCompleted onTurnCompleted,
+    RealtimeTurnContext onTurnContext,
+  )
+  createVoice,
+) {
   final config = AppConfig(
     appName: 'BioHelix Test',
     apiBaseUrl: 'https://example.test/api',
@@ -121,106 +149,140 @@ Widget _buildSubject(_FakeAiCheckupService service) {
   return MultiProvider(
     providers: [
       Provider<AppConfig>.value(value: config),
-      ChangeNotifierProvider<SessionProvider>.value(value: sessionProvider),
-      ChangeNotifierProvider<PatientPortalProvider>(
-        create: (_) => PatientPortalProvider(
-          repository: repository,
-          sessionProvider: sessionProvider,
-        ),
+      Provider<ApiClient>.value(value: apiClient),
+      ChangeNotifierProvider<LanguageProvider>(
+        create: (_) => LanguageProvider(apiClient: apiClient),
       ),
+      ChangeNotifierProvider<SessionProvider>.value(value: sessionProvider),
     ],
-    child: MaterialApp(home: AiCheckupTab(serviceFactory: (_) => service)),
+    child: MaterialApp(
+      home: AiCheckupTab(
+        serviceFactory: (_) => service,
+        voiceControllerFactory:
+            ({
+              required signalingApi,
+              required onTurnCompleted,
+              required onTurnContext,
+            }) => createVoice(onTurnCompleted, onTurnContext),
+      ),
+    ),
   );
 }
 
 class _FakeAiCheckupService extends AiCheckupService {
   _FakeAiCheckupService() : super(apiBaseUrl: '', authToken: '');
 
-  int startCallCount = 0;
-  int submitCallCount = 0;
-  int historyCallCount = 0;
-  String? lastLanguage;
-  String? lastResultsToken;
-  Map<String, String> lastAnswers = const {};
-  List<AssessmentHistoryItem> historyItems = const [];
+  int startVoiceCallCount = 0;
+  int recordedResponses = 0;
+  VoiceAssessmentTurnDecision nextDecision = const VoiceAssessmentTurnDecision(
+    spokenResponse: 'Tell me more.',
+    responseInstructions: 'Ask the patient to tell you more.',
+    completed: false,
+    turnCount: 1,
+    maxTurns: 10,
+  );
 
   @override
-  Future<List<AssessmentHistoryItem>> listHistory() async {
-    historyCallCount++;
-    return historyItems;
-  }
-
-  @override
-  Future<AssessmentResults> getResults(String sessionToken) async {
-    lastResultsToken = sessionToken;
-    return AssessmentResults.fromJson(const {
-      'risk_level': 'low',
-      'summary': 'Previous assessment summary.',
-      'insights': ['Stay hydrated.'],
-      'recommended_packages': [],
-      'recommended_tests': [],
-      'custom_package': null,
-    });
-  }
-
-  @override
-  Future<AssessmentSession> startAssessment({String language = 'en'}) async {
-    startCallCount++;
-    lastLanguage = language;
-    return AssessmentSession.fromJson(const {
-      'session_token': 'test-token',
-      'status': 'questions_ready',
-      'is_personalised': true,
-      'questions': [
-        {
-          'id': 1,
-          'question': 'How severe has your fatigue been?',
-          'category': 'symptoms',
-          'options': [
-            {'key': 'A', 'text': 'Mild'},
-            {'key': 'B', 'text': 'Occasional'},
-            {'key': 'C', 'text': 'Frequent fatigue'},
-            {'key': 'D', 'text': 'Severe'},
-          ],
-        },
-        {
-          'id': 2,
-          'question': 'Do you sleep well?',
-          'category': 'lifestyle',
-          'options': [
-            {'key': 'A', 'text': 'Yes'},
-            {'key': 'B', 'text': 'No'},
-          ],
-        },
-      ],
-    });
-  }
-
-  @override
-  Future<AssessmentResults> submitAnswers({
-    required String sessionToken,
-    required Map<String, String> answers,
+  Future<VoiceAssessmentSession> startVoiceAssessment({
+    String language = 'en',
   }) async {
-    submitCallCount++;
-    lastAnswers = Map<String, String>.from(answers);
-    return AssessmentResults.fromJson(const {
-      'risk_level': 'moderate',
-      'summary': 'The main concerns are diabetes/metabolic health.',
-      'insights': ['Monitor your blood glucose regularly.'],
-      'recommended_packages': [
-        {
-          'id': 2,
-          'package_name': 'Comprehensive Health Package',
-          'price': '2000.00',
-          'tests': [
-            {'id': 5, 'test_name': 'Complete Blood Count', 'price': '250.00'},
-          ],
-        },
-      ],
-      'recommended_tests': [
-        {'id': 1, 'test_name': 'ALBUMIN', 'category': 'Biochemistry', 'price': '20.00'},
-      ],
-      'custom_package': null,
-    });
+    startVoiceCallCount++;
+    return const VoiceAssessmentSession(
+      sessionToken: 'voice-token',
+      patientName: 'Fadhil P',
+      initialInstructions:
+          'Hi Fadhil. Are you feeling unwell today, or would you like a general health check?',
+      maxTurns: 10,
+      maxSeconds: 300,
+    );
+  }
+
+  @override
+  Future<VoiceAssessmentTurnDecision> submitVoiceTurn({
+    required String sessionToken,
+    required String transcript,
+  }) async {
+    return nextDecision;
+  }
+
+  @override
+  Future<void> recordVoiceResponse({
+    required String sessionToken,
+    required String transcript,
+    required String response,
+  }) async {
+    recordedResponses++;
+  }
+
+  @override
+  Future<void> cancelVoiceAssessment(String sessionToken) async {}
+}
+
+class _FakeLiveVoiceController extends LiveVoiceController {
+  _FakeLiveVoiceController({
+    required RealtimeTurnCompleted onTurnCompleted,
+    required RealtimeTurnContext onTurnContext,
+    this.failOnStart = false,
+  }) : _completed = onTurnCompleted,
+       _context = onTurnContext,
+       super(
+         signalingApi: InworldSignalingApi(
+           ApiClient(
+             config: AppConfig(
+               appName: 'Fake',
+               apiBaseUrl: 'https://example.test/api',
+               healthEndpoint: '/health',
+               showDevOtp: false,
+             ),
+           ),
+         ),
+         onTurnCompleted: onTurnCompleted,
+         onTurnContext: onTurnContext,
+       );
+
+  final RealtimeTurnCompleted _completed;
+  final RealtimeTurnContext _context;
+  final bool failOnStart;
+  LiveVoiceState _fakeState = const LiveVoiceState();
+  int startCallCount = 0;
+  int stopCallCount = 0;
+
+  @override
+  LiveVoiceState get state => _fakeState;
+
+  @override
+  Future<void> start({
+    required String locale,
+    required String conversationId,
+    String initialResponseInstructions = '',
+    bool enableUsageTracking = true,
+  }) async {
+    startCallCount++;
+    _fakeState = failOnStart
+        ? const LiveVoiceState(
+            phase: LiveVoicePhase.error,
+            errorMessage: 'Realtime voice is unavailable.',
+          )
+        : const LiveVoiceState(phase: LiveVoicePhase.listening);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> stop({String reason = 'user_stopped'}) async {
+    stopCallCount++;
+    _fakeState = const LiveVoiceState(phase: LiveVoicePhase.closed);
+    notifyListeners();
+  }
+
+  Future<void> simulateTurn(String transcript, String response) async {
+    _fakeState = const LiveVoiceState(phase: LiveVoicePhase.thinking);
+    notifyListeners();
+    await _context(transcript);
+    _fakeState = LiveVoiceState(
+      phase: LiveVoicePhase.speaking,
+      responseText: response,
+    );
+    notifyListeners();
+    await _completed(transcript, response);
   }
 }

@@ -12,9 +12,14 @@ import '../../../core/widgets/custom_button.dart';
 import '../models/legal_content.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key, required this.onCompleted});
+  const OnboardingScreen({
+    super.key,
+    required this.onCompleted,
+    this.consentOnly = false,
+  });
 
   final Future<void> Function() onCompleted;
+  final bool consentOnly;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -24,12 +29,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _isCompleting = false;
   bool _legalContentRequested = false;
   bool _hasAgreed = false;
-  int _step = 0;
   LegalContent? _legalContent;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (!widget.consentOnly) return;
     if (_legalContentRequested) return;
     _legalContentRequested = true;
     unawaited(_loadLegalContent(context.read<ApiClient>()));
@@ -45,16 +50,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _goToStep(int step) {
-    setState(() => _step = step.clamp(0, 1));
-  }
-
   Future<void> _completeOnboarding() async {
     if (_isCompleting) return;
     setState(() => _isCompleting = true);
-    await widget.onCompleted();
-    if (!mounted) return;
-    setState(() => _isCompleting = false);
+    try {
+      await widget.onCompleted();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCompleting = false);
+      }
+    }
   }
 
   Future<void> _showLegalDocument({
@@ -136,9 +147,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: Column(
           children: [
             _OnboardingHeader(
-              step: _step,
+              step: 0,
+              stepCount: 1,
               backLabel: strings.back,
-              onBack: _step == 0 ? null : () => _goToStep(_step - 1),
+              onBack: null,
             ),
             Expanded(
               child: AnimatedSwitcher(
@@ -159,11 +171,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: child,
                   ),
                 ),
-                child: switch (_step) {
+                child: switch (widget.consentOnly ? 1 : 0) {
                   0 => _LanguageStep(
                     key: const ValueKey('language'),
                     strings: strings,
-                    onNext: () => _goToStep(1),
+                    onNext: _completeOnboarding,
                   ),
                   1 => _ConsentStep(
                     key: const ValueKey('consent'),
@@ -200,11 +212,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 class _OnboardingHeader extends StatelessWidget {
   const _OnboardingHeader({
     required this.step,
+    required this.stepCount,
     required this.backLabel,
     required this.onBack,
   });
 
   final int step;
+  final int stepCount;
   final String backLabel;
   final VoidCallback? onBack;
 
@@ -223,7 +237,7 @@ class _OnboardingHeader extends StatelessWidget {
           const Spacer(),
           Row(
             children: List.generate(
-              2,
+              stepCount,
               (index) => AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 width: index == step ? 28 : 9,
@@ -327,7 +341,7 @@ class _LanguageStep extends StatelessWidget {
       content: const _LanguageSelector(),
       action: CustomButton(
         onPressed: onNext,
-        text: strings.next,
+        text: strings.getStarted,
         color: const Color(0xFF06489B),
       ),
     );

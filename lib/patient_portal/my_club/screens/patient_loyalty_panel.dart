@@ -1,7 +1,9 @@
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
@@ -195,6 +197,8 @@ class PatientLoyaltyDetailsContent extends StatelessWidget {
       children: [
         PatientLoyaltyPanel(idCard: idCard, myClub: myClub),
         const SizedBox(height: 16),
+        _ReferralSection(referrals: myClub.referrals),
+        const SizedBox(height: 16),
         _LeaderboardSection(myClub: myClub),
         const SizedBox(height: 16),
         if (showRedemptionSetup) ...[
@@ -266,6 +270,249 @@ class PatientLoyaltyDetailsContent extends StatelessWidget {
           transactions: _redemptionTransactions,
         ),
       ],
+    );
+  }
+}
+
+class _ReferralSection extends StatelessWidget {
+  const _ReferralSection({required this.referrals});
+
+  final ReferralSummary referrals;
+
+  Future<void> _copyCode(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: referrals.code));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Referral code copied')));
+  }
+
+  Future<void> _share() {
+    final terms = referrals.rewardTerms;
+    return SharePlus.instance
+        .share(
+          ShareParams(
+            subject: 'Join BHRC',
+            text:
+                'Join BHRC with my referral code ${referrals.code}. '
+                'You can earn ${terms.newPatientPoints} MyClub points after '
+                'your first completed paid service. ${referrals.shareUrl}',
+          ),
+        )
+        .then((_) {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final invitedBy = referrals.invitedBy;
+
+    return Card(
+      key: const ValueKey('referral_relationships_card'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.group_add_rounded, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Invite friends',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              referrals.rewardTerms.qualification,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'YOUR REFERRAL CODE',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SelectableText(
+                    referrals.code,
+                    key: const ValueKey('referral_code_value'),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('copy_referral_code'),
+                          onPressed: () => _copyCode(context),
+                          icon: const Icon(Icons.copy_rounded),
+                          label: const Text('Copy code'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton.icon(
+                          key: const ValueKey('share_referral_code'),
+                          onPressed: _share,
+                          icon: const Icon(Icons.share_rounded),
+                          label: const Text('Share invite'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _ReferralMetric(
+                    label: 'Invited',
+                    value: referrals.stats.invited.toString(),
+                  ),
+                ),
+                Expanded(
+                  child: _ReferralMetric(
+                    label: 'Rewarded',
+                    value: referrals.stats.rewarded.toString(),
+                  ),
+                ),
+                Expanded(
+                  child: _ReferralMetric(
+                    label: 'Points earned',
+                    value: referrals.stats.pointsEarned.toString(),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            Text(
+              'Who invited you',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (invitedBy == null)
+              Text(
+                'You joined without a referral.',
+                key: const ValueKey('invited_by_empty'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+            else
+              _ReferralPersonTile(
+                key: const ValueKey('invited_by_person'),
+                relationship: invitedBy,
+                leadingIcon: Icons.person_pin_circle_rounded,
+              ),
+            const SizedBox(height: 18),
+            Text(
+              'People you invited',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (referrals.invitedUsers.isEmpty)
+              Text(
+                'No invitations have been accepted yet.',
+                key: const ValueKey('invited_users_empty'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+            else
+              ...referrals.invitedUsers.map(
+                (relationship) => _ReferralPersonTile(
+                  relationship: relationship,
+                  leadingIcon: Icons.person_rounded,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReferralMetric extends StatelessWidget {
+  const _ReferralMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.labelSmall,
+        ),
+      ],
+    );
+  }
+}
+
+class _ReferralPersonTile extends StatelessWidget {
+  const _ReferralPersonTile({
+    super.key,
+    required this.relationship,
+    required this.leadingIcon,
+  });
+
+  final ReferralRelationship relationship;
+  final IconData leadingIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = relationship.status.replaceAll('_', ' ');
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(child: Icon(leadingIcon)),
+      title: Text(
+        relationship.name,
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+      subtitle: Text(relationship.patientNumber),
+      trailing: Chip(label: Text(status)),
     );
   }
 }

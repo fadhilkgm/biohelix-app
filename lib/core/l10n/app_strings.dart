@@ -57,8 +57,10 @@ abstract class LocalizedStrings {
   String get hospitalLocation;
   String get loginTitle;
   String get createAccountTitle;
+  String get registrationPhoneTitle;
   String get loginSubtitle;
   String get registerSubtitle;
+  String get registrationPhoneSubtitle;
   String get fullName;
   String get fullNameHint;
   String get mobileNumber;
@@ -78,11 +80,14 @@ abstract class LocalizedStrings {
   String get register;
   String get login;
   String get sendWhatsAppOtp;
+  String get continueRegistration;
   String get registerWithWhatsAppOtp;
   String get alreadyRegisteredLogin;
   String get newPatientRegister;
   String get registerDemoHint;
   String get loginDemoHint;
+  String get registrationPhoneHint;
+  String get phoneNotRegisteredMessage;
   String get chooseDateOfBirth;
   String get cancel;
   String get fieldRequired;
@@ -346,11 +351,16 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get createAccountTitle => 'Create account';
   @override
+  String get registrationPhoneTitle => 'Check your mobile number';
+  @override
   String get loginSubtitle =>
       'Enter your mobile number and we will send a WhatsApp OTP.';
   @override
   String get registerSubtitle =>
       'Complete your patient profile. We will verify your number with a WhatsApp OTP.';
+  @override
+  String get registrationPhoneSubtitle =>
+      'Enter your number first. If an account already exists, we will log you in instead.';
   @override
   String get fullName => 'Full Name';
   @override
@@ -390,6 +400,8 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get sendWhatsAppOtp => 'Send WhatsApp OTP';
   @override
+  String get continueRegistration => 'Continue';
+  @override
   String get registerWithWhatsAppOtp => 'Register & send WhatsApp OTP';
   @override
   String get alreadyRegisteredLogin => 'Already registered? Login';
@@ -401,6 +413,12 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get loginDemoHint =>
       'Existing patients can sign in with a WhatsApp OTP sent to their registered number.';
+  @override
+  String get registrationPhoneHint =>
+      'We check your number before showing the registration form.';
+  @override
+  String get phoneNotRegisteredMessage =>
+      'This mobile number is not registered. You can create a new account.';
   @override
   String get chooseDateOfBirth => 'Choose date of birth';
   @override
@@ -677,7 +695,7 @@ class _EnStrings extends LocalizedStrings {
   @override
   String get recentHealthReport => 'Recent health report';
   @override
-  String get noHealthStatusData => 'No health history is available yet.';
+  String get noHealthStatusData => 'No health data';
   @override
   String get noDataInSelectedRange => 'No scores in the selected date range.';
   @override
@@ -834,11 +852,16 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get createAccountTitle => 'അക്കൗണ്ട് സൃഷ്ടിക്കുക';
   @override
+  String get registrationPhoneTitle => 'നിങ്ങളുടെ മൊബൈൽ നമ്പർ പരിശോധിക്കുക';
+  @override
   String get loginSubtitle =>
       'തുടരാൻ നിങ്ങളുടെ മൊബൈൽ നമ്പർ നൽകുക, ഞങ്ങൾ വാട്സ്ആപ്പ് OTP അയയ്ക്കും.';
   @override
   String get registerSubtitle =>
       'നിങ്ങളുടെ രോഗി പ്രൊഫൈൽ പൂർത്തിയാക്കുക. നമ്പർ വാട്സ്ആപ്പ് OTP വഴി സ്ഥിരീകരിക്കും.';
+  @override
+  String get registrationPhoneSubtitle =>
+      'ആദ്യം നിങ്ങളുടെ നമ്പർ നൽകുക. അക്കൗണ്ട് നിലവിലുണ്ടെങ്കിൽ രജിസ്ട്രേഷനു പകരം ലോഗിൻ ചെയ്യാം.';
   @override
   String get fullName => 'പൂർണ്ണ പേര്';
   @override
@@ -878,6 +901,8 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get sendWhatsAppOtp => 'വാട്സ്ആപ്പ് OTP അയയ്ക്കുക';
   @override
+  String get continueRegistration => 'തുടരുക';
+  @override
   String get registerWithWhatsAppOtp =>
       'രജിസ്റ്റർ ചെയ്ത് വാട്സ്ആപ്പ് OTP അയയ്ക്കുക';
   @override
@@ -890,6 +915,12 @@ class _MlStrings extends LocalizedStrings {
   @override
   String get loginDemoHint =>
       'രജിസ്റ്റർ ചെയ്ത രോഗികൾക്ക് അവരുടെ നമ്പറിലേക്ക് അയയ്ക്കുന്ന വാട്സ്ആപ്പ് OTP ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്യാം.';
+  @override
+  String get registrationPhoneHint =>
+      'രജിസ്ട്രേഷൻ ഫോം കാണിക്കുന്നതിന് മുമ്പ് നിങ്ങളുടെ നമ്പർ പരിശോധിക്കും.';
+  @override
+  String get phoneNotRegisteredMessage =>
+      'ഈ മൊബൈൽ നമ്പർ രജിസ്റ്റർ ചെയ്തിട്ടില്ല. നിങ്ങൾക്ക് പുതിയ അക്കൗണ്ട് സൃഷ്ടിക്കാം.';
   @override
   String get chooseDateOfBirth => 'ജനന തീയതി തിരഞ്ഞെടുക്കുക';
   @override

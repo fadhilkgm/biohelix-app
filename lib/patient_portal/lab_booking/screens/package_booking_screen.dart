@@ -9,7 +9,6 @@ import '../../core/providers/patient_portal_provider.dart';
 import '../../core/widgets/booking_success_screen.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../models/lab_booking_models.dart';
-import '../widgets/book_for_another_person_prompt.dart';
 import '../widgets/slot_selector_widget.dart';
 
 class PackageBookingScreen extends StatefulWidget {
@@ -30,7 +29,6 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   List<String> _slots = [];
   bool _isLoadingSlots = false;
   bool _isSubmitting = false;
-  bool _bookForAnotherPerson = false;
 
   @override
   void initState() {
@@ -183,6 +181,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
     return parts.join(' • ');
   }
 
+  // Kept temporarily for compatibility with the legacy in-booking selector.
+  // ignore: unused_element
   void _usePrimaryPatient() {
     final patient = context.read<SessionProvider>().patient;
     if (patient == null) return;
@@ -197,6 +197,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
     });
   }
 
+  // ignore: unused_element
   Future<void> _showSwitchUserSheet() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -846,22 +847,6 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            BookForAnotherPersonPrompt(
-              value: _bookForAnotherPerson,
-              onChanged: (value) {
-                setState(() => _bookForAnotherPerson = value);
-                if (value) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted && _bookForAnotherPerson) {
-                      _showSwitchUserSheet();
-                    }
-                  });
-                } else {
-                  _usePrimaryPatient();
-                }
-              },
-            ),
-            const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -917,19 +902,6 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       ],
                     ),
                   ),
-                  if (_bookForAnotherPerson)
-                    TextButton.icon(
-                      onPressed: _showSwitchUserSheet,
-                      icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                      label: Text(
-                        'Switch User',
-                        style: TextStyle(
-                          fontFamily: 'Manrope',
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF06489B),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),

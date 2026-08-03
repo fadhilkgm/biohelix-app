@@ -413,6 +413,7 @@ class _FakePatientRepository extends PatientRepository {
     required String place,
     String? email,
     String? gender,
+    String? referralCode,
   }) async {
     lastSignupPayload = {
       'phone': phone,
@@ -421,6 +422,7 @@ class _FakePatientRepository extends PatientRepository {
       'place': place,
       'email': email ?? '',
       'gender': gender ?? '',
+      'referralCode': referralCode ?? '',
     };
     return const OtpSendResult(devOtp: '123456', message: 'OTP sent to your WhatsApp');
   }
@@ -516,7 +518,7 @@ class _FakePatientRepository extends PatientRepository {
   @override
   Future<List<HomeOfferItem>> getHomeOffers() async => const [];
   @override
-  Future<List<BookingItem>> getBookings() async => const [];
+  Future<List<BookingItem>> getBookings({int? patientId}) async => const [];
   @override
   Future<List<PrescriptionRecord>> getPrescriptions() async => const [];
   @override

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
+import '../../../core/referrals/referral_link_provider.dart';
 import '../../../core/widgets/app_chevron_back_button.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../session/providers/session_provider.dart';
@@ -23,10 +24,38 @@ class _LoginPageState extends State<LoginPage> {
   final _dobController = TextEditingController();
   final _placeController = TextEditingController();
   final _emailController = TextEditingController();
+  final _referralController = TextEditingController();
   String? _selectedGender;
   String? _selectedBloodGroup;
   final Map<String, String> _fieldErrors = {};
   bool _isSignup = false;
+  bool _isRegistrationPhoneCheck = false;
+  bool _registrationPhoneNotFound = false;
+  String? _appliedReferralLinkCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController.addListener(_onPhoneChanged);
+  }
+
+  void _onPhoneChanged() {
+    if (!_registrationPhoneNotFound || !mounted) return;
+    setState(() => _registrationPhoneNotFound = false);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final pendingCode = context.watch<ReferralLinkProvider?>()?.pendingCode;
+    if (pendingCode == null || pendingCode == _appliedReferralLinkCode) return;
+
+    _appliedReferralLinkCode = pendingCode;
+    _referralController.text = pendingCode;
+    _isSignup = false;
+    _isRegistrationPhoneCheck = true;
+    _registrationPhoneNotFound = false;
+  }
 
   @override
   void dispose() {
@@ -35,6 +64,7 @@ class _LoginPageState extends State<LoginPage> {
     _dobController.dispose();
     _placeController.dispose();
     _emailController.dispose();
+    _referralController.dispose();
     super.dispose();
   }
 
@@ -89,9 +119,6 @@ class _LoginPageState extends State<LoginPage> {
       if (_nameController.text.trim().isEmpty) {
         errors['name'] = strings.fieldRequired;
       }
-      if (_dobController.text.trim().isEmpty) {
-        errors['dob'] = strings.fieldRequired;
-      }
       if (_placeController.text.trim().isEmpty) {
         errors['place'] = strings.fieldRequired;
       }
@@ -123,12 +150,70 @@ class _LoginPageState extends State<LoginPage> {
         lower.contains('registered');
   }
 
+  bool _isPatientNotFound(String message) =>
+      message.toLowerCase().contains('not found');
+
+  void _handleBack() {
+    if (_isSignup) {
+      setState(() {
+        _isSignup = false;
+        _isRegistrationPhoneCheck = true;
+        _registrationPhoneNotFound = true;
+        _fieldErrors.clear();
+      });
+      return;
+    }
+
+    if (_isRegistrationPhoneCheck) {
+      setState(() {
+        _isRegistrationPhoneCheck = false;
+        _registrationPhoneNotFound = false;
+        _fieldErrors.clear();
+      });
+      return;
+    }
+
+    if (widget.onBack != null) {
+      widget.onBack!();
+    } else {
+      Navigator.maybePop(context);
+    }
+  }
+
+  Future<void> _checkRegistrationPhone() async {
+    final session = context.read<SessionProvider>();
+    await session.sendOtp(phone: _phoneController.text);
+
+    if (!mounted) return;
+    final error = session.errorMessage ?? '';
+    if (error.isEmpty) {
+      return;
+    }
+
+    session.clearError();
+    if (_isPatientNotFound(error)) {
+      setState(() {
+        _registrationPhoneNotFound = true;
+        _fieldErrors.clear();
+      });
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+  }
+
   Future<void> _submit() async {
     final strings = AppStrings.of(context.read<LanguageProvider>().language);
     if (!_validate(strings)) return;
 
     final session = context.read<SessionProvider>();
+    if (_isRegistrationPhoneCheck) {
+      await _checkRegistrationPhone();
+      return;
+    }
+
     if (_isSignup) {
+      final submittedReferralCode = _referralController.text;
       await session.signUp(
         phone: _phoneController.text,
         name: _nameController.text,
@@ -137,9 +222,13 @@ class _LoginPageState extends State<LoginPage> {
         email: _emailController.text,
         gender: _selectedGender,
         bloodGroup: _selectedBloodGroup,
+        referralCode: submittedReferralCode,
       );
 
       final error = session.errorMessage ?? '';
+      if (error.isEmpty && session.isPendingSignupOtp && mounted) {
+        await context.read<ReferralLinkProvider?>()?.consume();
+      }
       if (error.isNotEmpty && _looksLikeDuplicate(error)) {
         final lower = error.toLowerCase();
         setState(() {
@@ -235,6 +324,8 @@ class _LoginPageState extends State<LoginPage> {
                             Text(
                               _isSignup
                                   ? strings.createAccountTitle
+                                  : _isRegistrationPhoneCheck
+                                  ? strings.registrationPhoneTitle
                                   : strings.loginTitle,
                               style: const TextStyle(
                                 fontSize: 38,
@@ -247,6 +338,8 @@ class _LoginPageState extends State<LoginPage> {
                             Text(
                               _isSignup
                                   ? strings.registerSubtitle
+                                  : _isRegistrationPhoneCheck
+                                  ? strings.registrationPhoneSubtitle
                                   : strings.loginSubtitle,
                               style: TextStyle(
                                 fontSize: 16,
@@ -278,13 +371,47 @@ class _LoginPageState extends State<LoginPage> {
                               keyboardType: TextInputType.phone,
                               prefixIcon: Icons.phone_android_rounded,
                               errorText: _fieldErrors['phone'],
+                              readOnly: _isSignup,
                             ),
+                            if (_isRegistrationPhoneCheck &&
+                                _registrationPhoneNotFound) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF7E8),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: const Color(0xFFF2D49A),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.person_add_alt_1_rounded,
+                                      color: Color(0xFF9A6412),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        strings.phoneNotRegisteredMessage,
+                                        style: const TextStyle(
+                                          color: Color(0xFF6F4A10),
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                             if (_isSignup) ...[
                               const SizedBox(height: 18),
                               AuthTextField(
                                 key: const ValueKey('field_dob'),
                                 controller: _dobController,
-                                label: strings.dateOfBirth,
+                                label: '${strings.dateOfBirth} (optional)',
                                 hint: strings.dateOfBirthHint,
                                 keyboardType: TextInputType.datetime,
                                 prefixIcon: Icons.calendar_today_rounded,
@@ -352,46 +479,112 @@ class _LoginPageState extends State<LoginPage> {
                                 prefixIcon: Icons.location_on_outlined,
                                 errorText: _fieldErrors['place'],
                               ),
+                              const SizedBox(height: 18),
+                              AuthTextField(
+                                key: const ValueKey('field_referral_code'),
+                                controller: _referralController,
+                                label: 'Referral code (optional)',
+                                hint: 'Example: BHRC7KQ2',
+                                keyboardType: TextInputType.text,
+                                prefixIcon: Icons.card_giftcard_rounded,
+                                errorText: _fieldErrors['referralCode'],
+                              ),
                             ],
                             if (_isSignup &&
                                 (session.errorMessage ?? '').isNotEmpty)
                               AuthErrorText(message: session.errorMessage!),
                             const SizedBox(height: 32),
+                            if (_isRegistrationPhoneCheck &&
+                                _registrationPhoneNotFound) ...[
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton.icon(
+                                  onPressed: session.isSubmittingAuth
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _registrationPhoneNotFound = false;
+                                            _isRegistrationPhoneCheck = false;
+                                            _isSignup = true;
+                                          });
+                                        },
+                                  icon: const Icon(
+                                    Icons.person_add_alt_1_rounded,
+                                    size: 20,
+                                  ),
+                                  label: Text(strings.register),
+                                  style: FilledButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(56),
+                                    backgroundColor: const Color(0xFFE8F1FF),
+                                    foregroundColor: const Color(0xFF06489B),
+                                    disabledBackgroundColor: const Color(
+                                      0xFFE7EAF0,
+                                    ),
+                                    disabledForegroundColor: const Color(
+                                      0xFF8A94A6,
+                                    ),
+                                    elevation: 0,
+                                    side: const BorderSide(
+                                      color: Color(0xFF06489B),
+                                      width: 1.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
                             AuthPrimaryButton(
                               label: _isSignup
                                   ? strings.registerWithWhatsAppOtp
+                                  : _isRegistrationPhoneCheck
+                                  ? strings.continueRegistration
                                   : strings.sendWhatsAppOtp,
                               isLoading: session.isSubmittingAuth,
                               onPressed: _submit,
                             ),
                             const SizedBox(height: 18),
-                            Center(
-                              child: TextButton(
-                                onPressed: session.isSubmittingAuth
-                                    ? null
-                                    : () {
-                                        context
-                                            .read<SessionProvider>()
-                                            .cancelPendingOtp();
-                                        setState(() {
-                                          _isSignup = !_isSignup;
-                                          _fieldErrors.clear();
-                                        });
-                                      },
-                                child: Text(
-                                  _isSignup
-                                      ? strings.alreadyRegisteredLogin
-                                      : strings.newPatientRegister,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    color: colorScheme.primary,
+                            if (!_isRegistrationPhoneCheck)
+                              Center(
+                                child: TextButton(
+                                  onPressed: session.isSubmittingAuth
+                                      ? null
+                                      : () {
+                                          context
+                                              .read<SessionProvider>()
+                                              .cancelPendingOtp();
+                                          setState(() {
+                                            if (_isSignup) {
+                                              _isSignup = false;
+                                            } else {
+                                              _isRegistrationPhoneCheck = true;
+                                            }
+                                            _registrationPhoneNotFound = false;
+                                            _fieldErrors.clear();
+                                          });
+                                        },
+                                  child: Text(
+                                    _isSignup
+                                        ? strings.alreadyRegisteredLogin
+                                        : strings.newPatientRegister,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: colorScheme.primary,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
                             AuthDemoHint(
                               text: _isSignup
                                   ? strings.registerDemoHint
+                                  : _isRegistrationPhoneCheck
+                                  ? strings.registrationPhoneHint
                                   : strings.loginDemoHint,
                             ),
                           ],
@@ -406,15 +599,7 @@ class _LoginPageState extends State<LoginPage> {
           Positioned(
             top: 50,
             left: 20,
-            child: AppChevronBackButton(
-              onPressed: () {
-                if (widget.onBack != null) {
-                  widget.onBack!();
-                } else {
-                  Navigator.maybePop(context);
-                }
-              },
-            ),
+            child: AppChevronBackButton(onPressed: _handleBack),
           ),
         ],
       ),

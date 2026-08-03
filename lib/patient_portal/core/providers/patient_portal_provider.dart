@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
@@ -24,6 +26,9 @@ class PatientPortalProvider extends ChangeNotifier {
   final PatientRepository _repository;
   final SessionProvider _sessionProvider;
   int? _loadedPatientId;
+  int _loadGeneration = 0;
+  int _labOrdersRevision = 0;
+  int _labPackageOrdersRevision = 0;
 
   PatientDashboard? _dashboard;
   List<BookingItem> _bookings = const [];
@@ -63,6 +68,7 @@ class PatientPortalProvider extends ChangeNotifier {
       <int, DocumentAnalysisResult>{};
   final Map<int, List<ChatMessage>> _documentChats = <int, List<ChatMessage>>{};
   bool _isLoading = false;
+  bool _isLoadingDeferred = false;
   bool _isSavingProfile = false;
   bool _isSavingVitals = false;
   bool _isCreatingBooking = false;
@@ -128,6 +134,7 @@ class PatientPortalProvider extends ChangeNotifier {
 
   Map<int, DocumentAnalysisResult> get documentAnalyses => _documentAnalyses;
   bool get isLoading => _isLoading;
+  bool get isLoadingDeferred => _isLoadingDeferred;
   bool get isSavingProfile => _isSavingProfile;
   bool get isSavingVitals => _isSavingVitals;
   bool get isCreatingBooking => _isCreatingBooking;
@@ -166,6 +173,9 @@ class PatientPortalProvider extends ChangeNotifier {
   }
 
   void _resetPatientScopedState() {
+    _isLoadingDeferred = false;
+    _labOrdersRevision = 0;
+    _labPackageOrdersRevision = 0;
     _dashboard = null;
     _bookings = const [];
     _homeBanners = const [];

@@ -6,12 +6,14 @@ class AppConfig {
     required this.apiBaseUrl,
     required this.healthEndpoint,
     required this.showDevOtp,
+    this.referralLinkHost = 'demo.bhrchospital.com',
   });
 
   final String appName;
   final String apiBaseUrl;
   final String healthEndpoint;
   final bool showDevOtp;
+  final String referralLinkHost;
 
   factory AppConfig.fromEnvironment() {
     final showDevOtp = const bool.hasEnvironment('SHOW_DEV_OTP')
@@ -20,6 +22,10 @@ class AppConfig {
     const definedAppName = String.fromEnvironment('APP_NAME');
     const definedApiBaseUrl = String.fromEnvironment('API_BASE_URL');
     const definedHealthEndpoint = String.fromEnvironment('HEALTH_ENDPOINT');
+    const referralLinkHost = String.fromEnvironment(
+      'REFERRAL_LINK_HOST',
+      defaultValue: 'demo.bhrchospital.com',
+    );
 
     String defaultBaseUrl = definedApiBaseUrl.isNotEmpty
         ? definedApiBaseUrl
@@ -44,6 +50,7 @@ class AppConfig {
           ? '/health'
           : definedHealthEndpoint,
       showDevOtp: showDevOtp,
+      referralLinkHost: referralLinkHost,
     );
   }
 }

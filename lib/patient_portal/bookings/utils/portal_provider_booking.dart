@@ -5,6 +5,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     required int doctorId,
     required String bookingDate,
     required String timeslot,
+    int? patientId,
     String? notes,
   }) async {
     if (_sessionProvider.patient == null) {
@@ -20,9 +21,10 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         doctorId: doctorId,
         bookingDate: bookingDate,
         timeslot: timeslot,
+        patientId: patientId,
         notes: notes,
       );
-      await loadPortal();
+      await _refreshDoctorBookings();
       return confirmation;
     } catch (error) {
       _errorMessage = error.toString();
@@ -74,7 +76,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         urgency: urgency,
         notes: notes,
       );
-      await loadPortal();
+      await _refreshLabOrders();
       return confirmation;
     } catch (error) {
       _errorMessage = error.toString();
@@ -92,7 +94,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
 
     try {
       await _repository.cancelLabOrder(orderId);
-      await loadPortal();
+      await _refreshLabOrders();
     } catch (error) {
       _errorMessage = error.toString();
       rethrow;
@@ -141,7 +143,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         urgency: urgency,
         notes: notes,
       );
-      await loadPortal();
+      await _refreshLabPackageOrders();
       return confirmation;
     } catch (error) {
       _errorMessage = error.toString();
@@ -159,7 +161,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
 
     try {
       await _repository.cancelLabPackageOrder(orderId);
-      await loadPortal();
+      await _refreshLabPackageOrders();
     } catch (error) {
       _errorMessage = error.toString();
       rethrow;
@@ -202,10 +204,44 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         .expand(
           (schedule) => _slotsForSchedule(
             schedule,
-            intervalMinutes: doctor.slotDurationMinutes ?? 30,
+            intervalMinutes: doctor.slotDurationMinutes ?? 15,
           ),
         )
         .toList();
+  }
+
+  Future<List<DoctorSlotAvailability>> getDoctorSlotAvailability({
+    required int doctorId,
+    required String date,
+  }) async {
+    final doctor = _doctorById(doctorId);
+    try {
+      final availability = await _repository.getDoctorSlotAvailability(
+        doctorId: doctorId,
+        date: date,
+      );
+      if (availability.isNotEmpty) {
+        if (doctor == null) return availability;
+        final allowedSlots = _filterSlotsForDoctorDate(
+          doctor,
+          date,
+          availability.map((item) => item.slot).toList(),
+        ).toSet();
+        return availability
+            .where((item) => allowedSlots.contains(item.slot))
+            .toList();
+      }
+    } catch (_) {
+      // Fall back to schedule templates when the availability API is offline.
+    }
+
+    final slots = await getDoctorAvailableSlots(doctorId: doctorId, date: date);
+    return slots.map((slot) => DoctorSlotAvailability.available(slot)).toList();
+  }
+
+  Future<List<BookingItem>> getBookingsForPatient(int? patientId) {
+    if (patientId == null) return Future.value(bookings);
+    return _repository.getBookings(patientId: patientId);
   }
 
   DoctorListing? _doctorById(int doctorId) {
@@ -249,7 +285,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     final end = _minutesFromTime(schedule.endTime);
     if (start == null || end == null || end <= start) return const [];
 
-    final step = intervalMinutes > 0 ? intervalMinutes : 30;
+    final step = intervalMinutes > 0 ? intervalMinutes : 15;
     final slots = <String>[];
     for (var minute = start; minute < end; minute += step) {
       slots.add(_timeFromMinutes(minute));
@@ -281,7 +317,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
 
     try {
       await _repository.cancelBooking(bookingId);
-      await loadPortal();
+      await _refreshDoctorBookings();
     } catch (error) {
       _errorMessage = error.toString();
       rethrow;
@@ -298,7 +334,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
 
     try {
       await _repository.checkInBooking(bookingId);
-      await loadPortal();
+      await _refreshDoctorBookings();
     } catch (error) {
       _errorMessage = error.toString();
       rethrow;
@@ -323,7 +359,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         bookingDate: bookingDate,
         timeslot: timeslot,
       );
-      await loadPortal();
+      await _refreshDoctorBookings();
     } catch (error) {
       _errorMessage = error.toString();
       rethrow;
@@ -348,7 +384,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         date: date,
         slot: slot,
       );
-      await loadPortal();
+      await _refreshLabOrders();
     } catch (error) {
       _errorMessage = error.toString();
       rethrow;
@@ -373,7 +409,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         date: date,
         slot: slot,
       );
-      await loadPortal();
+      await _refreshLabPackageOrders();
     } catch (error) {
       _errorMessage = error.toString();
       rethrow;

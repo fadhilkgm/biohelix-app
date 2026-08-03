@@ -2,8 +2,6 @@ part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
 enum _BookingsView { all, appointments, tests, packages }
 
-enum _BookingsTimeline { upcoming, history }
-
 class _BookingsTab extends StatefulWidget {
   const _BookingsTab({this.onBack});
 
@@ -37,7 +35,6 @@ DateTime? _tryParseDate(String raw) {
 
 class _BookingsTabState extends State<_BookingsTab> {
   _BookingsView _selectedView = _BookingsView.all;
-  _BookingsTimeline _selectedTimeline = _BookingsTimeline.upcoming;
   int? _expandedBookingId;
 
   @override
@@ -49,7 +46,7 @@ class _BookingsTabState extends State<_BookingsTab> {
         // Data processing logic
         final upcomingBookings = _sortedBookings(
           portal.bookings.where((booking) => !_isPastBooking(booking)).toList(),
-          ascending: true,
+          ascending: false,
         );
         final historyBookings = _sortedBookings(
           portal.bookings.where(_isPastBooking).toList(),
@@ -59,7 +56,7 @@ class _BookingsTabState extends State<_BookingsTab> {
           portal.labOrders
               .where((order) => !_isPastOrder(order.date, order.status))
               .toList(),
-          ascending: true,
+          ascending: false,
         );
         final historyLabOrders = _sortedLabOrders(
           portal.labOrders
@@ -71,7 +68,7 @@ class _BookingsTabState extends State<_BookingsTab> {
           portal.labPackageOrders
               .where((order) => !_isPastOrder(order.date, order.status))
               .toList(),
-          ascending: true,
+          ascending: false,
         );
         final historyPackageOrders = _sortedPackageOrders(
           portal.labPackageOrders
@@ -80,17 +77,12 @@ class _BookingsTabState extends State<_BookingsTab> {
           ascending: false,
         );
 
-        final currentAppointments =
-            _selectedTimeline == _BookingsTimeline.upcoming
-            ? upcomingBookings
-            : historyBookings;
-        final currentLabOrders = _selectedTimeline == _BookingsTimeline.upcoming
-            ? upcomingLabOrders
-            : historyLabOrders;
-        final currentPackageOrders =
-            _selectedTimeline == _BookingsTimeline.upcoming
-            ? upcomingPackageOrders
-            : historyPackageOrders;
+        final appointments = [...upcomingBookings, ...historyBookings];
+        final labOrders = [...upcomingLabOrders, ...historyLabOrders];
+        final packageOrders = [
+          ...upcomingPackageOrders,
+          ...historyPackageOrders,
+        ];
 
         final showAppointments =
             _selectedView == _BookingsView.all ||
@@ -129,44 +121,26 @@ class _BookingsTabState extends State<_BookingsTab> {
                         ),
                         const SizedBox(height: 16),
                         // ── Header ──────────────────────────────────────────
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'My Bookings',
-                                    style: TextStyle(
-                                      fontFamily: 'Manrope',
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w800,
-                                      color: theme.colorScheme.onSurface,
-                                      height: 1.1,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Consultations & diagnostics',
-                                    style: TextStyle(
-                                      fontFamily: 'Manrope',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            _TimelineSwitcher(
-                              value: _selectedTimeline,
-                              onChanged: (val) =>
-                                  setState(() => _selectedTimeline = val),
-                            ),
-                          ],
+                        Text(
+                          'My Bookings',
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: theme.colorScheme.onSurface,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Upcoming and previous bookings',
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            height: 1.35,
+                          ),
                         ),
                         const SizedBox(height: 18),
                         // ── Filter chips ─────────────────────────────────────
@@ -225,12 +199,12 @@ class _BookingsTabState extends State<_BookingsTab> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      ..._buildTimelineContent(
+                      ..._buildBookingsContent(
                         context,
                         portal,
-                        showAppointments ? currentAppointments : [],
-                        showTests ? currentLabOrders : [],
-                        showPackages ? currentPackageOrders : [],
+                        showAppointments ? appointments : [],
+                        showTests ? labOrders : [],
+                        showPackages ? packageOrders : [],
                       ),
                       const SizedBox(height: 40),
                     ]),
@@ -244,7 +218,7 @@ class _BookingsTabState extends State<_BookingsTab> {
     );
   }
 
-  List<Widget> _buildTimelineContent(
+  List<Widget> _buildBookingsContent(
     BuildContext context,
     PatientPortalProvider portal,
     List<BookingItem> appointments,
@@ -253,16 +227,11 @@ class _BookingsTabState extends State<_BookingsTab> {
   ) {
     if (appointments.isEmpty && labOrders.isEmpty && packageOrders.isEmpty) {
       return [
-        _EmptyBookingsState(
-          title: _selectedTimeline == _BookingsTimeline.upcoming
-              ? 'No upcoming plans'
-              : 'End of history',
-          message: _selectedTimeline == _BookingsTimeline.upcoming
-              ? 'Your scheduled consultations and health tests will clear paths here.'
-              : 'Records of your completed health activities will stay available here.',
-          icon: _selectedTimeline == _BookingsTimeline.upcoming
-              ? Icons.calendar_today_outlined
-              : Icons.history_rounded,
+        const _EmptyBookingsState(
+          title: 'No bookings yet',
+          message:
+              'Your consultations, health tests and packages will appear here.',
+          icon: Icons.calendar_today_outlined,
         ),
       ];
     }
@@ -315,8 +284,8 @@ class _BookingsTabState extends State<_BookingsTab> {
     final theme = Theme.of(context);
     return bookings.map((booking) {
       final canManage =
-          _selectedTimeline == _BookingsTimeline.upcoming &&
-          _canManageBooking(booking.status);
+          !_isPastBooking(booking) &&
+          _canManageBooking(booking.effectiveStatus());
       final isExpanded = _expandedBookingId == booking.id;
       final statusData = _resolveStatusIconTheme(booking);
       final accentColor = statusData.color;
@@ -395,7 +364,9 @@ class _BookingsTabState extends State<_BookingsTab> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            _StatusBadge(label: _formatStatus(booking.status)),
+                            _StatusBadge(
+                              label: _formatStatus(booking.effectiveStatus()),
+                            ),
                             if (canManage) ...[
                               const SizedBox(height: 6),
                               Icon(
@@ -616,14 +587,14 @@ class _BookingsTabState extends State<_BookingsTab> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                    child: Row(
-                      children: [
-                        if (_selectedTimeline == _BookingsTimeline.upcoming &&
-                            _canManageLabOrder(order.status)) ...[
+                  if (!_isPastOrder(order.date, order.status) &&
+                      _canManageLabOrder(order.status)) ...[
+                    const SizedBox(height: 14),
+                    const Divider(height: 1, indent: 16, endIndent: 16),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                      child: Row(
+                        children: [
                           Expanded(
                             child: _CompactActionButton(
                               label: 'Reschedule',
@@ -651,9 +622,9 @@ class _BookingsTabState extends State<_BookingsTab> {
                             ),
                           ),
                         ],
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -760,14 +731,14 @@ class _BookingsTabState extends State<_BookingsTab> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                    child: Row(
-                      children: [
-                        if (_selectedTimeline == _BookingsTimeline.upcoming &&
-                            _canManageLabOrder(order.status)) ...[
+                  if (!_isPastOrder(order.date, order.status) &&
+                      _canManageLabOrder(order.status)) ...[
+                    const SizedBox(height: 14),
+                    const Divider(height: 1, indent: 16, endIndent: 16),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                      child: Row(
+                        children: [
                           Expanded(
                             child: _CompactActionButton(
                               label: 'Reschedule',
@@ -796,9 +767,9 @@ class _BookingsTabState extends State<_BookingsTab> {
                             ),
                           ),
                         ],
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -818,17 +789,7 @@ class _BookingsTabState extends State<_BookingsTab> {
   }
 
   bool _isPastBooking(BookingItem booking) {
-    final normalized = booking.status.toLowerCase();
-    if (_isClosedStatus(normalized)) {
-      return true;
-    }
-
-    final parsedDate = _tryParseDate(booking.bookingDate);
-    if (parsedDate == null) {
-      return false;
-    }
-
-    return parsedDate.isBefore(_startOfToday());
+    return _isClosedStatus(booking.effectiveStatus().toLowerCase());
   }
 
   bool _isPastOrder(String date, String status) {
@@ -855,6 +816,8 @@ class _BookingsTabState extends State<_BookingsTab> {
       'done',
       'expired',
       'missed',
+      'no_show',
+      'no-show',
     };
     return closed.contains(status);
   }
@@ -946,7 +909,7 @@ class _BookingsTabState extends State<_BookingsTab> {
 
   _StatusIconTheme _resolveStatusIconTheme(BookingItem booking) {
     if (_isPastBooking(booking)) {
-      final status = booking.status.toLowerCase();
+      final status = booking.effectiveStatus().toLowerCase();
       if (status == 'cancelled' || status == 'canceled') {
         return const _StatusIconTheme(
           icon: Icons.cancel_outlined,
@@ -959,13 +922,19 @@ class _BookingsTabState extends State<_BookingsTab> {
           color: Color(0xFF64748B),
         );
       }
+      if (status == 'missed' || status == 'no_show' || status == 'no-show') {
+        return const _StatusIconTheme(
+          icon: Icons.event_busy_rounded,
+          color: Color(0xFFDC6B35),
+        );
+      }
       return const _StatusIconTheme(
         icon: Icons.history_rounded,
         color: Color(0xFF94A3B8),
       );
     }
 
-    final status = booking.status.toLowerCase();
+    final status = booking.effectiveStatus().toLowerCase();
     if (status == 'pending') {
       return const _StatusIconTheme(
         icon: Icons.schedule_rounded,
@@ -985,103 +954,6 @@ class _StatusIconTheme {
   final IconData icon;
   final Color color;
   const _StatusIconTheme({required this.icon, required this.color});
-}
-
-class _TimelineSwitcher extends StatelessWidget {
-  const _TimelineSwitcher({required this.value, required this.onChanged});
-
-  final _BookingsTimeline value;
-  final ValueChanged<_BookingsTimeline> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isUpcoming = value == _BookingsTimeline.upcoming;
-
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _SwitcherItem(
-            label: 'Upcoming',
-            icon: Icons.upcoming_rounded,
-            selected: isUpcoming,
-            activeColor: const Color(0xFF06489B),
-            onTap: () => onChanged(_BookingsTimeline.upcoming),
-          ),
-          _SwitcherItem(
-            label: 'History',
-            icon: Icons.history_rounded,
-            selected: !isUpcoming,
-            activeColor: const Color.fromARGB(255, 218, 162, 22),
-            onTap: () => onChanged(_BookingsTimeline.history),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SwitcherItem extends StatelessWidget {
-  const _SwitcherItem({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.activeColor,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final Color activeColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected ? activeColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(11),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 14,
-              color: selected
-                  ? Colors.white
-                  : theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Manrope',
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: selected
-                    ? Colors.white
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _BookingsFilterChip extends StatelessWidget {

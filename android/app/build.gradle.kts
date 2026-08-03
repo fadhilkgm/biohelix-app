@@ -50,6 +50,15 @@ android {
 
     buildTypes {
         release {
+            val releaseRequested = gradle.startParameter.taskNames.any {
+                it.contains("release", ignoreCase = true)
+            }
+            if (!keystorePropertiesFile.exists() && releaseRequested) {
+                throw GradleException(
+                    "Release signing is not configured. Add android/key.properties " +
+                        "with the Google Play upload-key credentials.",
+                )
+            }
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
@@ -61,6 +70,7 @@ android {
 
 dependencies {
     implementation("androidx.health.connect:connect-client:1.1.0")
+    implementation("com.android.installreferrer:installreferrer:2.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 }
 

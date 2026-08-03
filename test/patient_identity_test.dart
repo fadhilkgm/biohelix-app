@@ -34,4 +34,39 @@ void main() {
     expect(patient.allergies, 'Penicillin');
     expect(patient.chronicConditions, 'Diabetes');
   });
+
+  test('patient identity exposes persisted legal consent status', () {
+    final pending = PatientIdentity.fromJson({
+      'id': 1,
+      'name': 'Pending Patient',
+    });
+    final accepted = PatientIdentity.fromJson({
+      'id': 2,
+      'name': 'Accepted Patient',
+      'legal_consent_accepted_at': '2026-07-31T21:30:00+05:30',
+    });
+
+    expect(pending.hasAcceptedLegalConsent, isFalse);
+    expect(accepted.hasAcceptedLegalConsent, isTrue);
+    expect(
+      PatientIdentity.fromJson(accepted.toJson()).hasAcceptedLegalConsent,
+      isTrue,
+    );
+  });
+
+  test('patient identity exposes the one-time health assessment status', () {
+    final pending = PatientIdentity.fromJson({
+      'id': 1,
+      'name': 'New Patient',
+      'hasCompletedInitialHealthAssessment': false,
+    });
+    final completed = PatientIdentity.fromJson({
+      'id': 2,
+      'name': 'Assessed Patient',
+      'initialHealthAssessmentCompletedAt': '2026-08-02T18:00:00+05:30',
+    });
+
+    expect(pending.hasCompletedInitialHealthAssessment, isFalse);
+    expect(completed.hasCompletedInitialHealthAssessment, isTrue);
+  });
 }

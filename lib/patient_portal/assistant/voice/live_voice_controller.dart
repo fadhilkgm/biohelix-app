@@ -44,6 +44,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   String _currentResponseId = '';
   String _initialResponseInstructions = '';
   bool _initialResponseRequested = false;
+  bool _enableUsageTracking = true;
   final Map<String, StringBuffer> _inputTranscripts = {};
   final Map<String, StringBuffer> _responseText = {};
   final Map<String, StringBuffer> _responseAudioTranscripts = {};
@@ -67,6 +68,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     required String locale,
     required String conversationId,
     String initialResponseInstructions = '',
+    bool enableUsageTracking = true,
   }) async {
     if (_state.isActive) {
       _debugLog('start ignored: session is already active');
@@ -74,6 +76,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     }
     _initialResponseInstructions = initialResponseInstructions.trim();
     _initialResponseRequested = false;
+    _enableUsageTracking = enableUsageTracking;
     _conversationId = conversationId;
     _debugLog('start requested locale=$locale');
     final startup = Stopwatch()..start();
@@ -581,6 +584,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     _currentResponseId = '';
     _initialResponseInstructions = '';
     _initialResponseRequested = false;
+    _enableUsageTracking = true;
     _conversationId = '';
   }
 
@@ -615,7 +619,8 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _beginUsageTracking() async {
-    if (_usageSessionId != null ||
+    if (!_enableUsageTracking ||
+        _usageSessionId != null ||
         _usageStartInFlight ||
         _conversationId.isEmpty ||
         _disposed ||

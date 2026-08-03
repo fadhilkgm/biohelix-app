@@ -401,7 +401,7 @@ class _FakePortalRepository extends PatientRepository {
   Future<List<HomeOfferItem>> getHomeOffers() async => _offers;
 
   @override
-  Future<List<BookingItem>> getBookings() async => _bookings;
+  Future<List<BookingItem>> getBookings({int? patientId}) async => _bookings;
 
   @override
   Future<List<PrescriptionRecord>> getPrescriptions() async => const [];

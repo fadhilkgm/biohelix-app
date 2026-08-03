@@ -320,11 +320,19 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                         (portal.bookings.any(
                           (b) =>
                               b.id != booking.id &&
-                              b.bookingDate ==
-                                  DateFormat(
-                                    'yyyy-MM-dd',
-                                  ).format(selectedDate) &&
-                              b.status != 'cancelled',
+                              b.doctorId == booking.doctorId &&
+                              b.bookingDate.trim().startsWith(
+                                DateFormat('yyyy-MM-dd').format(selectedDate),
+                              ) &&
+                              const {
+                                'pending',
+                                'confirmed',
+                                'rescheduled',
+                                'approved',
+                                'active',
+                              }.contains(
+                                b.effectiveStatus().trim().toLowerCase(),
+                              ),
                         ))
                         ? null
                         : () async {

@@ -161,6 +161,8 @@ class AssessmentResults {
     required this.recommendedPackages,
     required this.recommendedTests,
     this.customPackage,
+    this.outcome = 'advice_only',
+    this.urgency = 'routine',
   });
 
   /// `low`, `moderate`, or `high`.
@@ -170,6 +172,8 @@ class AssessmentResults {
   final List<AssessmentRecommendedPackage> recommendedPackages;
   final List<AssessmentRecommendedTest> recommendedTests;
   final AssessmentCustomPackage? customPackage;
+  final String outcome;
+  final String urgency;
 
   bool get isEmpty =>
       summary.trim().isEmpty &&
@@ -200,6 +204,8 @@ class AssessmentResults {
       customPackage: custom is Map
           ? AssessmentCustomPackage.fromJson(_map(custom))
           : null,
+      outcome: json['outcome']?.toString() ?? 'advice_only',
+      urgency: json['urgency']?.toString() ?? 'routine',
     );
   }
 }
@@ -211,6 +217,8 @@ class AssessmentHistoryItem {
     required this.language,
     required this.riskLevel,
     required this.summary,
+    this.outcome = 'advice_only',
+    this.urgency = 'routine',
     this.createdAt,
   });
 
@@ -218,6 +226,8 @@ class AssessmentHistoryItem {
   final String language;
   final String riskLevel;
   final String summary;
+  final String outcome;
+  final String urgency;
   final DateTime? createdAt;
 
   factory AssessmentHistoryItem.fromJson(Map<String, dynamic> json) {
@@ -226,9 +236,69 @@ class AssessmentHistoryItem {
       language: json['language']?.toString() ?? 'en',
       riskLevel: json['risk_level']?.toString() ?? 'low',
       summary: json['summary']?.toString() ?? '',
+      outcome: json['outcome']?.toString() ?? 'advice_only',
+      urgency: json['urgency']?.toString() ?? 'routine',
       createdAt: DateTime.tryParse(
         json['created_at']?.toString() ?? '',
       )?.toLocal(),
+    );
+  }
+}
+
+class VoiceAssessmentSession {
+  const VoiceAssessmentSession({
+    required this.sessionToken,
+    required this.patientName,
+    required this.initialInstructions,
+    required this.maxTurns,
+    required this.maxSeconds,
+  });
+
+  final String sessionToken;
+  final String patientName;
+  final String initialInstructions;
+  final int maxTurns;
+  final int maxSeconds;
+
+  factory VoiceAssessmentSession.fromJson(Map<String, dynamic> json) {
+    return VoiceAssessmentSession(
+      sessionToken: json['session_token']?.toString() ?? '',
+      patientName: json['patient_name']?.toString() ?? 'Patient',
+      initialInstructions: json['initial_instructions']?.toString() ?? '',
+      maxTurns: (json['max_turns'] as num?)?.toInt() ?? 10,
+      maxSeconds: (json['max_seconds'] as num?)?.toInt() ?? 300,
+    );
+  }
+}
+
+class VoiceAssessmentTurnDecision {
+  const VoiceAssessmentTurnDecision({
+    required this.spokenResponse,
+    required this.responseInstructions,
+    required this.completed,
+    required this.turnCount,
+    required this.maxTurns,
+    this.result,
+  });
+
+  final String spokenResponse;
+  final String responseInstructions;
+  final bool completed;
+  final int turnCount;
+  final int maxTurns;
+  final AssessmentResults? result;
+
+  factory VoiceAssessmentTurnDecision.fromJson(Map<String, dynamic> json) {
+    final result = json['result'];
+    return VoiceAssessmentTurnDecision(
+      spokenResponse: json['spoken_response']?.toString() ?? '',
+      responseInstructions: json['response_instructions']?.toString() ?? '',
+      completed: json['completed'] as bool? ?? false,
+      turnCount: (json['turn_count'] as num?)?.toInt() ?? 0,
+      maxTurns: (json['max_turns'] as num?)?.toInt() ?? 10,
+      result: result is Map
+          ? AssessmentResults.fromJson(Map<String, dynamic>.from(result))
+          : null,
     );
   }
 }
@@ -274,6 +344,60 @@ class AiCheckupService {
           'Request failed';
     }
     return data?.toString() ?? error.message ?? 'Request failed';
+  }
+
+  Future<VoiceAssessmentSession> startVoiceAssessment({
+    String language = 'en',
+  }) async {
+    try {
+      final response = await _dio().post<Map<String, dynamic>>(
+        '/health-assessment/voice/start',
+        data: {'language': language},
+      );
+      return VoiceAssessmentSession.fromJson(response.data ?? const {});
+    } on DioException catch (error) {
+      throw Exception(_dioMessage(error));
+    }
+  }
+
+  Future<VoiceAssessmentTurnDecision> submitVoiceTurn({
+    required String sessionToken,
+    required String transcript,
+  }) async {
+    try {
+      final response = await _dio().post<Map<String, dynamic>>(
+        '/health-assessment/voice/$sessionToken/turn',
+        data: {'transcript': transcript},
+      );
+      return VoiceAssessmentTurnDecision.fromJson(response.data ?? const {});
+    } on DioException catch (error) {
+      throw Exception(_dioMessage(error));
+    }
+  }
+
+  Future<void> recordVoiceResponse({
+    required String sessionToken,
+    required String transcript,
+    required String response,
+  }) async {
+    try {
+      await _dio().post<Map<String, dynamic>>(
+        '/health-assessment/voice/$sessionToken/response',
+        data: {'transcript': transcript, 'response': response},
+      );
+    } on DioException catch (error) {
+      throw Exception(_dioMessage(error));
+    }
+  }
+
+  Future<void> cancelVoiceAssessment(String sessionToken) async {
+    try {
+      await _dio().post<Map<String, dynamic>>(
+        '/health-assessment/voice/$sessionToken/cancel',
+      );
+    } on DioException catch (error) {
+      throw Exception(_dioMessage(error));
+    }
   }
 
   /// Starts a new assessment session and returns its (personalised) questions.
