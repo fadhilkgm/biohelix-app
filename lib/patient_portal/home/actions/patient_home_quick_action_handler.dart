@@ -37,7 +37,7 @@ class _HomeQuickActionHandler {
         onOpenRecords('prescription');
         return;
       case 'discharge':
-        onOpenRecords('summary');
+        onOpenRecords('all');
         return;
       case 'id_card':
       case 'my_club':
@@ -82,12 +82,7 @@ class _HomeQuickActionHandler {
   }
 
   void _openRewardsWallet() {
-    _push(
-      PatientLoyaltyDetailsPage(
-        idCard: dashboard.idCard,
-        myClub: dashboard.myClub,
-      ),
-    );
+    _push(PatientLoyaltyDetailsPage(myClub: dashboard.myClub));
   }
 
   void _push(Widget page) {

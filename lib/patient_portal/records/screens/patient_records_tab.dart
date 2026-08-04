@@ -1,5 +1,18 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
+List<MedicalRecordItem> medicalRecordsForDisplay(
+  Iterable<MedicalRecordItem> records,
+) {
+  return records
+      .where((record) => record.category.toLowerCase() != 'summary')
+      .toList(growable: false);
+}
+
+String medicalRecordSubtitleForDisplay(MedicalRecordItem record) {
+  final doctorName = (record.doctorName ?? '').trim();
+  return doctorName.isNotEmpty ? doctorName : record.kindLabel;
+}
+
 class _RecordsTab extends StatefulWidget {
   const _RecordsTab({super.key});
 
@@ -113,8 +126,9 @@ class _RecordsTabState extends State<_RecordsTab> {
 
   void setFilter(String filter) {
     if (!mounted) return;
+    const availableFilters = {'all', 'lab', 'prescription'};
     setState(() {
-      _filter = filter;
+      _filter = availableFilters.contains(filter) ? filter : 'all';
     });
   }
 
@@ -127,18 +141,6 @@ class _RecordsTabState extends State<_RecordsTab> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) => _PrescriptionDetailSheet(record: record),
-    );
-  }
-
-  Future<void> _openRecordDetail({required MedicalRecordItem record}) {
-    return showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (context) => _RecordDetailSheet(record: record),
     );
   }
 
@@ -176,7 +178,9 @@ class _RecordsTabState extends State<_RecordsTab> {
   Widget build(BuildContext context) {
     return Consumer<PatientPortalProvider>(
       builder: (context, portal, _) {
-        final items = _buildItems(portal.medicalRecords);
+        final items = _buildItems(
+          medicalRecordsForDisplay(portal.medicalRecords),
+        );
         final visibleItems = _applyFilter(items);
         final theme = Theme.of(context);
 
@@ -275,13 +279,6 @@ class _RecordsTabState extends State<_RecordsTab> {
                               onTap: () =>
                                   setState(() => _filter = 'prescription'),
                             ),
-                            const SizedBox(width: 8),
-                            _RecordsFilterChip(
-                              label: 'Summaries',
-                              icon: Icons.description_rounded,
-                              selected: _filter == 'summary',
-                              onTap: () => setState(() => _filter = 'summary'),
-                            ),
                           ],
                         ),
                       ),
@@ -345,8 +342,6 @@ class _RecordsTabState extends State<_RecordsTab> {
                     title: record.title,
                     documentPath: record.documentPath!,
                   )
-                : (record.summary ?? '').trim().isNotEmpty
-                ? () => _openRecordDetail(record: record)
                 : null,
           ),
         )
@@ -358,17 +353,11 @@ class _RecordsTabState extends State<_RecordsTab> {
 
   String _mapRecordCategory(MedicalRecordItem record) {
     if (record.category == 'prescription') return 'prescription';
-    if (record.category == 'summary') return 'summary';
     return 'lab';
   }
 
   String _buildRecordSubtitle(MedicalRecordItem record) {
-    final subtitle = record.subtitle.trim();
-    if (subtitle.isNotEmpty) return _trimSummary(subtitle);
-    if ((record.doctorName ?? '').trim().isNotEmpty) {
-      return record.doctorName!.trim();
-    }
-    return record.kindLabel;
+    return medicalRecordSubtitleForDisplay(record);
   }
 
   String _buildStatusLabel(String rawStatus) {
@@ -379,8 +368,6 @@ class _RecordsTabState extends State<_RecordsTab> {
     switch (record.category) {
       case 'prescription':
         return const Color(0xFF0D9488); // Teal
-      case 'summary':
-        return const Color(0xFFEA580C); // Orange/Amber
       default:
         return record.status == 'available'
             ? const Color(0xFF2563EB) // Blue
@@ -392,8 +379,6 @@ class _RecordsTabState extends State<_RecordsTab> {
     switch (record.category) {
       case 'prescription':
         return const Color(0xFFF0FDFA);
-      case 'summary':
-        return const Color(0xFFFFF7ED);
       default:
         return record.status == 'available'
             ? const Color(0xFFEFF6FF)
@@ -409,9 +394,6 @@ class _RecordsTabState extends State<_RecordsTab> {
         type.contains('mri')) {
       return Icons.center_focus_strong_rounded;
     }
-    if (record.category == 'summary') {
-      return Icons.description_rounded;
-    }
     return Icons.science_rounded;
   }
 
@@ -419,12 +401,6 @@ class _RecordsTabState extends State<_RecordsTab> {
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return raw;
     return DateFormat('dd MMM, yyyy').format(parsed);
-  }
-
-  String _trimSummary(String value) {
-    final compact = value.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (compact.length <= 44) return compact;
-    return '${compact.substring(0, 41)}...';
   }
 
   String _toTitleCase(String input) {
@@ -928,7 +904,6 @@ class _RecordsEmptyState extends StatelessWidget {
     final label = switch (activeFilter) {
       'lab' => 'lab reports',
       'prescription' => 'prescriptions',
-      'summary' => 'summaries',
       _ => 'records',
     };
 
@@ -1085,32 +1060,6 @@ class _PrescriptionDetailSheet extends StatelessWidget {
                 child: _PrescriptionMedicineCard(medicine: medicine),
               ),
             ),
-          if ((record.summary ?? '').trim().isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Doctor Notes',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Text(
-                record.summary!.trim(),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF334155),
-                  height: 1.5,
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 18),
           SizedBox(
             width: double.infinity,
@@ -1222,127 +1171,6 @@ class _PrescriptionMedicineCard extends StatelessWidget {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _RecordDetailSheet extends StatelessWidget {
-  const _RecordDetailSheet({required this.record});
-
-  final MedicalRecordItem record;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isSummary = record.category == 'summary';
-    final accent = isSummary
-        ? const Color(0xFFEA580C)
-        : const Color(0xFF2563EB);
-    final background = isSummary
-        ? const Color(0xFFFFF7ED)
-        : const Color(0xFFEFF6FF);
-    final icon = isSummary ? Icons.description_rounded : Icons.science_rounded;
-
-    final details = <String>[
-      if ((record.doctorName ?? '').trim().isNotEmpty)
-        'Doctor: ${record.doctorName!.trim()}',
-      if (record.time != null && record.time!.trim().isNotEmpty)
-        'Time: ${record.time!.trim()}',
-      'Type: ${record.kindLabel}',
-      'Status: ${_toTitleCaseValue(record.status)}',
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: background,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(icon, color: accent, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      record.title.trim().isEmpty
-                          ? record.recordType
-                          : record.title,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatSheetDate(record.date),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          _SheetInfoCard(lines: details),
-          if ((record.summary ?? '').trim().isNotEmpty) ...[
-            const SizedBox(height: 18),
-            Text(
-              isSummary ? 'Summary' : 'Details',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Text(
-                record.summary!.trim(),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF334155),
-                  height: 1.5,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF123A87),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
-              child: Text(
-                AppStrings.of(context.read<LanguageProvider>().language).close,
-              ),
-            ),
-          ),
         ],
       ),
     );

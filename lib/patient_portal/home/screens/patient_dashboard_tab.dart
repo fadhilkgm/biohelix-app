@@ -427,6 +427,35 @@ class _DashboardTab extends StatelessWidget {
   }
 }
 
+class HealthPackageDetailPoster extends StatelessWidget {
+  const HealthPackageDetailPoster({
+    super.key,
+    required this.packageId,
+    required this.imageUrl,
+  });
+
+  final int packageId;
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.white,
+      child: imageUrl.isNotEmpty
+          ? Image.network(
+              imageUrl,
+              key: ValueKey('package-detail-poster-$packageId'),
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.contain,
+              alignment: Alignment.center,
+              errorBuilder: (_, _, _) => const AppLogoPlaceholder(padding: 56),
+            )
+          : const AppLogoPlaceholder(padding: 56),
+    );
+  }
+}
+
 class _BannerPackageLandingPage extends StatefulWidget {
   const _BannerPackageLandingPage({
     required this.packageTarget,
@@ -483,6 +512,10 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
         // If specific package view and found it, show detailed view
         if (widget.isSpecific && activePackage != null) {
           final packageImageUrl = resolveImageUrl(activePackage.imageUrl);
+          final packagePosterExtent = math.min(
+            MediaQuery.sizeOf(context).width,
+            560.0,
+          );
           final hasTests = activePackage.includedTests.isNotEmpty;
           final hasDescription =
               activePackage.description != null &&
@@ -493,7 +526,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
             body: CustomScrollView(
               slivers: [
                 SliverAppBar(
-                  expandedHeight: 220,
+                  expandedHeight: packagePosterExtent,
                   pinned: true,
                   stretch: true,
                   backgroundColor: const Color(0xFF06489B),
@@ -506,62 +539,10 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                     ),
                   ),
                   flexibleSpace: FlexibleSpaceBar(
-                    background: ColoredBox(
-                      color: const Color(0xFFE8F1FF),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            right: -45,
-                            top: 28,
-                            child: Container(
-                              width: 150,
-                              height: 150,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(
-                                  0xFF06489B,
-                                ).withValues(alpha: 0.08),
-                              ),
-                            ),
-                          ),
-                          Center(
-                            child: Container(
-                              width: 164,
-                              height: 164,
-                              padding: const EdgeInsets.all(18),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.82),
-                                borderRadius: BorderRadius.circular(28),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF356FD3,
-                                    ).withValues(alpha: 0.1),
-                                    blurRadius: 24,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(18),
-                                child: packageImageUrl.isNotEmpty
-                                    ? Image.network(
-                                        packageImageUrl,
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (_, _, _) =>
-                                            const AppLogoPlaceholder(
-                                              padding: 16,
-                                            ),
-                                      )
-                                    : const AppLogoPlaceholder(padding: 16),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    stretchModes: const [StretchMode.zoomBackground],
+                    background: HealthPackageDetailPoster(
+                      packageId: activePackage.id,
+                      imageUrl: packageImageUrl,
                     ),
                   ),
                 ),

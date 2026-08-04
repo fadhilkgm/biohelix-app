@@ -6,6 +6,7 @@ import 'package:biohelix_app/core/config/app_config.dart';
 import 'package:biohelix_app/core/network/api_client.dart';
 import 'package:biohelix_app/core/providers/language_provider.dart';
 import 'package:biohelix_app/core/referrals/referral_link_provider.dart';
+import 'package:biohelix_app/core/theme/app_colors.dart';
 import 'package:biohelix_app/patient_portal/core/data/patient_repository.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 import 'package:biohelix_app/patient_portal/my_club/screens/patient_loyalty_panel.dart';
@@ -193,13 +194,6 @@ void main() {
         child: const MaterialApp(
           home: Scaffold(
             body: PatientLoyaltyDetailsContent(
-              idCard: IdCardInfo(
-                registrationNumber: 'PAT-20',
-                patientName: 'Current Patient',
-                membershipTier: 'Classic',
-                qrValue: 'CARD-20',
-                barcodeValue: 'PAT-20',
-              ),
               myClub: MyClubSummary(
                 patientId: 20,
                 points: 50,
@@ -229,6 +223,13 @@ void main() {
     );
     expect(find.text('Bilal Invitee'), findsOneWidget);
     expect(find.text('BHRCOWN123'), findsOneWidget);
+    final shareButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('share_referral_code'), skipOffstage: false),
+    );
+    expect(
+      shareButton.style?.backgroundColor?.resolve(<WidgetState>{}),
+      AppColors.primary,
+    );
   });
 }
 

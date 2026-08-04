@@ -1,5 +1,6 @@
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 import 'package:biohelix_app/patient_portal/premium_home/screens/home_screen.dart';
+import 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -48,6 +49,32 @@ void main() {
 
     expect(poster.fit, BoxFit.contain);
     expect(posterSize.width, posterSize.height);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('package detail header uses the complete poster as background', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SizedBox.square(
+            dimension: 390,
+            child: HealthPackageDetailPoster(
+              packageId: 21,
+              imageUrl: 'https://example.test/square-poster.png',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final posterFinder = find.byKey(const ValueKey('package-detail-poster-21'));
+    final poster = tester.widget<Image>(posterFinder);
+    final posterSize = tester.getSize(posterFinder);
+
+    expect(poster.fit, BoxFit.contain);
+    expect(posterSize, const Size.square(390));
     expect(tester.takeException(), isNull);
   });
 }

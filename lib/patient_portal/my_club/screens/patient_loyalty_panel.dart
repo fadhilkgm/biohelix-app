@@ -1,4 +1,3 @@
-import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -10,14 +9,24 @@ import '../../../core/providers/language_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../core/models/patient_models.dart';
 
-class PatientLoyaltyPanel extends StatelessWidget {
-  const PatientLoyaltyPanel({
-    super.key,
-    required this.idCard,
-    required this.myClub,
-  });
+Future<void> shareReferralInvite(ReferralSummary referrals) {
+  final terms = referrals.rewardTerms;
+  return SharePlus.instance
+      .share(
+        ShareParams(
+          subject: 'Join BHRC',
+          text:
+              'Join BHRC with my referral code ${referrals.code}. '
+              'You can earn ${terms.newPatientPoints} MyClub points after '
+              'your first completed paid service. ${referrals.shareUrl}',
+        ),
+      )
+      .then((_) {});
+}
 
-  final IdCardInfo idCard;
+class PatientLoyaltyPanel extends StatelessWidget {
+  const PatientLoyaltyPanel({super.key, required this.myClub});
+
   final MyClubSummary myClub;
 
   @override
@@ -29,8 +38,6 @@ class PatientLoyaltyPanel extends StatelessWidget {
 
     return Column(
       children: [
-        _MemberCard(idCard: idCard),
-        const SizedBox(height: 16),
         Card(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
@@ -146,13 +153,8 @@ class PatientLoyaltyPanel extends StatelessWidget {
 }
 
 class PatientLoyaltyDetailsPage extends StatelessWidget {
-  const PatientLoyaltyDetailsPage({
-    super.key,
-    required this.idCard,
-    required this.myClub,
-  });
+  const PatientLoyaltyDetailsPage({super.key, required this.myClub});
 
-  final IdCardInfo idCard;
   final MyClubSummary myClub;
 
   @override
@@ -160,7 +162,7 @@ class PatientLoyaltyDetailsPage extends StatelessWidget {
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
     return Scaffold(
       appBar: AppBar(title: Text(strings.rewardsWallet)),
-      body: PatientLoyaltyDetailsContent(idCard: idCard, myClub: myClub),
+      body: PatientLoyaltyDetailsContent(myClub: myClub),
     );
   }
 }
@@ -168,13 +170,11 @@ class PatientLoyaltyDetailsPage extends StatelessWidget {
 class PatientLoyaltyDetailsContent extends StatelessWidget {
   const PatientLoyaltyDetailsContent({
     super.key,
-    required this.idCard,
     required this.myClub,
     this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 24),
     this.showRedemptionSetup = false,
   });
 
-  final IdCardInfo idCard;
   final MyClubSummary myClub;
   final EdgeInsetsGeometry padding;
   final bool showRedemptionSetup;
@@ -196,7 +196,7 @@ class PatientLoyaltyDetailsContent extends StatelessWidget {
     return ListView(
       padding: padding,
       children: [
-        PatientLoyaltyPanel(idCard: idCard, myClub: myClub),
+        PatientLoyaltyPanel(myClub: myClub),
         const SizedBox(height: 16),
         _ReferralSection(referrals: myClub.referrals),
         const SizedBox(height: 16),
@@ -288,21 +288,6 @@ class _ReferralSection extends StatelessWidget {
     ).showSnackBar(const SnackBar(content: Text('Referral code copied')));
   }
 
-  Future<void> _share() {
-    final terms = referrals.rewardTerms;
-    return SharePlus.instance
-        .share(
-          ShareParams(
-            subject: 'Join BHRC',
-            text:
-                'Join BHRC with my referral code ${referrals.code}. '
-                'You can earn ${terms.newPatientPoints} MyClub points after '
-                'your first completed paid service. ${referrals.shareUrl}',
-          ),
-        )
-        .then((_) {});
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -372,17 +357,49 @@ class _ReferralSection extends StatelessWidget {
                         child: OutlinedButton.icon(
                           key: const ValueKey('copy_referral_code'),
                           onPressed: () => _copyCode(context),
-                          icon: const Icon(Icons.copy_rounded),
+                          icon: const Icon(Icons.copy_rounded, size: 20),
                           label: const Text('Copy code'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 13,
+                            ),
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(color: AppColors.primary),
+                            textStyle: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: FilledButton.icon(
                           key: const ValueKey('share_referral_code'),
-                          onPressed: _share,
-                          icon: const Icon(Icons.share_rounded),
+                          onPressed: () => shareReferralInvite(referrals),
+                          icon: const Icon(Icons.share_rounded, size: 20),
                           label: const Text('Share invite'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 13,
+                            ),
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            textStyle: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -667,149 +684,6 @@ Color _parseColor(String value) {
   final normalized = value.replaceFirst('#', '');
   final parsed = int.tryParse(normalized, radix: 16);
   return parsed == null ? const Color(0xFF64748B) : Color(0xFF000000 | parsed);
-}
-
-class _MemberCard extends StatelessWidget {
-  const _MemberCard({required this.idCard});
-
-  final IdCardInfo idCard;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final barcodeValue = idCard.barcodeValue.isEmpty
-        ? idCard.registrationNumber
-        : idCard.barcodeValue;
-
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'BHRC Member Card',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              idCard.counterHint,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF9A5A08), Color(0xFFE9A11A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Member ID',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.82),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          idCard.membershipTier,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    idCard.patientName,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    idCard.registrationNumber,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  if ((idCard.memberSince ?? '').isNotEmpty)
-                    Text(
-                      'Member since ${DateFormat('MMM yyyy').format(DateTime.tryParse(idCard.memberSince!) ?? DateTime.now())}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.82),
-                      ),
-                    ),
-                  const SizedBox(height: 14),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        BarcodeWidget(
-                          data: barcodeValue,
-                          barcode: Barcode.code128(),
-                          drawText: false,
-                          height: 56,
-                          color: Colors.black,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          barcodeValue,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _TransactionRow extends StatelessWidget {

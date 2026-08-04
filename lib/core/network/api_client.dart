@@ -42,10 +42,14 @@ class ApiClient {
           handler.next(response);
         },
         onError: (error, handler) {
-          _logger.e(
-            'ERR ${error.response?.statusCode} ${error.requestOptions.uri}',
-            error: error.message,
-          );
+          final status = error.response?.statusCode;
+          final summary =
+              'ERR $status ${error.requestOptions.uri}: ${_errorMessage(error)}';
+          if (status == 503) {
+            _logger.w(summary);
+          } else {
+            _logger.e(summary);
+          }
           if (error.response?.statusCode == 401) {
             _onUnauthorized?.call();
           }

@@ -60,6 +60,9 @@ class _RedesignedProfileSection extends StatelessWidget {
                     idCard: idCard,
                     myClub: myClub,
                     onTap: onOpenMembership,
+                    onInvite: () {
+                      unawaited(shareReferralInvite(myClub.referrals));
+                    },
                   ),
                 ),
                 Padding(
@@ -263,190 +266,226 @@ class ProfileMembershipCard extends StatelessWidget {
     required this.idCard,
     required this.myClub,
     required this.onTap,
+    required this.onInvite,
   });
 
   final PatientIdentity patient;
   final IdCardInfo idCard;
   final MyClubSummary myClub;
   final VoidCallback onTap;
+  final VoidCallback onInvite;
 
   @override
   Widget build(BuildContext context) {
-    final benefits = myClub.benefits.take(2);
+    final benefits = myClub.benefits
+        .where(
+          (benefit) =>
+              benefit.trim().toLowerCase() != 'start earning myclub rewards',
+        )
+        .take(2);
     final levelColor = _profileMembershipColor(myClub.levelColor);
     final nextLevel = myClub.nextTierName;
-    return Semantics(
-      button: true,
-      label: 'Open membership level, points and transactions',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Ink(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          button: true,
+          label: 'Open membership level, points and transactions',
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
               borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                colors: [
-                  Color.lerp(levelColor, Colors.white, 0.12)!,
-                  Color.lerp(levelColor, Colors.black, 0.22)!,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              child: Ink(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    colors: [
+                      Color.lerp(levelColor, Colors.white, 0.12)!,
+                      Color.lerp(levelColor, Colors.black, 0.22)!,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.workspace_premium_rounded,
-                      color: Color(0xFFE0D5FF),
-                    ),
-                    const SizedBox(width: 9),
-                    const Expanded(
-                      child: Text(
-                        'BHRC MEMBERSHIP',
-                        style: TextStyle(
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.workspace_premium_rounded,
                           color: Color(0xFFE0D5FF),
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.1,
-                          fontSize: 12,
                         ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 11,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        myClub.levelName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  '${myClub.levelName} Membership',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${patient.name}  •  ${patient.registrationNumber}',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.88)),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${myClub.lifetimePoints} lifetime points',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    if (myClub.leaderboardRank > 0)
-                      Text(
-                        'Rank #${myClub.leaderboardRank}',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                  ],
-                ),
-                if (nextLevel != null) ...[
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      value: myClub.progressPercent.clamp(0, 100) / 100,
-                      minHeight: 7,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${myClub.pointsToNextTier} points to $nextLevel',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.88),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                if (benefits.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  ...benefits.map(
-                    (benefit) => Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            color: Color(0xFFE0D5FF),
-                            size: 17,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              benefit,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
+                        const SizedBox(width: 9),
+                        const Expanded(
+                          child: Text(
+                            'BHRC MEMBERSHIP',
+                            style: TextStyle(
+                              color: Color(0xFFE0D5FF),
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.1,
+                              fontSize: 12,
                             ),
                           ),
-                        ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 11,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            myClub.levelName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      '${myClub.levelName} Membership',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
                       ),
                     ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Divider(height: 1, color: Colors.white.withValues(alpha: 0.24)),
-                const SizedBox(height: 12),
-                const Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'View points & transactions',
-                        style: TextStyle(
+                    const SizedBox(height: 4),
+                    Text(
+                      '${patient.name}  •  ${patient.registrationNumber}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.88),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${myClub.lifetimePoints} lifetime points',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (myClub.leaderboardRank > 0)
+                          Text(
+                            'Rank #${myClub.leaderboardRank}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (nextLevel != null) ...[
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: myClub.progressPercent.clamp(0, 100) / 100,
+                          minHeight: 7,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
                         ),
                       ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${myClub.pointsToNextTier} points to $nextLevel',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.88),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    if (benefits.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      ...benefits.map(
+                        (benefit) => Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                color: Color(0xFFE0D5FF),
+                                size: 17,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  benefit,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Divider(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: 0.24),
                     ),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.white,
-                      size: 20,
+                    const SizedBox(height: 12),
+                    const Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'View points & transactions',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        const SizedBox(height: 10),
+        FilledButton.icon(
+          key: const ValueKey('profile_invite_friends'),
+          onPressed: onInvite,
+          icon: const Icon(Icons.person_add_alt_1_rounded, size: 20),
+          label: const Text('Invite Friends'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(50),
+            backgroundColor: const Color(0xFF06489B),
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

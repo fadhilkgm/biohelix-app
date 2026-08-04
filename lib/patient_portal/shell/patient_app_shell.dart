@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../assistant/voice/inworld_signaling_api.dart';
+import '../assistant/voice/live_voice_conversation.dart';
 import '../assistant/voice/live_voice_controller.dart';
 import '../assistant/voice/live_voice_state.dart';
 
@@ -91,6 +92,7 @@ abstract class PatientAppShellController {
   void goHome();
   void openAssistant();
   void openAiCheckup();
+  void openPackages([String? packageTarget]);
 }
 
 class PatientAppShell extends StatefulWidget {
@@ -348,9 +350,23 @@ class _PatientAppShellState extends State<PatientAppShell>
 
   @override
   void openAiCheckup() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const AiCheckupTab()));
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AiCheckupTab(onOpenPackage: openPackages),
+      ),
+    );
+  }
+
+  @override
+  void openPackages([String? packageTarget]) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _BannerPackageLandingPage(
+          packageTarget: packageTarget,
+          isSpecific: packageTarget != null && packageTarget.trim().isNotEmpty,
+        ),
+      ),
+    );
   }
 
   void _openAssistant() => openAssistant();

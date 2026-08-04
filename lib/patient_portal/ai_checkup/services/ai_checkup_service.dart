@@ -104,12 +104,20 @@ class AssessmentRecommendedPackage {
     required this.id,
     required this.packageName,
     this.price,
+    this.discountedPrice,
+    this.description,
+    this.imageUrl,
+    this.testsCount = 0,
     this.tests = const [],
   });
 
   final int id;
   final String packageName;
   final String? price;
+  final String? discountedPrice;
+  final String? description;
+  final String? imageUrl;
+  final int testsCount;
   final List<AssessmentRecommendedTest> tests;
 
   factory AssessmentRecommendedPackage.fromJson(Map<String, dynamic> json) {
@@ -118,6 +126,13 @@ class AssessmentRecommendedPackage {
       id: (json['id'] as num?)?.toInt() ?? 0,
       packageName: json['package_name']?.toString() ?? 'Package',
       price: json['price']?.toString(),
+      discountedPrice: json['discounted_price']?.toString(),
+      description: json['description']?.toString(),
+      imageUrl: json['image_url']?.toString(),
+      testsCount:
+          (json['tests_count'] as num?)?.toInt() ??
+          (json['test_count'] as num?)?.toInt() ??
+          testsRaw.length,
       tests: testsRaw
           .map((item) => AssessmentRecommendedTest.fromJson(_map(item)))
           .toList(),
@@ -248,14 +263,12 @@ class AssessmentHistoryItem {
 class VoiceAssessmentSession {
   const VoiceAssessmentSession({
     required this.sessionToken,
-    required this.patientName,
     required this.initialInstructions,
     required this.maxTurns,
     required this.maxSeconds,
   });
 
   final String sessionToken;
-  final String patientName;
   final String initialInstructions;
   final int maxTurns;
   final int maxSeconds;
@@ -263,7 +276,6 @@ class VoiceAssessmentSession {
   factory VoiceAssessmentSession.fromJson(Map<String, dynamic> json) {
     return VoiceAssessmentSession(
       sessionToken: json['session_token']?.toString() ?? '',
-      patientName: json['patient_name']?.toString() ?? 'Patient',
       initialInstructions: json['initial_instructions']?.toString() ?? '',
       maxTurns: (json['max_turns'] as num?)?.toInt() ?? 10,
       maxSeconds: (json['max_seconds'] as num?)?.toInt() ?? 300,
@@ -273,6 +285,7 @@ class VoiceAssessmentSession {
 
 class VoiceAssessmentTurnDecision {
   const VoiceAssessmentTurnDecision({
+    required this.acceptedTranscript,
     required this.spokenResponse,
     required this.responseInstructions,
     required this.completed,
@@ -281,6 +294,7 @@ class VoiceAssessmentTurnDecision {
     this.result,
   });
 
+  final String acceptedTranscript;
   final String spokenResponse;
   final String responseInstructions;
   final bool completed;
@@ -291,6 +305,7 @@ class VoiceAssessmentTurnDecision {
   factory VoiceAssessmentTurnDecision.fromJson(Map<String, dynamic> json) {
     final result = json['result'];
     return VoiceAssessmentTurnDecision(
+      acceptedTranscript: json['accepted_transcript']?.toString() ?? '',
       spokenResponse: json['spoken_response']?.toString() ?? '',
       responseInstructions: json['response_instructions']?.toString() ?? '',
       completed: json['completed'] as bool? ?? false,

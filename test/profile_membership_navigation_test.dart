@@ -37,6 +37,10 @@ void main() {
       pointsToNextTier: 900,
       progressPercent: 10,
       leaderboardRank: 2,
+      benefits: [
+        'Start earning MyClub rewards',
+        'Priority appointment support',
+      ],
       transactions: [
         MyClubTransaction(
           id: 1,
@@ -64,6 +68,7 @@ void main() {
         ),
       ),
     );
+    var inviteTapped = false;
 
     await tester.pumpWidget(
       ChangeNotifierProvider<LanguageProvider>.value(
@@ -76,13 +81,12 @@ void main() {
                   patient: patient,
                   idCard: idCard,
                   myClub: myClub,
+                  onInvite: () => inviteTapped = true,
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => const PatientLoyaltyDetailsPage(
-                          idCard: idCard,
-                          myClub: myClub,
-                        ),
+                        builder: (_) =>
+                            const PatientLoyaltyDetailsPage(myClub: myClub),
                       ),
                     );
                   },
@@ -98,12 +102,21 @@ void main() {
     expect(find.text('600 lifetime points'), findsOneWidget);
     expect(find.text('900 points to Gold'), findsOneWidget);
     expect(find.text('Rank #2'), findsOneWidget);
+    expect(find.text('Start earning MyClub rewards'), findsNothing);
+    expect(find.text('Priority appointment support'), findsOneWidget);
+    expect(find.text('Invite Friends'), findsOneWidget);
+    await tester.ensureVisible(find.text('Invite Friends'));
+    await tester.tap(find.text('Invite Friends'));
+    await tester.pump();
+    expect(inviteTapped, isTrue);
     expect(find.text('View points & transactions'), findsOneWidget);
     await tester.ensureVisible(find.text('View points & transactions'));
     await tester.tap(find.text('View points & transactions'));
     await tester.pumpAndSettle();
 
     expect(find.text('Rewards Wallet'), findsOneWidget);
+    expect(find.text('BHRC Member Card'), findsNothing);
+    expect(find.text('Member ID'), findsNothing);
     expect(find.text('Redemption setup'), findsNothing);
     final detailsScrollable = find
         .descendant(

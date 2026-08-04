@@ -271,7 +271,6 @@ extension _AssistantActions on _AssistantTabState {
         _isAttachmentUploadInFlight = false;
         _uploadingAttachmentName = null;
         _isAttachmentAnalysisInFlight = true;
-        _analyzingAttachmentName = fileName;
       });
 
       unawaited(() async {
@@ -283,15 +282,11 @@ extension _AssistantActions on _AssistantTabState {
           if (!mounted) return;
           updateAssistantState(() {
             _isAttachmentAnalysisInFlight = false;
-            _analyzingAttachmentName = null;
           });
           final result = analysis;
-          if (result != null && result.summary.trim().isNotEmpty) {
-            _showDocumentAnalysisResult(fileName, result);
-          } else if (result?.status == 'processing' ||
-              result?.status == 'queued') {
+          if (result?.status == 'processing' || result?.status == 'queued') {
             await _showAttachmentMessage(
-              'Your report is queued for analysis. We will show the summary when it is ready.',
+              'Your report is queued for analysis. You can ask questions once it is ready.',
             );
           }
           if (!mounted) return;
@@ -306,7 +301,6 @@ extension _AssistantActions on _AssistantTabState {
           if (!mounted) return;
           updateAssistantState(() {
             _isAttachmentAnalysisInFlight = false;
-            _analyzingAttachmentName = null;
           });
           AppToast.show(
             context,
@@ -332,7 +326,6 @@ extension _AssistantActions on _AssistantTabState {
       _isAttachmentUploadInFlight = false;
       _isAttachmentAnalysisInFlight = false;
       _uploadingAttachmentName = null;
-      _analyzingAttachmentName = null;
     });
     if (!mounted) return;
     final message = _friendlyAttachmentError(error);
@@ -370,107 +363,6 @@ extension _AssistantActions on _AssistantTabState {
     final extensionMatch = RegExp(r'\.([a-zA-Z0-9]{2,5})$').firstMatch(source);
     final extension = extensionMatch?.group(1)?.toLowerCase() ?? 'jpg';
     return 'Gallery image.$extension';
-  }
-
-  Future<void> _showDocumentAnalysisResult(
-    String fileName,
-    DocumentAnalysisResult analysis,
-  ) {
-    final riskReason = (analysis.riskReason ?? '').trim();
-    final findings = analysis.findings.take(4).toList();
-    final recommendations =
-        (analysis.recommendations.isNotEmpty
-                ? analysis.recommendations
-                : analysis.texts)
-            .map(_cleanAnalysisLine)
-            .where((item) => item.isNotEmpty)
-            .take(3)
-            .toList();
-    final riskLevel = (analysis.riskLevel ?? '').trim();
-
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.58,
-        minChildSize: 0.32,
-        maxChildSize: 0.86,
-        builder: (context, controller) => SafeArea(
-          child: ListView(
-            controller: controller,
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.verified_user_rounded),
-                  const SizedBox(width: AppSpacing.s8),
-                  Expanded(
-                    child: Text(
-                      _displayAttachmentName(fileName),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.title(sheetContext),
-                    ),
-                  ),
-                  if (riskLevel.isNotEmpty) ...[
-                    const SizedBox(width: AppSpacing.s8),
-                    _AnalysisRiskPill(level: riskLevel),
-                  ],
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s12),
-              Text(
-                _cleanAnalysisSummary(analysis.summary),
-                style: AppTextStyles.bubbleAi(sheetContext),
-              ),
-              if (riskReason.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.s12),
-                _AnalysisSection(
-                  title: 'Why it matters',
-                  lines: [_cleanAnalysisLine(riskReason)],
-                ),
-              ],
-              if (findings.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.s12),
-                _AnalysisSection(title: 'Key findings', lines: findings),
-              ],
-              if (recommendations.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.s12),
-                _AnalysisSection(title: 'Next steps', lines: recommendations),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _displayAttachmentName(String fileName) {
-    if (fileName.startsWith('image_picker_')) return 'Gallery image';
-    return fileName;
-  }
-
-  String _cleanAnalysisSummary(String value) {
-    final cleaned = _cleanAnalysisLine(value);
-    if (cleaned.startsWith('{') ||
-        cleaned.contains('"document_type"') ||
-        cleaned.contains('"summary"')) {
-      return 'The report was analyzed, but the AI response needs a cleaner structured summary. Please review the highlighted values with your doctor.';
-    }
-    return cleaned.isNotEmpty
-        ? cleaned
-        : 'The report was analyzed. Please review the findings with your doctor.';
-  }
-
-  String _cleanAnalysisLine(String value) {
-    final cleaned = value
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .replaceAll('Review the raw AI output manually.', '')
-        .trim();
-    if (cleaned.isEmpty) return '';
-    if (cleaned.startsWith('{') || cleaned.contains('"risk_level"')) return '';
-    return cleaned;
   }
 
   Future<void> _confirmDeleteThread(
@@ -559,6 +451,7 @@ extension _AssistantActions on _AssistantTabState {
         _isListening = false;
         _isSpeaking = false;
         _isLiveTurnInFlight = false;
+        _isEndingLiveVoice = false;
         _soundLevel = 0;
         _liveVoiceError = null;
         _liveConversationId = null;
@@ -580,6 +473,7 @@ extension _AssistantActions on _AssistantTabState {
 
     updateAssistantState(() {
       _isLiveVoiceMode = true;
+      _isEndingLiveVoice = false;
       _liveConversationId = portal.activeChatThreadId;
       _liveVoiceError = null;
     });
@@ -667,85 +561,4 @@ Future<void> _openAttachmentPreview(
       );
     },
   );
-}
-
-class _AnalysisRiskPill extends StatelessWidget {
-  const _AnalysisRiskPill({required this.level});
-
-  final String level;
-
-  @override
-  Widget build(BuildContext context) {
-    final normalized = level.toLowerCase();
-    final color = switch (normalized) {
-      'critical' => const Color(0xFFB3261E),
-      'high' => const Color(0xFFD04718),
-      'moderate' => const Color(0xFFB26A00),
-      _ => const Color(0xFF137A52),
-    };
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        child: Text(
-          '${level[0].toUpperCase()}${level.substring(1).toLowerCase()} risk',
-          style: AppTextStyles.subtitle(
-            context,
-          ).copyWith(color: color, fontWeight: FontWeight.w800),
-        ),
-      ),
-    );
-  }
-}
-
-class _AnalysisSection extends StatelessWidget {
-  const _AnalysisSection({required this.title, required this.lines});
-
-  final String title;
-  final List<String> lines;
-
-  @override
-  Widget build(BuildContext context) {
-    final visibleLines = lines
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
-    if (visibleLines.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: AppTextStyles.subtitle(context).copyWith(
-            fontWeight: FontWeight.w800,
-            color: AiChatColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s8),
-        ...visibleLines.map(
-          (line) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 7),
-                  child: Icon(Icons.circle, size: 6),
-                ),
-                const SizedBox(width: AppSpacing.s8),
-                Expanded(
-                  child: Text(line, style: AppTextStyles.subtitle(context)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }

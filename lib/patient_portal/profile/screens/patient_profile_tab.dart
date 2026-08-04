@@ -1370,10 +1370,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                 onOpenMembership: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => PatientLoyaltyDetailsPage(
-                        idCard: idCard,
-                        myClub: myClub,
-                      ),
+                      builder: (_) => PatientLoyaltyDetailsPage(myClub: myClub),
                     ),
                   );
                 },

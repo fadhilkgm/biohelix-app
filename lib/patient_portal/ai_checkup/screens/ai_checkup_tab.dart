@@ -24,6 +24,8 @@ typedef AiCheckupVoiceControllerFactory =
       required RealtimeTurnContext onTurnContext,
     });
 
+typedef AiCheckupPackageOpener = void Function(String? packageTarget);
+
 AiCheckupService _defaultServiceFactory(BuildContext context) {
   return AiCheckupService(
     apiBaseUrl: context.read<AppConfig>().apiBaseUrl,
@@ -59,10 +61,14 @@ class AiCheckupTab extends StatefulWidget {
     super.key,
     this.serviceFactory,
     this.voiceControllerFactory,
+    this.onOpenPackage,
+    this.resultRevealDelay = const Duration(milliseconds: 500),
   });
 
   final AiCheckupServiceFactory? serviceFactory;
   final AiCheckupVoiceControllerFactory? voiceControllerFactory;
+  final AiCheckupPackageOpener? onOpenPackage;
+  final Duration resultRevealDelay;
 
   @override
   State<AiCheckupTab> createState() => _AiCheckupTabState();
@@ -179,12 +185,12 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     if (session == null) {
       throw StateError('The voice assessment session is unavailable.');
     }
-    _appendMessage(patient: true, text: transcript);
     final decision = await _service.submitVoiceTurn(
       sessionToken: session.sessionToken,
       transcript: transcript,
     );
     if (mounted) {
+      _appendMessage(patient: true, text: decision.acceptedTranscript);
       setState(() {
         _pendingDecision = decision;
         _result = decision.result ?? _result;
@@ -196,20 +202,41 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   Future<void> _onVoiceTurnCompleted(String transcript, String response) async {
     final session = _session;
     if (session == null || !mounted) return;
-    _appendMessage(patient: false, text: response);
+    final safeResponse = _pendingDecision?.spokenResponse ?? '';
+    if (safeResponse.isNotEmpty) {
+      _appendMessage(patient: false, text: safeResponse);
+    }
+    unawaited(
+      _recordVoiceResponseSafely(
+        sessionToken: session.sessionToken,
+        transcript: transcript,
+        response: response,
+      ),
+    );
+    final decision = _pendingDecision;
+    if (decision?.completed == true) {
+      if (widget.resultRevealDelay > Duration.zero) {
+        await Future<void>.delayed(widget.resultRevealDelay);
+      }
+      if (!mounted) return;
+      await _showCompletedResult(decision!.result);
+    }
+  }
+
+  Future<void> _recordVoiceResponseSafely({
+    required String sessionToken,
+    required String transcript,
+    required String response,
+  }) async {
     try {
       await _service.recordVoiceResponse(
-        sessionToken: session.sessionToken,
+        sessionToken: sessionToken,
         transcript: transcript,
         response: response,
       );
     } catch (_) {
-      // The assessment decision is already saved. A transcript persistence
-      // retry must not keep the microphone open or lose the completed result.
-    }
-    final decision = _pendingDecision;
-    if (decision?.completed == true) {
-      await _showCompletedResult(decision!.result);
+      // The assessment decision is already saved. Transcript persistence must
+      // not delay the closing speech or the result transition.
     }
   }
 
@@ -231,7 +258,6 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     final session = _session;
     if (text.isEmpty || session == null || _sendingText) return;
     _textController.clear();
-    _appendMessage(patient: true, text: text);
     setState(() {
       _sendingText = true;
       _error = null;
@@ -242,6 +268,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
         transcript: text,
       );
       if (!mounted) return;
+      _appendMessage(patient: true, text: decision.acceptedTranscript);
       _appendMessage(patient: false, text: decision.spokenResponse);
       await _service.recordVoiceResponse(
         sessionToken: session.sessionToken,
@@ -369,6 +396,16 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     PatientAppShell.of(context).goHome();
   }
 
+  void _openPackage([String? packageTarget]) {
+    final openPackage = widget.onOpenPackage;
+    if (openPackage != null) {
+      openPackage(packageTarget);
+      return;
+    }
+
+    PatientAppShell.of(context).openPackages(packageTarget);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -410,6 +447,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
         _CheckupView.result => _ResultView(
           result: _result,
           onNewCheckup: _startAssessment,
+          onPackages: _openPackage,
+          onPackage: (package) => _openPackage(package.packageName),
           onHome: _goHome,
         ),
         _CheckupView.history => _HistoryView(
@@ -437,11 +476,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
-            child: _VoiceHeader(
-              patientName: _session?.patientName ?? 'Patient',
-              state: state,
-              textMode: _textFallback,
-            ),
+            child: _VoiceHeader(state: state, textMode: _textFallback),
           ),
           Expanded(
             child: ListView.builder(
@@ -492,13 +527,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
 }
 
 class _VoiceHeader extends StatelessWidget {
-  const _VoiceHeader({
-    required this.patientName,
-    required this.state,
-    required this.textMode,
-  });
+  const _VoiceHeader({required this.state, required this.textMode});
 
-  final String patientName;
   final LiveVoiceState state;
   final bool textMode;
 
@@ -550,7 +580,7 @@ class _VoiceHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Checkup for $patientName',
+                  'Private AI health checkup',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -732,11 +762,15 @@ class _ResultView extends StatelessWidget {
   const _ResultView({
     required this.result,
     required this.onNewCheckup,
+    required this.onPackages,
+    required this.onPackage,
     required this.onHome,
   });
 
   final AssessmentResults? result;
   final VoidCallback onNewCheckup;
+  final VoidCallback onPackages;
+  final ValueChanged<AssessmentRecommendedPackage> onPackage;
   final VoidCallback onHome;
 
   String _outcome(String value) => switch (value) {
@@ -833,6 +867,24 @@ class _ResultView extends StatelessWidget {
                   ),
                 ),
               ],
+              if (data.recommendedPackages.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const Text(
+                  'Recommended health packages',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF273348),
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...data.recommendedPackages.map(
+                  (package) => _AiCheckupPackageCard(
+                    package: package,
+                    onTap: () => onPackage(package),
+                  ),
+                ),
+              ],
               const SizedBox(height: 18),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -854,6 +906,15 @@ class _ResultView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
+        if (data.outcome == 'test_package_only' ||
+            data.outcome == 'test_package_and_consultation') ...[
+          FilledButton.icon(
+            onPressed: onPackages,
+            icon: const Icon(Icons.health_and_safety_outlined),
+            label: const Text('View health packages'),
+          ),
+          const SizedBox(height: 10),
+        ],
         FilledButton(
           onPressed: onNewCheckup,
           child: const Text('Start new voice checkup'),
@@ -861,6 +922,123 @@ class _ResultView extends StatelessWidget {
         const SizedBox(height: 10),
         OutlinedButton(onPressed: onHome, child: const Text('Back to home')),
       ],
+    );
+  }
+}
+
+class _AiCheckupPackageCard extends StatelessWidget {
+  const _AiCheckupPackageCard({required this.package, required this.onTap});
+
+  final AssessmentRecommendedPackage package;
+  final VoidCallback onTap;
+
+  String _price(String value) {
+    final amount = double.tryParse(value);
+    if (amount == null) return value;
+    return '₹${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final effectivePrice = (package.discountedPrice ?? '').trim().isNotEmpty
+        ? package.discountedPrice!
+        : package.price;
+    final imageUrl = (package.imageUrl ?? '').trim();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAFF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD9E6F7)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: Container(
+                    width: 92,
+                    height: 92,
+                    color: Colors.white,
+                    child: imageUrl.isEmpty
+                        ? const Icon(
+                            Icons.health_and_safety_outlined,
+                            color: Color(0xFF1769C2),
+                            size: 34,
+                          )
+                        : Image.network(
+                            imageUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, _, _) => const Icon(
+                              Icons.health_and_safety_outlined,
+                              color: Color(0xFF1769C2),
+                              size: 34,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        package.packageName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF192233),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                        ),
+                      ),
+                      if (package.testsCount > 0) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          '${package.testsCount} tests included',
+                          style: const TextStyle(
+                            color: Color(0xFF61728A),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                      if ((effectivePrice ?? '').trim().isNotEmpty) ...[
+                        const SizedBox(height: 7),
+                        Text(
+                          _price(effectivePrice!),
+                          style: const TextStyle(
+                            color: Color(0xFF06489B),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 7),
+                      const Text(
+                        'View package →',
+                        style: TextStyle(
+                          color: Color(0xFF1769C2),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../../../core/network/api_exception.dart';
 import 'inworld_signaling_api.dart';
 import 'live_voice_state.dart';
 
@@ -682,6 +683,9 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   String _friendlyError(Object error) {
+    if (error is ApiException && error.statusCode == 503) {
+      return error.message;
+    }
     final text = error.toString().replaceFirst('Exception: ', '');
     if (text.contains('Permission') || text.contains('NotAllowed')) {
       return 'Microphone permission is required for live voice.';

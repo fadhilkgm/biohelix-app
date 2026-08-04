@@ -39,10 +39,11 @@ void main() {
 
     expect(service.startVoiceCallCount, 1);
     expect(voice.startCallCount, 1);
-    expect(find.text('Checkup for Fadhil P'), findsOneWidget);
+    expect(find.text('Private AI health checkup'), findsOneWidget);
     expect(find.textContaining('Are you feeling unwell today'), findsOneWidget);
 
     service.nextDecision = const VoiceAssessmentTurnDecision(
+      acceptedTranscript: 'I have been tired for two weeks.',
       spokenResponse: 'How have your sleep and energy been?',
       responseInstructions: 'Ask about sleep and energy.',
       completed: false,
@@ -59,6 +60,7 @@ void main() {
     expect(find.text('How have your sleep and energy been?'), findsOneWidget);
 
     service.nextDecision = VoiceAssessmentTurnDecision(
+      acceptedTranscript: 'I sleep five hours and still feel tired.',
       spokenResponse:
           'A consultation is the most suitable next step. Your result is saved.',
       responseInstructions: 'Explain the consultation outcome.',
@@ -109,6 +111,7 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
 
     service.nextDecision = const VoiceAssessmentTurnDecision(
+      acceptedTranscript: 'I feel tired',
       spokenResponse: 'What is your main concern?',
       responseInstructions: 'Ask the main concern.',
       completed: false,
@@ -122,6 +125,114 @@ void main() {
     expect(find.text('I feel tired'), findsOneWidget);
     expect(find.text('What is your main concern?'), findsOneWidget);
   });
+
+  testWidgets('shows a direct package action for a package outcome', (
+    tester,
+  ) async {
+    final openedPackages = <String?>[];
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+        );
+        return voice;
+      }, onOpenPackage: openedPackages.add),
+    );
+    await tester.pumpAndSettle();
+
+    service.nextDecision = VoiceAssessmentTurnDecision(
+      acceptedTranscript: 'I want a routine general health checkup.',
+      spokenResponse:
+          'A health package may be the most suitable next step. Your result is saved.',
+      responseInstructions: 'Explain the package outcome.',
+      completed: true,
+      turnCount: 1,
+      maxTurns: 10,
+      result: AssessmentResults.fromJson(const {
+        'outcome': 'test_package_only',
+        'urgency': 'routine',
+        'risk_level': 'low',
+        'summary': 'Consider a package for routine preventive screening.',
+        'insights': ['Review the available health packages.'],
+        'recommended_packages': [
+          {
+            'id': 7,
+            'package_name': 'General Wellness Package',
+            'price': '1499.00',
+            'discounted_price': '1199.00',
+            'tests_count': 12,
+          },
+        ],
+      }),
+    );
+
+    await voice.simulateTurn(
+      'I want a routine general health checkup.',
+      'A health package may be the most suitable next step. Your result is saved.',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Test package may be suitable'), findsOneWidget);
+    expect(find.text('General Wellness Package'), findsOneWidget);
+    expect(find.text('12 tests included'), findsOneWidget);
+    expect(find.text('₹1199'), findsOneWidget);
+    expect(find.text('View health packages'), findsOneWidget);
+
+    await tester.tap(find.text('View package →'));
+    expect(openedPackages, ['General Wellness Package']);
+
+    await tester.ensureVisible(find.text('View health packages'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('View health packages'));
+    expect(openedPackages, ['General Wellness Package', null]);
+  });
+
+  testWidgets('waits half a second after final voice words before result', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+        );
+        return voice;
+      }, resultRevealDelay: const Duration(milliseconds: 500)),
+    );
+    await tester.pumpAndSettle();
+
+    service.nextDecision = VoiceAssessmentTurnDecision(
+      acceptedTranscript: 'That is all.',
+      spokenResponse: 'Your checkup is complete. Take care.',
+      responseInstructions: 'Conclude the checkup.',
+      completed: true,
+      turnCount: 3,
+      maxTurns: 10,
+      result: AssessmentResults.fromJson(const {
+        'outcome': 'test_package_only',
+        'urgency': 'routine',
+        'risk_level': 'low',
+        'summary': 'Routine screening is suitable.',
+        'insights': [],
+      }),
+    );
+
+    final completion = voice.simulateTurn(
+      'That is all.',
+      'Your checkup is complete. Take care.',
+    );
+    await tester.pump();
+    expect(find.text('Private AI health checkup'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 499));
+    expect(find.text('Private AI health checkup'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 1));
+    await completion;
+    await tester.pumpAndSettle();
+    expect(find.text('Test package may be suitable'), findsOneWidget);
+  });
 }
 
 Widget _buildSubject(
@@ -130,8 +241,10 @@ Widget _buildSubject(
     RealtimeTurnCompleted onTurnCompleted,
     RealtimeTurnContext onTurnContext,
   )
-  createVoice,
-) {
+  createVoice, {
+  AiCheckupPackageOpener? onOpenPackage,
+  Duration resultRevealDelay = Duration.zero,
+}) {
   final config = AppConfig(
     appName: 'BioHelix Test',
     apiBaseUrl: 'https://example.test/api',
@@ -157,6 +270,8 @@ Widget _buildSubject(
     ],
     child: MaterialApp(
       home: AiCheckupTab(
+        onOpenPackage: onOpenPackage,
+        resultRevealDelay: resultRevealDelay,
         serviceFactory: (_) => service,
         voiceControllerFactory:
             ({
@@ -175,6 +290,7 @@ class _FakeAiCheckupService extends AiCheckupService {
   int startVoiceCallCount = 0;
   int recordedResponses = 0;
   VoiceAssessmentTurnDecision nextDecision = const VoiceAssessmentTurnDecision(
+    acceptedTranscript: 'I feel unwell.',
     spokenResponse: 'Tell me more.',
     responseInstructions: 'Ask the patient to tell you more.',
     completed: false,
@@ -189,9 +305,8 @@ class _FakeAiCheckupService extends AiCheckupService {
     startVoiceCallCount++;
     return const VoiceAssessmentSession(
       sessionToken: 'voice-token',
-      patientName: 'Fadhil P',
       initialInstructions:
-          'Hi Fadhil. Are you feeling unwell today, or would you like a general health check?',
+          'Hello. Are you feeling unwell today, or would you like a general health check?',
       maxTurns: 10,
       maxSeconds: 300,
     );
@@ -220,8 +335,8 @@ class _FakeAiCheckupService extends AiCheckupService {
 
 class _FakeLiveVoiceController extends LiveVoiceController {
   _FakeLiveVoiceController({
-    required RealtimeTurnCompleted onTurnCompleted,
-    required RealtimeTurnContext onTurnContext,
+    required super.onTurnCompleted,
+    required super.onTurnContext,
     this.failOnStart = false,
   }) : _completed = onTurnCompleted,
        _context = onTurnContext,
@@ -236,8 +351,6 @@ class _FakeLiveVoiceController extends LiveVoiceController {
              ),
            ),
          ),
-         onTurnCompleted: onTurnCompleted,
-         onTurnContext: onTurnContext,
        );
 
   final RealtimeTurnCompleted _completed;

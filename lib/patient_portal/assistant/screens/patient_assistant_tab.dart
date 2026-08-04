@@ -18,13 +18,13 @@ class _AssistantTabState extends State<_AssistantTab> {
   bool _isSpeaking = false;
   bool _isLiveVoiceMode = false;
   bool _isLiveTurnInFlight = false;
+  bool _isEndingLiveVoice = false;
   String? _liveVoiceError;
   String? _liveConversationId;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
   bool _isAttachmentUploadInFlight = false;
   bool _isAttachmentAnalysisInFlight = false;
   String? _uploadingAttachmentName;
-  String? _analyzingAttachmentName;
   double _soundLevel = 0.0;
 
   TextEditingController get inputController => _inputController;
@@ -60,7 +60,6 @@ class _AssistantTabState extends State<_AssistantTab> {
     _isAttachmentUploadInFlight = false;
     _isAttachmentAnalysisInFlight = false;
     _uploadingAttachmentName = null;
-    _analyzingAttachmentName = null;
   }
 
   @override
@@ -73,28 +72,35 @@ class _AssistantTabState extends State<_AssistantTab> {
         if (!mounted) return;
         final portal = context.read<PatientPortalProvider>();
         if (transcript.trim().isEmpty || response.trim().isEmpty) return;
+        final shouldEndLiveVoice = isLiveConversationEndingPhrase(transcript);
         final conversationId = _liveConversationId;
-        await portal.reconcileLiveVoiceTurn(
-          transcript: transcript,
-          response: response,
-        );
-        if ((conversationId ?? '').isEmpty) return;
-        try {
-          await InworldSignalingApi(apiClient).persistTurn(
-            conversationId: conversationId!,
-            transcript: transcript,
-            response: response,
-            idempotencyKey:
-                '$conversationId-${DateTime.now().microsecondsSinceEpoch}',
-          );
-        } catch (error) {
-          if (!mounted) return;
-          updateAssistantState(() {
-            _liveVoiceError = 'The voice turn could not be saved: $error';
-          });
+        if ((conversationId ?? '').isNotEmpty) {
+          try {
+            await InworldSignalingApi(apiClient).persistTurn(
+              conversationId: conversationId!,
+              transcript: transcript,
+              response: response,
+              idempotencyKey:
+                  '$conversationId-${DateTime.now().microsecondsSinceEpoch}',
+            );
+          } catch (error) {
+            if (!mounted) return;
+            updateAssistantState(() {
+              _liveVoiceError = 'The voice turn could not be saved: $error';
+            });
+          }
+        }
+        if (shouldEndLiveVoice && mounted && !_isEndingLiveVoice) {
+          updateAssistantState(() => _isEndingLiveVoice = true);
+          await Future<void>.delayed(const Duration(milliseconds: 2200));
+          if (!mounted || !_isLiveVoiceMode) return;
+          await _toggleLiveVoiceMode(portal);
         }
       },
       onTurnContext: (transcript) async {
+        if (isLiveConversationEndingPhrase(transcript)) {
+          return liveVoiceFarewellInstructions(_ttsLanguageCode);
+        }
         final conversationId = _liveConversationId;
         if ((conversationId ?? '').isEmpty) {
           throw StateError('A chat conversation is required for live voice.');
@@ -123,6 +129,7 @@ class _AssistantTabState extends State<_AssistantTab> {
   @override
   void dispose() {
     _isLiveVoiceMode = false;
+    _isEndingLiveVoice = false;
     _liveVoiceController.removeListener(_handleLiveVoiceControllerChanged);
     _liveVoiceController.dispose();
     _liveConversationId = null;
@@ -149,7 +156,6 @@ class _AssistantTabState extends State<_AssistantTab> {
         final uploadingLabel = _uploadingAttachmentName;
         final analysisInProgress =
             _isAttachmentAnalysisInFlight || portal.analyzingDocumentId != null;
-        final analyzingLabel = _analyzingAttachmentName;
 
         if (activeThreadId != _lastAutoScrolledThreadId) {
           _lastAutoScrolledThreadId = activeThreadId;
@@ -236,9 +242,6 @@ class _AssistantTabState extends State<_AssistantTab> {
                               isBusy: portal.isSendingMessage,
                               soundLevel: _soundLevel,
                               errorMessage: _liveVoiceError,
-                              latestAssistantText: _latestAssistantText(
-                                messages,
-                              ),
                               onInterrupt: () =>
                                   _interruptAiSpeechAndListen(portal),
                               onStopLive: () => _toggleLiveVoiceMode(portal),
@@ -422,11 +425,9 @@ class _AssistantTabState extends State<_AssistantTab> {
                         ),
                       ),
                     if (analysisInProgress)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: _DocumentAnalysisProgressCard(
-                          fileName: analyzingLabel,
-                        ),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: DocumentAnalysisProgressCard(),
                       ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(12, 8, 12, 15),
@@ -558,6 +559,7 @@ class _AssistantTabState extends State<_AssistantTab> {
       if (state.phase == LiveVoicePhase.closed ||
           state.phase == LiveVoicePhase.error) {
         _isLiveVoiceMode = false;
+        _isEndingLiveVoice = false;
         _liveConversationId = null;
       }
       _isListening = state.isListening;
@@ -570,15 +572,6 @@ class _AssistantTabState extends State<_AssistantTab> {
       _liveVoiceError = state.errorMessage;
     });
   }
-}
-
-String? _latestAssistantText(List<ChatMessage> messages) {
-  for (final message in messages.reversed) {
-    if (message.role != 'user' && message.content.trim().isNotEmpty) {
-      return message.content.trim();
-    }
-  }
-  return null;
 }
 
 class _AssistantEmptyState extends StatelessWidget {
@@ -787,7 +780,7 @@ class _AssistantEmptyState extends StatelessWidget {
   }
 }
 
-class _AssistantLiveStage extends StatefulWidget {
+class _AssistantLiveStage extends StatelessWidget {
   const _AssistantLiveStage({
     required this.patientName,
     required this.phase,
@@ -796,7 +789,6 @@ class _AssistantLiveStage extends StatefulWidget {
     required this.isBusy,
     required this.soundLevel,
     required this.errorMessage,
-    required this.latestAssistantText,
     required this.onInterrupt,
     required this.onStopLive,
     required this.onRetry,
@@ -809,74 +801,42 @@ class _AssistantLiveStage extends StatefulWidget {
   final bool isBusy;
   final double soundLevel;
   final String? errorMessage;
-  final String? latestAssistantText;
   final VoidCallback onInterrupt;
   final VoidCallback onStopLive;
   final VoidCallback onRetry;
 
   @override
-  State<_AssistantLiveStage> createState() => _AssistantLiveStageState();
-}
-
-class _AssistantLiveStageState extends State<_AssistantLiveStage> {
-  final ScrollController _liveTextScrollController = ScrollController();
-
-  @override
-  void didUpdateWidget(covariant _AssistantLiveStage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isSpeaking &&
-        widget.latestAssistantText != oldWidget.latestAssistantText) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_liveTextScrollController.hasClients) return;
-        _liveTextScrollController.animateTo(
-          _liveTextScrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-        );
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _liveTextScrollController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context.watch<LanguageProvider>().language);
-    final isSpeaking = widget.isSpeaking;
-    final isListening = widget.isListening;
-    final hasError = (widget.errorMessage ?? '').isNotEmpty;
+    final isSpeaking = this.isSpeaking;
+    final isListening = this.isListening;
+    final hasError = (errorMessage ?? '').isNotEmpty;
     final isConnecting =
-        widget.phase == LiveVoicePhase.connecting ||
-        widget.phase == LiveVoicePhase.reconnecting ||
-        widget.phase == LiveVoicePhase.ready;
+        phase == LiveVoicePhase.connecting ||
+        phase == LiveVoicePhase.reconnecting ||
+        phase == LiveVoicePhase.ready;
     final phaseLabel = hasError
         ? strings.assistantVoiceUnavailable
         : isConnecting
         ? 'Connecting securely'
         : isSpeaking
         ? strings.assistantSpeaking
-        : widget.isBusy
+        : isBusy
         ? strings.assistantReady
         : isListening
         ? strings.assistantListening
         : strings.assistantReady;
     final supportLabel = hasError
-        ? widget.errorMessage!
+        ? errorMessage!
         : isConnecting
         ? 'Preparing your private voice connection. Your microphone turns on when ready.'
         : isSpeaking
         ? strings.assistantInterruptAi
-        : widget.isBusy
+        : isBusy
         ? strings.assistantLiveModeActive
         : isListening
         ? strings.assistantLiveModeActive
         : strings.assistantLiveVoiceUnavailable;
-    final displayText = isSpeaking ? widget.latestAssistantText ?? '' : '';
-
     return Stack(
       children: [
         Positioned.fill(
@@ -888,8 +848,8 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
                 _VoiceOrb(
                   isListening: isListening,
                   isSpeaking: isSpeaking,
-                  isBusy: widget.isBusy,
-                  soundLevel: widget.soundLevel,
+                  isBusy: isBusy,
+                  soundLevel: soundLevel,
                   hasError: hasError,
                 ),
                 const SizedBox(height: 28),
@@ -923,7 +883,7 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
                 const SizedBox(height: 24),
                 if (hasError) ...[
                   FilledButton.icon(
-                    onPressed: widget.onRetry,
+                    onPressed: onRetry,
                     icon: const Icon(Icons.refresh_rounded),
                     label: Text(strings.assistantStartVoiceInput),
                     style: FilledButton.styleFrom(
@@ -932,32 +892,6 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                if (displayText.trim().isNotEmpty)
-                  Flexible(
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 620),
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.84),
-                        border: Border.all(color: AiChatColors.border),
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                      ),
-                      child: SingleChildScrollView(
-                        controller: _liveTextScrollController,
-                        child: Text(
-                          displayText,
-                          textAlign: TextAlign.left,
-                          style: TextStyle(
-                            fontFamily: 'Manrope',
-                            color: AiChatColors.textPrimary,
-                            fontSize: 15,
-                            height: 1.55,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -969,8 +903,8 @@ class _AssistantLiveStageState extends State<_AssistantLiveStage> {
           child: _LiveControlsDock(
             isListening: isListening,
             isSpeaking: isSpeaking,
-            onInterrupt: widget.onInterrupt,
-            onStopLive: widget.onStopLive,
+            onInterrupt: onInterrupt,
+            onStopLive: onStopLive,
           ),
         ),
       ],
@@ -1283,82 +1217,34 @@ class _VoiceOrbPainter extends CustomPainter {
       error != oldDelegate.error;
 }
 
-class _DocumentAnalysisProgressCard extends StatelessWidget {
-  const _DocumentAnalysisProgressCard({this.fileName});
-
-  final String? fileName;
+class DocumentAnalysisProgressCard extends StatelessWidget {
+  const DocumentAnalysisProgressCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final name = (fileName ?? '').trim();
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 1200),
-      curve: Curves.easeInOut,
-      builder: (context, value, child) {
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AiChatColors.bubbleAiSoft,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            border: Border.all(color: AiChatColors.border),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AiChatColors.bubbleAiSoft,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AiChatColors.border),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
           ),
-          child: Row(
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 34,
-                    height: 34,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Color.lerp(
-                              AiChatColors.accent,
-                              const Color(0xFF35B79B),
-                              value,
-                            ) ??
-                            AiChatColors.accent,
-                      ),
-                    ),
-                  ),
-                  const Icon(Icons.privacy_tip_rounded, size: 17),
-                ],
-              ),
-              const SizedBox(width: AppSpacing.s12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      name.isEmpty
-                          ? 'AI is securely analyzing your document'
-                          : 'AI is securely analyzing $name',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.subtitle(
-                        context,
-                      ).copyWith(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Reading text, masking personal details, then preparing the summary.',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.subtitle(
-                        context,
-                      ).copyWith(fontSize: 12, height: 1.3),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          const SizedBox(width: AppSpacing.s12),
+          Text(
+            'AI analysing…',
+            style: AppTextStyles.subtitle(
+              context,
+            ).copyWith(fontWeight: FontWeight.w800),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
