@@ -25,6 +25,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/widgets/app_chevron_back_button.dart';
 import '../../core/widgets/app_logo.dart';
+import '../../core/widgets/app_toast.dart';
 import '../../core/widgets/custom_bottom_bar.dart';
 import '../../core/widgets/custom_button.dart';
 import '../../features/session/providers/session_provider.dart';

@@ -37,6 +37,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   late final AnimationController _pulseCtrl;
   late final AnimationController _liveGlowCtrl;
   final FocusNode _inputFocus = FocusNode();
+  double _downwardDragDistance = 0;
 
   @override
   void initState() {
@@ -101,62 +102,77 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   //  Composer — full input row
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildComposer(LocalizedStrings strings) {
-    return Container(
-      key: const ValueKey('composer'),
-      decoration: BoxDecoration(
-        color: AiChatColors.inputSurface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AiChatColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0F163F34),
-            blurRadius: 18,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(6, 5, 6, 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _buildAttachButton(),
-          const SizedBox(width: 5),
-          Expanded(
-            child: widget.isListening
-                ? _AudioWaveform(soundLevel: widget.soundLevel)
-                : TextField(
-                    focusNode: _inputFocus,
-                    controller: widget.controller,
-                    minLines: 1,
-                    maxLines: 4,
-                    style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: AiChatColors.textPrimary,
-                    ),
-                    cursorColor: AiChatColors.primary,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => widget.onSend(),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: false,
-                      hintText: strings.assistantInputHint,
-                      hintStyle: AppTextStyles.inputHint(context),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 9,
-                        horizontal: 2,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragStart: (_) => _downwardDragDistance = 0,
+      onVerticalDragUpdate: (details) {
+        _downwardDragDistance = math.max(
+          0,
+          _downwardDragDistance + details.delta.dy,
+        );
+        if (_downwardDragDistance >= 24 && _inputFocus.hasFocus) {
+          _inputFocus.unfocus();
+        }
+      },
+      onVerticalDragEnd: (_) => _downwardDragDistance = 0,
+      onVerticalDragCancel: () => _downwardDragDistance = 0,
+      child: Container(
+        key: const ValueKey('composer'),
+        decoration: BoxDecoration(
+          color: AiChatColors.inputSurface,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AiChatColors.border),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0F163F34),
+              blurRadius: 18,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.fromLTRB(6, 5, 6, 5),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _buildAttachButton(),
+            const SizedBox(width: 5),
+            Expanded(
+              child: widget.isListening
+                  ? _AudioWaveform(soundLevel: widget.soundLevel)
+                  : TextField(
+                      focusNode: _inputFocus,
+                      controller: widget.controller,
+                      minLines: 1,
+                      maxLines: 4,
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: AiChatColors.textPrimary,
+                      ),
+                      cursorColor: AiChatColors.primary,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => widget.onSend(),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: false,
+                        hintText: strings.assistantInputHint,
+                        hintStyle: AppTextStyles.inputHint(context),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 9,
+                          horizontal: 2,
+                        ),
                       ),
                     ),
-                  ),
-          ),
-          _buildMicButton(strings),
-          const SizedBox(width: 5),
-          _buildSendButton(),
-        ],
+            ),
+            _buildMicButton(strings),
+            const SizedBox(width: 5),
+            _buildSendButton(),
+          ],
+        ),
       ),
     );
   }

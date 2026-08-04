@@ -273,9 +273,11 @@ class ProfileMembershipCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final benefits = myClub.benefits.take(2);
+    final levelColor = _profileMembershipColor(myClub.levelColor);
+    final nextLevel = myClub.nextTierName;
     return Semantics(
       button: true,
-      label: 'Open membership points and transactions',
+      label: 'Open membership level, points and transactions',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -286,8 +288,11 @@ class ProfileMembershipCard extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF7B3FF2), Color(0xFF5B2DD8)],
+              gradient: LinearGradient(
+                colors: [
+                  Color.lerp(levelColor, Colors.white, 0.12)!,
+                  Color.lerp(levelColor, Colors.black, 0.22)!,
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -323,7 +328,7 @@ class ProfileMembershipCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        idCard.membershipTier,
+                        myClub.levelName,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
@@ -334,7 +339,7 @@ class ProfileMembershipCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  '${idCard.membershipTier} Membership',
+                  '${myClub.levelName} Membership',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -346,6 +351,49 @@ class ProfileMembershipCard extends StatelessWidget {
                   '${patient.name}  •  ${patient.registrationNumber}',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.88)),
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${myClub.lifetimePoints} lifetime points',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    if (myClub.leaderboardRank > 0)
+                      Text(
+                        'Rank #${myClub.leaderboardRank}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
+                ),
+                if (nextLevel != null) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: myClub.progressPercent.clamp(0, 100) / 100,
+                      minHeight: 7,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${myClub.pointsToNextTier} points to $nextLevel',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
                 if (benefits.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   ...benefits.map(
@@ -401,6 +449,13 @@ class ProfileMembershipCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Color _profileMembershipColor(String value) {
+  final normalized = value.replaceFirst('#', '');
+  final parsed = int.tryParse(normalized, radix: 16);
+
+  return parsed == null ? const Color(0xFF7B3FF2) : Color(0xFF000000 | parsed);
 }
 
 class _PatientQrCard extends StatelessWidget {

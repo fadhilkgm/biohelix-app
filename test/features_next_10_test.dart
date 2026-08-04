@@ -134,13 +134,13 @@ void main() {
     );
   });
 
-  testWidgets('18. home shows special offers', (tester) async {
+  testWidgets('18. home does not show special offers', (tester) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
     await tester.pumpAndSettle();
 
-    expect(find.text('Special Offers'), findsOneWidget);
-    expect(find.text('Executive Health Package'), findsWidgets);
+    expect(find.text('Special Offers'), findsNothing);
+    expect(find.text('Executive Health Package'), findsNothing);
   });
 
   testWidgets('19. home shows upcoming appointments preview', (tester) async {

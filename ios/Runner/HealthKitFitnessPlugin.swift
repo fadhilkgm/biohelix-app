@@ -196,7 +196,7 @@ final class HealthKitFitnessPlugin: NSObject {
         options: .cumulativeSum
       ) { _, statistics, error in
         lock.lock()
-        if let error, firstError == nil {
+        if let error, !Self.isNoDataError(error), firstError == nil {
           firstError = error
         }
         assign(statistics?.sumQuantity()?.doubleValue(for: unit) ?? 0)
@@ -209,6 +209,17 @@ final class HealthKitFitnessPlugin: NSObject {
     group.notify(queue: .global(qos: .userInitiated)) {
       completion(values, firstError)
     }
+  }
+
+  private static func isNoDataError(_ error: Error) -> Bool {
+    let nsError = error as NSError
+    guard nsError.domain == HKErrorDomain else {
+      return false
+    }
+    if #available(iOS 14.0, *) {
+      return nsError.code == HKError.Code.errorNoData.rawValue
+    }
+    return false
   }
 
   private func openHealthSettings(result: @escaping FlutterResult) {

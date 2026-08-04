@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../features/session/providers/session_provider.dart';
@@ -100,7 +101,7 @@ class FitnessProvider extends ChangeNotifier {
       _deviceOwnerPatientId = patientId;
       await refreshAndSync();
     } catch (error) {
-      _errorMessage = _friendlyError(error);
+      _errorMessage = friendlyFitnessError(error);
       _setState(FitnessConnectionState.error);
     } finally {
       _isSyncing = false;
@@ -146,7 +147,7 @@ class FitnessProvider extends ChangeNotifier {
       _setState(FitnessConnectionState.connected);
       await _onRewardsChanged?.call();
     } catch (error) {
-      _errorMessage = _friendlyError(error);
+      _errorMessage = friendlyFitnessError(error);
       _setState(FitnessConnectionState.error);
     } finally {
       _isSyncing = false;
@@ -208,15 +209,27 @@ class FitnessProvider extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  String _friendlyError(Object error) {
-    final text = error.toString().replaceFirst('PlatformException(', '');
-    return text.length > 220 ? '${text.substring(0, 220)}…' : text;
-  }
-
   @override
   void dispose() {
     _disposed = true;
     _sessionProvider.removeListener(_handleSessionChanged);
     super.dispose();
   }
+}
+
+@visibleForTesting
+String friendlyFitnessError(Object error) {
+  if (error is PlatformException) {
+    return switch (error.code) {
+      'healthkit_permission' =>
+        'Apple Health permission is needed to read your walking activity.',
+      'healthkit_unavailable' =>
+        'Apple Health activity is unavailable on this device.',
+      'healthkit_read' =>
+        'Apple Health could not refresh your walking activity. Please try again.',
+      _ => 'Activity data could not be refreshed. Please try again.',
+    };
+  }
+
+  return 'Activity data could not be refreshed. Please try again.';
 }

@@ -12,7 +12,6 @@ import '../../health_profile/screens/health_snapshot_screen.dart';
 import '../../fitness/widgets/fitness_activity_card.dart';
 import '../utils/home_header_content_mapper.dart';
 import '../widgets/home_hero_header_widget.dart';
-import '../widgets/offers_and_appointments_section_widget.dart';
 import '../widgets/upcoming_appointments_widget.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -35,9 +34,7 @@ class HomeScreen extends StatefulWidget {
     required this.bookings,
     required this.onSeeAllAppointments,
     this.tickerMessages = const [],
-    this.homeOffers = const [],
     required this.onTickerTap,
-    required this.onOfferTap,
     required this.onActionTap,
     this.onSwitchPatient,
     this.isLoading = false,
@@ -68,9 +65,7 @@ class HomeScreen extends StatefulWidget {
   final List<BookingItem> bookings;
   final VoidCallback onSeeAllAppointments;
   final List<TickerMessageItem> tickerMessages;
-  final List<HomeOfferItem> homeOffers;
   final Future<void> Function(TickerMessageItem item) onTickerTap;
-  final Future<void> Function(HomeOfferItem item) onOfferTap;
   final ValueChanged<String> onActionTap;
   final VoidCallback? onSwitchPatient;
   final bool isLoading;
@@ -181,13 +176,15 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         else
           SizedBox(
-            height: 380,
+            // The details area must accommodate a two-line doctor name,
+            // specialty and booking button without clipping on narrow phones.
+            height: 392,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: doctors.length,
               itemBuilder: (context, index) {
                 final doctor = doctors[index];
-                return _DoctorCard(
+                return HomeDoctorCard(
                   doc: doctor,
                   onTap: () => widget.onDoctorTap(doctor),
                   resolvedImageUrl: _resolveImageUrl(doctor.imageUrl ?? ''),
@@ -379,14 +376,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     onAccept: widget.onAcceptSuggestion,
                   ),
                 if (widget.aiSuggestions.isNotEmpty) const SizedBox(height: 24),
-                OffersAndAppointmentsSectionWidget(
-                  bookings: widget.bookings,
-                  onSeeAllAppointments: widget.onSeeAllAppointments,
-                  onOfferTap: widget.onOfferTap,
-                  homeOffers: widget.homeOffers,
-                  showAppointments: false,
-                ),
-                const SizedBox(height: 32),
                 // 3. Health Packages Section
                 if (widget.labPackages.isNotEmpty) ...[
                   Row(
@@ -413,18 +402,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    height: 480,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return ListView.builder(
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cardWidth = constraints.maxWidth;
+                      return SizedBox(
+                        height: cardWidth + 200,
+                        child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           itemCount: widget.labPackages.length,
                           itemBuilder: (context, index) {
                             final pkg = widget.labPackages[index];
-                            return _PackageCard(
+                            return HomePackageCard(
                               pkg: pkg,
-                              width: constraints.maxWidth,
+                              width: cardWidth,
                               margin: EdgeInsets.only(
                                 right: index == widget.labPackages.length - 1
                                     ? 0
@@ -436,9 +426,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                           },
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
 
                   // Add Lab Tests section
@@ -730,14 +720,15 @@ class _TestCard extends StatelessWidget {
   }
 }
 
-class _PackageCard extends StatelessWidget {
+class HomePackageCard extends StatelessWidget {
   final LabPackageItem pkg;
   final double width;
   final EdgeInsetsGeometry margin;
   final VoidCallback onTap;
   final String resolvedImageUrl;
 
-  const _PackageCard({
+  const HomePackageCard({
+    super.key,
     required this.pkg,
     required this.width,
     required this.margin,
@@ -773,25 +764,31 @@ class _PackageCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(32),
                   ),
-                  child: SizedBox(
-                    height: 280,
-                    width: double.infinity,
-                    child: resolvedImageUrl.isNotEmpty
-                        ? Image.network(
-                            resolvedImageUrl,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.centerRight,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const _SkeletonPulse(
-                                width: double.infinity,
-                                height: double.infinity,
-                                borderRadius: 0,
-                              );
-                            },
-                            errorBuilder: (_, _, _) => _fallbackIcon(),
-                          )
-                        : _fallbackIcon(),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: ColoredBox(
+                      color: const Color(0xFFF6F8FC),
+                      child: resolvedImageUrl.isNotEmpty
+                          ? Image.network(
+                              resolvedImageUrl,
+                              key: ValueKey('home-package-poster-${pkg.id}'),
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.contain,
+                              alignment: Alignment.center,
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const _SkeletonPulse(
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      borderRadius: 0,
+                                    );
+                                  },
+                              errorBuilder: (_, _, _) => _fallbackIcon(),
+                            )
+                          : _fallbackIcon(),
+                    ),
                   ),
                 ),
                 if (pkg.discountedPrice != null &&
@@ -942,12 +939,13 @@ class _PackageCard extends StatelessWidget {
   }
 }
 
-class _DoctorCard extends StatelessWidget {
+class HomeDoctorCard extends StatelessWidget {
   final DoctorListing doc;
   final VoidCallback onTap;
   final String resolvedImageUrl;
 
-  const _DoctorCard({
+  const HomeDoctorCard({
+    super.key,
     required this.doc,
     required this.onTap,
     required this.resolvedImageUrl,

@@ -1339,7 +1339,7 @@ class _ProfileTabState extends State<_ProfileTab> {
             IdCardInfo(
               registrationNumber: patient.registrationNumber,
               patientName: patient.name,
-              membershipTier: 'Classic',
+              membershipTier: 'Bronze',
               qrValue: patient.uuid,
               bloodGroup: patient.bloodGroup,
               barcodeValue: patient.registrationNumber,
@@ -1352,6 +1352,7 @@ class _ProfileTabState extends State<_ProfileTab> {
               points: 0,
               currencyValue: 0,
               tier: idCard.membershipTier,
+              levelName: idCard.membershipTier,
               transactions: const [],
             );
 

@@ -294,9 +294,12 @@ extension _AssistantActions on _AssistantTabState {
               'Your report is queued for analysis. We will show the summary when it is ready.',
             );
           }
+          if (!mounted) return;
           if (result?.summary.trim().isNotEmpty == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(_strings.assistantSummaryReady(fileName))),
+            AppToast.show(
+              context,
+              message: _strings.assistantSummaryReady(fileName),
+              type: AppToastType.success,
             );
           }
         } catch (_) {
@@ -305,15 +308,19 @@ extension _AssistantActions on _AssistantTabState {
             _isAttachmentAnalysisInFlight = false;
             _analyzingAttachmentName = null;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_strings.assistantUploadPending(fileName))),
+          AppToast.show(
+            context,
+            message: _strings.assistantUploadPending(fileName),
+            type: AppToastType.warning,
           );
         }
       }());
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_strings.assistantUploadedReady(fileName))),
+      AppToast.show(
+        context,
+        message: _strings.assistantUploadedReady(fileName),
+        type: AppToastType.success,
       );
     } catch (error) {
       _handleAttachmentError(error);
@@ -329,9 +336,7 @@ extension _AssistantActions on _AssistantTabState {
     });
     if (!mounted) return;
     final message = _friendlyAttachmentError(error);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppToast.show(context, message: message, type: AppToastType.error);
   }
 
   bool _isImagePickerChannelError(Object error) {
@@ -357,9 +362,7 @@ extension _AssistantActions on _AssistantTabState {
 
   Future<void> _showAttachmentMessage(String message) async {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppToast.show(context, message: message);
   }
 
   String _friendlyGalleryImageName(String originalName, String path) {

@@ -14,10 +14,8 @@ class _DashboardDiscoverySections extends StatelessWidget {
     required this.labPackages,
     required this.bookings,
     required this.tickerMessages,
-    required this.homeOffers,
     required this.onBannerTap,
     required this.onTickerTap,
-    required this.onOfferTap,
     required this.onViewAllDoctors,
     required this.onViewAllLabTests,
     required this.onViewAllPackages,
@@ -43,10 +41,8 @@ class _DashboardDiscoverySections extends StatelessWidget {
   final List<LabPackageItem> labPackages;
   final List<BookingItem> bookings;
   final List<TickerMessageItem> tickerMessages;
-  final List<HomeOfferItem> homeOffers;
   final Future<void> Function(HomeBannerItem banner) onBannerTap;
   final Future<void> Function(TickerMessageItem item) onTickerTap;
-  final Future<void> Function(HomeOfferItem item) onOfferTap;
   final VoidCallback onViewAllDoctors;
   final VoidCallback onViewAllLabTests;
   final VoidCallback onViewAllPackages;
@@ -74,9 +70,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
       labPackages: labPackages,
       bookings: bookings,
       tickerMessages: tickerMessages,
-      homeOffers: homeOffers,
       onTickerTap: onTickerTap,
-      onOfferTap: onOfferTap,
       onActionTap: onQuickActionTap,
       onSwitchPatient: onSwitchPatient,
       apiBaseUrl: apiBase,

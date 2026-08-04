@@ -23,8 +23,9 @@ class PatientLoyaltyPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final strings = AppStrings.of(context.watch<LanguageProvider>().language);
-    final nextTierLabel = myClub.nextTierName ?? 'Top tier reached';
+    final nextTierLabel = myClub.nextTierName == null
+        ? 'Top membership level reached'
+        : 'Next membership: ${myClub.nextTierName}';
 
     return Column(
       children: [
@@ -54,7 +55,7 @@ class PatientLoyaltyPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  strings.tierLabel(myClub.tier),
+                  '${myClub.levelName} Membership • ${myClub.lifetimePoints} lifetime pts',
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 8),

@@ -404,10 +404,8 @@ class _DashboardTab extends StatelessWidget {
                     .where((booking) => booking.isDoctorAppointment)
                     .toList(),
           tickerMessages: portal.tickerMessages,
-          homeOffers: portal.homeOffers,
           onBannerTap: targetHandler.openBanner,
           onTickerTap: targetHandler.openTickerMessage,
-          onOfferTap: targetHandler.openOffer,
           onViewAllDoctors: onOpenDoctorsDirectory,
           onViewAllLabTests: onOpenLabTestsDirectory,
           onViewAllPackages: () {
