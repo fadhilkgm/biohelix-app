@@ -55,3 +55,6 @@ gitignore/
 
 # Graphify output
 graphify-out/
+
+# Local verification recordings
+verification.mp4

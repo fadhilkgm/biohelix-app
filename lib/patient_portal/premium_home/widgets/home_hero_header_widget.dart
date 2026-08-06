@@ -18,107 +18,109 @@ class HomeHeroHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 150),
+              child: Row(
                 children: [
-                  AppLogo(size: 32, fit: BoxFit.contain),
+                  const AppLogo(size: 32, fit: BoxFit.contain),
                   const SizedBox(width: 8),
-                  Text(
-                    hospitalName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.3,
-                      height: 1,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                greeting,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.84),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  height: 1,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Row(
-                children: [
                   Flexible(
                     child: Text(
-                      patientName,
+                      hospitalName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
                         height: 1,
                       ),
                     ),
                   ),
-                  if (onSwitchPatient != null) ...[
-                    const SizedBox(width: 10),
-                    Semantics(
-                      button: true,
-                      label: 'Switch patient',
-                      child: Tooltip(
-                        message: 'Switch patient',
-                        child: Material(
-                          key: const ValueKey('home-switch-patient-button'),
-                          color: Colors.white,
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              greeting,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.84),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                height: 1,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    patientName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                    ),
+                  ),
+                ),
+                if (onSwitchPatient != null) ...[
+                  const SizedBox(width: 10),
+                  Semantics(
+                    button: true,
+                    label: 'Switch patient',
+                    child: Tooltip(
+                      message: 'Switch patient',
+                      child: Material(
+                        key: const ValueKey('home-switch-patient-button'),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        child: InkWell(
+                          onTap: onSwitchPatient,
                           borderRadius: BorderRadius.circular(14),
-                          child: InkWell(
-                            onTap: onSwitchPatient,
-                            borderRadius: BorderRadius.circular(14),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 11,
-                                vertical: 8,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.swap_horiz_rounded,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 11,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.swap_horiz_rounded,
+                                  color: Color(0xFF06489B),
+                                  size: 19,
+                                ),
+                                SizedBox(width: 5),
+                                Text(
+                                  'Switch',
+                                  style: TextStyle(
                                     color: Color(0xFF06489B),
-                                    size: 19,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
                                   ),
-                                  SizedBox(width: 5),
-                                  Text(
-                                    'Switch',
-                                    style: TextStyle(
-                                      color: Color(0xFF06489B),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ],
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
-        const HomeLanguageToggleWidget(),
+        const Positioned(top: 0, right: 0, child: HomeLanguageToggleWidget()),
       ],
     );
   }

@@ -54,7 +54,7 @@ class HomeHeaderContentMapper {
   static String _resolveDisplayName(String patientName) {
     final normalized = patientName.trim();
     if (normalized.isEmpty) return 'Patient';
-    return normalized.split(RegExp(r'\s+')).first;
+    return normalized.replaceAll(RegExp(r'\s+'), ' ');
   }
 
   static String _resolveHealthTipMessage(

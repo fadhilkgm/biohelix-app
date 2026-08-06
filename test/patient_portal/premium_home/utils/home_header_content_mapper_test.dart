@@ -7,13 +7,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('HomeHeaderContentMapper', () {
-    test('should resolve first name correctly', () {
+    test('should preserve and normalize the full name', () {
       final content = HomeHeaderContentMapper.build(
-        patientName: 'John Doe',
+        patientName: '  Govind   Hans v  ',
         banners: [],
       );
 
-      expect(content.displayName, 'John');
+      expect(content.displayName, 'Govind Hans v');
     });
 
     test('should handle empty name', () {
@@ -84,15 +84,7 @@ void main() {
       );
       final strings = AppStrings.of(AppLanguage.ml);
 
-      expect(
-        [
-          strings.goodMorning,
-          strings.goodAfternoon,
-          strings.goodEvening,
-          strings.goodNight,
-        ],
-        contains(content.greeting),
-      );
+      expect([strings.goodDay, strings.goodNight], contains(content.greeting));
     });
   });
 }

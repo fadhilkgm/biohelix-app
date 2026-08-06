@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../features/session/providers/session_provider.dart';
@@ -19,7 +19,7 @@ enum FitnessConnectionState {
   error,
 }
 
-class FitnessProvider extends ChangeNotifier {
+class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
   FitnessProvider({
     required PatientRepository repository,
     required SessionProvider sessionProvider,
@@ -30,6 +30,7 @@ class FitnessProvider extends ChangeNotifier {
        _service = service ?? AndroidFitnessService(),
        _onRewardsChanged = onRewardsChanged {
     _sessionProvider.addListener(_handleSessionChanged);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   static const _ownerPatientKey = 'fitness_device_owner_patient_id';
@@ -99,7 +100,7 @@ class FitnessProvider extends ChangeNotifier {
       final preferences = await SharedPreferences.getInstance();
       await preferences.setInt(_ownerPatientKey, patientId);
       _deviceOwnerPatientId = patientId;
-      await refreshAndSync();
+      await _refreshAndSync();
     } catch (error) {
       _errorMessage = friendlyFitnessError(error);
       _setState(FitnessConnectionState.error);
@@ -110,6 +111,11 @@ class FitnessProvider extends ChangeNotifier {
   }
 
   Future<void> refreshAndSync() async {
+    if (_isSyncing) return;
+    await _refreshAndSync();
+  }
+
+  Future<void> _refreshAndSync() async {
     final patientId = _sessionProvider.patient?.id;
     if (patientId == null || patientId != _deviceOwnerPatientId) {
       _setState(
@@ -204,6 +210,13 @@ class FitnessProvider extends ChangeNotifier {
     unawaited(_refreshForCurrentPatient(syncDevice: true));
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && isConnected && !_isSyncing) {
+      unawaited(refreshAndSync());
+    }
+  }
+
   void _setState(FitnessConnectionState value) {
     _state = value;
     if (!_disposed) notifyListeners();
@@ -212,6 +225,7 @@ class FitnessProvider extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     _sessionProvider.removeListener(_handleSessionChanged);
     super.dispose();
   }
