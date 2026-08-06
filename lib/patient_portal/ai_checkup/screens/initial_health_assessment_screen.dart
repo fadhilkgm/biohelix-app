@@ -18,7 +18,6 @@ class _InitialHealthAssessmentScreenState
     extends State<InitialHealthAssessmentScreen> {
   static const _stepCount = 8;
 
-  final _age = TextEditingController();
   final _height = TextEditingController();
   final _allergies = TextEditingController();
   final _medications = TextEditingController();
@@ -50,13 +49,11 @@ class _InitialHealthAssessmentScreenState
     final patient = context.read<SessionProvider>().patient;
     final parsedDob = DateTime.tryParse(patient?.dob ?? '');
     if (parsedDob != null) _dob = parsedDob;
-    if (patient?.age != null) _age.text = patient!.age.toString();
   }
 
   @override
   void dispose() {
     for (final controller in [
-      _age,
       _height,
       _allergies,
       _medications,
@@ -87,17 +84,7 @@ class _InitialHealthAssessmentScreenState
       lastDate: now.subtract(const Duration(days: 1)),
     );
     if (picked == null || !mounted) return;
-    setState(() {
-      _dob = picked;
-      _age.text =
-          (now.year -
-                  picked.year -
-                  ((now.month < picked.month ||
-                          (now.month == picked.month && now.day < picked.day))
-                      ? 1
-                      : 0))
-              .toString();
-    });
+    setState(() => _dob = picked);
   }
 
   void _next() {
@@ -118,7 +105,6 @@ class _InitialHealthAssessmentScreenState
         dateOfBirth: _dob == null
             ? null
             : DateFormat('yyyy-MM-dd').format(_dob!),
-        age: int.tryParse(_age.text.trim()),
         height: double.tryParse(_height.text.trim()),
         weight: double.tryParse(_weight.text.trim()),
         bloodPressureSystolic: int.tryParse(_systolic.text.trim()),
@@ -299,18 +285,15 @@ class _InitialHealthAssessmentScreenState
     return switch (_step) {
       0 => _question(
         icon: Icons.cake_outlined,
-        title: _text('How old are you?', 'നിങ്ങളുടെ പ്രായം എത്രയാണ്?'),
+        title: _text(
+          'What is your date of birth?',
+          'നിങ്ങളുടെ ജനനത്തീയതി എന്താണ്?',
+        ),
         subtitle: _text(
-          'Date of birth is optional. If you select it, we calculate your age automatically.',
-          'ജനനത്തീയതി optional ആണ്. നൽകിയാൽ പ്രായം സ്വയം കണക്കാക്കും.',
+          'Your age is calculated automatically from your date of birth.',
+          'നിങ്ങളുടെ ജനനത്തീയതിയിൽ നിന്ന് പ്രായം സ്വയം കണക്കാക്കും.',
         ),
         children: [
-          _field(
-            controller: _age,
-            label: _text('Age (optional)', 'പ്രായം (optional)'),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _pickDob,
             icon: const Icon(Icons.calendar_month_outlined),

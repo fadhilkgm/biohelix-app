@@ -240,7 +240,6 @@ class HealthSnapshotInput {
 class InitialHealthAssessmentInput {
   const InitialHealthAssessmentInput({
     this.dateOfBirth,
-    this.age,
     this.height,
     this.weight,
     this.bloodPressureSystolic,
@@ -257,7 +256,6 @@ class InitialHealthAssessmentInput {
   });
 
   final String? dateOfBirth;
-  final int? age;
   final double? height;
   final double? weight;
   final int? bloodPressureSystolic;
@@ -275,7 +273,6 @@ class InitialHealthAssessmentInput {
   Map<String, dynamic> toJson() {
     return {
       'date_of_birth': dateOfBirth,
-      'age': age,
       'height': height,
       'weight': weight,
       'blood_pressure_systolic': bloodPressureSystolic,

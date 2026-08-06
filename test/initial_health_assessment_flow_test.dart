@@ -86,6 +86,9 @@ void main() {
 
       expect(find.text('1/8'), findsOneWidget);
       expect(find.text('Skip'), findsOneWidget);
+      expect(find.text('What is your date of birth?'), findsOneWidget);
+      expect(find.text('Age (optional)'), findsNothing);
+      expect(find.text('Add date of birth (optional)'), findsOneWidget);
 
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
@@ -109,6 +112,13 @@ void main() {
       expect(session.shouldOfferInitialHealthAssessment, isFalse);
     },
   );
+
+  test('submits date of birth without a separate age field', () {
+    const input = InitialHealthAssessmentInput(dateOfBirth: '1990-05-12');
+
+    expect(input.toJson()['date_of_birth'], '1990-05-12');
+    expect(input.toJson().containsKey('age'), isFalse);
+  });
 }
 
 SessionProvider _session(_AssessmentRepository repository) {

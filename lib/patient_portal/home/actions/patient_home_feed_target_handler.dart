@@ -27,7 +27,6 @@ class _HomeFeedTargetHandler {
   Future<void> openBanner(HomeBannerItem banner) {
     final target = (banner.ctaTarget ?? '').trim();
     if (target.isEmpty) {
-      onOpenDoctorsDirectory();
       return Future.value();
     }
     return openTarget(target);
