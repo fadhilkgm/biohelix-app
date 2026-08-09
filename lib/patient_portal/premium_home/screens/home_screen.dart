@@ -45,6 +45,7 @@ class HomeScreen extends StatefulWidget {
     this.ambulanceNumber = '+91 7510210222',
     this.emergencyNumber = '108',
     this.receptionNumber = '+91 7510210224',
+    this.aiCheckupEnabled = true,
   });
 
   final List<HomeBannerItem> banners;
@@ -75,6 +76,7 @@ class HomeScreen extends StatefulWidget {
   final String ambulanceNumber;
   final String emergencyNumber;
   final String receptionNumber;
+  final bool aiCheckupEnabled;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -331,13 +333,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: widget.onViewAllLabTests,
                       color: const Color(0xFF1F9A6D),
                     ),
-                    const SizedBox(width: 12),
-                    _QuickLink(
-                      label: 'AI Checkup',
-                      icon: Icons.auto_awesome_rounded,
-                      onTap: () => widget.onActionTap('ai_checkup'),
-                      color: const Color(0xFF915AF1),
-                    ),
+                    if (widget.aiCheckupEnabled) ...[
+                      const SizedBox(width: 12),
+                      _QuickLink(
+                        label: 'AI Checkup',
+                        icon: Icons.auto_awesome_rounded,
+                        onTap: () => widget.onActionTap('ai_checkup'),
+                        color: const Color(0xFF915AF1),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 24),

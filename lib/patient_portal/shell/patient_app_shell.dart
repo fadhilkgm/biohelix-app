@@ -352,6 +352,14 @@ class _PatientAppShellState extends State<PatientAppShell>
 
   @override
   void openAiCheckup() {
+    if (!context.read<AppConfig>().aiCheckupEnabled) {
+      AppToast.show(
+        context,
+        message: 'AI Checkup is not available for this account yet.',
+        type: AppToastType.info,
+      );
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => AiCheckupTab(

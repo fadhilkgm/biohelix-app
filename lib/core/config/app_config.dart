@@ -7,6 +7,7 @@ class AppConfig {
     required this.healthEndpoint,
     required this.showDevOtp,
     this.referralLinkHost = 'demo.bhrchospital.com',
+    this.aiCheckupEnabled = true,
   });
 
   final String appName;
@@ -14,6 +15,7 @@ class AppConfig {
   final String healthEndpoint;
   final bool showDevOtp;
   final String referralLinkHost;
+  final bool aiCheckupEnabled;
 
   factory AppConfig.fromEnvironment() {
     final showDevOtp = const bool.hasEnvironment('SHOW_DEV_OTP')
@@ -25,6 +27,10 @@ class AppConfig {
     const referralLinkHost = String.fromEnvironment(
       'REFERRAL_LINK_HOST',
       defaultValue: 'demo.bhrchospital.com',
+    );
+    const aiCheckupEnabled = bool.fromEnvironment(
+      'AI_HEALTH_CHECKUP_ENABLED',
+      defaultValue: false,
     );
 
     String defaultBaseUrl = definedApiBaseUrl.isNotEmpty
@@ -51,6 +57,7 @@ class AppConfig {
           : definedHealthEndpoint,
       showDevOtp: showDevOtp,
       referralLinkHost: referralLinkHost,
+      aiCheckupEnabled: aiCheckupEnabled,
     );
   }
 }
