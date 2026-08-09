@@ -17,6 +17,8 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     required String timeslot,
     int? patientId,
     String? notes,
+    String? sourceAssessmentToken,
+    String? idempotencyKey,
   }) async {
     if (_sessionProvider.patient == null) {
       throw StateError('Patient session is missing.');
@@ -33,6 +35,8 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         timeslot: timeslot,
         patientId: patientId,
         notes: notes,
+        sourceAssessmentToken: sourceAssessmentToken,
+        idempotencyKey: idempotencyKey,
       );
       await _refreshDoctorBookings();
       return confirmation;
@@ -62,6 +66,8 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     String? bookingRef,
     String urgency = 'routine',
     String? notes,
+    String? sourceAssessmentToken,
+    String? idempotencyKey,
   }) async {
     _isCreatingLabOrder = true;
     _errorMessage = null;
@@ -85,6 +91,8 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         bookingRef: bookingRef,
         urgency: urgency,
         notes: notes,
+        sourceAssessmentToken: sourceAssessmentToken,
+        idempotencyKey: idempotencyKey,
       );
       await _refreshLabOrders();
       return confirmation;

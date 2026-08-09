@@ -14,14 +14,17 @@ String? _normalizedDoctorSlotStart(String raw) {
 }
 
 class _DoctorDetailPage extends StatefulWidget {
-  const _DoctorDetailPage({required this.doctor});
+  const _DoctorDetailPage({required this.doctor, this.sourceAssessmentToken});
   final DoctorListing doctor;
+  final String? sourceAssessmentToken;
 
   @override
   State<_DoctorDetailPage> createState() => _DoctorDetailPageState();
 }
 
 class _DoctorDetailPageState extends State<_DoctorDetailPage> {
+  late final String _idempotencyKey =
+      'doctor-${DateTime.now().microsecondsSinceEpoch}-${math.Random.secure().nextInt(1 << 32)}';
   DateTime? _selectedDate;
   String? _selectedSlot;
   List<DoctorSlotAvailability> _availableSlots = const [];
@@ -624,6 +627,8 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
         doctorId: widget.doctor.id,
         bookingDate: DateFormat('yyyy-MM-dd').format(date),
         timeslot: slot,
+        sourceAssessmentToken: widget.sourceAssessmentToken,
+        idempotencyKey: _idempotencyKey,
         patientId: _selectedBookingPatientId,
         notes: 'Booked from BHRC patient app.',
       );

@@ -23,6 +23,32 @@ void main() {
     service = _FakeAiCheckupService();
   });
 
+  testWidgets('requires explicit consent before starting voice', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+        );
+        return voice;
+      }, consentInitiallyGranted: false),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Before your private AI Checkup'), findsOneWidget);
+    expect(service.startVoiceCallCount, 0);
+    expect(voice.startCallCount, 0);
+
+    await tester.tap(find.text('I agree — start checkup'));
+    await tester.pumpAndSettle();
+
+    expect(service.startVoiceCallCount, 1);
+    expect(service.lastConsent, isTrue);
+    expect(voice.startCallCount, 1);
+  });
+
   testWidgets('starts voice immediately and completes with controlled outcome', (
     tester,
   ) async {
@@ -215,14 +241,22 @@ void main() {
     tester,
   ) async {
     final openedDoctors = <AssessmentRecommendedDoctor>[];
+    String? sourceSession;
     await tester.pumpWidget(
-      _buildSubject(service, (onTurnCompleted, onTurnContext) {
-        voice = _FakeLiveVoiceController(
-          onTurnCompleted: onTurnCompleted,
-          onTurnContext: onTurnContext,
-        );
-        return voice;
-      }, onOpenDoctor: openedDoctors.add),
+      _buildSubject(
+        service,
+        (onTurnCompleted, onTurnContext) {
+          voice = _FakeLiveVoiceController(
+            onTurnCompleted: onTurnCompleted,
+            onTurnContext: onTurnContext,
+          );
+          return voice;
+        },
+        onOpenDoctor: (doctor, source) {
+          openedDoctors.add(doctor);
+          sourceSession = source;
+        },
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -266,6 +300,7 @@ void main() {
 
     await tester.tap(find.text('Dr Active'));
     expect(openedDoctors.single.id, 42);
+    expect(sourceSession, 'voice-token');
   });
 
   testWidgets('hands recommended test ids to the editable lab cart', (
@@ -279,7 +314,7 @@ void main() {
           onTurnContext: onTurnContext,
         );
         return voice;
-      }, onOpenTests: openedTests.add),
+      }, onOpenTests: (tests, _) => openedTests.add(tests)),
     );
     await tester.pumpAndSettle();
 
@@ -330,7 +365,7 @@ void main() {
           onTurnContext: onTurnContext,
         );
         return voice;
-      }, onOpenTests: openedTests.add),
+      }, onOpenTests: (tests, _) => openedTests.add(tests)),
     );
     await tester.pumpAndSettle();
 
@@ -490,6 +525,7 @@ Widget _buildSubject(
   AiCheckupDoctorOpener? onOpenDoctor,
   AiCheckupTestsOpener? onOpenTests,
   AiCheckupEmergencyOpener? onOpenEmergency,
+  bool consentInitiallyGranted = true,
   Duration resultRevealDelay = Duration.zero,
 }) {
   final config = AppConfig(
@@ -521,6 +557,7 @@ Widget _buildSubject(
         onOpenDoctor: onOpenDoctor,
         onOpenTests: onOpenTests,
         onOpenEmergency: onOpenEmergency,
+        consentInitiallyGranted: consentInitiallyGranted,
         resultRevealDelay: resultRevealDelay,
         serviceFactory: (_) => service,
         voiceControllerFactory:
@@ -540,6 +577,7 @@ class _FakeAiCheckupService extends AiCheckupService {
   int startVoiceCallCount = 0;
   int recordedResponses = 0;
   int cancelVoiceCallCount = 0;
+  bool? lastConsent;
   VoiceAssessmentTurnDecision nextDecision = const VoiceAssessmentTurnDecision(
     acceptedTranscript: 'I feel unwell.',
     spokenResponse: 'Tell me more.',
@@ -552,8 +590,10 @@ class _FakeAiCheckupService extends AiCheckupService {
   @override
   Future<VoiceAssessmentSession> startVoiceAssessment({
     String language = 'en',
+    bool consent = false,
   }) async {
     startVoiceCallCount++;
+    lastConsent = consent;
     return const VoiceAssessmentSession(
       sessionToken: 'voice-token',
       initialInstructions:

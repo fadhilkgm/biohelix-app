@@ -26,9 +26,9 @@ typedef AiCheckupVoiceControllerFactory =
 
 typedef AiCheckupPackageOpener = void Function(String? packageTarget);
 typedef AiCheckupDoctorOpener =
-    void Function(AssessmentRecommendedDoctor doctor);
+    void Function(AssessmentRecommendedDoctor doctor, String? sourceSession);
 typedef AiCheckupTestsOpener =
-    void Function(List<AssessmentRecommendedTest> tests);
+    void Function(List<AssessmentRecommendedTest> tests, String? sourceSession);
 typedef AiCheckupEmergencyOpener = VoidCallback;
 
 AiCheckupService _defaultServiceFactory(BuildContext context) {
@@ -50,7 +50,7 @@ LiveVoiceController _defaultVoiceControllerFactory({
   );
 }
 
-enum _CheckupView { connecting, conversation, result, history, error }
+enum _CheckupView { consent, connecting, conversation, result, history, error }
 
 class _ConversationMessage {
   const _ConversationMessage({required this.patient, required this.text});
@@ -70,6 +70,7 @@ class AiCheckupTab extends StatefulWidget {
     this.onOpenDoctor,
     this.onOpenTests,
     this.onOpenEmergency,
+    this.consentInitiallyGranted = false,
     this.resultRevealDelay = const Duration(milliseconds: 500),
   });
 
@@ -79,6 +80,7 @@ class AiCheckupTab extends StatefulWidget {
   final AiCheckupDoctorOpener? onOpenDoctor;
   final AiCheckupTestsOpener? onOpenTests;
   final AiCheckupEmergencyOpener? onOpenEmergency;
+  final bool consentInitiallyGranted;
   final Duration resultRevealDelay;
 
   @override
@@ -91,7 +93,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   final _scrollController = ScrollController();
   final List<_ConversationMessage> _messages = [];
 
-  _CheckupView _view = _CheckupView.connecting;
+  _CheckupView _view = _CheckupView.consent;
   VoiceAssessmentSession? _session;
   VoiceAssessmentTurnDecision? _pendingDecision;
   AssessmentResults? _result;
@@ -100,6 +102,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   bool _sendingText = false;
   bool _ending = false;
   bool _allowPop = false;
+  bool _consentGranted = false;
   Timer? _sessionTimer;
 
   AiCheckupService get _service =>
@@ -118,9 +121,12 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       onTurnContext: _onVoiceTurnContext,
     );
     _voice.addListener(_onVoiceStateChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(_startAssessment());
-    });
+    _consentGranted = widget.consentInitiallyGranted;
+    if (_consentGranted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_startAssessment());
+      });
+    }
   }
 
   @override
@@ -134,6 +140,10 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   }
 
   Future<void> _startAssessment() async {
+    if (!_consentGranted) {
+      if (mounted) setState(() => _view = _CheckupView.consent);
+      return;
+    }
     _sessionTimer?.cancel();
     if (_voice.state.isActive) {
       await _voice.stop(reason: 'new_assessment');
@@ -154,6 +164,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     try {
       final session = await _service.startVoiceAssessment(
         language: _isMalayalam ? 'ml' : 'en',
+        consent: true,
       );
       if (!mounted) return;
       setState(() {
@@ -304,8 +315,12 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     _sessionTimer?.cancel();
     await _voice.stop(reason: 'assessment_completed');
     if (!mounted) return;
+    final sourceToken = _session?.sessionToken;
     setState(() {
-      _result = result ?? _result;
+      final resolved = result ?? _result;
+      _result = resolved != null && sourceToken != null
+          ? resolved.withSourceSession(sourceToken)
+          : resolved;
       _view = _CheckupView.result;
       _ending = false;
     });
@@ -383,7 +398,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       final result = await _service.getResults(item.sessionToken);
       if (mounted) {
         setState(() {
-          _result = result;
+          _result = result.withSourceSession(item.sessionToken);
           _view = _CheckupView.result;
         });
       }
@@ -427,11 +442,16 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   }
 
   void _openDoctor(AssessmentRecommendedDoctor doctor) {
-    widget.onOpenDoctor?.call(doctor);
+    widget.onOpenDoctor?.call(doctor, _result?.sourceSessionToken);
   }
 
   void _openTests(List<AssessmentRecommendedTest> tests) {
-    widget.onOpenTests?.call(tests);
+    widget.onOpenTests?.call(tests, _result?.sourceSessionToken);
+  }
+
+  void _grantConsent() {
+    setState(() => _consentGranted = true);
+    unawaited(_startAssessment());
   }
 
   @override
@@ -472,6 +492,10 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
           ],
         ),
         body: switch (_view) {
+          _CheckupView.consent => _ConsentView(
+            onAccept: _grantConsent,
+            onDecline: () => unawaited(_leaveCheckup()),
+          ),
           _CheckupView.connecting => const _StatusMessage(
             icon: Icons.graphic_eq_rounded,
             title: 'Preparing private voice checkup',
@@ -1365,6 +1389,88 @@ class _HistoryViewState extends State<_HistoryView> {
           },
         );
       },
+    );
+  }
+}
+
+class _ConsentView extends StatelessWidget {
+  const _ConsentView({required this.onAccept, required this.onDecline});
+
+  final VoidCallback onAccept;
+  final VoidCallback onDecline;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 120),
+      children: [
+        const Icon(
+          Icons.health_and_safety_outlined,
+          size: 54,
+          color: Color(0xFF06489B),
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          'Before your private AI Checkup',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF192233),
+            fontSize: 23,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'With your permission, BHRC will use the conversation to prepare a health summary and recommendations. This is not a diagnosis or emergency service.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Color(0xFF56657A), height: 1.5),
+        ),
+        const SizedBox(height: 22),
+        const _ConsentPoint(
+          icon: Icons.mic_none_rounded,
+          text:
+              'Voice is processed for this checkup; raw audio is not retained by the app.',
+        ),
+        const _ConsentPoint(
+          icon: Icons.lock_outline_rounded,
+          text:
+              'Redacted conversation turns are retained for up to 30 days, then removed automatically.',
+        ),
+        const _ConsentPoint(
+          icon: Icons.task_alt_rounded,
+          text:
+              'No doctor, test, or package is booked without your separate confirmation.',
+        ),
+        const SizedBox(height: 22),
+        FilledButton(
+          onPressed: onAccept,
+          child: const Text('I agree — start checkup'),
+        ),
+        const SizedBox(height: 10),
+        TextButton(onPressed: onDecline, child: const Text('Not now')),
+      ],
+    );
+  }
+}
+
+class _ConsentPoint extends StatelessWidget {
+  const _ConsentPoint({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF1769C2), size: 22),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: const TextStyle(height: 1.4))),
+        ],
+      ),
     );
   }
 }

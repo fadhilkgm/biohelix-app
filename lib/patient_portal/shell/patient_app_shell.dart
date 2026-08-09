@@ -364,7 +364,10 @@ class _PatientAppShellState extends State<PatientAppShell>
     );
   }
 
-  void _openAiCheckupDoctor(AssessmentRecommendedDoctor recommendation) {
+  void _openAiCheckupDoctor(
+    AssessmentRecommendedDoctor recommendation,
+    String? sourceAssessmentToken,
+  ) {
     final doctors = context.read<PatientPortalProvider>().doctors;
     DoctorListing? doctor;
     for (final candidate in doctors) {
@@ -387,12 +390,18 @@ class _PatientAppShellState extends State<PatientAppShell>
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _DoctorDetailPage(doctor: doctor!),
+        builder: (_) => _DoctorDetailPage(
+          doctor: doctor!,
+          sourceAssessmentToken: sourceAssessmentToken,
+        ),
       ),
     );
   }
 
-  void _openAiCheckupTests(List<AssessmentRecommendedTest> recommendations) {
+  void _openAiCheckupTests(
+    List<AssessmentRecommendedTest> recommendations,
+    String? sourceAssessmentToken,
+  ) {
     final recommendedIds = recommendations
         .map((test) => test.id)
         .where((id) => id > 0)
@@ -416,7 +425,10 @@ class _PatientAppShellState extends State<PatientAppShell>
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => LabTestHomeScreen(initialTestIds: ids),
+        builder: (_) => LabTestHomeScreen(
+          initialTestIds: ids,
+          sourceAssessmentToken: sourceAssessmentToken,
+        ),
       ),
     );
   }

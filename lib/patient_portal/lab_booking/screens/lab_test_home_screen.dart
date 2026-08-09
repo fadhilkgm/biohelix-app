@@ -19,9 +19,14 @@ import 'test_booking_screen.dart';
 import 'test_list_screen.dart';
 
 class LabTestHomeScreen extends StatelessWidget {
-  const LabTestHomeScreen({super.key, this.initialTestIds = const []});
+  const LabTestHomeScreen({
+    super.key,
+    this.initialTestIds = const [],
+    this.sourceAssessmentToken,
+  });
 
   final List<int> initialTestIds;
+  final String? sourceAssessmentToken;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +39,7 @@ class LabTestHomeScreen extends StatelessWidget {
         tests: portal.labTests,
         bodyPoints: portal.bodyPoints,
         initialTestIds: initialTestIds,
+        sourceAssessmentToken: sourceAssessmentToken,
       ),
       child: const _LabHomeContent(),
     );

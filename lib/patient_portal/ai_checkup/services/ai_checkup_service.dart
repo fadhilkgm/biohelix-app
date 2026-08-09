@@ -270,6 +270,7 @@ class AssessmentResults {
     this.state = 'recommendation_ready',
     this.outcome = 'advice_only',
     this.urgency = 'routine',
+    this.sourceSessionToken,
   });
 
   /// `low`, `moderate`, or `high`.
@@ -284,6 +285,24 @@ class AssessmentResults {
   final String state;
   final String outcome;
   final String urgency;
+  final String? sourceSessionToken;
+
+  AssessmentResults withSourceSession(String sessionToken) {
+    return AssessmentResults(
+      riskLevel: riskLevel,
+      summary: summary,
+      insights: insights,
+      recommendedPackages: recommendedPackages,
+      recommendedTests: recommendedTests,
+      recommendedDoctors: recommendedDoctors,
+      customPackage: customPackage,
+      intent: intent,
+      state: state,
+      outcome: outcome,
+      urgency: urgency,
+      sourceSessionToken: sessionToken,
+    );
+  }
 
   bool get isEmpty =>
       summary.trim().isEmpty &&
@@ -327,6 +346,7 @@ class AssessmentResults {
       state: AiCheckupContract.state(json['state'], completed: true),
       outcome: json['outcome']?.toString() ?? 'advice_only',
       urgency: AiCheckupContract.urgency(json['urgency']),
+      sourceSessionToken: json['source_session_token']?.toString(),
     );
   }
 }
@@ -487,11 +507,12 @@ class AiCheckupService {
 
   Future<VoiceAssessmentSession> startVoiceAssessment({
     String language = 'en',
+    bool consent = false,
   }) async {
     try {
       final response = await _dio().post<Map<String, dynamic>>(
         '/health-assessment/voice/start',
-        data: {'language': language},
+        data: {'language': language, 'consent': consent},
       );
       return VoiceAssessmentSession.fromJson(response.data ?? const {});
     } on DioException catch (error) {

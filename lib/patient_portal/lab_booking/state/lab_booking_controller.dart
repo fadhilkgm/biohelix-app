@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -13,6 +15,7 @@ class LabBookingController extends ChangeNotifier {
     required List<BodyPointItem> bodyPoints,
     String? patientPhone,
     Iterable<int> initialTestIds = const [],
+    this.sourceAssessmentToken,
   }) {
     _patients = [
       PatientProfile(
@@ -36,6 +39,9 @@ class LabBookingController extends ChangeNotifier {
   }
 
   late List<BookableLabTest> _tests;
+  final String? sourceAssessmentToken;
+  late final String _idempotencyKey =
+      'lab-${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 32)}';
   late List<BodyPointItem> _bodyPoints;
   final List<CartItem> _cart = [];
   int _preselectedCount = 0;
@@ -335,6 +341,8 @@ class LabBookingController extends ChangeNotifier {
       patientPhoneSnapshot: selected.phone,
       bookingRef: 'LB-$bookingRoot',
       notes: 'Slot ${_slot ?? "Standard"}, ${selected.name}',
+      sourceAssessmentToken: sourceAssessmentToken,
+      idempotencyKey: _idempotencyKey,
     );
 
     _cart.clear();

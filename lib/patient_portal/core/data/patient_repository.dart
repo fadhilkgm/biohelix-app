@@ -901,6 +901,8 @@ class PatientRepository {
     required String timeslot,
     int? patientId,
     String? notes,
+    String? sourceAssessmentToken,
+    String? idempotencyKey,
   }) async {
     final response = await _apiClient.postJson(
       '/bookings',
@@ -910,6 +912,12 @@ class PatientRepository {
         'timeslot': timeslot,
         ...?(patientId == null ? null : {'patient_id': patientId}),
         if ((notes ?? '').trim().isNotEmpty) 'notes': notes!.trim(),
+        if ((sourceAssessmentToken ?? '').trim().isNotEmpty)
+          'sourceAssessmentToken': sourceAssessmentToken!.trim(),
+      },
+      headers: {
+        if ((idempotencyKey ?? '').trim().isNotEmpty)
+          'Idempotency-Key': idempotencyKey!.trim(),
       },
     );
     return BookingConfirmation.fromBookingResponse(response);
@@ -1081,6 +1089,8 @@ class PatientRepository {
     String? bookingRef,
     String urgency = 'routine',
     String? notes,
+    String? sourceAssessmentToken,
+    String? idempotencyKey,
   }) async {
     final trimmedSlot = slot?.trim();
     final trimmedNotes = notes?.trim();
@@ -1116,6 +1126,12 @@ class PatientRepository {
           'bookingRef': trimmedBookingRef,
         'urgency': urgency,
         if ((trimmedNotes ?? '').isNotEmpty) 'notes': trimmedNotes,
+        if ((sourceAssessmentToken ?? '').trim().isNotEmpty)
+          'sourceAssessmentToken': sourceAssessmentToken!.trim(),
+      },
+      headers: {
+        if ((idempotencyKey ?? '').trim().isNotEmpty)
+          'Idempotency-Key': idempotencyKey!.trim(),
       },
     );
     return BookingConfirmation.fromTestBatchResponse(response);
