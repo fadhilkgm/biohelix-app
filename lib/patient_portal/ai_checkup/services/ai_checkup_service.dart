@@ -120,12 +120,14 @@ class AssessmentRecommendedTest {
     required this.testName,
     this.category,
     this.price,
+    this.reason,
   });
 
   final int id;
   final String testName;
   final String? category;
   final String? price;
+  final String? reason;
 
   factory AssessmentRecommendedTest.fromJson(Map<String, dynamic> json) {
     return AssessmentRecommendedTest(
@@ -133,6 +135,33 @@ class AssessmentRecommendedTest {
       testName: json['test_name']?.toString() ?? '',
       category: json['category']?.toString(),
       price: json['price']?.toString(),
+      reason: json['reason']?.toString(),
+    );
+  }
+}
+
+class AssessmentRecommendedDoctor {
+  const AssessmentRecommendedDoctor({
+    required this.id,
+    required this.name,
+    this.specialization,
+    this.consultationFee,
+    this.reason,
+  });
+
+  final int id;
+  final String name;
+  final String? specialization;
+  final String? consultationFee;
+  final String? reason;
+
+  factory AssessmentRecommendedDoctor.fromJson(Map<String, dynamic> json) {
+    return AssessmentRecommendedDoctor(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      name: json['name']?.toString() ?? 'Doctor',
+      specialization: json['specialization']?.toString(),
+      consultationFee: json['consultation_fee']?.toString(),
+      reason: json['reason']?.toString(),
     );
   }
 }
@@ -146,6 +175,7 @@ class AssessmentRecommendedPackage {
     this.discountedPrice,
     this.description,
     this.imageUrl,
+    this.reason,
     this.testsCount = 0,
     this.tests = const [],
   });
@@ -156,6 +186,7 @@ class AssessmentRecommendedPackage {
   final String? discountedPrice;
   final String? description;
   final String? imageUrl;
+  final String? reason;
   final int testsCount;
   final List<AssessmentRecommendedTest> tests;
 
@@ -168,6 +199,7 @@ class AssessmentRecommendedPackage {
       discountedPrice: json['discounted_price']?.toString(),
       description: json['description']?.toString(),
       imageUrl: json['image_url']?.toString(),
+      reason: json['reason']?.toString(),
       testsCount:
           (json['tests_count'] as num?)?.toInt() ??
           (json['test_count'] as num?)?.toInt() ??
@@ -214,6 +246,7 @@ class AssessmentResults {
     required this.insights,
     required this.recommendedPackages,
     required this.recommendedTests,
+    this.recommendedDoctors = const [],
     this.customPackage,
     this.intent = 'advice',
     this.state = 'recommendation_ready',
@@ -227,6 +260,7 @@ class AssessmentResults {
   final List<String> insights;
   final List<AssessmentRecommendedPackage> recommendedPackages;
   final List<AssessmentRecommendedTest> recommendedTests;
+  final List<AssessmentRecommendedDoctor> recommendedDoctors;
   final AssessmentCustomPackage? customPackage;
   final String intent;
   final String state;
@@ -238,6 +272,7 @@ class AssessmentResults {
       insights.isEmpty &&
       recommendedPackages.isEmpty &&
       recommendedTests.isEmpty &&
+      recommendedDoctors.isEmpty &&
       customPackage == null;
 
   factory AssessmentResults.fromJson(Map<String, dynamic> json) {
@@ -245,6 +280,8 @@ class AssessmentResults {
     final packagesRaw =
         json['recommended_packages'] as List<dynamic>? ?? const [];
     final testsRaw = json['recommended_tests'] as List<dynamic>? ?? const [];
+    final doctorsRaw =
+        json['recommended_doctors'] as List<dynamic>? ?? const [];
     final custom = json['custom_package'];
     return AssessmentResults(
       riskLevel: json['risk_level']?.toString() ?? 'low',
@@ -258,6 +295,9 @@ class AssessmentResults {
           .toList(),
       recommendedTests: testsRaw
           .map((item) => AssessmentRecommendedTest.fromJson(_map(item)))
+          .toList(),
+      recommendedDoctors: doctorsRaw
+          .map((item) => AssessmentRecommendedDoctor.fromJson(_map(item)))
           .toList(),
       customPackage: custom is Map
           ? AssessmentCustomPackage.fromJson(_map(custom))

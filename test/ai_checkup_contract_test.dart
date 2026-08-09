@@ -52,4 +52,49 @@ void main() {
     expect(decision.state, 'completed');
     expect(decision.result?.urgency, 'emergency');
   });
+
+  test('parses validated catalogue recommendations with reasons', () {
+    final result = AssessmentResults.fromJson(const {
+      'intent': 'doctor_booking',
+      'state': 'recommendation_ready',
+      'recommended_doctors': [
+        {
+          'id': 4,
+          'name': 'Dr Active',
+          'specialization': 'General Medicine',
+          'consultation_fee': '500.00',
+          'reason': 'Persistent headache review',
+        },
+      ],
+      'recommended_tests': [
+        {
+          'id': 8,
+          'test_name': 'CBC',
+          'price': '250.00',
+          'reason': 'Matched to the reported concern.',
+        },
+      ],
+      'recommended_packages': [
+        {
+          'id': 12,
+          'package_name': 'Wellness',
+          'price': '1200.00',
+          'reason': 'Routine screening match.',
+        },
+      ],
+    });
+
+    expect(result.recommendedDoctors.single.id, 4);
+    expect(
+      result.recommendedDoctors.single.reason,
+      'Persistent headache review',
+    );
+    expect(result.recommendedTests.single.id, 8);
+    expect(result.recommendedTests.single.reason, isNotEmpty);
+    expect(result.recommendedPackages.single.id, 12);
+    expect(
+      result.recommendedPackages.single.reason,
+      'Routine screening match.',
+    );
+  });
 }
