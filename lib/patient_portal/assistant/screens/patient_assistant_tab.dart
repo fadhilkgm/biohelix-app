@@ -17,7 +17,6 @@ class _AssistantTabState extends State<_AssistantTab> {
   bool _isListening = false;
   bool _isSpeaking = false;
   bool _isLiveVoiceMode = false;
-  bool _isLiveTurnInFlight = false;
   bool _isEndingLiveVoice = false;
   String? _liveVoiceError;
   String? _liveConversationId;
@@ -30,21 +29,6 @@ class _AssistantTabState extends State<_AssistantTab> {
   TextEditingController get inputController => _inputController;
   ScrollController get messagesController => _messagesController;
   LiveVoiceController get liveVoiceController => _liveVoiceController;
-
-  bool get isListening => _isListening;
-  set isListening(bool value) => _isListening = value;
-
-  bool get isSpeaking => _isSpeaking;
-  set isSpeaking(bool value) => _isSpeaking = value;
-
-  bool get isLiveVoiceMode => _isLiveVoiceMode;
-  set isLiveVoiceMode(bool value) => _isLiveVoiceMode = value;
-
-  bool get isLiveTurnInFlight => _isLiveTurnInFlight;
-  set isLiveTurnInFlight(bool value) => _isLiveTurnInFlight = value;
-
-  double get soundLevel => _soundLevel;
-  set soundLevel(double value) => _soundLevel = value;
 
   void _updateAssistantState(VoidCallback update) {
     if (!mounted) return;
@@ -564,10 +548,6 @@ class _AssistantTabState extends State<_AssistantTab> {
       }
       _isListening = state.isListening;
       _isSpeaking = state.isSpeaking;
-      _isLiveTurnInFlight =
-          state.phase.name == 'transcribing' ||
-          state.phase.name == 'thinking' ||
-          state.phase.name == 'speaking';
       _soundLevel = state.soundLevel;
       _liveVoiceError = state.errorMessage;
     });
@@ -1074,65 +1054,6 @@ class _VoiceOrbState extends State<_VoiceOrb>
       ),
     );
   }
-}
-
-class _BioHelixMark extends StatelessWidget {
-  const _BioHelixMark({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(size: Size.square(size), painter: _BioHelixPainter());
-  }
-}
-
-class _BioHelixPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final paint = Paint()
-      ..shader = const LinearGradient(
-        colors: [
-          Color(0xFF2E8B57),
-          Color(0xFF35D399),
-          Color(0xFF1B4D3E),
-          Color(0xFF26A89A),
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomRight,
-      ).createShader(rect);
-
-    paint
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .11
-      ..strokeCap = StrokeCap.round;
-    final strandA = Path()
-      ..moveTo(size.width * .28, size.height * .08)
-      ..cubicTo(
-        size.width * .82,
-        size.height * .28,
-        size.width * .18,
-        size.height * .72,
-        size.width * .72,
-        size.height * .92,
-      );
-    final strandB = Path()
-      ..moveTo(size.width * .72, size.height * .08)
-      ..cubicTo(
-        size.width * .18,
-        size.height * .28,
-        size.width * .82,
-        size.height * .72,
-        size.width * .28,
-        size.height * .92,
-      );
-    canvas.drawPath(strandA, paint);
-    canvas.drawPath(strandB, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _VoiceOrbPainter extends CustomPainter {

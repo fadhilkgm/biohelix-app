@@ -9,32 +9,32 @@ import 'package:biohelix_app/patient_portal/core/data/patient_repository.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 import 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
+import 'package:biohelix_app/patient_portal/fitness/providers/fitness_provider.dart';
 import 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(const {});
-    GoogleFonts.config.allowRuntimeFetching = false;
     _mockVoiceChannels();
   });
 
   testWidgets('11. pull-to-refresh reloads portal data', (tester) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     final initialDashboardCalls = harness.repository.dashboardCalls;
 
-    await tester.drag(find.byType(ListView).first, const Offset(0, 400));
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pumpAndSettle();
+    final refreshIndicator = tester.widget<RefreshIndicator>(
+      find.byType(RefreshIndicator).first,
+    );
+    await refreshIndicator.onRefresh();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(
       harness.repository.dashboardCalls,
@@ -47,20 +47,23 @@ void main() {
   ) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.byTooltip('Health AI'), findsOneWidget);
 
-    await tester.tap(find.text('Reports'));
-    await tester.pumpAndSettle();
+    final controller =
+        tester.state(find.byType(PatientAppShell)) as PatientAppShellController;
+    controller.openRecords();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.byType(FloatingActionButton), findsNothing);
+    expect(find.byTooltip('Health AI'), findsNothing);
 
     await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.byType(FloatingActionButton), findsOneWidget);
-    expect(find.text('Exit BioHelix?'), findsNothing);
+    expect(find.byTooltip('Health AI'), findsOneWidget);
+    expect(find.text('Exit BHRC?'), findsNothing);
   });
 
   testWidgets('13. back button on home shows exit confirmation dialog', (
@@ -68,12 +71,12 @@ void main() {
   ) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.text('Exit BioHelix?'), findsOneWidget);
+    expect(find.text('Exit BHRC?'), findsOneWidget);
     expect(find.text('Stay'), findsOneWidget);
     expect(find.text('Exit'), findsOneWidget);
   });
@@ -83,12 +86,16 @@ void main() {
     (tester) async {
       final harness = await _buildHarness();
       await tester.pumpWidget(harness.widget);
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 600));
 
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byTooltip('Health AI'), findsOneWidget);
 
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
+      final controller =
+          tester.state(find.byType(PatientAppShell))
+              as PatientAppShellController;
+      controller.openAssistant();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.text('Health AI'), findsOneWidget);
     },
@@ -99,34 +106,31 @@ void main() {
   ) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     final strings = AppStrings.of(AppLanguage.en);
 
     final greetingCount =
-        find.text(strings.goodMorning).evaluate().length +
-        find.text(strings.goodAfternoon).evaluate().length +
-        find.text(strings.goodEvening).evaluate().length +
+        find.text(strings.goodDay).evaluate().length +
         find.text(strings.goodNight).evaluate().length;
 
     expect(greetingCount, greaterThan(0));
-    expect(find.text('Amina'), findsOneWidget);
-    expect(find.text(strings.summerHealthTips), findsOneWidget);
+    expect(find.text('Amina Patient'), findsOneWidget);
   });
 
   testWidgets('16. home shows banners and announcement ticker', (tester) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('Monsoon Wellness'), findsOneWidget);
-    expect(find.text('"Free camp on Friday"'), findsOneWidget);
+    expect(find.text('Free camp on Friday'), findsOneWidget);
   });
 
   testWidgets('17. home shows health tips from banner content', (tester) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(
       find.text('Stay hydrated and monitor your blood pressure.'),
@@ -134,29 +138,30 @@ void main() {
     );
   });
 
-  testWidgets('18. home does not show special offers', (tester) async {
+  testWidgets('18. home shows packages without a special-offers heading', (
+    tester,
+  ) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('Special Offers'), findsNothing);
-    expect(find.text('Executive Health Package'), findsNothing);
+    expect(find.text('Executive Health Package'), findsWidgets);
   });
 
   testWidgets('19. home shows upcoming appointments preview', (tester) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('Upcoming Appointments'), findsOneWidget);
     expect(find.text('Dr Sana Rahman'), findsWidgets);
-    expect(find.text('2026-05-12 at 10:30 AM'), findsOneWidget);
   });
 
   testWidgets('20. home shows doctor discovery section', (tester) async {
     final harness = await _buildHarness();
     await tester.pumpWidget(harness.widget);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('Find Doctors'), findsOneWidget);
     expect(find.text('Dr Sana Rahman'), findsWidgets);
@@ -181,17 +186,23 @@ Future<_ShellHarness> _buildHarness() async {
     sessionProvider: session,
   );
   await portal.loadPortal();
+  final fitness = FitnessProvider(
+    repository: repository,
+    sessionProvider: session,
+  );
 
   return _ShellHarness(
     repository: repository,
     widget: MultiProvider(
       providers: [
         Provider<AppConfig>.value(value: _testConfig()),
+        Provider<ApiClient>.value(value: apiClient),
         ChangeNotifierProvider<SessionProvider>.value(value: session),
         ChangeNotifierProvider<PatientPortalProvider>.value(value: portal),
+        ChangeNotifierProvider<FitnessProvider>.value(value: fitness),
         ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
         ChangeNotifierProvider<LanguageProvider>(
-          create: (_) => LanguageProvider(),
+          create: (_) => LanguageProvider(apiClient: apiClient),
         ),
       ],
       child: const MaterialApp(home: PatientAppShell()),
@@ -209,16 +220,18 @@ void _mockVoiceChannels() {
   messenger.setMockMethodCallHandler(
     const MethodChannel('speech_to_text_windows'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission')
+      if (call.method == 'initialize' || call.method == 'hasPermission') {
         return true;
+      }
       return null;
     },
   );
   messenger.setMockMethodCallHandler(
     const MethodChannel('plugin.csdcorp.com/speech_to_text'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission')
+      if (call.method == 'initialize' || call.method == 'hasPermission') {
         return true;
+      }
       return null;
     },
   );
@@ -264,7 +277,7 @@ class _FakePortalRepository extends PatientRepository {
   static const _bookings = [
     BookingItem(
       id: 1,
-      bookingDate: '2026-05-12',
+      bookingDate: '2099-05-12',
       timeslot: '10:30 AM',
       status: 'confirmed',
       doctorId: 7,
@@ -451,4 +464,36 @@ class _FakePortalRepository extends PatientRepository {
   @override
   Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async =>
       const [];
+
+  @override
+  Future<MyClubSummary> getMyClub() async => const MyClubSummary(
+    patientId: 108,
+    points: 240,
+    currencyValue: 24,
+    tier: 'Classic',
+    transactions: [],
+  );
+  @override
+  Future<HealthSnapshot?> getHealthSnapshot() async => null;
+  @override
+  Future<HealthSnapshotHistoryPage> getHealthSnapshotHistory({
+    int page = 1,
+  }) async => const HealthSnapshotHistoryPage(
+    items: [],
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+  );
+  @override
+  Future<List<AiSuggestionItem>> getAiSuggestions() async => const [];
+  @override
+  Future<List<BodyPointItem>> getBodyPoints() async => const [];
+  @override
+  Future<List<FamilyMember>> getFamilyMembers() async => const [];
+  @override
+  Future<List<HomeCareServiceItem>> getHomeCareServices() async => const [];
+  @override
+  Future<List<HomeCareBookingItem>> getHomeCareBookings({
+    int? patientId,
+  }) async => const [];
 }

@@ -94,6 +94,7 @@ abstract class PatientAppShellController {
   void goHome();
   void openAssistant();
   void openAiCheckup();
+  void openBookings();
   void openPackages([String? packageTarget]);
 }
 
@@ -146,7 +147,7 @@ class _PatientAppShellState extends State<PatientAppShell>
     final pages = [
       _DashboardTab(
         onNavigate: _setIndex,
-        onOpenBookings: _openBookings,
+        onOpenBookings: openBookings,
         onOpenDoctorsDirectory: _openDoctorsDirectory,
         onOpenLabTestsDirectory: _openLabTestsDirectory,
         onOpenHomeCare: _openHomeCare,
@@ -467,7 +468,8 @@ class _PatientAppShellState extends State<PatientAppShell>
 
   void _openAssistant() => openAssistant();
 
-  void _openBookings() {
+  @override
+  void openBookings() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _BookingsTab(onBack: () => Navigator.of(context).pop()),

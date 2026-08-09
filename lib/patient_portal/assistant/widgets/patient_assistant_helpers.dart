@@ -442,7 +442,7 @@ extension _AssistantActions on _AssistantTabState {
   }
 
   Future<void> _toggleLiveVoiceMode(PatientPortalProvider portal) async {
-    if (isLiveVoiceMode) {
+    if (_isLiveVoiceMode) {
       await liveVoiceController.stop();
       await portal.refreshMyClub();
       if (!mounted) return;
@@ -450,7 +450,6 @@ extension _AssistantActions on _AssistantTabState {
         _isLiveVoiceMode = false;
         _isListening = false;
         _isSpeaking = false;
-        _isLiveTurnInFlight = false;
         _isEndingLiveVoice = false;
         _soundLevel = 0;
         _liveVoiceError = null;
@@ -488,7 +487,7 @@ extension _AssistantActions on _AssistantTabState {
   }
 
   Future<void> _interruptAiSpeechAndListen(PatientPortalProvider portal) async {
-    if (!isLiveVoiceMode) return;
+    if (!_isLiveVoiceMode) return;
     await liveVoiceController.interrupt();
   }
 }

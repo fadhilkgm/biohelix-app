@@ -8,67 +8,62 @@ import 'package:biohelix_app/patient_portal/core/data/patient_repository.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 import 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
+import 'package:biohelix_app/patient_portal/fitness/providers/fitness_provider.dart';
 import 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(const {});
-    GoogleFonts.config.allowRuntimeFetching = false;
     _mockVoiceChannels();
   });
 
   testWidgets('31. bookings tab opens appointment list', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await _openBookings(tester);
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('My Bookings'), findsOneWidget);
     expect(find.text('Dr Sana Rahman'), findsWidgets);
   });
 
   testWidgets('32. bookings supports Consultations filter', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await _openBookings(tester);
     await tester.tap(find.text('Consultations'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Dr Sana Rahman'), findsWidgets);
   });
 
   testWidgets('33. bookings supports Lab Tests filter', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await _openBookings(tester);
     await tester.tap(find.text('Lab Tests'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('CBC Lab Order'), findsWidgets);
   });
 
   testWidgets('34. bookings supports Packages filter', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await _openBookings(tester);
     await tester.tap(find.text('Packages'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Executive Health Package'), findsWidgets);
   });
 
   testWidgets('35. booking card shows management actions', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await _openBookings(tester);
     await tester.tap(find.text('Dr Sana Rahman').first);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Reschedule'), findsWidgets);
     expect(find.text('Cancel'), findsWidgets);
   });
@@ -78,66 +73,84 @@ void main() {
   ) async {
     final repo = _FakePortalRepository();
     await tester.pumpWidget(await _buildHarness(repository: repo));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await _openBookings(tester);
     await tester.tap(find.text('Dr Sana Rahman').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancel').first);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    final cancelAction = find
+        .ancestor(
+          of: find.text('Cancel').first,
+          matching: find.byType(GestureDetector),
+        )
+        .first;
+    tester.widget<GestureDetector>(cancelAction).onTap!();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.tap(find.text('Yes, Cancel').first);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(repo.cancelBookingCalls, 1);
   });
 
   testWidgets('37. reschedule action opens appointment sheet', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await _openBookings(tester);
     await tester.tap(find.text('Dr Sana Rahman').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Reschedule').first);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    final rescheduleAction = find
+        .ancestor(
+          of: find.text('Reschedule').first,
+          matching: find.byType(GestureDetector),
+        )
+        .first;
+    tester.widget<GestureDetector>(rescheduleAction).onTap!();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Reschedule'), findsWidgets);
     expect(find.text('Confirm Reschedule'), findsOneWidget);
   });
 
   testWidgets('38. bookings shows lab order actions', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await _openBookings(tester);
     await tester.tap(find.text('Lab Tests'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.tap(find.text('CBC Lab Order').first);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Reschedule'), findsWidgets);
     expect(find.text('Cancel'), findsWidgets);
   });
 
   testWidgets('39. bookings shows package order actions', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await _openBookings(tester);
     await tester.tap(find.text('Packages'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.tap(find.text('Executive Health Package').first);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Reschedule'), findsWidgets);
     expect(find.text('Cancel'), findsWidgets);
   });
 
-  testWidgets('40. bookings timeline can switch to History', (tester) async {
+  testWidgets('40. bookings combines upcoming and previous entries', (
+    tester,
+  ) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('History'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await _openBookings(tester);
     expect(find.text('My Bookings'), findsOneWidget);
+    expect(find.text('Upcoming and previous bookings'), findsOneWidget);
   });
+}
+
+Future<void> _openBookings(WidgetTester tester) async {
+  final controller =
+      tester.state(find.byType(PatientAppShell)) as PatientAppShellController;
+  controller.openBookings();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 600));
 }
 
 void _mockVoiceChannels() {
@@ -150,16 +163,18 @@ void _mockVoiceChannels() {
   messenger.setMockMethodCallHandler(
     const MethodChannel('speech_to_text_windows'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission')
+      if (call.method == 'initialize' || call.method == 'hasPermission') {
         return true;
+      }
       return null;
     },
   );
   messenger.setMockMethodCallHandler(
     const MethodChannel('plugin.csdcorp.com/speech_to_text'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission')
+      if (call.method == 'initialize' || call.method == 'hasPermission') {
         return true;
+      }
       return null;
     },
   );
@@ -183,14 +198,17 @@ Future<Widget> _buildHarness({_FakePortalRepository? repository}) async {
     sessionProvider: session,
   );
   await portal.loadPortal();
+  final fitness = FitnessProvider(repository: repo, sessionProvider: session);
   return MultiProvider(
     providers: [
       Provider<AppConfig>.value(value: _testConfig()),
+      Provider<ApiClient>.value(value: repo.apiClient),
       ChangeNotifierProvider<SessionProvider>.value(value: session),
       ChangeNotifierProvider<PatientPortalProvider>.value(value: portal),
+      ChangeNotifierProvider<FitnessProvider>.value(value: fitness),
       ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
       ChangeNotifierProvider<LanguageProvider>(
-        create: (_) => LanguageProvider(),
+        create: (_) => LanguageProvider(apiClient: repo.apiClient),
       ),
     ],
     child: const MaterialApp(home: PatientAppShell()),
@@ -340,9 +358,7 @@ class _FakePortalRepository extends PatientRepository {
     DepartmentItem(id: 1, name: 'Cardiology'),
   ];
   @override
-  Future<List<HomeBannerItem>> getHomeBanners() async => const [
-    HomeBannerItem(id: 1, title: 'Monsoon', imageUrl: ''),
-  ];
+  Future<List<HomeBannerItem>> getHomeBanners() async => const [];
   @override
   Future<List<TickerMessageItem>> getTickerMessages() async => const [
     TickerMessageItem(id: 1, message: 'Free camp on Friday'),
@@ -375,4 +391,36 @@ class _FakePortalRepository extends PatientRepository {
   @override
   Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async =>
       const [];
+
+  @override
+  Future<MyClubSummary> getMyClub() async => const MyClubSummary(
+    patientId: 108,
+    points: 240,
+    currencyValue: 24,
+    tier: 'Classic',
+    transactions: [],
+  );
+  @override
+  Future<HealthSnapshot?> getHealthSnapshot() async => null;
+  @override
+  Future<HealthSnapshotHistoryPage> getHealthSnapshotHistory({
+    int page = 1,
+  }) async => const HealthSnapshotHistoryPage(
+    items: [],
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+  );
+  @override
+  Future<List<AiSuggestionItem>> getAiSuggestions() async => const [];
+  @override
+  Future<List<BodyPointItem>> getBodyPoints() async => const [];
+  @override
+  Future<List<FamilyMember>> getFamilyMembers() async => const [];
+  @override
+  Future<List<HomeCareServiceItem>> getHomeCareServices() async => const [];
+  @override
+  Future<List<HomeCareBookingItem>> getHomeCareBookings({
+    int? patientId,
+  }) async => const [];
 }

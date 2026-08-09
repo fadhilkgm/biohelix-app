@@ -10,6 +10,6 @@ void main() {
     await tester.pumpWidget(const BioHelixApp());
     await tester.pump();
 
-    expect(find.text('BioHelix'), findsOneWidget);
+    expect(find.text('BHRC'), findsOneWidget);
   });
 }

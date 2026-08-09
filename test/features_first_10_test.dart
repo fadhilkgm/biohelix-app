@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:biohelix_app/core/config/app_config.dart';
 import 'package:biohelix_app/core/network/api_client.dart';
 import 'package:biohelix_app/core/providers/language_provider.dart';
@@ -15,12 +13,12 @@ import 'package:biohelix_app/patient_portal/core/data/patient_repository.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 import 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
+import 'package:biohelix_app/patient_portal/fitness/providers/fitness_provider.dart';
 import 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -36,7 +34,6 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues(const {});
-    GoogleFonts.config.allowRuntimeFetching = false;
     _mockVoiceChannels();
   });
 
@@ -44,13 +41,15 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: SplashScreen()));
     await tester.pump();
 
-    expect(find.text('BioHelix'), findsOneWidget);
-    expect(find.text('Health and Research Center'), findsOneWidget);
+    expect(find.text('BHRC'), findsOneWidget);
+    expect(find.text('BioHelix Health and Research Center'), findsOneWidget);
   });
 
   testWidgets('2. onboarding button completes the start flow', (tester) async {
     var completed = false;
-    final languageProvider = LanguageProvider();
+    final languageProvider = LanguageProvider(
+      apiClient: ApiClient(config: _testConfig()),
+    );
 
     await tester.pumpWidget(
       ChangeNotifierProvider<LanguageProvider>.value(
@@ -64,13 +63,13 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.text('Your Smart Health Partner'), findsOneWidget);
+    expect(find.text('Choose your language'), findsOneWidget);
     expect(find.text('Get Started'), findsOneWidget);
 
     await tester.tap(find.text('Get Started'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(completed, isTrue);
   });
@@ -80,34 +79,42 @@ void main() {
     final session = _buildSession(repository);
 
     await tester.pumpWidget(_authSubject(session));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('Login'), findsWidgets);
 
     await tester.enterText(find.byType(TextField).first, '9998887777');
     await tester.tap(find.text('Send WhatsApp OTP'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(repository.lastOtpPhone, isNotNull);
     expect(session.pendingPhone, isNotEmpty);
     expect(find.text('Verify OTP'), findsWidgets);
 
     await session.verifyOtp(otp: '123456');
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(session.isAuthenticated, isTrue);
   });
 
-  testWidgets('4. register submits patient details and sends OTP', (tester) async {
+  testWidgets('4. register submits patient details and sends OTP', (
+    tester,
+  ) async {
     final repository = _FakePatientRepository(patient: patient);
     final session = _buildSession(repository);
 
     await tester.pumpWidget(_authSubject(session));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     await tester.ensureVisible(find.text('New patient? Register'));
     await tester.tap(find.text('New patient? Register'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    await tester.enterText(find.byType(TextField).first, '8887776666');
+    await tester.tap(find.text('Continue'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.text('Register'));
+    await tester.pump(const Duration(milliseconds: 600));
 
     await tester.enterText(
       find.widgetWithText(TextField, 'Aisha Rahman'),
@@ -122,31 +129,29 @@ void main() {
     final selectedDobText =
         '${selectedDob.year}-${selectedDob.month.toString().padLeft(2, '0')}-${selectedDob.day.toString().padLeft(2, '0')}';
     await tester.tap(find.widgetWithText(TextField, 'Select date'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.enterText(
       find.widgetWithText(TextField, 'aisha.rahman@example.com'),
       'new@example.test',
     );
     final dropdowns = find.byType(DropdownButtonFormField<String>);
-    await tester.ensureVisible(dropdowns.first);
-    await tester.tap(dropdowns.first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Female').last);
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(dropdowns.last);
-    await tester.tap(dropdowns.last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('A+').last);
-    await tester.pumpAndSettle();
+    tester.widget<DropdownButtonFormField<String>>(dropdowns.first).onChanged!(
+      'female',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    tester.widget<DropdownButtonFormField<String>>(dropdowns.last).onChanged!(
+      'A+',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.enterText(
       find.widgetWithText(TextField, 'Ponnani, Kerala'),
       'Ponnani',
     );
     await tester.ensureVisible(find.text('Register & send WhatsApp OTP'));
     await tester.tap(find.text('Register & send WhatsApp OTP'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(repository.lastSignupPayload, {
       'phone': '+918887776666',
@@ -155,6 +160,7 @@ void main() {
       'place': 'Ponnani',
       'email': 'new@example.test',
       'gender': 'female',
+      'referralCode': '',
     });
     expect(session.pendingPhone, isNotEmpty);
   });
@@ -270,7 +276,7 @@ void main() {
     },
   );
 
-  testWidgets('10b. authenticated patient shell exposes the five bottom tabs', (
+  testWidgets('10b. patient shell exposes four tabs and assistant shortcut', (
     tester,
   ) async {
     final repository = _FakePatientRepository(patient: patient);
@@ -283,15 +289,26 @@ void main() {
       sessionProvider: session,
     );
     await portal.loadPortal();
+    final fitness = FitnessProvider(
+      repository: repository,
+      sessionProvider: session,
+    );
 
-    await tester.pumpWidget(_shellSubject(session: session, portal: portal));
+    await tester.pumpWidget(
+      _shellSubject(
+        session: session,
+        portal: portal,
+        repository: repository,
+        fitness: fitness,
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Home'), findsWidgets);
-    expect(find.text('Reports'), findsOneWidget);
-    expect(find.text('Bookings'), findsOneWidget);
-    expect(find.text('Checkup'), findsOneWidget);
+    expect(find.text('Health Status'), findsWidgets);
+    expect(find.text('Records'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
+    expect(find.byTooltip('Health AI'), findsOneWidget);
   });
 }
 
@@ -331,7 +348,9 @@ void _mockVoiceChannels() {
 }
 
 Widget _authSubject(SessionProvider session) {
-  final languageProvider = LanguageProvider();
+  final languageProvider = LanguageProvider(
+    apiClient: ApiClient(config: _testConfig()),
+  );
 
   return MultiProvider(
     providers: [
@@ -346,14 +365,18 @@ Widget _authSubject(SessionProvider session) {
 Widget _shellSubject({
   required SessionProvider session,
   required PatientPortalProvider portal,
+  required _FakePatientRepository repository,
+  required FitnessProvider fitness,
 }) {
-  final languageProvider = LanguageProvider();
+  final languageProvider = LanguageProvider(apiClient: repository.apiClient);
 
   return MultiProvider(
     providers: [
       Provider<AppConfig>.value(value: _testConfig()),
+      Provider<ApiClient>.value(value: repository.apiClient),
       ChangeNotifierProvider<SessionProvider>.value(value: session),
       ChangeNotifierProvider<PatientPortalProvider>.value(value: portal),
+      ChangeNotifierProvider<FitnessProvider>.value(value: fitness),
       ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
       ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
     ],
@@ -401,8 +424,14 @@ class _FakePatientRepository extends PatientRepository {
 
   @override
   Future<OtpSendResult> sendOtp({required String phone, String? mrn}) async {
+    if (phone.contains('8887776666')) {
+      throw Exception('Patient not found');
+    }
     lastOtpPhone = phone;
-    return const OtpSendResult(devOtp: '123456', message: 'OTP sent to your WhatsApp');
+    return const OtpSendResult(
+      devOtp: '123456',
+      message: 'OTP sent to your WhatsApp',
+    );
   }
 
   @override
@@ -424,7 +453,10 @@ class _FakePatientRepository extends PatientRepository {
       'gender': gender ?? '',
       'referralCode': referralCode ?? '',
     };
-    return const OtpSendResult(devOtp: '123456', message: 'OTP sent to your WhatsApp');
+    return const OtpSendResult(
+      devOtp: '123456',
+      message: 'OTP sent to your WhatsApp',
+    );
   }
 
   @override
@@ -556,7 +588,24 @@ class _FakePatientRepository extends PatientRepository {
   @override
   Future<HealthSnapshot?> getHealthSnapshot() async => null;
   @override
+  Future<HealthSnapshotHistoryPage> getHealthSnapshotHistory({
+    int page = 1,
+  }) async => const HealthSnapshotHistoryPage(
+    items: [],
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+  );
+  @override
   Future<List<AiSuggestionItem>> getAiSuggestions() async => const [];
+  @override
+  Future<List<FamilyMember>> getFamilyMembers() async => const [];
+  @override
+  Future<List<HomeCareServiceItem>> getHomeCareServices() async => const [];
+  @override
+  Future<List<HomeCareBookingItem>> getHomeCareBookings({
+    int? patientId,
+  }) async => const [];
 }
 
 class _RecordingAdapter implements HttpClientAdapter {

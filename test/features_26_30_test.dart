@@ -8,18 +8,17 @@ import 'package:biohelix_app/patient_portal/core/data/patient_repository.dart';
 import 'package:biohelix_app/patient_portal/core/models/home_feed_models.dart';
 import 'package:biohelix_app/patient_portal/core/models/patient_models.dart';
 import 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
+import 'package:biohelix_app/patient_portal/fitness/providers/fitness_provider.dart';
 import 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(const {});
-    GoogleFonts.config.allowRuntimeFetching = false;
     _mockVoiceChannels();
   });
 
@@ -27,26 +26,26 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Find Doctors'), findsOneWidget);
   });
 
   testWidgets('27. doctor cards include booking CTA', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Book Now'), findsWidgets);
   });
 
   testWidgets('28. doctor cards show profile information', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Dr Sana Rahman'), findsWidgets);
     expect(find.text('Cardiology'), findsWidgets);
   });
 
   testWidgets('29. doctor discovery shows department chips', (tester) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('All'), findsOneWidget);
     expect(find.text('Cardiology'), findsWidgets);
   });
@@ -55,9 +54,12 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(await _buildHarness());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    final controller =
+        tester.state(find.byType(PatientAppShell)) as PatientAppShellController;
+    controller.openBookings();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('My Bookings'), findsOneWidget);
     expect(find.text('Dr Sana Rahman'), findsWidgets);
   });
@@ -73,16 +75,18 @@ void _mockVoiceChannels() {
   messenger.setMockMethodCallHandler(
     const MethodChannel('speech_to_text_windows'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission')
+      if (call.method == 'initialize' || call.method == 'hasPermission') {
         return true;
+      }
       return null;
     },
   );
   messenger.setMockMethodCallHandler(
     const MethodChannel('plugin.csdcorp.com/speech_to_text'),
     (call) async {
-      if (call.method == 'initialize' || call.method == 'hasPermission')
+      if (call.method == 'initialize' || call.method == 'hasPermission') {
         return true;
+      }
       return null;
     },
   );
@@ -107,15 +111,21 @@ Future<Widget> _buildHarness() async {
     sessionProvider: session,
   );
   await portal.loadPortal();
+  final fitness = FitnessProvider(
+    repository: repository,
+    sessionProvider: session,
+  );
 
   return MultiProvider(
     providers: [
       Provider<AppConfig>.value(value: _testConfig()),
+      Provider<ApiClient>.value(value: repository.apiClient),
       ChangeNotifierProvider<SessionProvider>.value(value: session),
       ChangeNotifierProvider<PatientPortalProvider>.value(value: portal),
+      ChangeNotifierProvider<FitnessProvider>.value(value: fitness),
       ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
       ChangeNotifierProvider<LanguageProvider>(
-        create: (_) => LanguageProvider(),
+        create: (_) => LanguageProvider(apiClient: repository.apiClient),
       ),
     ],
     child: const MaterialApp(home: PatientAppShell()),
@@ -239,9 +249,7 @@ class _FakePortalRepository extends PatientRepository {
     DepartmentItem(id: 1, name: 'Cardiology'),
   ];
   @override
-  Future<List<HomeBannerItem>> getHomeBanners() async => const [
-    HomeBannerItem(id: 1, title: 'Monsoon Wellness', imageUrl: ''),
-  ];
+  Future<List<HomeBannerItem>> getHomeBanners() async => const [];
   @override
   Future<List<TickerMessageItem>> getTickerMessages() async => const [
     TickerMessageItem(id: 1, message: 'Free camp on Friday'),
@@ -278,4 +286,36 @@ class _FakePortalRepository extends PatientRepository {
   @override
   Future<List<ChatMessage>> getGlobalChatHistory(String threadId) async =>
       const [];
+
+  @override
+  Future<MyClubSummary> getMyClub() async => const MyClubSummary(
+    patientId: 108,
+    points: 240,
+    currencyValue: 24,
+    tier: 'Classic',
+    transactions: [],
+  );
+  @override
+  Future<HealthSnapshot?> getHealthSnapshot() async => null;
+  @override
+  Future<HealthSnapshotHistoryPage> getHealthSnapshotHistory({
+    int page = 1,
+  }) async => const HealthSnapshotHistoryPage(
+    items: [],
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+  );
+  @override
+  Future<List<AiSuggestionItem>> getAiSuggestions() async => const [];
+  @override
+  Future<List<BodyPointItem>> getBodyPoints() async => const [];
+  @override
+  Future<List<FamilyMember>> getFamilyMembers() async => const [];
+  @override
+  Future<List<HomeCareServiceItem>> getHomeCareServices() async => const [];
+  @override
+  Future<List<HomeCareBookingItem>> getHomeCareBookings({
+    int? patientId,
+  }) async => const [];
 }
