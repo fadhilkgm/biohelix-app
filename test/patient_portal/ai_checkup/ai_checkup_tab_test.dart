@@ -188,6 +188,63 @@ void main() {
     expect(openedPackages, ['General Wellness Package', null]);
   });
 
+  testWidgets('opens a recommended doctor without creating a booking', (
+    tester,
+  ) async {
+    final openedDoctors = <AssessmentRecommendedDoctor>[];
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+        );
+        return voice;
+      }, onOpenDoctor: openedDoctors.add),
+    );
+    await tester.pumpAndSettle();
+
+    service.nextDecision = VoiceAssessmentTurnDecision(
+      acceptedTranscript: 'My headache has lasted two weeks.',
+      spokenResponse: 'A doctor review is recommended.',
+      responseInstructions: 'Explain the doctor recommendation.',
+      completed: true,
+      turnCount: 1,
+      maxTurns: 10,
+      result: AssessmentResults.fromJson(const {
+        'intent': 'doctor_booking',
+        'outcome': 'consultation_only',
+        'urgency': 'soon',
+        'risk_level': 'moderate',
+        'summary': 'Please arrange a non-emergency clinical review.',
+        'insights': [],
+        'recommended_doctors': [
+          {
+            'id': 42,
+            'name': 'Dr Active',
+            'specialization': 'General Medicine',
+            'reason': 'Persistent headache review',
+          },
+        ],
+      }),
+    );
+
+    await voice.simulateTurn(
+      'My headache has lasted two weeks.',
+      'A doctor review is recommended.',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recommended doctors'), findsOneWidget);
+    expect(find.text('Dr Active'), findsOneWidget);
+    expect(
+      find.textContaining('Recommendations require your confirmation'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Dr Active'));
+    expect(openedDoctors.single.id, 42);
+  });
+
   testWidgets('waits half a second after final voice words before result', (
     tester,
   ) async {
@@ -243,6 +300,7 @@ Widget _buildSubject(
   )
   createVoice, {
   AiCheckupPackageOpener? onOpenPackage,
+  AiCheckupDoctorOpener? onOpenDoctor,
   Duration resultRevealDelay = Duration.zero,
 }) {
   final config = AppConfig(
@@ -271,6 +329,7 @@ Widget _buildSubject(
     child: MaterialApp(
       home: AiCheckupTab(
         onOpenPackage: onOpenPackage,
+        onOpenDoctor: onOpenDoctor,
         resultRevealDelay: resultRevealDelay,
         serviceFactory: (_) => service,
         voiceControllerFactory:

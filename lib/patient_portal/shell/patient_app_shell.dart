@@ -48,6 +48,7 @@ import '../records/screens/in_app_document_viewer.dart';
 import '../shared/widgets/promotional_banner_dialog.dart';
 import 'widgets/bottom_nav_bar_widget.dart';
 import '../ai_checkup/screens/ai_checkup_tab.dart';
+import '../ai_checkup/services/ai_checkup_service.dart';
 import '../health_profile/screens/health_profile_screen.dart';
 import '../health_profile/screens/health_status_tab.dart';
 import '../my_club/screens/patient_loyalty_panel.dart';
@@ -352,7 +353,38 @@ class _PatientAppShellState extends State<PatientAppShell>
   void openAiCheckup() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => AiCheckupTab(onOpenPackage: openPackages),
+        builder: (_) => AiCheckupTab(
+          onOpenPackage: openPackages,
+          onOpenDoctor: _openAiCheckupDoctor,
+        ),
+      ),
+    );
+  }
+
+  void _openAiCheckupDoctor(AssessmentRecommendedDoctor recommendation) {
+    final doctors = context.read<PatientPortalProvider>().doctors;
+    DoctorListing? doctor;
+    for (final candidate in doctors) {
+      if (candidate.id == recommendation.id) {
+        doctor = candidate;
+        break;
+      }
+    }
+
+    if (doctor == null) {
+      AppToast.show(
+        context,
+        message:
+            'This doctor is no longer available. Please choose another specialist.',
+        type: AppToastType.warning,
+      );
+      _openDoctorsDirectory();
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _DoctorDetailPage(doctor: doctor!),
       ),
     );
   }

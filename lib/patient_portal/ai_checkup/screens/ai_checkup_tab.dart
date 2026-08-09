@@ -25,6 +25,8 @@ typedef AiCheckupVoiceControllerFactory =
     });
 
 typedef AiCheckupPackageOpener = void Function(String? packageTarget);
+typedef AiCheckupDoctorOpener =
+    void Function(AssessmentRecommendedDoctor doctor);
 
 AiCheckupService _defaultServiceFactory(BuildContext context) {
   return AiCheckupService(
@@ -62,12 +64,14 @@ class AiCheckupTab extends StatefulWidget {
     this.serviceFactory,
     this.voiceControllerFactory,
     this.onOpenPackage,
+    this.onOpenDoctor,
     this.resultRevealDelay = const Duration(milliseconds: 500),
   });
 
   final AiCheckupServiceFactory? serviceFactory;
   final AiCheckupVoiceControllerFactory? voiceControllerFactory;
   final AiCheckupPackageOpener? onOpenPackage;
+  final AiCheckupDoctorOpener? onOpenDoctor;
   final Duration resultRevealDelay;
 
   @override
@@ -406,6 +410,10 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     PatientAppShell.of(context).openPackages(packageTarget);
   }
 
+  void _openDoctor(AssessmentRecommendedDoctor doctor) {
+    widget.onOpenDoctor?.call(doctor);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -449,6 +457,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
           onNewCheckup: _startAssessment,
           onPackages: _openPackage,
           onPackage: (package) => _openPackage(package.packageName),
+          onDoctor: _openDoctor,
           onHome: _goHome,
         ),
         _CheckupView.history => _HistoryView(
@@ -764,6 +773,7 @@ class _ResultView extends StatelessWidget {
     required this.onNewCheckup,
     required this.onPackages,
     required this.onPackage,
+    required this.onDoctor,
     required this.onHome,
   });
 
@@ -771,6 +781,7 @@ class _ResultView extends StatelessWidget {
   final VoidCallback onNewCheckup;
   final VoidCallback onPackages;
   final ValueChanged<AssessmentRecommendedPackage> onPackage;
+  final ValueChanged<AssessmentRecommendedDoctor> onDoctor;
   final VoidCallback onHome;
 
   String _outcome(String value) => switch (value) {
@@ -867,6 +878,25 @@ class _ResultView extends StatelessWidget {
                   ),
                 ),
               ],
+              if (data.urgency != 'emergency' &&
+                  data.recommendedDoctors.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const Text(
+                  'Recommended doctors',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF273348),
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...data.recommendedDoctors.map(
+                  (doctor) => _AiCheckupDoctorCard(
+                    doctor: doctor,
+                    onTap: () => onDoctor(doctor),
+                  ),
+                ),
+              ],
               if (data.recommendedPackages.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 const Text(
@@ -892,9 +922,10 @@ class _ResultView extends StatelessWidget {
                   color: const Color(0xFFF2F6FB),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Phase 1 provides an assessment outcome only. No test or '
-                  'consultation has been booked.',
+                child: Text(
+                  data.urgency == 'emergency'
+                      ? 'Emergency guidance does not create a booking. Seek urgent care now.'
+                      : 'No test or consultation has been booked. Recommendations require your confirmation.',
                   style: TextStyle(
                     color: Color(0xFF53647A),
                     fontSize: 12,
@@ -922,6 +953,58 @@ class _ResultView extends StatelessWidget {
         const SizedBox(height: 10),
         OutlinedButton(onPressed: onHome, child: const Text('Back to home')),
       ],
+    );
+  }
+}
+
+class _AiCheckupDoctorCard extends StatelessWidget {
+  const _AiCheckupDoctorCard({required this.doctor, required this.onTap});
+
+  final AssessmentRecommendedDoctor doctor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final specialization = (doctor.specialization ?? '').trim();
+    final reason = (doctor.reason ?? '').trim();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: const Color(0xFFF7FAFF),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: Color(0xFFD9E6F7)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          contentPadding: const EdgeInsets.fromLTRB(14, 8, 10, 8),
+          leading: const CircleAvatar(
+            backgroundColor: Color(0xFFE7F0FC),
+            child: Icon(
+              Icons.medical_services_outlined,
+              color: Color(0xFF06489B),
+            ),
+          ),
+          title: Text(
+            doctor.name,
+            style: const TextStyle(
+              color: Color(0xFF192233),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          subtitle: Text(
+            [
+              specialization,
+              reason,
+            ].where((value) => value.isNotEmpty).join('\n'),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: onTap,
+        ),
+      ),
     );
   }
 }
