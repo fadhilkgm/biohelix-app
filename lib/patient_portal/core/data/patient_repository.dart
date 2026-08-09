@@ -152,6 +152,32 @@ class BookingConfirmation {
   }
 }
 
+class LabOrderQuote {
+  const LabOrderQuote({
+    required this.subtotal,
+    required this.collectionFee,
+    required this.amount,
+  });
+
+  final double subtotal;
+  final double collectionFee;
+  final double amount;
+
+  factory LabOrderQuote.fromJson(Map<String, dynamic> json) {
+    double value(String key) {
+      final raw = json[key];
+      if (raw is num) return raw.toDouble();
+      return double.tryParse(raw?.toString() ?? '') ?? 0;
+    }
+
+    return LabOrderQuote(
+      subtotal: value('subtotal'),
+      collectionFee: value('collectionFee'),
+      amount: value('amount'),
+    );
+  }
+}
+
 class VitalInput {
   const VitalInput({
     this.height,
@@ -1093,6 +1119,20 @@ class PatientRepository {
       },
     );
     return BookingConfirmation.fromTestBatchResponse(response);
+  }
+
+  Future<LabOrderQuote> quoteLabOrder({
+    required List<int> labTestIds,
+    required String collectionType,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/patient/lab-orders/quote',
+      data: {
+        'labTestIds': labTestIds.toSet().toList(growable: false),
+        'collectionType': collectionType,
+      },
+    );
+    return LabOrderQuote.fromJson(response);
   }
 
   Future<void> cancelLabOrder(int orderId) async {

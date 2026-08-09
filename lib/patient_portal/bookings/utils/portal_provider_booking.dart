@@ -1,6 +1,16 @@
 part of 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
 
 extension PatientPortalBookingMixin on PatientPortalProvider {
+  Future<LabOrderQuote> quoteLabOrder({
+    required List<int> labTestIds,
+    required String collectionType,
+  }) {
+    return _repository.quoteLabOrder(
+      labTestIds: labTestIds,
+      collectionType: collectionType,
+    );
+  }
+
   Future<BookingConfirmation> createBooking({
     required int doctorId,
     required String bookingDate,

@@ -356,6 +356,7 @@ class _PatientAppShellState extends State<PatientAppShell>
         builder: (_) => AiCheckupTab(
           onOpenPackage: openPackages,
           onOpenDoctor: _openAiCheckupDoctor,
+          onOpenTests: _openAiCheckupTests,
         ),
       ),
     );
@@ -385,6 +386,20 @@ class _PatientAppShellState extends State<PatientAppShell>
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _DoctorDetailPage(doctor: doctor!),
+      ),
+    );
+  }
+
+  void _openAiCheckupTests(List<AssessmentRecommendedTest> recommendations) {
+    final ids = recommendations
+        .map((test) => test.id)
+        .where((id) => id > 0)
+        .toSet()
+        .toList(growable: false);
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => LabTestHomeScreen(initialTestIds: ids),
       ),
     );
   }

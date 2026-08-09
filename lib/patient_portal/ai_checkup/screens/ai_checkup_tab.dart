@@ -27,6 +27,8 @@ typedef AiCheckupVoiceControllerFactory =
 typedef AiCheckupPackageOpener = void Function(String? packageTarget);
 typedef AiCheckupDoctorOpener =
     void Function(AssessmentRecommendedDoctor doctor);
+typedef AiCheckupTestsOpener =
+    void Function(List<AssessmentRecommendedTest> tests);
 
 AiCheckupService _defaultServiceFactory(BuildContext context) {
   return AiCheckupService(
@@ -65,6 +67,7 @@ class AiCheckupTab extends StatefulWidget {
     this.voiceControllerFactory,
     this.onOpenPackage,
     this.onOpenDoctor,
+    this.onOpenTests,
     this.resultRevealDelay = const Duration(milliseconds: 500),
   });
 
@@ -72,6 +75,7 @@ class AiCheckupTab extends StatefulWidget {
   final AiCheckupVoiceControllerFactory? voiceControllerFactory;
   final AiCheckupPackageOpener? onOpenPackage;
   final AiCheckupDoctorOpener? onOpenDoctor;
+  final AiCheckupTestsOpener? onOpenTests;
   final Duration resultRevealDelay;
 
   @override
@@ -414,6 +418,10 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     widget.onOpenDoctor?.call(doctor);
   }
 
+  void _openTests(List<AssessmentRecommendedTest> tests) {
+    widget.onOpenTests?.call(tests);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -458,6 +466,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
           onPackages: _openPackage,
           onPackage: (package) => _openPackage(package.packageName),
           onDoctor: _openDoctor,
+          onTests: _openTests,
           onHome: _goHome,
         ),
         _CheckupView.history => _HistoryView(
@@ -774,6 +783,7 @@ class _ResultView extends StatelessWidget {
     required this.onPackages,
     required this.onPackage,
     required this.onDoctor,
+    required this.onTests,
     required this.onHome,
   });
 
@@ -782,6 +792,7 @@ class _ResultView extends StatelessWidget {
   final VoidCallback onPackages;
   final ValueChanged<AssessmentRecommendedPackage> onPackage;
   final ValueChanged<AssessmentRecommendedDoctor> onDoctor;
+  final ValueChanged<List<AssessmentRecommendedTest>> onTests;
   final VoidCallback onHome;
 
   String _outcome(String value) => switch (value) {
@@ -895,6 +906,41 @@ class _ResultView extends StatelessWidget {
                     doctor: doctor,
                     onTap: () => onDoctor(doctor),
                   ),
+                ),
+              ],
+              if (data.urgency != 'emergency' &&
+                  data.recommendedTests.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const Text(
+                  'Recommended lab tests',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF273348),
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...data.recommendedTests.map(
+                  (test) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(
+                      Icons.science_outlined,
+                      color: Color(0xFF1769C2),
+                    ),
+                    title: Text(
+                      test.testName,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: (test.reason ?? '').trim().isEmpty
+                        ? null
+                        : Text(test.reason!),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: () => onTests(data.recommendedTests),
+                  icon: const Icon(Icons.shopping_bag_outlined),
+                  label: const Text('Review selected tests'),
                 ),
               ],
               if (data.recommendedPackages.isNotEmpty) ...[

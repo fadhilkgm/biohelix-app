@@ -27,6 +27,10 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
   void initState() {
     super.initState();
     final c = context.read<LabBookingController>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      c.refreshQuote(context.read<PatientPortalProvider>());
+    });
     final address = c.selectedAddress;
     if (address != null) {
       _addressController.text = address.fullAddress;
@@ -757,13 +761,19 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                     label: 'Home Visit',
                     icon: Icons.home_rounded,
                     selected: c.collectionType == CollectionType.home,
-                    onTap: () => c.setCollectionType(CollectionType.home),
+                    onTap: () {
+                      c.setCollectionType(CollectionType.home);
+                      c.refreshQuote(context.read<PatientPortalProvider>());
+                    },
                   ),
                   _CollectionTab(
                     label: 'At Lab',
                     icon: Icons.biotech_rounded,
                     selected: c.collectionType == CollectionType.lab,
-                    onTap: () => c.setCollectionType(CollectionType.lab),
+                    onTap: () {
+                      c.setCollectionType(CollectionType.lab);
+                      c.refreshQuote(context.read<PatientPortalProvider>());
+                    },
                   ),
                 ],
               ),
@@ -958,6 +968,42 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                     label: 'Total',
                     value: '\u20B9${c.total.toStringAsFixed(0)}',
                     isBold: true,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      if (c.quoteLoading)
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        Icon(
+                          c.quoteError == null
+                              ? Icons.verified_rounded
+                              : Icons.warning_amber_rounded,
+                          size: 16,
+                          color: c.quoteError == null
+                              ? const Color(0xFF14845D)
+                              : const Color(0xFFD17A00),
+                        ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          c.quoteLoading
+                              ? 'Checking the current server price...'
+                              : c.quoteError == null
+                              ? 'Current price verified by BHRC'
+                              : 'Price will be rechecked before booking',
+                          style: const TextStyle(
+                            color: Color(0xFF61728A),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

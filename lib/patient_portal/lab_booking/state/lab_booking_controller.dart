@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/models/patient_models.dart';
+import '../../core/data/patient_repository.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../models/lab_booking_models.dart';
 
@@ -11,6 +12,7 @@ class LabBookingController extends ChangeNotifier {
     required List<LabTestItem> tests,
     required List<BodyPointItem> bodyPoints,
     String? patientPhone,
+    Iterable<int> initialTestIds = const [],
   }) {
     _patients = [
       PatientProfile(
@@ -23,11 +25,20 @@ class LabBookingController extends ChangeNotifier {
     ];
     _bodyPoints = bodyPoints;
     _tests = tests.map(_mapTest).toList();
+    final activeIds = tests.where((test) => test.status).map((test) => test.id);
+    final selectedIds = initialTestIds.toSet().intersection(activeIds.toSet());
+    _cart.addAll(
+      _tests
+          .where((test) => selectedIds.contains(test.id))
+          .map((test) => CartItem(test: test, quantity: 1)),
+    );
+    _preselectedCount = _cart.length;
   }
 
   late List<BookableLabTest> _tests;
   late List<BodyPointItem> _bodyPoints;
   final List<CartItem> _cart = [];
+  int _preselectedCount = 0;
   late List<PatientProfile> _patients;
   final List<AddressProfile> _addresses = const [
     AddressProfile(
@@ -52,6 +63,9 @@ class LabBookingController extends ChangeNotifier {
   String _selectedPatientId = 'self';
   String _selectedAddressId = 'home';
   PaymentMethod _paymentMethod = PaymentMethod.online;
+  LabOrderQuote? _quote;
+  bool _quoteLoading = false;
+  String? _quoteError;
 
   List<BodyPointItem> get bodyPoints => List.unmodifiable(_bodyPoints);
   BodyPointItem? get selectedBodyPoint => _selectedBodyPoint;
@@ -75,6 +89,9 @@ class LabBookingController extends ChangeNotifier {
   PaymentMethod get paymentMethod => _paymentMethod;
   String get coupon => _coupon;
   int get cartCount => _cart.fold(0, (sum, e) => sum + e.quantity);
+  int get preselectedCount => _preselectedCount;
+  bool get quoteLoading => _quoteLoading;
+  String? get quoteError => _quoteError;
 
   PatientProfile get selectedPatient =>
       _patients.firstWhere((e) => e.id == _selectedPatientId);
@@ -101,6 +118,7 @@ class LabBookingController extends ChangeNotifier {
   }
 
   double get subtotal {
+    if (_quote != null) return _quote!.subtotal;
     double sum = 0.0;
     for (final e in _cart) {
       sum += (e.test.price * e.quantity);
@@ -116,6 +134,7 @@ class LabBookingController extends ChangeNotifier {
   }
 
   double get collectionFee {
+    if (_quote != null) return _quote!.collectionFee;
     if (_collectionType == CollectionType.home) {
       return 99.0;
     }
@@ -123,7 +142,27 @@ class LabBookingController extends ChangeNotifier {
   }
 
   double get total {
+    if (_quote != null) return _quote!.amount;
     return subtotal - discount + collectionFee;
+  }
+
+  Future<void> refreshQuote(PatientPortalProvider portal) async {
+    if (_cart.isEmpty) return;
+    _quoteLoading = true;
+    _quoteError = null;
+    notifyListeners();
+    try {
+      _quote = await portal.quoteLabOrder(
+        labTestIds: _cart.map((item) => item.test.id).toList(),
+        collectionType: _collectionType.name,
+      );
+    } catch (error) {
+      _quote = null;
+      _quoteError = error.toString();
+    } finally {
+      _quoteLoading = false;
+      notifyListeners();
+    }
   }
 
   void setQuery(String value) {
@@ -153,6 +192,7 @@ class LabBookingController extends ChangeNotifier {
 
   void setCollectionType(CollectionType value) {
     _collectionType = value;
+    _quote = null;
     notifyListeners();
   }
 
@@ -240,6 +280,7 @@ class LabBookingController extends ChangeNotifier {
     final index = _cart.indexWhere((e) => e.test.id == test.id);
     if (index == -1) {
       _cart.add(CartItem(test: test, quantity: 1));
+      _quote = null;
       notifyListeners();
       return true;
     }
@@ -254,11 +295,16 @@ class LabBookingController extends ChangeNotifier {
     } else {
       _cart[index] = _cart[index].copyWith(quantity: qty);
     }
+    _quote = null;
     notifyListeners();
   }
 
   Future<String> placeOrder(PatientPortalProvider portal) async {
     if (_cart.isEmpty) throw StateError('Cart is empty');
+    await refreshQuote(portal);
+    if (_quote == null) {
+      throw StateError('Unable to verify the current price. Please try again.');
+    }
     final dateStr = DateFormat('yyyy-MM-dd').format(_date);
     final bookingRoot = DateTime.now().millisecondsSinceEpoch
         .toString()

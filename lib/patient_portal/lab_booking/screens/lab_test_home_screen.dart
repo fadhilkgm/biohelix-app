@@ -19,7 +19,9 @@ import 'test_booking_screen.dart';
 import 'test_list_screen.dart';
 
 class LabTestHomeScreen extends StatelessWidget {
-  const LabTestHomeScreen({super.key});
+  const LabTestHomeScreen({super.key, this.initialTestIds = const []});
+
+  final List<int> initialTestIds;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +33,7 @@ class LabTestHomeScreen extends StatelessWidget {
         patientPhone: portal.dashboard?.patient.phone,
         tests: portal.labTests,
         bodyPoints: portal.bodyPoints,
+        initialTestIds: initialTestIds,
       ),
       child: const _LabHomeContent(),
     );
@@ -91,6 +94,35 @@ class _LabHomeContent extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
+            if (c.preselectedCount > 0) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF3FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFC9DDF5)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Color(0xFF06489B),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'AI Checkup selected ${c.preselectedCount} ${c.preselectedCount == 1 ? 'test' : 'tests'}. Review or edit the cart before booking.',
+                        style: const TextStyle(
+                          color: Color(0xFF273348),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
             TextField(
               onChanged: c.setQuery,
               decoration: InputDecoration(

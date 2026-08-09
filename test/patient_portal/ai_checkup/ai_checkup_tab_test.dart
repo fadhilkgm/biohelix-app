@@ -245,6 +245,57 @@ void main() {
     expect(openedDoctors.single.id, 42);
   });
 
+  testWidgets('hands recommended test ids to the editable lab cart', (
+    tester,
+  ) async {
+    final openedTests = <List<AssessmentRecommendedTest>>[];
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+        );
+        return voice;
+      }, onOpenTests: openedTests.add),
+    );
+    await tester.pumpAndSettle();
+
+    service.nextDecision = VoiceAssessmentTurnDecision(
+      acceptedTranscript: 'I have persistent fatigue.',
+      spokenResponse: 'Two lab tests may help.',
+      responseInstructions: 'Explain the test recommendations.',
+      completed: true,
+      turnCount: 1,
+      maxTurns: 10,
+      result: AssessmentResults.fromJson(const {
+        'intent': 'test_booking',
+        'outcome': 'test_package_only',
+        'urgency': 'routine',
+        'risk_level': 'low',
+        'summary': 'Review these tests before deciding whether to book.',
+        'insights': [],
+        'recommended_tests': [
+          {'id': 11, 'test_name': 'CBC', 'reason': 'Review blood counts.'},
+          {'id': 12, 'test_name': 'TSH', 'reason': 'Review thyroid function.'},
+        ],
+      }),
+    );
+
+    await voice.simulateTurn(
+      'I have persistent fatigue.',
+      'Two lab tests may help.',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recommended lab tests'), findsOneWidget);
+    expect(find.text('CBC'), findsOneWidget);
+    expect(find.text('TSH'), findsOneWidget);
+    await tester.ensureVisible(find.text('Review selected tests'));
+    await tester.tap(find.text('Review selected tests'));
+
+    expect(openedTests.single.map((test) => test.id), [11, 12]);
+  });
+
   testWidgets('waits half a second after final voice words before result', (
     tester,
   ) async {
@@ -301,6 +352,7 @@ Widget _buildSubject(
   createVoice, {
   AiCheckupPackageOpener? onOpenPackage,
   AiCheckupDoctorOpener? onOpenDoctor,
+  AiCheckupTestsOpener? onOpenTests,
   Duration resultRevealDelay = Duration.zero,
 }) {
   final config = AppConfig(
@@ -330,6 +382,7 @@ Widget _buildSubject(
       home: AiCheckupTab(
         onOpenPackage: onOpenPackage,
         onOpenDoctor: onOpenDoctor,
+        onOpenTests: onOpenTests,
         resultRevealDelay: resultRevealDelay,
         serviceFactory: (_) => service,
         voiceControllerFactory:
