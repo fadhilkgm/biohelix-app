@@ -97,4 +97,30 @@ void main() {
       'Routine screening match.',
     );
   });
+
+  test('parses a server-priced custom package draft', () {
+    final result = AssessmentResults.fromJson(const {
+      'intent': 'custom_package',
+      'custom_package': {
+        'id': 9,
+        'draft_token': 'draft-token',
+        'name': 'AI Personal Health Panel',
+        'reason': 'Tailored for the reported concern.',
+        'subtotal': '600.00',
+        'discount': '0.00',
+        'price': '600.00',
+        'status': 'draft',
+        'valid_until': '2026-08-17T12:00:00Z',
+        'tests': [
+          {'id': 11, 'test_name': 'CBC', 'price': '250.00'},
+          {'id': 12, 'test_name': 'TSH', 'price': '350.00'},
+        ],
+      },
+    });
+
+    expect(result.customPackage?.id, 9);
+    expect(result.customPackage?.status, 'draft');
+    expect(result.customPackage?.price, '600.00');
+    expect(result.customPackage?.tests.map((test) => test.id), [11, 12]);
+  });
 }

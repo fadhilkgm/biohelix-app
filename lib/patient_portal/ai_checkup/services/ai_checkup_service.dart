@@ -215,22 +215,40 @@ class AssessmentRecommendedPackage {
 class AssessmentCustomPackage {
   const AssessmentCustomPackage({
     required this.name,
+    this.id,
+    this.draftToken,
     this.reason,
+    this.subtotal,
+    this.discount,
     this.price,
+    this.status = 'draft',
+    this.validUntil,
     this.tests = const [],
   });
 
+  final int? id;
+  final String? draftToken;
   final String name;
   final String? reason;
+  final String? subtotal;
+  final String? discount;
   final String? price;
+  final String status;
+  final DateTime? validUntil;
   final List<AssessmentRecommendedTest> tests;
 
   factory AssessmentCustomPackage.fromJson(Map<String, dynamic> json) {
     final testsRaw = json['tests'] as List<dynamic>? ?? const [];
     return AssessmentCustomPackage(
+      id: (json['id'] as num?)?.toInt(),
+      draftToken: json['draft_token']?.toString(),
       name: json['name']?.toString() ?? 'Custom Package',
       reason: json['reason']?.toString(),
+      subtotal: json['subtotal']?.toString(),
+      discount: json['discount']?.toString(),
       price: json['price']?.toString(),
+      status: json['status']?.toString() ?? 'draft',
+      validUntil: DateTime.tryParse(json['valid_until']?.toString() ?? ''),
       tests: testsRaw
           .map((item) => AssessmentRecommendedTest.fromJson(_map(item)))
           .toList(),

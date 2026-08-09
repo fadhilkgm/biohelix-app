@@ -296,6 +296,65 @@ void main() {
     expect(openedTests.single.map((test) => test.id), [11, 12]);
   });
 
+  testWidgets('shows a server-priced custom draft and opens it for editing', (
+    tester,
+  ) async {
+    final openedTests = <List<AssessmentRecommendedTest>>[];
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+        );
+        return voice;
+      }, onOpenTests: openedTests.add),
+    );
+    await tester.pumpAndSettle();
+
+    service.nextDecision = VoiceAssessmentTurnDecision(
+      acceptedTranscript: 'Build a tailored panel for my fatigue.',
+      spokenResponse: 'A draft panel is ready for review.',
+      responseInstructions: 'Explain the custom draft.',
+      completed: true,
+      turnCount: 1,
+      maxTurns: 10,
+      result: AssessmentResults.fromJson(const {
+        'intent': 'custom_package',
+        'outcome': 'test_package_only',
+        'urgency': 'routine',
+        'risk_level': 'low',
+        'summary': 'Review the tailored panel before booking.',
+        'insights': [],
+        'custom_package': {
+          'id': 9,
+          'draft_token': 'draft-token',
+          'name': 'AI Personal Health Panel',
+          'price': '600.00',
+          'status': 'draft',
+          'valid_until': '2026-08-17T12:00:00Z',
+          'tests': [
+            {'id': 11, 'test_name': 'CBC', 'price': '250.00'},
+            {'id': 12, 'test_name': 'TSH', 'price': '350.00'},
+          ],
+        },
+      }),
+    );
+
+    await voice.simulateTurn(
+      'Build a tailored panel for my fatigue.',
+      'A draft panel is ready for review.',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Draft custom panel'), findsOneWidget);
+    expect(find.text('AI Personal Health Panel'), findsOneWidget);
+    expect(find.textContaining('₹600'), findsOneWidget);
+    await tester.ensureVisible(find.text('Review and edit panel'));
+    await tester.tap(find.text('Review and edit panel'));
+
+    expect(openedTests.single.map((test) => test.id), [11, 12]);
+  });
+
   testWidgets('waits half a second after final voice words before result', (
     tester,
   ) async {

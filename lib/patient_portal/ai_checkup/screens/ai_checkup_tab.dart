@@ -943,6 +943,14 @@ class _ResultView extends StatelessWidget {
                   label: const Text('Review selected tests'),
                 ),
               ],
+              if (data.urgency != 'emergency' &&
+                  data.customPackage != null) ...[
+                const SizedBox(height: 20),
+                _AiCheckupCustomPanelCard(
+                  package: data.customPackage!,
+                  onReview: () => onTests(data.customPackage!.tests),
+                ),
+              ],
               if (data.recommendedPackages.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 const Text(
@@ -999,6 +1007,76 @@ class _ResultView extends StatelessWidget {
         const SizedBox(height: 10),
         OutlinedButton(onPressed: onHome, child: const Text('Back to home')),
       ],
+    );
+  }
+}
+
+class _AiCheckupCustomPanelCard extends StatelessWidget {
+  const _AiCheckupCustomPanelCard({
+    required this.package,
+    required this.onReview,
+  });
+
+  final AssessmentCustomPackage package;
+  final VoidCallback onReview;
+
+  @override
+  Widget build(BuildContext context) {
+    final price = double.tryParse(package.price ?? '');
+    final validUntil = package.validUntil?.toLocal();
+    final validity = validUntil == null
+        ? null
+        : '${validUntil.day}/${validUntil.month}/${validUntil.year}';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F8F4),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFCBE5D7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.fact_check_outlined, color: Color(0xFF14845D)),
+              SizedBox(width: 8),
+              Text(
+                'Draft custom panel',
+                style: TextStyle(
+                  color: Color(0xFF14845D),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            package.name,
+            style: const TextStyle(
+              color: Color(0xFF192233),
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if ((package.reason ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(package.reason!),
+          ],
+          const SizedBox(height: 10),
+          Text(
+            '${package.tests.length} tests${price == null ? '' : ' • ₹${price.toStringAsFixed(0)}'}${validity == null ? '' : ' • Valid until $validity'}',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: package.tests.isEmpty ? null : onReview,
+            icon: const Icon(Icons.edit_note_rounded),
+            label: const Text('Review and edit panel'),
+          ),
+        ],
+      ),
     );
   }
 }
