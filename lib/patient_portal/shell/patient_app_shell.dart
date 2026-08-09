@@ -49,6 +49,7 @@ import '../shared/widgets/promotional_banner_dialog.dart';
 import 'widgets/bottom_nav_bar_widget.dart';
 import '../ai_checkup/screens/ai_checkup_tab.dart';
 import '../ai_checkup/services/ai_checkup_service.dart';
+import '../emergency/widgets/emergency_support_screen.dart';
 import '../health_profile/screens/health_profile_screen.dart';
 import '../health_profile/screens/health_status_tab.dart';
 import '../my_club/screens/patient_loyalty_panel.dart';
@@ -357,6 +358,7 @@ class _PatientAppShellState extends State<PatientAppShell>
           onOpenPackage: openPackages,
           onOpenDoctor: _openAiCheckupDoctor,
           onOpenTests: _openAiCheckupTests,
+          onOpenEmergency: _openAiCheckupEmergency,
         ),
       ),
     );
@@ -391,15 +393,42 @@ class _PatientAppShellState extends State<PatientAppShell>
   }
 
   void _openAiCheckupTests(List<AssessmentRecommendedTest> recommendations) {
-    final ids = recommendations
+    final recommendedIds = recommendations
         .map((test) => test.id)
         .where((id) => id > 0)
+        .toSet();
+    final ids = context
+        .read<PatientPortalProvider>()
+        .labTests
+        .where((test) => test.status && recommendedIds.contains(test.id))
+        .map((test) => test.id)
         .toSet()
         .toList(growable: false);
+
+    if (ids.isEmpty) {
+      AppToast.show(
+        context,
+        message:
+            'These tests are no longer available. Please review the current lab catalogue.',
+        type: AppToastType.warning,
+      );
+    }
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => LabTestHomeScreen(initialTestIds: ids),
+      ),
+    );
+  }
+
+  void _openAiCheckupEmergency() {
+    final dashboard = context.read<PatientPortalProvider>().dashboard;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => EmergencySupportScreen(
+          patientName: dashboard?.patient.name ?? 'Patient',
+          contacts: dashboard?.emergencyContacts ?? const [],
+        ),
       ),
     );
   }

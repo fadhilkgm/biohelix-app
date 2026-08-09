@@ -29,6 +29,7 @@ typedef AiCheckupDoctorOpener =
     void Function(AssessmentRecommendedDoctor doctor);
 typedef AiCheckupTestsOpener =
     void Function(List<AssessmentRecommendedTest> tests);
+typedef AiCheckupEmergencyOpener = VoidCallback;
 
 AiCheckupService _defaultServiceFactory(BuildContext context) {
   return AiCheckupService(
@@ -68,6 +69,7 @@ class AiCheckupTab extends StatefulWidget {
     this.onOpenPackage,
     this.onOpenDoctor,
     this.onOpenTests,
+    this.onOpenEmergency,
     this.resultRevealDelay = const Duration(milliseconds: 500),
   });
 
@@ -76,6 +78,7 @@ class AiCheckupTab extends StatefulWidget {
   final AiCheckupPackageOpener? onOpenPackage;
   final AiCheckupDoctorOpener? onOpenDoctor;
   final AiCheckupTestsOpener? onOpenTests;
+  final AiCheckupEmergencyOpener? onOpenEmergency;
   final Duration resultRevealDelay;
 
   @override
@@ -96,6 +99,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   bool _textFallback = false;
   bool _sendingText = false;
   bool _ending = false;
+  bool _allowPop = false;
   Timer? _sessionTimer;
 
   AiCheckupService get _service =>
@@ -144,6 +148,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       _error = null;
       _textFallback = false;
       _ending = false;
+      _allowPop = false;
     });
 
     try {
@@ -396,9 +401,16 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     return error.toString().replaceFirst('Exception: ', '');
   }
 
-  void _goHome() {
+  Future<void> _leaveCheckup() async {
+    if (_ending) return;
+    if (_view == _CheckupView.connecting ||
+        _view == _CheckupView.conversation) {
+      await _endAssessment();
+    }
+    if (!mounted) return;
+    setState(() => _allowPop = true);
     if (Navigator.of(context).canPop()) {
-      Navigator.of(context).maybePop();
+      Navigator.of(context).pop();
       return;
     }
     PatientAppShell.of(context).goHome();
@@ -424,65 +436,74 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF6F8FC),
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        leadingWidth: 64,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: AppChevronBackButton(onPressed: _goHome),
-        ),
-        title: const Text(
-          'AI Health Checkup',
-          style: TextStyle(
-            color: Color(0xFF192233),
-            fontSize: 21,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'History',
-            onPressed: _view == _CheckupView.connecting ? null : _openHistory,
-            icon: const Icon(Icons.history_rounded),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: switch (_view) {
-        _CheckupView.connecting => const _StatusMessage(
-          icon: Icons.graphic_eq_rounded,
-          title: 'Preparing private voice checkup',
-          subtitle: 'Connecting securely and loading your health context…',
-          loading: true,
-        ),
-        _CheckupView.conversation => _buildConversation(),
-        _CheckupView.result => _ResultView(
-          result: _result,
-          onNewCheckup: _startAssessment,
-          onPackages: _openPackage,
-          onPackage: (package) => _openPackage(package.packageName),
-          onDoctor: _openDoctor,
-          onTests: _openTests,
-          onHome: _goHome,
-        ),
-        _CheckupView.history => _HistoryView(
-          load: _service.listHistory,
-          onOpen: _openHistoryResult,
-          onStart: _startAssessment,
-          error: _error,
-        ),
-        _CheckupView.error => _StatusMessage(
-          icon: Icons.mic_off_rounded,
-          title: _error ?? 'The voice checkup could not continue.',
-          subtitle: 'No test or consultation was booked.',
-          actionLabel: 'Start again',
-          onAction: _startAssessment,
-        ),
+    return PopScope(
+      canPop: _allowPop,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_leaveCheckup());
       },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6F8FC),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF6F8FC),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          leadingWidth: 64,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: AppChevronBackButton(
+              onPressed: () => unawaited(_leaveCheckup()),
+            ),
+          ),
+          title: const Text(
+            'AI Health Checkup',
+            style: TextStyle(
+              color: Color(0xFF192233),
+              fontSize: 21,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          actions: [
+            IconButton(
+              tooltip: 'History',
+              onPressed: _view == _CheckupView.connecting ? null : _openHistory,
+              icon: const Icon(Icons.history_rounded),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: switch (_view) {
+          _CheckupView.connecting => const _StatusMessage(
+            icon: Icons.graphic_eq_rounded,
+            title: 'Preparing private voice checkup',
+            subtitle: 'Connecting securely and loading your health context…',
+            loading: true,
+          ),
+          _CheckupView.conversation => _buildConversation(),
+          _CheckupView.result => _ResultView(
+            result: _result,
+            onNewCheckup: _startAssessment,
+            onPackages: _openPackage,
+            onPackage: (package) => _openPackage(package.packageName),
+            onDoctor: _openDoctor,
+            onTests: _openTests,
+            onEmergency: widget.onOpenEmergency ?? () {},
+            onHome: () => unawaited(_leaveCheckup()),
+          ),
+          _CheckupView.history => _HistoryView(
+            load: _service.listHistory,
+            onOpen: _openHistoryResult,
+            onStart: _startAssessment,
+            error: _error,
+          ),
+          _CheckupView.error => _StatusMessage(
+            icon: Icons.mic_off_rounded,
+            title: _error ?? 'The voice checkup could not continue.',
+            subtitle: 'No test or consultation was booked.',
+            actionLabel: 'Start again',
+            onAction: _startAssessment,
+          ),
+        },
+      ),
     );
   }
 
@@ -784,6 +805,7 @@ class _ResultView extends StatelessWidget {
     required this.onPackage,
     required this.onDoctor,
     required this.onTests,
+    required this.onEmergency,
     required this.onHome,
   });
 
@@ -793,6 +815,7 @@ class _ResultView extends StatelessWidget {
   final ValueChanged<AssessmentRecommendedPackage> onPackage;
   final ValueChanged<AssessmentRecommendedDoctor> onDoctor;
   final ValueChanged<List<AssessmentRecommendedTest>> onTests;
+  final VoidCallback onEmergency;
   final VoidCallback onHome;
 
   String _outcome(String value) => switch (value) {
@@ -951,7 +974,8 @@ class _ResultView extends StatelessWidget {
                   onReview: () => onTests(data.customPackage!.tests),
                 ),
               ],
-              if (data.recommendedPackages.isNotEmpty) ...[
+              if (data.urgency != 'emergency' &&
+                  data.recommendedPackages.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 const Text(
                   'Recommended health packages',
@@ -991,7 +1015,17 @@ class _ResultView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        if (data.outcome == 'test_package_only' ||
+        if (data.urgency == 'emergency') ...[
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC83A3A),
+            ),
+            onPressed: onEmergency,
+            icon: const Icon(Icons.emergency_rounded),
+            label: const Text('Open emergency contacts'),
+          ),
+          const SizedBox(height: 10),
+        ] else if (data.outcome == 'test_package_only' ||
             data.outcome == 'test_package_and_consultation') ...[
           FilledButton.icon(
             onPressed: onPackages,

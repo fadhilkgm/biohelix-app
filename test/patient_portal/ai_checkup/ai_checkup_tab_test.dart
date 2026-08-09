@@ -126,6 +126,29 @@ void main() {
     expect(find.text('What is your main concern?'), findsOneWidget);
   });
 
+  testWidgets('end checkup stops voice and cancels the active session', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+        );
+        return voice;
+      }),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('End checkup'));
+    await tester.pumpAndSettle();
+
+    expect(voice.stopCallCount, 1);
+    expect(service.cancelVoiceCallCount, 1);
+    expect(find.text('The checkup was ended.'), findsOneWidget);
+    expect(find.text('Start again'), findsOneWidget);
+  });
+
   testWidgets('shows a direct package action for a package outcome', (
     tester,
   ) async {
@@ -355,6 +378,60 @@ void main() {
     expect(openedTests.single.map((test) => test.id), [11, 12]);
   });
 
+  testWidgets('emergency result suppresses booking actions and opens support', (
+    tester,
+  ) async {
+    var emergencyOpened = false;
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+        );
+        return voice;
+      }, onOpenEmergency: () => emergencyOpened = true),
+    );
+    await tester.pumpAndSettle();
+
+    service.nextDecision = VoiceAssessmentTurnDecision(
+      acceptedTranscript: 'I have severe chest pain.',
+      spokenResponse: 'Seek emergency care now.',
+      responseInstructions: 'Speak the emergency message.',
+      completed: true,
+      turnCount: 1,
+      maxTurns: 10,
+      result: AssessmentResults.fromJson(const {
+        'intent': 'advice',
+        'outcome': 'emergency_escalation',
+        'urgency': 'emergency',
+        'risk_level': 'critical',
+        'summary': 'Seek emergency care now.',
+        'insights': ['Do not wait for routine booking.'],
+        'recommended_packages': [
+          {'id': 7, 'package_name': 'Must not appear'},
+        ],
+        'recommended_tests': [
+          {'id': 11, 'test_name': 'Must not appear'},
+        ],
+      }),
+    );
+
+    await voice.simulateTurn(
+      'I have severe chest pain.',
+      'Seek emergency care now.',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Emergency care recommended'), findsOneWidget);
+    expect(find.text('Open emergency contacts'), findsOneWidget);
+    expect(find.text('Must not appear'), findsNothing);
+    expect(find.text('View health packages'), findsNothing);
+
+    await tester.ensureVisible(find.text('Open emergency contacts'));
+    await tester.tap(find.text('Open emergency contacts'));
+    expect(emergencyOpened, isTrue);
+  });
+
   testWidgets('waits half a second after final voice words before result', (
     tester,
   ) async {
@@ -412,6 +489,7 @@ Widget _buildSubject(
   AiCheckupPackageOpener? onOpenPackage,
   AiCheckupDoctorOpener? onOpenDoctor,
   AiCheckupTestsOpener? onOpenTests,
+  AiCheckupEmergencyOpener? onOpenEmergency,
   Duration resultRevealDelay = Duration.zero,
 }) {
   final config = AppConfig(
@@ -442,6 +520,7 @@ Widget _buildSubject(
         onOpenPackage: onOpenPackage,
         onOpenDoctor: onOpenDoctor,
         onOpenTests: onOpenTests,
+        onOpenEmergency: onOpenEmergency,
         resultRevealDelay: resultRevealDelay,
         serviceFactory: (_) => service,
         voiceControllerFactory:
@@ -460,6 +539,7 @@ class _FakeAiCheckupService extends AiCheckupService {
 
   int startVoiceCallCount = 0;
   int recordedResponses = 0;
+  int cancelVoiceCallCount = 0;
   VoiceAssessmentTurnDecision nextDecision = const VoiceAssessmentTurnDecision(
     acceptedTranscript: 'I feel unwell.',
     spokenResponse: 'Tell me more.',
@@ -501,7 +581,9 @@ class _FakeAiCheckupService extends AiCheckupService {
   }
 
   @override
-  Future<void> cancelVoiceAssessment(String sessionToken) async {}
+  Future<void> cancelVoiceAssessment(String sessionToken) async {
+    cancelVoiceCallCount++;
+  }
 }
 
 class _FakeLiveVoiceController extends LiveVoiceController {
