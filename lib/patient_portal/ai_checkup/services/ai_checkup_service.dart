@@ -1,5 +1,44 @@
 import 'package:dio/dio.dart';
 
+abstract final class AiCheckupContract {
+  static const intents = {
+    'advice',
+    'doctor_booking',
+    'test_booking',
+    'custom_package',
+  };
+  static const urgencies = {'routine', 'soon', 'urgent', 'emergency'};
+  static const states = {
+    'collecting',
+    'recommendation_ready',
+    'awaiting_confirmation',
+    'completed',
+    'cancelled',
+  };
+
+  static String intent(dynamic value, {dynamic legacyOutcome}) {
+    final candidate = value?.toString();
+    if (intents.contains(candidate)) return candidate!;
+    return switch (legacyOutcome?.toString()) {
+      'consultation_only' ||
+      'test_package_and_consultation' => 'doctor_booking',
+      'test_package_only' => 'test_booking',
+      _ => 'advice',
+    };
+  }
+
+  static String urgency(dynamic value) {
+    final candidate = value?.toString();
+    return urgencies.contains(candidate) ? candidate! : 'routine';
+  }
+
+  static String state(dynamic value, {required bool completed}) {
+    final candidate = value?.toString();
+    if (states.contains(candidate)) return candidate!;
+    return completed ? 'recommendation_ready' : 'collecting';
+  }
+}
+
 /// A single selectable answer for an assessment question.
 class AssessmentOption {
   const AssessmentOption({required this.key, required this.text});
@@ -176,6 +215,8 @@ class AssessmentResults {
     required this.recommendedPackages,
     required this.recommendedTests,
     this.customPackage,
+    this.intent = 'advice',
+    this.state = 'recommendation_ready',
     this.outcome = 'advice_only',
     this.urgency = 'routine',
   });
@@ -187,6 +228,8 @@ class AssessmentResults {
   final List<AssessmentRecommendedPackage> recommendedPackages;
   final List<AssessmentRecommendedTest> recommendedTests;
   final AssessmentCustomPackage? customPackage;
+  final String intent;
+  final String state;
   final String outcome;
   final String urgency;
 
@@ -219,8 +262,13 @@ class AssessmentResults {
       customPackage: custom is Map
           ? AssessmentCustomPackage.fromJson(_map(custom))
           : null,
+      intent: AiCheckupContract.intent(
+        json['intent'],
+        legacyOutcome: json['outcome'],
+      ),
+      state: AiCheckupContract.state(json['state'], completed: true),
       outcome: json['outcome']?.toString() ?? 'advice_only',
-      urgency: json['urgency']?.toString() ?? 'routine',
+      urgency: AiCheckupContract.urgency(json['urgency']),
     );
   }
 }
@@ -232,6 +280,8 @@ class AssessmentHistoryItem {
     required this.language,
     required this.riskLevel,
     required this.summary,
+    this.intent = 'advice',
+    this.state = 'recommendation_ready',
     this.outcome = 'advice_only',
     this.urgency = 'routine',
     this.createdAt,
@@ -241,6 +291,8 @@ class AssessmentHistoryItem {
   final String language;
   final String riskLevel;
   final String summary;
+  final String intent;
+  final String state;
   final String outcome;
   final String urgency;
   final DateTime? createdAt;
@@ -251,8 +303,13 @@ class AssessmentHistoryItem {
       language: json['language']?.toString() ?? 'en',
       riskLevel: json['risk_level']?.toString() ?? 'low',
       summary: json['summary']?.toString() ?? '',
+      intent: AiCheckupContract.intent(
+        json['intent'],
+        legacyOutcome: json['outcome'],
+      ),
+      state: AiCheckupContract.state(json['state'], completed: true),
       outcome: json['outcome']?.toString() ?? 'advice_only',
-      urgency: json['urgency']?.toString() ?? 'routine',
+      urgency: AiCheckupContract.urgency(json['urgency']),
       createdAt: DateTime.tryParse(
         json['created_at']?.toString() ?? '',
       )?.toLocal(),
@@ -266,12 +323,14 @@ class VoiceAssessmentSession {
     required this.initialInstructions,
     required this.maxTurns,
     required this.maxSeconds,
+    this.state = 'collecting',
   });
 
   final String sessionToken;
   final String initialInstructions;
   final int maxTurns;
   final int maxSeconds;
+  final String state;
 
   factory VoiceAssessmentSession.fromJson(Map<String, dynamic> json) {
     return VoiceAssessmentSession(
@@ -279,6 +338,7 @@ class VoiceAssessmentSession {
       initialInstructions: json['initial_instructions']?.toString() ?? '',
       maxTurns: (json['max_turns'] as num?)?.toInt() ?? 10,
       maxSeconds: (json['max_seconds'] as num?)?.toInt() ?? 300,
+      state: AiCheckupContract.state(json['state'], completed: false),
     );
   }
 }
@@ -291,6 +351,7 @@ class VoiceAssessmentTurnDecision {
     required this.completed,
     required this.turnCount,
     required this.maxTurns,
+    this.state = 'collecting',
     this.result,
   });
 
@@ -300,6 +361,7 @@ class VoiceAssessmentTurnDecision {
   final bool completed;
   final int turnCount;
   final int maxTurns;
+  final String state;
   final AssessmentResults? result;
 
   factory VoiceAssessmentTurnDecision.fromJson(Map<String, dynamic> json) {
@@ -311,6 +373,10 @@ class VoiceAssessmentTurnDecision {
       completed: json['completed'] as bool? ?? false,
       turnCount: (json['turn_count'] as num?)?.toInt() ?? 0,
       maxTurns: (json['max_turns'] as num?)?.toInt() ?? 10,
+      state: AiCheckupContract.state(
+        json['state'],
+        completed: json['completed'] as bool? ?? false,
+      ),
       result: result is Map
           ? AssessmentResults.fromJson(Map<String, dynamic>.from(result))
           : null,
