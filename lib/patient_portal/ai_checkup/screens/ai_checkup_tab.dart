@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -180,6 +181,16 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       _sessionTimer = Timer(Duration(seconds: session.maxSeconds), () {
         if (mounted) unawaited(_finishForTimeLimit());
       });
+      // Desktop WebRTC can terminate the host process before the controller
+      // reports an error. Keep desktop builds usable (and testable) by using
+      // the existing text path; mobile builds remain voice-first.
+      if (widget.voiceControllerFactory == null &&
+          (defaultTargetPlatform == TargetPlatform.windows ||
+              defaultTargetPlatform == TargetPlatform.linux ||
+              defaultTargetPlatform == TargetPlatform.macOS)) {
+        setState(() => _textFallback = true);
+        return;
+      }
       await _voice.start(
         locale: _isMalayalam ? 'ml-IN' : 'en-IN',
         conversationId: session.sessionToken,
