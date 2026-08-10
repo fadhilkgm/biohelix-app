@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../core/providers/patient_portal_provider.dart';
-import '../../core/widgets/booking_success_screen.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../models/lab_booking_models.dart';
 import '../state/lab_booking_controller.dart';
 import '../widgets/slot_selector_widget.dart';
+import 'payment_screen.dart';
 
 class TestBookingScreen extends StatefulWidget {
   const TestBookingScreen({super.key});
@@ -20,7 +19,6 @@ class TestBookingScreen extends StatefulWidget {
 }
 
 class _TestBookingScreenState extends State<TestBookingScreen> {
-  bool _isSubmitting = false;
   final TextEditingController _addressController = TextEditingController();
 
   @override
@@ -43,134 +41,37 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
     super.dispose();
   }
 
-  Future<void> _handleBooking() async {
+  void _continueToPayment() {
     final c = context.read<LabBookingController>();
-    final portal = context.read<PatientPortalProvider>();
-    final config = context.read<AppConfig>();
-
     if (c.slot == null || c.cart.isEmpty) return;
 
-    setState(() => _isSubmitting = true);
-
-    try {
-      // If home collection and a new address was typed, add it
-      if (c.collectionType == CollectionType.home &&
-          _addressController.text.trim().isNotEmpty) {
-        final existing = c.addresses.firstWhere(
-          (a) => a.fullAddress == _addressController.text.trim(),
-          orElse: () =>
-              const AddressProfile(id: '', label: '', fullAddress: ''),
+    if (c.collectionType == CollectionType.home) {
+      final address = _addressController.text.trim();
+      if (address.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Enter a collection address.')),
         );
-        if (existing.id.isEmpty) {
-          c.addAddress(
-            label: 'Home',
-            fullAddress: _addressController.text.trim(),
-          );
-        } else {
-          c.setAddress(existing.id);
-        }
+        return;
       }
-
-      final bookedCart = c.cart.toList(growable: false);
-      final firstTest = bookedCart.isNotEmpty ? bookedCart.first.test : null;
-      final totalTestCount = bookedCart.fold<int>(
-        0,
-        (sum, item) => sum + item.quantity,
+      final existing = c.addresses.firstWhere(
+        (item) => item.fullAddress == address,
+        orElse: () => const AddressProfile(id: '', label: '', fullAddress: ''),
       );
-      final summaryTitle = _labSummaryTitle(bookedCart);
-      final summarySubtitle =
-          '$totalTestCount ${totalTestCount == 1 ? 'test' : 'tests'} • ${_collectionLabel(c.collectionType)}';
-      final summaryImageUrl = _resolveBookingImageUrl(
-        firstTest?.imageUrl,
-        config.apiBaseUrl.replaceAll('/api', ''),
-      );
-      final bookingDate = DateFormat('EEE, d MMM yyyy').format(c.date);
-      final bookingTime = c.slot ?? 'To be confirmed';
-      final selectedPatient = c.selectedPatient;
-      final selectedAddress = c.selectedAddress?.fullAddress;
-      final total = c.total;
-
-      final bookingId = await c.placeOrder(portal);
-      if (!mounted) return;
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => BookingSuccessScreen(
-            bookingId: bookingId,
-            title: 'Tests Booked!',
-            subtitle:
-                'Your lab tests have been successfully scheduled. You can track the status in the bookings tab.',
-            imagePath: 'assets/images/lab-test-booking.png',
-            summaryTitle: summaryTitle,
-            summarySubtitle: summarySubtitle,
-            summaryImageUrl: summaryImageUrl,
-            summaryImageAsset: 'assets/images/lab-test-booking.png',
-            details: [
-              BookingSuccessDetail(
-                icon: Icons.calendar_today_rounded,
-                label: 'Date',
-                value: bookingDate,
-              ),
-              BookingSuccessDetail(
-                icon: Icons.access_time_rounded,
-                label: 'Time',
-                value: bookingTime,
-              ),
-              BookingSuccessDetail(
-                icon: Icons.person_rounded,
-                label: 'Patient',
-                value: selectedPatient.name,
-              ),
-              BookingSuccessDetail(
-                icon: Icons.place_rounded,
-                label: 'Collection',
-                value: _collectionLabel(c.collectionType),
-              ),
-              BookingSuccessDetail(
-                icon: Icons.payments_rounded,
-                label: 'Amount',
-                value: '₹${total.toStringAsFixed(0)}',
-              ),
-              if ((selectedAddress ?? '').trim().isNotEmpty)
-                BookingSuccessDetail(
-                  icon: Icons.home_rounded,
-                  label: 'Address',
-                  value: selectedAddress!.trim(),
-                ),
-            ],
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+      if (existing.id.isEmpty) {
+        c.addAddress(label: 'Home', fullAddress: address);
+      } else {
+        c.setAddress(existing.id);
+      }
     }
-  }
 
-  String _labSummaryTitle(List<CartItem> cart) {
-    if (cart.isEmpty) return 'Lab tests';
-    final firstName = cart.first.test.name;
-    final remaining = cart.fold<int>(0, (sum, item) => sum + item.quantity) - 1;
-    if (remaining <= 0) return firstName;
-    return '$firstName + $remaining more';
-  }
-
-  String _collectionLabel(CollectionType type) {
-    return type == CollectionType.home ? 'Home collection' : 'Lab visit';
-  }
-
-  String _resolveBookingImageUrl(String? url, String apiBase) {
-    if (url == null || url.trim().isEmpty) return '';
-    final cleanValue = url.trim();
-    if (cleanValue.startsWith('http')) return cleanValue;
-    final cleanUrl = cleanValue.startsWith('/')
-        ? cleanValue.substring(1)
-        : cleanValue;
-    return '$apiBase/$cleanUrl';
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChangeNotifierProvider<LabBookingController>.value(
+          value: c,
+          child: const PaymentScreen(),
+        ),
+      ),
+    );
   }
 
   void _showAddPatientDialog() {
@@ -1028,9 +929,9 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: (c.slot == null || c.cart.isEmpty || _isSubmitting)
+            onPressed: (c.slot == null || c.cart.isEmpty)
                 ? null
-                : _handleBooking,
+                : _continueToPayment,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF06489B),
               foregroundColor: Colors.white,
@@ -1040,23 +941,14 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: _isSubmitting
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Text(
-                    'Confirm & Book',
-                    style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                    ),
-                  ),
+            child: const Text(
+              'Review Payment',
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
           ),
         ),
       ),

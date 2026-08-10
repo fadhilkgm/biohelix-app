@@ -31,6 +31,7 @@ typedef AiCheckupDoctorOpener =
 typedef AiCheckupTestsOpener =
     void Function(List<AssessmentRecommendedTest> tests, String? sourceSession);
 typedef AiCheckupEmergencyOpener = VoidCallback;
+typedef AiCheckupSupportOpener = VoidCallback;
 
 AiCheckupService _defaultServiceFactory(BuildContext context) {
   return AiCheckupService(
@@ -71,6 +72,7 @@ class AiCheckupTab extends StatefulWidget {
     this.onOpenDoctor,
     this.onOpenTests,
     this.onOpenEmergency,
+    this.onOpenSupport,
     this.consentInitiallyGranted = false,
     this.resultRevealDelay = const Duration(milliseconds: 500),
   });
@@ -81,6 +83,7 @@ class AiCheckupTab extends StatefulWidget {
   final AiCheckupDoctorOpener? onOpenDoctor;
   final AiCheckupTestsOpener? onOpenTests;
   final AiCheckupEmergencyOpener? onOpenEmergency;
+  final AiCheckupSupportOpener? onOpenSupport;
   final bool consentInitiallyGranted;
   final Duration resultRevealDelay;
 
@@ -522,6 +525,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
             onDoctor: _openDoctor,
             onTests: _openTests,
             onEmergency: widget.onOpenEmergency ?? () {},
+            onSupport: widget.onOpenSupport ?? widget.onOpenEmergency ?? () {},
             onHome: () => unawaited(_leaveCheckup()),
           ),
           _CheckupView.history => _HistoryView(
@@ -841,6 +845,7 @@ class _ResultView extends StatelessWidget {
     required this.onDoctor,
     required this.onTests,
     required this.onEmergency,
+    required this.onSupport,
     required this.onHome,
   });
 
@@ -851,16 +856,33 @@ class _ResultView extends StatelessWidget {
   final ValueChanged<AssessmentRecommendedDoctor> onDoctor;
   final ValueChanged<List<AssessmentRecommendedTest>> onTests;
   final VoidCallback onEmergency;
+  final VoidCallback onSupport;
   final VoidCallback onHome;
 
-  String _outcome(String value) => switch (value) {
-    'test_package_only' => 'Test package may be suitable',
-    'consultation_only' => 'Consultation may be suitable',
-    'test_package_and_consultation' =>
-      'Testing and consultation may be suitable',
-    'emergency_escalation' => 'Emergency care recommended',
-    _ => 'Advice only',
-  };
+  String _outcome(AssessmentResults data) {
+    if (data.outcome == 'emergency_escalation') {
+      return 'Emergency care recommended';
+    }
+    if (_needsHumanSupport(data)) {
+      return 'Hospital support recommended';
+    }
+    if (data.customPackage != null && data.recommendedPackages.isEmpty) {
+      return 'Custom panel ready for review';
+    }
+    if (data.recommendedTests.isNotEmpty && data.recommendedPackages.isEmpty) {
+      return data.recommendedDoctors.isNotEmpty
+          ? 'Testing and consultation may be suitable'
+          : 'Lab tests may be suitable';
+    }
+
+    return switch (data.outcome) {
+      'test_package_only' => 'Test package may be suitable',
+      'consultation_only' => 'Consultation may be suitable',
+      'test_package_and_consultation' =>
+        'Testing and consultation may be suitable',
+      _ => 'Advice only',
+    };
+  }
 
   IconData _icon(String value) => switch (value) {
     'test_package_only' => Icons.science_outlined,
@@ -869,6 +891,20 @@ class _ResultView extends StatelessWidget {
     'emergency_escalation' => Icons.emergency_rounded,
     _ => Icons.self_improvement_rounded,
   };
+
+  bool _needsHumanSupport(AssessmentResults data) {
+    if (data.urgency == 'emergency' || data.intent == 'advice') {
+      return false;
+    }
+
+    return switch (data.intent) {
+      'doctor_booking' => data.recommendedDoctors.isEmpty,
+      'test_booking' =>
+        data.recommendedTests.isEmpty && data.recommendedPackages.isEmpty,
+      'custom_package' => data.customPackage == null,
+      _ => false,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -882,6 +918,7 @@ class _ResultView extends StatelessWidget {
         onAction: onNewCheckup,
       );
     }
+    final needsHumanSupport = _needsHumanSupport(data);
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
       children: [
@@ -904,7 +941,7 @@ class _ResultView extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               Text(
-                _outcome(data.outcome),
+                _outcome(data),
                 style: const TextStyle(
                   color: Color(0xFF192233),
                   fontSize: 22,
@@ -1028,6 +1065,37 @@ class _ResultView extends StatelessWidget {
                   ),
                 ),
               ],
+              if (needsHumanSupport) ...[
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7E8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFF0D39D)),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.support_agent_rounded,
+                        color: Color(0xFF9A6212),
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'No matching active option is available right now. Contact BHRC reception for a safe human review.',
+                          style: TextStyle(
+                            color: Color(0xFF714A13),
+                            height: 1.4,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 18),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -1060,12 +1128,18 @@ class _ResultView extends StatelessWidget {
             label: const Text('Open emergency contacts'),
           ),
           const SizedBox(height: 10),
-        ] else if (data.outcome == 'test_package_only' ||
-            data.outcome == 'test_package_and_consultation') ...[
+        ] else if (data.recommendedPackages.isNotEmpty) ...[
           FilledButton.icon(
             onPressed: onPackages,
             icon: const Icon(Icons.health_and_safety_outlined),
             label: const Text('View health packages'),
+          ),
+          const SizedBox(height: 10),
+        ] else if (needsHumanSupport) ...[
+          FilledButton.icon(
+            onPressed: onSupport,
+            icon: const Icon(Icons.support_agent_rounded),
+            label: const Text('Contact hospital support'),
           ),
           const SizedBox(height: 10),
         ],

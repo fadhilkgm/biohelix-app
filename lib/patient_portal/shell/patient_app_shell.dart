@@ -368,6 +368,7 @@ class _PatientAppShellState extends State<PatientAppShell>
           onOpenDoctor: _openAiCheckupDoctor,
           onOpenTests: _openAiCheckupTests,
           onOpenEmergency: _openAiCheckupEmergency,
+          onOpenSupport: _openAiCheckupSupport,
         ),
       ),
     );
@@ -449,6 +450,65 @@ class _PatientAppShellState extends State<PatientAppShell>
         builder: (_) => EmergencySupportScreen(
           patientName: dashboard?.patient.name ?? 'Patient',
           contacts: dashboard?.emergencyContacts ?? const [],
+        ),
+      ),
+    );
+  }
+
+  void _openAiCheckupSupport() {
+    const receptionNumber = '+91 7510210224';
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Hospital support',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'BHRC reception can review your request and guide you to an available doctor, test, or service.',
+                style: TextStyle(height: 1.45),
+              ),
+              const SizedBox(height: 16),
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.support_agent_rounded),
+                title: Text(
+                  'Hospital Reception',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(receptionNumber),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    final launched = await launchUrl(
+                      Uri(scheme: 'tel', path: receptionNumber),
+                      mode: LaunchMode.externalApplication,
+                    );
+                    if (!launched && sheetContext.mounted) {
+                      AppToast.show(
+                        sheetContext,
+                        message: 'Please call $receptionNumber.',
+                        type: AppToastType.info,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.call_rounded),
+                  label: const Text('Call reception'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

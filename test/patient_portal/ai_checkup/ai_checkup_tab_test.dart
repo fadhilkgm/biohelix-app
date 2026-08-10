@@ -107,7 +107,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Consultation may be suitable'), findsOneWidget);
+    expect(find.text('Hospital support recommended'), findsOneWidget);
     expect(
       find.text('Persistent fatigue should be reviewed by a clinician.'),
       findsOneWidget,
@@ -346,8 +346,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Recommended lab tests'), findsOneWidget);
+    expect(find.text('Lab tests may be suitable'), findsOneWidget);
     expect(find.text('CBC'), findsOneWidget);
     expect(find.text('TSH'), findsOneWidget);
+    expect(find.text('View health packages'), findsNothing);
     await tester.ensureVisible(find.text('Review selected tests'));
     await tester.tap(find.text('Review selected tests'));
 
@@ -405,7 +407,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Draft custom panel'), findsOneWidget);
+    expect(find.text('Custom panel ready for review'), findsOneWidget);
     expect(find.text('AI Personal Health Panel'), findsOneWidget);
+    expect(find.text('View health packages'), findsNothing);
     expect(find.textContaining('₹600'), findsOneWidget);
     await tester.ensureVisible(find.text('Review and edit panel'));
     await tester.tap(find.text('Review and edit panel'));
@@ -467,6 +471,57 @@ void main() {
     expect(emergencyOpened, isTrue);
   });
 
+  testWidgets('offers human support when no active recommendation matches', (
+    tester,
+  ) async {
+    var supportOpened = false;
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+        );
+        return voice;
+      }, onOpenSupport: () => supportOpened = true),
+    );
+    await tester.pumpAndSettle();
+
+    service.nextDecision = VoiceAssessmentTurnDecision(
+      acceptedTranscript: 'I would like to see a specialist.',
+      spokenResponse: 'Please contact the hospital for assistance.',
+      responseInstructions: 'Offer a safe human handoff.',
+      completed: true,
+      turnCount: 1,
+      maxTurns: 10,
+      result: AssessmentResults.fromJson(const {
+        'intent': 'doctor_booking',
+        'outcome': 'consultation_only',
+        'urgency': 'soon',
+        'risk_level': 'moderate',
+        'summary': 'A clinician review is appropriate.',
+        'insights': [],
+        'recommended_doctors': [],
+      }),
+    );
+
+    await voice.simulateTurn(
+      'I would like to see a specialist.',
+      'Please contact the hospital for assistance.',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('No matching active option is available'),
+      findsOneWidget,
+    );
+    expect(find.text('Hospital support recommended'), findsOneWidget);
+    expect(find.text('Contact hospital support'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Contact hospital support'));
+    await tester.tap(find.text('Contact hospital support'));
+    expect(supportOpened, isTrue);
+  });
+
   testWidgets('waits half a second after final voice words before result', (
     tester,
   ) async {
@@ -510,7 +565,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     await completion;
     await tester.pumpAndSettle();
-    expect(find.text('Test package may be suitable'), findsOneWidget);
+    expect(find.text('Hospital support recommended'), findsOneWidget);
   });
 }
 
@@ -525,6 +580,7 @@ Widget _buildSubject(
   AiCheckupDoctorOpener? onOpenDoctor,
   AiCheckupTestsOpener? onOpenTests,
   AiCheckupEmergencyOpener? onOpenEmergency,
+  AiCheckupSupportOpener? onOpenSupport,
   bool consentInitiallyGranted = true,
   Duration resultRevealDelay = Duration.zero,
 }) {
@@ -557,6 +613,7 @@ Widget _buildSubject(
         onOpenDoctor: onOpenDoctor,
         onOpenTests: onOpenTests,
         onOpenEmergency: onOpenEmergency,
+        onOpenSupport: onOpenSupport,
         consentInitiallyGranted: consentInitiallyGranted,
         resultRevealDelay: resultRevealDelay,
         serviceFactory: (_) => service,
