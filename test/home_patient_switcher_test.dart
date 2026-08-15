@@ -42,7 +42,8 @@ void main() {
     );
 
     expect(find.text('Amina'), findsOneWidget);
-    expect(find.text('Switch'), findsOneWidget);
+    expect(find.text('Switch'), findsNothing);
+    expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('home-switch-patient-button')));
 

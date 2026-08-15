@@ -152,6 +152,63 @@ void main() {
     expect(find.text('What is your main concern?'), findsOneWidget);
   });
 
+  testWidgets(
+    'finalizes after the realtime completion phrase and custom package consent',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildSubject(service, (onTurnCompleted, onTurnContext) {
+          voice = _FakeLiveVoiceController(
+            onTurnCompleted: onTurnCompleted,
+            onTurnContext: onTurnContext,
+          );
+          return voice;
+        }),
+      );
+      await tester.pumpAndSettle();
+
+      service.nextDecision = VoiceAssessmentTurnDecision(
+        acceptedTranscript: 'Yes, please create it.',
+        spokenResponse:
+            'I have enough information to prepare your AI Checkup result now.',
+        responseInstructions: 'Speak the custom package completion message.',
+        completed: true,
+        turnCount: 4,
+        maxTurns: 10,
+        result: AssessmentResults.fromJson(const {
+          'intent': 'custom_package',
+          'outcome': 'test_package_only',
+          'urgency': 'routine',
+          'risk_level': 'low',
+          'summary': 'A tailored draft panel is ready for review.',
+          'custom_package': {
+            'id': 5,
+            'draft_token': 'draft-5',
+            'name': 'AI Personal Health Panel',
+            'price': '600.00',
+            'status': 'draft',
+            'tests': [
+              {'id': 1, 'test_name': 'CBC', 'price': '250.00'},
+              {'id': 2, 'test_name': 'TSH', 'price': '350.00'},
+            ],
+          },
+        }),
+      );
+
+      await voice.simulateFinalization(
+        transcript: 'Yes, please create it.',
+        response:
+            'I have enough information to prepare your AI Checkup result now.',
+      );
+      await tester.pumpAndSettle();
+
+      expect(service.finalizeVoiceCallCount, 1);
+      expect(service.lastCustomPackageConsent, isFalse);
+      expect(find.text('Custom panel ready for review'), findsOneWidget);
+      expect(find.text('AI Personal Health Panel'), findsOneWidget);
+      expect(voice.stopCallCount, 1);
+    },
+  );
+
   testWidgets('end checkup stops voice and cancels the active session', (
     tester,
   ) async {
@@ -634,7 +691,9 @@ class _FakeAiCheckupService extends AiCheckupService {
   int startVoiceCallCount = 0;
   int recordedResponses = 0;
   int cancelVoiceCallCount = 0;
+  int finalizeVoiceCallCount = 0;
   bool? lastConsent;
+  bool? lastCustomPackageConsent;
   VoiceAssessmentTurnDecision nextDecision = const VoiceAssessmentTurnDecision(
     acceptedTranscript: 'I feel unwell.',
     spokenResponse: 'Tell me more.',
@@ -665,6 +724,25 @@ class _FakeAiCheckupService extends AiCheckupService {
     required String sessionToken,
     required String transcript,
   }) async {
+    return nextDecision;
+  }
+
+  @override
+  Future<VoiceAssessmentTurnDecision> recordRealtimeTurn({
+    required String sessionToken,
+    required String transcript,
+  }) async {
+    return nextDecision;
+  }
+
+  @override
+  Future<VoiceAssessmentTurnDecision> finalizeVoiceAssessment({
+    required String sessionToken,
+    bool customPackageConsent = false,
+    Map<String, dynamic> realtimeAnalysis = const {},
+  }) async {
+    finalizeVoiceCallCount++;
+    lastCustomPackageConsent = customPackageConsent;
     return nextDecision;
   }
 
@@ -719,6 +797,9 @@ class _FakeLiveVoiceController extends LiveVoiceController {
     required String conversationId,
     String initialResponseInstructions = '',
     bool enableUsageTracking = true,
+    String sessionInstructions = '',
+    List<Map<String, dynamic>> tools = const [],
+    RealtimeFunctionCallHandler? onFunctionCall,
   }) async {
     startCallCount++;
     _fakeState = failOnStart
@@ -746,6 +827,14 @@ class _FakeLiveVoiceController extends LiveVoiceController {
       responseText: response,
     );
     notifyListeners();
+    await _completed(transcript, response);
+  }
+
+  Future<void> simulateFinalization({
+    required String transcript,
+    required String response,
+  }) async {
+    await _context(transcript);
     await _completed(transcript, response);
   }
 }

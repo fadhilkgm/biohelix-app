@@ -98,7 +98,6 @@ class _DashboardDiscoverySections extends StatelessWidget {
       healthSnapshot: healthSnapshot,
       aiSuggestions: aiSuggestions,
       onAcceptSuggestion: onAcceptSuggestion,
-      aiCheckupEnabled: config.aiCheckupEnabled,
     );
   }
 }

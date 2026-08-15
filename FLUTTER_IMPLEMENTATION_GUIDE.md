@@ -303,8 +303,8 @@ public function sessionConfig(User $user): array
                     ],
                     'turn_detection' => [
                         'type' => 'semantic_vad',
-                        'eagerness' => 'low',
-                        'create_response' => true,
+                        'eagerness' => 'medium',
+                        'create_response' => false,
                         'interrupt_response' => true,
                     ],
                 ],
@@ -338,8 +338,8 @@ Flutter fetches this safe configuration before connecting. Create a data channel
         },
         "turn_detection": {
           "type": "semantic_vad",
-          "eagerness": "low",
-          "create_response": true,
+          "eagerness": "medium",
+          "create_response": false,
           "interrupt_response": true
         }
       },
@@ -734,7 +734,7 @@ Recommended behavior:
 - English and Malayalam speakers across the target accents.
 - Malayalam mixed with English names and technical terms.
 - Quiet room, fan noise, traffic noise, and weak microphone.
-- Long pauses to confirm low-eagerness semantic VAD does not cut speech.
+- Natural pauses to confirm medium-eagerness semantic VAD does not cut speech.
 - User interruption while Sarah is speaking.
 - Wi-Fi to mobile-data transition.
 - Bluetooth connect/disconnect during a call.

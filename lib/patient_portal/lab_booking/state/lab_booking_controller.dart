@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/models/patient_models.dart';
 import '../../core/data/patient_repository.dart';
 import '../../core/providers/patient_portal_provider.dart';
+import '../../bookings/models/booking_payment_method.dart';
 import '../models/lab_booking_models.dart';
 
 class LabBookingController extends ChangeNotifier {
@@ -68,7 +69,7 @@ class LabBookingController extends ChangeNotifier {
   String? _slot = '07:00 - 08:00 AM';
   String _selectedPatientId = 'self';
   String _selectedAddressId = 'home';
-  PaymentMethod _paymentMethod = PaymentMethod.online;
+  BookingPaymentMethod _paymentMethod = BookingPaymentMethod.online;
   LabOrderQuote? _quote;
   bool _quoteLoading = false;
   String? _quoteError;
@@ -92,7 +93,7 @@ class LabBookingController extends ChangeNotifier {
   String? get slot => _slot;
   String get selectedPatientId => _selectedPatientId;
   String get selectedAddressId => _selectedAddressId;
-  PaymentMethod get paymentMethod => _paymentMethod;
+  BookingPaymentMethod get paymentMethod => _paymentMethod;
   String get coupon => _coupon;
   int get cartCount => _cart.fold(0, (sum, e) => sum + e.quantity);
   int get preselectedCount => _preselectedCount;
@@ -226,7 +227,7 @@ class LabBookingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setPaymentMethod(PaymentMethod value) {
+  void setPaymentMethod(BookingPaymentMethod value) {
     _paymentMethod = value;
     notifyListeners();
   }
@@ -317,9 +318,7 @@ class LabBookingController extends ChangeNotifier {
         .substring(5);
     final selected = selectedPatient;
     final address = selectedAddress?.fullAddress;
-    final paymentStatus = _paymentMethod == PaymentMethod.online
-        ? 'paid'
-        : 'pay_at_collection';
+    final paymentStatus = _paymentMethod.paymentStatus;
 
     final labTestIds = <int>[
       for (final item in _cart)

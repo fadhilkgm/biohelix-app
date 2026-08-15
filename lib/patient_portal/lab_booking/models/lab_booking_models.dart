@@ -2,8 +2,6 @@ import '../../core/models/patient_models.dart';
 
 enum CollectionType { home, lab }
 
-enum PaymentMethod { online, atLab }
-
 class BookableLabTest {
   const BookableLabTest({
     required this.id,

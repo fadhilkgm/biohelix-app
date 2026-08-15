@@ -7,7 +7,6 @@ class AppConfig {
     required this.healthEndpoint,
     required this.showDevOtp,
     this.referralLinkHost = 'demo.bhrchospital.com',
-    this.aiCheckupEnabled = true,
   });
 
   final String appName;
@@ -15,7 +14,6 @@ class AppConfig {
   final String healthEndpoint;
   final bool showDevOtp;
   final String referralLinkHost;
-  final bool aiCheckupEnabled;
 
   factory AppConfig.fromEnvironment() {
     final showDevOtp = const bool.hasEnvironment('SHOW_DEV_OTP')
@@ -28,16 +26,9 @@ class AppConfig {
       'REFERRAL_LINK_HOST',
       defaultValue: 'demo.bhrchospital.com',
     );
-    const aiCheckupEnabled = bool.fromEnvironment(
-      'AI_HEALTH_CHECKUP_ENABLED',
-      defaultValue: false,
-    );
-
     String defaultBaseUrl = definedApiBaseUrl.isNotEmpty
         ? definedApiBaseUrl
-        : kReleaseMode
-        ? 'https://demo.bhrchospital.com/api/v1'
-        : 'https://demo.bhrchospital.com/api/v1';
+        : 'http://192.168.1.4:8000/api/v1';
 
     if (!kIsWeb && defaultBaseUrl.contains('localhost')) {
       // In Flutter, if running on Android emulator, localhost points to the emulator.
@@ -57,7 +48,6 @@ class AppConfig {
           : definedHealthEndpoint,
       showDevOtp: showDevOtp,
       referralLinkHost: referralLinkHost,
-      aiCheckupEnabled: aiCheckupEnabled,
     );
   }
 }

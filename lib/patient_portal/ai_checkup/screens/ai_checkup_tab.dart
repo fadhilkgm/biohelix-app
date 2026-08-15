@@ -105,6 +105,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   bool _textFallback = false;
   bool _sendingText = false;
   bool _ending = false;
+  Future<void> _responsePersistence = Future<void>.value();
   bool _allowPop = false;
   bool _consentGranted = false;
   Timer? _sessionTimer;
@@ -162,6 +163,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       _error = null;
       _textFallback = false;
       _ending = false;
+      _responsePersistence = Future<void>.value();
       _allowPop = false;
     });
 
@@ -201,6 +203,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
             'Speak exactly the following text naturally, without adding '
             'anything: ${session.initialInstructions}',
         enableUsageTracking: false,
+        sessionInstructions: session.realtimeInstructions,
       );
       if (!mounted) return;
       if (_voice.state.phase == LiveVoicePhase.error) {
@@ -223,7 +226,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     if (session == null) {
       throw StateError('The voice assessment session is unavailable.');
     }
-    final decision = await _service.submitVoiceTurn(
+    final decision = await _service.recordRealtimeTurn(
       sessionToken: session.sessionToken,
       transcript: transcript,
     );
@@ -240,25 +243,89 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   Future<void> _onVoiceTurnCompleted(String transcript, String response) async {
     final session = _session;
     if (session == null || !mounted) return;
-    final safeResponse = _pendingDecision?.spokenResponse ?? '';
+    final decision = _pendingDecision;
+    final safeResponse = decision?.completed == true
+        ? decision?.spokenResponse ?? response
+        : response;
     if (safeResponse.isNotEmpty) {
       _appendMessage(patient: false, text: safeResponse);
     }
-    unawaited(
-      _recordVoiceResponseSafely(
-        sessionToken: session.sessionToken,
-        transcript: transcript,
-        response: response,
-      ),
+    final persistence = _queueVoiceResponse(
+      sessionToken: session.sessionToken,
+      transcript: transcript,
+      response: safeResponse,
     );
-    final decision = _pendingDecision;
+    if (_isCompletionSignal(safeResponse, session.completionPhrase)) {
+      await persistence;
+      await _finalizeRealtimeCheckup();
+      return;
+    }
     if (decision?.completed == true) {
+      await persistence;
       if (widget.resultRevealDelay > Duration.zero) {
         await Future<void>.delayed(widget.resultRevealDelay);
       }
       if (!mounted) return;
       await _showCompletedResult(decision!.result);
     }
+  }
+
+  bool _isCompletionSignal(String response, String completionPhrase) {
+    String normalize(String value) => value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\p{L}\p{N}\s]', unicode: true), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final phrase = normalize(completionPhrase);
+    return phrase.isNotEmpty && normalize(response).contains(phrase);
+  }
+
+  Future<void> _finalizeRealtimeCheckup() async {
+    final session = _session;
+    if (_ending || session == null) return;
+    _ending = true;
+    _sessionTimer?.cancel();
+    await _voice.stop(reason: 'assessment_finalizing');
+
+    try {
+      final decision = await _service.finalizeVoiceAssessment(
+        sessionToken: session.sessionToken,
+      );
+      if (widget.resultRevealDelay > Duration.zero) {
+        await Future<void>.delayed(widget.resultRevealDelay);
+      }
+      if (!mounted) return;
+      final result = decision.result;
+      setState(() {
+        _pendingDecision = decision;
+        _result = result?.withSourceSession(session.sessionToken);
+        _view = _CheckupView.result;
+        _ending = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _view = _CheckupView.error;
+        _error = _friendlyError(error);
+        _ending = false;
+      });
+    }
+  }
+
+  Future<void> _queueVoiceResponse({
+    required String sessionToken,
+    required String transcript,
+    required String response,
+  }) {
+    _responsePersistence = _responsePersistence.then(
+      (_) => _recordVoiceResponseSafely(
+        sessionToken: sessionToken,
+        transcript: transcript,
+        response: response,
+      ),
+    );
+
+    return _responsePersistence;
   }
 
   Future<void> _recordVoiceResponseSafely({
@@ -570,7 +637,18 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _InlineError(message: _error!),
             ),
-          if (_textFallback)
+          if (_ending)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Column(
+                children: [
+                  LinearProgressIndicator(),
+                  SizedBox(height: 10),
+                  Text('Preparing your checkup result…'),
+                ],
+              ),
+            )
+          else if (_textFallback)
             _TextFallbackComposer(
               controller: _textController,
               sending: _sendingText,

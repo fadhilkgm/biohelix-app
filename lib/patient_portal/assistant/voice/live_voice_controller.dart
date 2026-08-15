@@ -12,6 +12,21 @@ import 'live_voice_state.dart';
 typedef RealtimeTurnCompleted =
     FutureOr<void> Function(String transcript, String response);
 typedef RealtimeTurnContext = Future<String> Function(String transcript);
+typedef RealtimeFunctionCallHandler =
+    Future<RealtimeFunctionResult> Function(
+      String name,
+      Map<String, dynamic> arguments,
+    );
+
+class RealtimeFunctionResult {
+  const RealtimeFunctionResult({
+    required this.output,
+    this.responseInstructions = '',
+  });
+
+  final Map<String, dynamic> output;
+  final String responseInstructions;
+}
 
 class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   LiveVoiceController({
@@ -46,9 +61,17 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   String _initialResponseInstructions = '';
   bool _initialResponseRequested = false;
   bool _enableUsageTracking = true;
+  String _sessionInstructions = '';
+  List<Map<String, dynamic>> _sessionTools = const [];
+  RealtimeFunctionCallHandler? _onFunctionCall;
+  final Set<String> _handledFunctionCallIds = {};
+  bool _awaitingFunctionResponse = false;
   final Map<String, StringBuffer> _inputTranscripts = {};
   final Map<String, StringBuffer> _responseText = {};
   final Map<String, StringBuffer> _responseAudioTranscripts = {};
+  Stopwatch? _turnLatency;
+  int? _responseCreateSentAtMs;
+  bool _firstResponseAudioReceived = false;
 
   LiveVoiceState get state => _state;
 
@@ -70,6 +93,9 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     required String conversationId,
     String initialResponseInstructions = '',
     bool enableUsageTracking = true,
+    String sessionInstructions = '',
+    List<Map<String, dynamic>> tools = const [],
+    RealtimeFunctionCallHandler? onFunctionCall,
   }) async {
     if (_state.isActive) {
       _debugLog('start ignored: session is already active');
@@ -78,6 +104,11 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     _initialResponseInstructions = initialResponseInstructions.trim();
     _initialResponseRequested = false;
     _enableUsageTracking = enableUsageTracking;
+    _sessionInstructions = sessionInstructions.trim();
+    _sessionTools = tools;
+    _onFunctionCall = onFunctionCall;
+    _handledFunctionCallIds.clear();
+    _awaitingFunctionResponse = false;
     _conversationId = conversationId;
     _debugLog('start requested locale=$locale');
     final startup = Stopwatch()..start();
@@ -138,7 +169,10 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       );
       _debugLog('data channel created: label=oai-events');
       _events = channel;
-      _wireDataChannel(channel, bootstrap.sessionUpdate);
+      _wireDataChannel(
+        channel,
+        _configuredSessionUpdate(bootstrap.sessionUpdate),
+      );
 
       final offer = await peer.createOffer({'offerToReceiveAudio': true});
       await peer.setLocalDescription(offer);
@@ -381,6 +415,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         unawaited(_beginUsageTracking());
         _requestInitialResponse();
       case 'input_audio_buffer.speech_started':
+        _resetTurnLatency();
         if (_state.isSpeaking) {
           unawaited(interrupt());
         }
@@ -393,6 +428,8 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
           ),
         );
       case 'input_audio_buffer.speech_stopped':
+        _turnLatency = Stopwatch()..start();
+        _debugLog('turn latency: speech stopped at 0ms');
         _setState(_state.copyWith(phase: LiveVoicePhase.transcribing));
       case 'conversation.item.input_audio_transcription.delta':
         final itemId = event['item_id']?.toString() ?? 'current-input';
@@ -415,6 +452,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
             finalTranscript: transcript,
           ),
         );
+        _debugTurnLatency('transcription completed');
         unawaited(_requestContextAndRespond(itemId, transcript));
       case 'response.created':
         final response = event['response'] is Map
@@ -424,11 +462,23 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
             response['id']?.toString() ??
             event['response_id']?.toString() ??
             'current-response';
+        final sentAt = _responseCreateSentAtMs;
+        final elapsed = _turnLatency?.elapsedMilliseconds;
+        if (sentAt != null && elapsed != null) {
+          _debugLog(
+            'turn latency: response created at ${elapsed}ms '
+            '(provider create=${elapsed - sentAt}ms)',
+          );
+        } else {
+          _debugTurnLatency('response created');
+        }
         _setState(_state.copyWith(phase: LiveVoicePhase.thinking));
       case 'response.output_audio_transcript.delta':
         _appendResponseDelta(event, audioTranscript: true);
       case 'response.output_text.delta':
         _appendResponseDelta(event, audioTranscript: false);
+      case 'response.function_call_arguments.done':
+        unawaited(_handleFunctionCall(event));
       case 'response.done':
         _completeResponse(event);
       case 'error':
@@ -447,6 +497,65 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _handleFunctionCall(Map<String, dynamic> event) async {
+    final handler = _onFunctionCall;
+    final item = event['item'] is Map
+        ? Map<String, dynamic>.from(event['item'] as Map)
+        : const <String, dynamic>{};
+    final callId =
+        event['call_id']?.toString() ?? item['call_id']?.toString() ?? '';
+    final name = event['name']?.toString() ?? item['name']?.toString() ?? '';
+    if (handler == null || callId.isEmpty || name.isEmpty) {
+      _debugLog('function call ignored: handler, call_id, or name missing');
+      return;
+    }
+    if (!_handledFunctionCallIds.add(callId)) {
+      _debugLog('duplicate function call ignored: $callId');
+      return;
+    }
+
+    Map<String, dynamic> arguments = const {};
+    final rawArguments =
+        event['arguments']?.toString() ?? item['arguments']?.toString() ?? '{}';
+    try {
+      final decoded = jsonDecode(rawArguments);
+      if (decoded is Map) {
+        arguments = Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {
+      _debugLog('function call arguments were not valid JSON');
+    }
+
+    _awaitingFunctionResponse = true;
+    _setState(_state.copyWith(phase: LiveVoicePhase.thinking));
+    try {
+      final result = await handler(name, arguments);
+      if (_disposed || _stopping || !_state.isActive) return;
+      await _sendEvent({
+        'type': 'conversation.item.create',
+        'item': {
+          'type': 'function_call_output',
+          'call_id': callId,
+          'output': jsonEncode(result.output),
+        },
+      });
+      await _sendEvent({
+        'type': 'response.create',
+        'response': {
+          'output_modalities': ['audio', 'text'],
+          if (result.responseInstructions.trim().isNotEmpty)
+            'instructions': result.responseInstructions.trim(),
+        },
+      });
+    } catch (error) {
+      _awaitingFunctionResponse = false;
+      _debugLog('function call failed: ${_safeError(error)}');
+      await _failContextTurn(
+        'Could not prepare your AI Checkup result. Please try again.',
+      );
+    }
+  }
+
   Future<void> _requestContextAndRespond(
     String itemId,
     String transcript,
@@ -460,13 +569,21 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       _debugLog(
         'requesting Laravel voice context for transcript chars=${transcript.length}',
       );
+      final contextLookup = Stopwatch()..start();
       final instructions = await _onTurnContext(transcript);
+      contextLookup.stop();
+      _debugLog(
+        'turn latency: Laravel context completed at '
+        '${_turnLatency?.elapsedMilliseconds ?? -1}ms '
+        '(round trip=${contextLookup.elapsedMilliseconds}ms)',
+      );
       if (_disposed ||
           _stopping ||
           !_state.isActive ||
           _currentInputItemId != itemId) {
         return;
       }
+      _responseCreateSentAtMs = _turnLatency?.elapsedMilliseconds;
       await _sendEvent({
         'type': 'response.create',
         'response': {
@@ -474,6 +591,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
           'instructions': instructions,
         },
       });
+      _debugTurnLatency('response.create sent');
     } catch (error) {
       _debugLog('Laravel voice context request failed: ${_safeError(error)}');
       if (!_disposed && !_stopping && _currentInputItemId == itemId) {
@@ -511,6 +629,10 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     Map<String, dynamic> event, {
     required bool audioTranscript,
   }) {
+    if (audioTranscript && !_firstResponseAudioReceived) {
+      _firstResponseAudioReceived = true;
+      _debugTurnLatency('first response audio transcript');
+    }
     final responseId =
         event['response_id']?.toString() ??
         (_currentResponseId.isEmpty ? 'current-response' : _currentResponseId);
@@ -528,6 +650,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _completeResponse(Map<String, dynamic> event) {
+    _debugTurnLatency('response done');
     final response = event['response'] is Map
         ? Map<String, dynamic>.from(event['response'] as Map)
         : const <String, dynamic>{};
@@ -543,9 +666,17 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       _responseText[responseId]?.toString().trim(),
       _state.responseText.trim(),
     ]);
+    if (_awaitingFunctionResponse && answer.isEmpty) {
+      _responseText.remove(responseId);
+      _responseAudioTranscripts.remove(responseId);
+      _currentResponseId = '';
+      _setState(_state.copyWith(phase: LiveVoicePhase.thinking));
+      return;
+    }
     if (transcript.isNotEmpty && answer.isNotEmpty) {
       unawaited(Future.sync(() => _onTurnCompleted(transcript, answer)));
     }
+    _awaitingFunctionResponse = false;
     _inputTranscripts.remove(_currentInputItemId);
     _responseText.remove(responseId);
     _responseAudioTranscripts.remove(responseId);
@@ -560,6 +691,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         clearTurn: true,
       ),
     );
+    _resetTurnLatency();
   }
 
   Future<void> _sendEvent(Map<String, dynamic> event) async {
@@ -587,6 +719,46 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     _initialResponseRequested = false;
     _enableUsageTracking = true;
     _conversationId = '';
+    _sessionInstructions = '';
+    _sessionTools = const [];
+    _onFunctionCall = null;
+    _handledFunctionCallIds.clear();
+    _awaitingFunctionResponse = false;
+    _resetTurnLatency();
+  }
+
+  Map<String, dynamic> _configuredSessionUpdate(Map<String, dynamic> source) {
+    final update = Map<String, dynamic>.from(source);
+    final session = source['session'] is Map
+        ? Map<String, dynamic>.from(source['session'] as Map)
+        : <String, dynamic>{};
+    if (_sessionInstructions.isNotEmpty) {
+      final existing = session['instructions']?.toString().trim() ?? '';
+      session['instructions'] = existing.isEmpty
+          ? _sessionInstructions
+          : '$existing\n\n$_sessionInstructions';
+    }
+    if (_sessionTools.isNotEmpty) {
+      session['tools'] = _sessionTools;
+      session['tool_choice'] = 'auto';
+    }
+    update['session'] = session;
+
+    return update;
+  }
+
+  void _debugTurnLatency(String stage) {
+    final elapsed = _turnLatency?.elapsedMilliseconds;
+    if (elapsed != null) {
+      _debugLog('turn latency: $stage at ${elapsed}ms');
+    }
+  }
+
+  void _resetTurnLatency() {
+    _turnLatency?.stop();
+    _turnLatency = null;
+    _responseCreateSentAtMs = null;
+    _firstResponseAudioReceived = false;
   }
 
   String _firstNonEmpty(Iterable<String?> values) {

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
+import '../../bookings/models/booking_payment_method.dart';
+import '../../bookings/widgets/booking_payment_method_selector.dart';
 import '../../core/models/patient_models.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../core/widgets/booking_success_screen.dart';
@@ -29,6 +31,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   List<String> _slots = [];
   bool _isLoadingSlots = false;
   bool _isSubmitting = false;
+  BookingPaymentMethod _paymentMethod = BookingPaymentMethod.online;
 
   @override
   void initState() {
@@ -552,7 +555,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
             ? (_address.isEmpty ? null : _address)
             : null,
         amount: amount.toDouble(),
-        paymentStatus: 'pending',
+        paymentStatus: _paymentMethod.paymentStatus,
         patientNameSnapshot: _selectedPatient?.name,
         patientAgeSnapshot: _selectedPatient?.age,
         patientGenderSnapshot: _selectedPatient?.gender,
@@ -988,6 +991,25 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                   onSelect: (slot) => setState(() => _selectedSlot = slot),
                 );
               },
+            ),
+
+            const SizedBox(height: 32),
+            Text(
+              'Choose Payment Method',
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF192233),
+              ),
+            ),
+            const SizedBox(height: 16),
+            BookingPaymentMethodSelector(
+              value: _paymentMethod,
+              onChanged: (value) => setState(() => _paymentMethod = value),
+              payOnArrivalSubtitle: _collectionType == 'home'
+                  ? 'Pay when the technician arrives'
+                  : 'Pay during your lab visit',
             ),
 
             const SizedBox(height: 100), // Space for bottom button

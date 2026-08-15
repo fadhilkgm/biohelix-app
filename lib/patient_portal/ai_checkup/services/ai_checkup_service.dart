@@ -401,6 +401,9 @@ class VoiceAssessmentSession {
     required this.initialInstructions,
     required this.maxTurns,
     required this.maxSeconds,
+    this.realtimeInstructions = '',
+    this.completionPhrase =
+        'I have enough information to prepare your AI Checkup result now.',
     this.state = 'collecting',
   });
 
@@ -408,6 +411,8 @@ class VoiceAssessmentSession {
   final String initialInstructions;
   final int maxTurns;
   final int maxSeconds;
+  final String realtimeInstructions;
+  final String completionPhrase;
   final String state;
 
   factory VoiceAssessmentSession.fromJson(Map<String, dynamic> json) {
@@ -416,6 +421,10 @@ class VoiceAssessmentSession {
       initialInstructions: json['initial_instructions']?.toString() ?? '',
       maxTurns: (json['max_turns'] as num?)?.toInt() ?? 10,
       maxSeconds: (json['max_seconds'] as num?)?.toInt() ?? 300,
+      realtimeInstructions: json['realtime_instructions']?.toString() ?? '',
+      completionPhrase:
+          json['completion_phrase']?.toString() ??
+          'I have enough information to prepare your AI Checkup result now.',
       state: AiCheckupContract.state(json['state'], completed: false),
     );
   }
@@ -528,6 +537,40 @@ class AiCheckupService {
       final response = await _dio().post<Map<String, dynamic>>(
         '/health-assessment/voice/$sessionToken/turn',
         data: {'transcript': transcript},
+      );
+      return VoiceAssessmentTurnDecision.fromJson(response.data ?? const {});
+    } on DioException catch (error) {
+      throw Exception(_dioMessage(error));
+    }
+  }
+
+  Future<VoiceAssessmentTurnDecision> recordRealtimeTurn({
+    required String sessionToken,
+    required String transcript,
+  }) async {
+    try {
+      final response = await _dio().post<Map<String, dynamic>>(
+        '/health-assessment/voice/$sessionToken/context',
+        data: {'transcript': transcript},
+      );
+      return VoiceAssessmentTurnDecision.fromJson(response.data ?? const {});
+    } on DioException catch (error) {
+      throw Exception(_dioMessage(error));
+    }
+  }
+
+  Future<VoiceAssessmentTurnDecision> finalizeVoiceAssessment({
+    required String sessionToken,
+    bool customPackageConsent = false,
+    Map<String, dynamic> realtimeAnalysis = const {},
+  }) async {
+    try {
+      final response = await _dio().post<Map<String, dynamic>>(
+        '/health-assessment/voice/$sessionToken/finalize',
+        data: {
+          ...realtimeAnalysis,
+          'custom_package_consent': customPackageConsent,
+        },
       );
       return VoiceAssessmentTurnDecision.fromJson(response.data ?? const {});
     } on DioException catch (error) {

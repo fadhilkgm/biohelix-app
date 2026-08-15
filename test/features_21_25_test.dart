@@ -76,6 +76,26 @@ void main() {
 
     expect(find.text('Before your private AI Checkup'), findsOneWidget);
   });
+
+  testWidgets('loved-one booking opens the connected patient switcher', (
+    tester,
+  ) async {
+    final harness = await _buildHarness();
+    await tester.pumpWidget(harness);
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final lovedOneBanner = find
+        .byKey(const ValueKey('loved-one-consultation-banner'))
+        .last;
+    await tester.ensureVisible(lovedOneBanner);
+    await tester.pump();
+    await tester.tap(lovedOneBanner);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Switch patient'), findsOneWidget);
+    expect(find.text('Manage family accounts'), findsOneWidget);
+  });
 }
 
 void _mockVoiceChannels() {

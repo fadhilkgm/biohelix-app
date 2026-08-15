@@ -82,33 +82,16 @@ class HomeHeroHeaderWidget extends StatelessWidget {
                       child: Material(
                         key: const ValueKey('home-switch-patient-button'),
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
+                        shape: const CircleBorder(),
                         child: InkWell(
                           onTap: onSwitchPatient,
-                          borderRadius: BorderRadius.circular(14),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 11,
-                              vertical: 8,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.swap_horiz_rounded,
-                                  color: Color(0xFF06489B),
-                                  size: 19,
-                                ),
-                                SizedBox(width: 5),
-                                Text(
-                                  'Switch',
-                                  style: TextStyle(
-                                    color: Color(0xFF06489B),
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ],
+                          customBorder: const CircleBorder(),
+                          child: const SizedBox.square(
+                            dimension: 36,
+                            child: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: Color(0xFF06489B),
+                              size: 24,
                             ),
                           ),
                         ),

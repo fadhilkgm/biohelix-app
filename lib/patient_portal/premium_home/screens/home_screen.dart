@@ -36,7 +36,7 @@ class HomeScreen extends StatefulWidget {
     this.tickerMessages = const [],
     required this.onTickerTap,
     required this.onActionTap,
-    this.onSwitchPatient,
+    required this.onSwitchPatient,
     this.isLoading = false,
     this.departments = const [],
     this.healthSnapshot,
@@ -45,7 +45,6 @@ class HomeScreen extends StatefulWidget {
     this.ambulanceNumber = '+91 7510210222',
     this.emergencyNumber = '108',
     this.receptionNumber = '+91 7510210224',
-    this.aiCheckupEnabled = true,
   });
 
   final List<HomeBannerItem> banners;
@@ -68,7 +67,7 @@ class HomeScreen extends StatefulWidget {
   final List<TickerMessageItem> tickerMessages;
   final Future<void> Function(TickerMessageItem item) onTickerTap;
   final ValueChanged<String> onActionTap;
-  final VoidCallback? onSwitchPatient;
+  final VoidCallback onSwitchPatient;
   final bool isLoading;
   final HealthSnapshot? healthSnapshot;
   final List<AiSuggestionItem> aiSuggestions;
@@ -76,7 +75,6 @@ class HomeScreen extends StatefulWidget {
   final String ambulanceNumber;
   final String emergencyNumber;
   final String receptionNumber;
-  final bool aiCheckupEnabled;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -333,15 +331,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: widget.onViewAllLabTests,
                       color: const Color(0xFF1F9A6D),
                     ),
-                    if (widget.aiCheckupEnabled) ...[
-                      const SizedBox(width: 12),
-                      _QuickLink(
-                        label: 'AI Checkup',
-                        icon: Icons.auto_awesome_rounded,
-                        onTap: () => widget.onActionTap('ai_checkup'),
-                        color: const Color(0xFF915AF1),
-                      ),
-                    ],
+                    const SizedBox(width: 12),
+                    _QuickLink(
+                      label: 'AI Checkup',
+                      icon: Icons.auto_awesome_rounded,
+                      onTap: () => widget.onActionTap('ai_checkup'),
+                      color: const Color(0xFF915AF1),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -350,8 +346,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   snapshot: widget.healthSnapshot ?? const HealthSnapshot(),
                 ),
                 const SizedBox(height: 24),
-                _buildDoctorsSection(strings.noDoctorsInDepartment),
-                const SizedBox(height: 32),
                 if (widget.banners.isNotEmpty)
                   _buildBannerCarousel(context)
                 else if (widget.isLoading)
@@ -359,10 +353,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (widget.banners.isNotEmpty || widget.isLoading)
                   const SizedBox(height: 24),
                 _HomeActionBanner(
+                  key: const ValueKey('loved-one-consultation-banner'),
                   label: strings.bookConsultationForLovedOne,
                   icon: Icons.family_restroom_rounded,
                   imageAsset: 'assets/images/family-care-cutout.png',
-                  onTap: widget.onViewAllDoctors,
+                  onTap: widget.onSwitchPatient,
                 ),
                 const SizedBox(height: 12),
                 _HomeActionBanner(
@@ -373,6 +368,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   foregroundColor: Colors.white,
                   onTap: () => widget.onActionTap('home_care'),
                 ),
+                const SizedBox(height: 32),
+                _buildDoctorsSection(strings.noDoctorsInDepartment),
                 const SizedBox(height: 24),
                 if (widget.aiSuggestions.isNotEmpty)
                   _AiSuggestionsSection(
@@ -1484,6 +1481,7 @@ class _QuickLink extends StatelessWidget {
 
 class _HomeActionBanner extends StatelessWidget {
   const _HomeActionBanner({
+    super.key,
     required this.label,
     required this.icon,
     required this.onTap,

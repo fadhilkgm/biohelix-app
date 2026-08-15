@@ -249,7 +249,7 @@ void main() {
     final config = AppConfig.fromEnvironment();
 
     expect(config.appName, isNotEmpty);
-    expect(config.apiBaseUrl, 'https://demo.bhrchospital.com/api/v1');
+    expect(config.apiBaseUrl, 'http://192.168.1.4:8000/api/v1');
     expect(config.healthEndpoint, '/health');
   });
 

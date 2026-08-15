@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../bookings/widgets/booking_payment_method_selector.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../core/widgets/booking_success_screen.dart';
 import '../models/lab_booking_models.dart';
@@ -59,37 +60,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _PaymentOption(
-                      title: 'Online Payment',
-                      subtitle: 'Credit Card, UPI, Wallets',
-                      icon: Icons.payments_outlined,
-                      selected: c.paymentMethod == PaymentMethod.online,
-                      onTap: () => c.setPaymentMethod(PaymentMethod.online),
-                    ),
-                    const Divider(height: 1, indent: 64),
-                    _PaymentOption(
-                      title: 'Pay at Collection',
-                      subtitle: 'Pay when technician arrives',
-                      icon: Icons.handshake_outlined,
-                      selected: c.paymentMethod == PaymentMethod.atLab,
-                      onTap: () => c.setPaymentMethod(PaymentMethod.atLab),
-                    ),
-                  ],
-                ),
+              child: BookingPaymentMethodSelector(
+                value: c.paymentMethod,
+                onChanged: c.setPaymentMethod,
+                payOnArrivalSubtitle: 'Pay when the technician arrives',
               ),
             ),
             const SizedBox(height: 32),
@@ -275,76 +249,5 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ? cleanValue.substring(1)
         : cleanValue;
     return '$apiBase/$cleanUrl';
-  }
-}
-
-class _PaymentOption extends StatelessWidget {
-  const _PaymentOption({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xFF06489B)
-                    : const Color(0xFFF4F7FF),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                icon,
-                color: selected ? Colors.white : const Color(0xFF06489B),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: const Color(0xFF2D3142),
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-            Radio<bool>(
-              value: true,
-              groupValue: selected,
-              activeColor: const Color(0xFF06489B),
-              onChanged: (_) => onTap(),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

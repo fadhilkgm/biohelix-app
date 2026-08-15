@@ -48,8 +48,8 @@ instructions come from server allow-lists, never request parameters.
         },
         "turn_detection": {
           "type": "semantic_vad",
-          "eagerness": "low",
-          "create_response": true,
+          "eagerness": "medium",
+          "create_response": false,
           "interrupt_response": true
         }
       },
