@@ -319,6 +319,8 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
     await loadPortal();
   }
 
+  Future<void> refreshDoctorBookings() => _refreshDoctorBookings();
+
   Future<void> refreshMyClub() async {
     try {
       _myClub = await _repository.getMyClub();

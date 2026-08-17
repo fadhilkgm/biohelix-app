@@ -120,6 +120,33 @@ void main() {
     expect(voice.stopCallCount, 1);
   });
 
+  testWidgets('keeps the preparation screen until the first voice starts', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildSubject(service, (onTurnCompleted, onTurnContext) {
+        voice = _FakeLiveVoiceController(
+          onTurnCompleted: onTurnCompleted,
+          onTurnContext: onTurnContext,
+          startPhase: LiveVoicePhase.connecting,
+        );
+        return voice;
+      }),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Your assistant is getting ready'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Private AI health checkup'), findsNothing);
+
+    voice.simulatePhase(LiveVoicePhase.speaking);
+    await tester.pump();
+
+    expect(find.text('Your assistant is getting ready'), findsNothing);
+    expect(find.text('Private AI health checkup'), findsOneWidget);
+  });
+
   testWidgets('shows text fallback when realtime voice fails', (tester) async {
     await tester.pumpWidget(
       _buildSubject(service, (onTurnCompleted, onTurnContext) {
@@ -169,7 +196,7 @@ void main() {
       service.nextDecision = VoiceAssessmentTurnDecision(
         acceptedTranscript: 'Yes, please create it.',
         spokenResponse:
-            'I have enough information to prepare your AI Checkup result now.',
+            'I have enough information to prepare your checkup result now.',
         responseInstructions: 'Speak the custom package completion message.',
         completed: true,
         turnCount: 4,
@@ -197,7 +224,7 @@ void main() {
       await voice.simulateFinalization(
         transcript: 'Yes, please create it.',
         response:
-            'I have enough information to prepare your AI Checkup result now.',
+            'I have enough information to prepare your checkup result now.',
       );
       await tester.pumpAndSettle();
 
@@ -766,6 +793,7 @@ class _FakeLiveVoiceController extends LiveVoiceController {
     required super.onTurnCompleted,
     required super.onTurnContext,
     this.failOnStart = false,
+    this.startPhase = LiveVoicePhase.speaking,
   }) : _completed = onTurnCompleted,
        _context = onTurnContext,
        super(
@@ -784,6 +812,7 @@ class _FakeLiveVoiceController extends LiveVoiceController {
   final RealtimeTurnCompleted _completed;
   final RealtimeTurnContext _context;
   final bool failOnStart;
+  final LiveVoicePhase startPhase;
   LiveVoiceState _fakeState = const LiveVoiceState();
   int startCallCount = 0;
   int stopCallCount = 0;
@@ -807,7 +836,7 @@ class _FakeLiveVoiceController extends LiveVoiceController {
             phase: LiveVoicePhase.error,
             errorMessage: 'Realtime voice is unavailable.',
           )
-        : const LiveVoiceState(phase: LiveVoicePhase.listening);
+        : LiveVoiceState(phase: startPhase);
     notifyListeners();
   }
 
@@ -815,6 +844,11 @@ class _FakeLiveVoiceController extends LiveVoiceController {
   Future<void> stop({String reason = 'user_stopped'}) async {
     stopCallCount++;
     _fakeState = const LiveVoiceState(phase: LiveVoicePhase.closed);
+    notifyListeners();
+  }
+
+  void simulatePhase(LiveVoicePhase phase) {
+    _fakeState = LiveVoiceState(phase: phase);
     notifyListeners();
   }
 

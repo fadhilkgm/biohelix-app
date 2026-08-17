@@ -17,6 +17,23 @@ void main() {
     expect(result.urgency, 'soon');
   });
 
+  test('parses a confirmed voice booking signal', () {
+    final decision = VoiceAssessmentTurnDecision.fromJson(const {
+      'accepted_transcript': 'Yes',
+      'spoken_response': 'Your appointment is booked.',
+      'response_instructions': 'Speak exactly.',
+      'completed': false,
+      'turn_count': 2,
+      'max_turns': 10,
+      'state': 'collecting',
+      'booking_created': true,
+      'booking_id': 42,
+    });
+
+    expect(decision.bookingCreated, isTrue);
+    expect(decision.bookingId, 42);
+  });
+
   test('maps legacy outcomes and rejects unknown contract values', () {
     final doctor = AssessmentResults.fromJson(const {
       'outcome': 'consultation_only',

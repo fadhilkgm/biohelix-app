@@ -403,7 +403,7 @@ class VoiceAssessmentSession {
     required this.maxSeconds,
     this.realtimeInstructions = '',
     this.completionPhrase =
-        'I have enough information to prepare your AI Checkup result now.',
+        'I have enough information to prepare your checkup result now.',
     this.state = 'collecting',
   });
 
@@ -424,7 +424,7 @@ class VoiceAssessmentSession {
       realtimeInstructions: json['realtime_instructions']?.toString() ?? '',
       completionPhrase:
           json['completion_phrase']?.toString() ??
-          'I have enough information to prepare your AI Checkup result now.',
+          'I have enough information to prepare your checkup result now.',
       state: AiCheckupContract.state(json['state'], completed: false),
     );
   }
@@ -439,6 +439,8 @@ class VoiceAssessmentTurnDecision {
     required this.turnCount,
     required this.maxTurns,
     this.state = 'collecting',
+    this.bookingCreated = false,
+    this.bookingId,
     this.result,
   });
 
@@ -449,6 +451,8 @@ class VoiceAssessmentTurnDecision {
   final int turnCount;
   final int maxTurns;
   final String state;
+  final bool bookingCreated;
+  final int? bookingId;
   final AssessmentResults? result;
 
   factory VoiceAssessmentTurnDecision.fromJson(Map<String, dynamic> json) {
@@ -464,6 +468,8 @@ class VoiceAssessmentTurnDecision {
         json['state'],
         completed: json['completed'] as bool? ?? false,
       ),
+      bookingCreated: json['booking_created'] as bool? ?? false,
+      bookingId: (json['booking_id'] as num?)?.toInt(),
       result: result is Map
           ? AssessmentResults.fromJson(Map<String, dynamic>.from(result))
           : null,

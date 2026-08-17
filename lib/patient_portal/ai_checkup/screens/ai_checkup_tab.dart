@@ -12,6 +12,7 @@ import '../../../features/session/providers/session_provider.dart';
 import '../../assistant/voice/inworld_signaling_api.dart';
 import '../../assistant/voice/live_voice_controller.dart';
 import '../../assistant/voice/live_voice_state.dart';
+import '../../core/providers/patient_portal_provider.dart';
 import '../../shell/patient_app_shell.dart';
 import '../services/ai_checkup_service.dart';
 
@@ -61,8 +62,8 @@ class _ConversationMessage {
   final String text;
 }
 
-/// Phase-one AI Checkup: a repeatable, voice-first clinical intake that
-/// produces a safe disposition but never creates a lab or doctor booking.
+/// A repeatable, voice-first clinical intake that can also arrange a doctor
+/// appointment after the patient explicitly confirms an offered slot.
 class AiCheckupTab extends StatefulWidget {
   const AiCheckupTab({
     super.key,
@@ -92,6 +93,8 @@ class AiCheckupTab extends StatefulWidget {
 }
 
 class _AiCheckupTabState extends State<AiCheckupTab> {
+  static const _voiceGreetingTimeout = Duration(seconds: 4);
+
   late final LiveVoiceController _voice;
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
@@ -109,6 +112,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   bool _allowPop = false;
   bool _consentGranted = false;
   Timer? _sessionTimer;
+  Timer? _voiceGreetingTimer;
+  bool _waitingForVoiceGreeting = false;
 
   AiCheckupService get _service =>
       (widget.serviceFactory ?? _defaultServiceFactory)(context);
@@ -137,6 +142,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   @override
   void dispose() {
     _sessionTimer?.cancel();
+    _voiceGreetingTimer?.cancel();
     _voice.removeListener(_onVoiceStateChanged);
     _voice.dispose();
     _textController.dispose();
@@ -150,6 +156,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       return;
     }
     _sessionTimer?.cancel();
+    _voiceGreetingTimer?.cancel();
     if (_voice.state.isActive) {
       await _voice.stop(reason: 'new_assessment');
     }
@@ -165,6 +172,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       _ending = false;
       _responsePersistence = Future<void>.value();
       _allowPop = false;
+      _waitingForVoiceGreeting = false;
     });
 
     try {
@@ -175,7 +183,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       if (!mounted) return;
       setState(() {
         _session = session;
-        _view = _CheckupView.conversation;
+        _waitingForVoiceGreeting = true;
         _messages.add(
           _ConversationMessage(
             patient: false,
@@ -193,9 +201,10 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
           (defaultTargetPlatform == TargetPlatform.windows ||
               defaultTargetPlatform == TargetPlatform.linux ||
               defaultTargetPlatform == TargetPlatform.macOS)) {
-        setState(() => _textFallback = true);
+        _showConversation(textFallback: true);
         return;
       }
+      _voiceGreetingTimer = Timer(_voiceGreetingTimeout, _showConversation);
       await _voice.start(
         locale: _isMalayalam ? 'ml-IN' : 'en-IN',
         conversationId: session.sessionToken,
@@ -207,14 +216,16 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       );
       if (!mounted) return;
       if (_voice.state.phase == LiveVoicePhase.error) {
-        setState(() {
-          _textFallback = true;
-          _error = _voice.state.errorMessage;
-        });
+        _showConversation(textFallback: true, error: _voice.state.errorMessage);
+      } else if (_voice.state.phase == LiveVoicePhase.speaking) {
+        _showConversation();
       }
     } catch (error) {
       if (!mounted) return;
+      _voiceGreetingTimer?.cancel();
+      _voiceGreetingTimer = null;
       setState(() {
+        _waitingForVoiceGreeting = false;
         _view = _CheckupView.error;
         _error = _friendlyError(error);
       });
@@ -230,6 +241,9 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
       sessionToken: session.sessionToken,
       transcript: transcript,
     );
+    if (decision.bookingCreated && mounted) {
+      unawaited(context.read<PatientPortalProvider>().refreshDoctorBookings());
+    }
     if (mounted) {
       _appendMessage(patient: true, text: decision.acceptedTranscript);
       setState(() {
@@ -349,13 +363,32 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     if (!mounted) return;
     final state = _voice.state;
     if (state.phase == LiveVoicePhase.error) {
-      setState(() {
-        _textFallback = true;
-        _error = state.errorMessage;
-      });
+      if (_waitingForVoiceGreeting) {
+        _showConversation(textFallback: true, error: state.errorMessage);
+      } else {
+        setState(() {
+          _textFallback = true;
+          _error = state.errorMessage;
+        });
+      }
+    } else if (_waitingForVoiceGreeting &&
+        state.phase == LiveVoicePhase.speaking) {
+      _showConversation();
     } else {
       setState(() {});
     }
+  }
+
+  void _showConversation({bool textFallback = false, String? error}) {
+    if (!mounted || !_waitingForVoiceGreeting) return;
+    _voiceGreetingTimer?.cancel();
+    _voiceGreetingTimer = null;
+    setState(() {
+      _waitingForVoiceGreeting = false;
+      _textFallback = textFallback;
+      _error = error;
+      _view = _CheckupView.conversation;
+    });
   }
 
   Future<void> _sendText() async {
@@ -372,6 +405,11 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
         sessionToken: session.sessionToken,
         transcript: text,
       );
+      if (decision.bookingCreated && mounted) {
+        unawaited(
+          context.read<PatientPortalProvider>().refreshDoctorBookings(),
+        );
+      }
       if (!mounted) return;
       _appendMessage(patient: true, text: decision.acceptedTranscript);
       _appendMessage(patient: false, text: decision.spokenResponse);
@@ -431,6 +469,8 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
     if (_ending) return;
     _ending = true;
     _sessionTimer?.cancel();
+    _voiceGreetingTimer?.cancel();
+    _waitingForVoiceGreeting = false;
     await _voice.stop(reason: 'patient_ended');
     final session = _session;
     if (session != null) {
@@ -579,8 +619,10 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
           ),
           _CheckupView.connecting => const _StatusMessage(
             icon: Icons.graphic_eq_rounded,
-            title: 'Preparing private voice checkup',
-            subtitle: 'Connecting securely and loading your health context…',
+            title: 'Your assistant is getting ready',
+            subtitle:
+                'Please wait for the assistant to speak first. This usually '
+                'takes less than 4 seconds.',
             loading: true,
           ),
           _CheckupView.conversation => _buildConversation(),
