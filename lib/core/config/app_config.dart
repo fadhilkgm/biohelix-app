@@ -28,7 +28,7 @@ class AppConfig {
     );
     String defaultBaseUrl = definedApiBaseUrl.isNotEmpty
         ? definedApiBaseUrl
-        : 'http://192.168.1.4:8000/api/v1';
+        : 'https://demo.bhrchospital.com/api/v1';
 
     if (!kIsWeb && defaultBaseUrl.contains('localhost')) {
       // In Flutter, if running on Android emulator, localhost points to the emulator.

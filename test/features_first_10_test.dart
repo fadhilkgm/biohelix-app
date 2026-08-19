@@ -245,11 +245,11 @@ void main() {
     },
   );
 
-  test('9. app config uses local dev defaults when env is absent', () {
+  test('9. app config uses demo defaults when env is absent', () {
     final config = AppConfig.fromEnvironment();
 
     expect(config.appName, isNotEmpty);
-    expect(config.apiBaseUrl, 'http://192.168.1.4:8000/api/v1');
+    expect(config.apiBaseUrl, 'https://demo.bhrchospital.com/api/v1');
     expect(config.healthEndpoint, '/health');
   });
 
