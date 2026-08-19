@@ -1707,17 +1707,6 @@ class _HealthSnapshotCard extends StatelessWidget {
 
   final HealthSnapshot snapshot;
 
-  String? _formatGeneratedAt(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return null;
-    try {
-      return DateFormat(
-        'dd MMM yyyy, hh:mm a',
-      ).format(DateTime.parse(raw).toLocal());
-    } catch (_) {
-      return raw;
-    }
-  }
-
   String? _formatSnapshotDate(String? raw) {
     if (raw == null || raw.trim().isEmpty) return null;
     try {
@@ -1732,7 +1721,6 @@ class _HealthSnapshotCard extends StatelessWidget {
     final language = context.watch<LanguageProvider>().language;
     final strings = AppStrings.of(language);
     final score = snapshot.healthScore;
-    final generatedLabel = _formatGeneratedAt(snapshot.generatedAt);
     final snapshotDateLabel = _formatSnapshotDate(snapshot.snapshotDate);
     final healthSummary = (snapshot.aiSummary ?? '').trim();
 
@@ -1941,22 +1929,6 @@ class _HealthSnapshotCard extends StatelessWidget {
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                  ],
-                  if (generatedLabel != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      snapshot.updatedByName == null
-                          ? strings.updatedHealthAt(generatedLabel)
-                          : language == AppLanguage.ml
-                          ? '${snapshot.updatedByName} അപ്ഡേറ്റ് ചെയ്തത് · $generatedLabel'
-                          : 'Updated by ${snapshot.updatedByName} · $generatedLabel',
-                      style: const TextStyle(
-                        fontFamily: 'Manrope',
-                        fontFamilyFallback: ['AnekMalayalam'],
-                        color: Color(0xFF52708F),
-                        fontSize: 13.2,
                       ),
                     ),
                   ],

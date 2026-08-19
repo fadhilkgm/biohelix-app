@@ -1969,6 +1969,7 @@ class LabPackageItem {
     required this.slug,
     required this.status,
     required this.basePrice,
+    this.packageCode,
     this.description,
     this.category,
     this.imageUrl,
@@ -1982,6 +1983,7 @@ class LabPackageItem {
   final int id;
   final String name;
   final String slug;
+  final String? packageCode;
   final bool status;
   final int basePrice;
   final String? description;
@@ -1992,6 +1994,16 @@ class LabPackageItem {
   final int? totalTests;
   final int? discountedPrice;
   final List<String> includedTests;
+
+  bool matchesTarget(String rawTarget) {
+    final target = rawTarget.trim().toLowerCase();
+    if (target.isEmpty) return false;
+
+    return slug.trim().toLowerCase() == target ||
+        (packageCode ?? '').trim().toLowerCase() == target ||
+        id.toString() == target ||
+        name.trim().toLowerCase() == target;
+  }
 
   factory LabPackageItem.fromJson(Map<String, dynamic> json) {
     int parseInt(dynamic v) {
@@ -2025,6 +2037,8 @@ class LabPackageItem {
           json['package_name'] as String? ??
           'Health package',
       slug: json['slug'] as String? ?? json['package_code'] as String? ?? '',
+      packageCode:
+          json['packageCode'] as String? ?? json['package_code'] as String?,
       status: parseStatus(rawStatus),
       basePrice: parseInt(
         json['basePrice'] ?? json['base_price'] ?? json['price'],

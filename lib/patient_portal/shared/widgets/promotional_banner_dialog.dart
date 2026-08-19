@@ -74,38 +74,38 @@ class PromotionalBannerDialog extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             child: Material(
               color: Colors.white,
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    InkWell(
-                      onTap: _hasAction
-                          ? () => Navigator.of(context).pop(banner)
-                          : null,
-                      child: Image.network(
+              child: InkWell(
+                onTap: _hasAction
+                    ? () => Navigator.of(context).pop(banner)
+                    : null,
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.network(
                         banner.imageUrl,
                         fit: BoxFit.cover,
                         alignment: Alignment.center,
                         errorBuilder: (context, error, stackTrace) =>
                             const _PromotionFallback(),
                       ),
-                    ),
-                    if (banner.title.trim().isNotEmpty ||
-                        (banner.subtitle ?? '').trim().isNotEmpty)
-                      const _PromotionScrim(),
-                    if (banner.title.trim().isNotEmpty ||
-                        (banner.subtitle ?? '').trim().isNotEmpty ||
-                        (banner.ctaLabel ?? '').trim().isNotEmpty)
-                      _PromotionCopy(banner: banner, hasAction: _hasAction),
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: _CloseButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                      if (banner.title.trim().isNotEmpty ||
+                          (banner.subtitle ?? '').trim().isNotEmpty)
+                        const _PromotionScrim(),
+                      if (banner.title.trim().isNotEmpty ||
+                          (banner.subtitle ?? '').trim().isNotEmpty ||
+                          (banner.ctaLabel ?? '').trim().isNotEmpty)
+                        _PromotionCopy(banner: banner, hasAction: _hasAction),
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: _CloseButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

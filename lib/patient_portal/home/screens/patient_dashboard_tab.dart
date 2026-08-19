@@ -500,9 +500,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
               final normalizedTarget = target.toLowerCase();
               try {
                 return portal.labPackages.firstWhere(
-                  (p) =>
-                      p.slug.toLowerCase() == normalizedTarget ||
-                      p.name.toLowerCase().contains(normalizedTarget),
+                  (p) => p.matchesTarget(normalizedTarget),
                 );
               } catch (_) {
                 return null;
@@ -842,6 +840,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
               p.name.toLowerCase().contains(normalizedTarget);
         }).toList();
 
+        final packageUnavailable =
+            widget.isSpecific && target.isNotEmpty && activePackage == null;
+
         return Scaffold(
           backgroundColor: const Color(0xFFF4F7FF),
           extendBodyBehindAppBar: true,
@@ -871,238 +872,315 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
               ),
             ),
             child: SafeArea(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                itemCount: packages.length,
-                itemBuilder: (context, index) {
-                  final pkg = packages[index];
-                  final pkgImageUrl = resolveImageUrl(pkg.imageUrl);
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(
-                            0xFF06489B,
-                          ).withValues(alpha: 0.08),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
+              child: packageUnavailable
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.search_off_rounded,
+                              size: 48,
+                              color: Color(0xFF6B7A90),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              'This health package is currently unavailable.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(
+                                  0xFF192233,
+                                ).withValues(alpha: 0.72),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        width: 2,
                       ),
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(24),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(24),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => _BannerPackageLandingPage(
-                              packageTarget: pkg.slug,
-                              isSpecific: true,
-                              package: pkg,
+                    )
+                  : packages.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.inventory_2_outlined,
+                              size: 48,
+                              color: Color(0xFF6B7A90),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              'No health packages are available right now.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(
+                                  0xFF192233,
+                                ).withValues(alpha: 0.72),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                      itemCount: packages.length,
+                      itemBuilder: (context, index) {
+                        final pkg = packages[index];
+                        final pkgImageUrl = resolveImageUrl(pkg.imageUrl);
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF06489B,
+                                ).withValues(alpha: 0.08),
+                                blurRadius: 24,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              width: 2,
                             ),
                           ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 110,
-                                height: 130,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(18),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.03,
-                                      ),
-                                      blurRadius: 8,
-                                      offset: const Offset(2, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      pkgImageUrl.isNotEmpty
-                                          ? Image.network(
-                                              pkgImageUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, _, _) =>
-                                                  _fallbackPackageImage(),
-                                            )
-                                          : _fallbackPackageImage(),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.centerLeft,
-                                            end: Alignment.centerRight,
-                                            colors: [
-                                              Colors.transparent,
-                                              Colors.black.withValues(
-                                                alpha: 0.02,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(24),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => _BannerPackageLandingPage(
+                                    packageTarget: pkg.slug,
+                                    isSpecific: true,
+                                    package: pkg,
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      pkg.name,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontFamily: 'Manrope',
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF1A1A1A),
-                                        height: 1.2,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
-                                      ),
+                                      width: 110,
+                                      height: 130,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFF4F7FF),
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: const Color(
-                                            0xFF06489B,
-                                          ).withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(18),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.03,
+                                            ),
+                                            blurRadius: 8,
+                                            offset: const Offset(2, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(18),
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            pkgImageUrl.isNotEmpty
+                                                ? Image.network(
+                                                    pkgImageUrl,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (_, _, _) =>
+                                                        _fallbackPackageImage(),
+                                                  )
+                                                : _fallbackPackageImage(),
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.centerLeft,
+                                                  end: Alignment.centerRight,
+                                                  colors: [
+                                                    Colors.transparent,
+                                                    Colors.black.withValues(
+                                                      alpha: 0.02,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          const Icon(
-                                            Icons.biotech_rounded,
-                                            size: 14,
-                                            color: Color(0xFF06489B),
-                                          ),
-                                          const SizedBox(width: 4),
                                           Text(
-                                            '${pkg.totalTests ?? pkg.includedTests.length} Tests',
+                                            pkg.name,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               fontFamily: 'Manrope',
-                                              fontSize: 12,
-                                              color: const Color(0xFF06489B),
+                                              fontSize: 16,
                                               fontWeight: FontWeight.w800,
+                                              color: const Color(0xFF1A1A1A),
+                                              height: 1.2,
                                             ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF4F7FF),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              border: Border.all(
+                                                color: const Color(
+                                                  0xFF06489B,
+                                                ).withValues(alpha: 0.1),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.biotech_rounded,
+                                                  size: 14,
+                                                  color: Color(0xFF06489B),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${pkg.totalTests ?? pkg.includedTests.length} Tests',
+                                                  style: TextStyle(
+                                                    fontFamily: 'Manrope',
+                                                    fontSize: 12,
+                                                    color: const Color(
+                                                      0xFF06489B,
+                                                    ),
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 14),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                '₹${pkg.discountedPrice ?? pkg.basePrice}',
+                                                style: TextStyle(
+                                                  fontFamily: 'Manrope',
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: const Color(
+                                                    0xFF192233,
+                                                  ),
+                                                ),
+                                              ),
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  gradient:
+                                                      const LinearGradient(
+                                                        begin:
+                                                            Alignment.topLeft,
+                                                        end: Alignment
+                                                            .bottomRight,
+                                                        colors: [
+                                                          Color(0xFF06489B),
+                                                          Color(0xFF3B66D4),
+                                                        ],
+                                                      ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(14),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: const Color(
+                                                        0xFF06489B,
+                                                      ).withValues(alpha: 0.3),
+                                                      blurRadius: 8,
+                                                      offset: const Offset(
+                                                        0,
+                                                        4,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: ElevatedButton(
+                                                  onPressed: () =>
+                                                      Navigator.of(
+                                                        context,
+                                                      ).push(
+                                                        MaterialPageRoute<void>(
+                                                          builder: (_) =>
+                                                              _BannerPackageLandingPage(
+                                                                packageTarget:
+                                                                    pkg.slug,
+                                                                isSpecific:
+                                                                    true,
+                                                                package: pkg,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.transparent,
+                                                    shadowColor:
+                                                        Colors.transparent,
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 24,
+                                                          vertical: 12,
+                                                        ),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            14,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    'Book',
+                                                    style: TextStyle(
+                                                      fontFamily: 'Manrope',
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 15,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
                                     ),
-                                    const SizedBox(height: 14),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          '₹${pkg.discountedPrice ?? pkg.basePrice}',
-                                          style: TextStyle(
-                                            fontFamily: 'Manrope',
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w900,
-                                            color: const Color(0xFF192233),
-                                          ),
-                                        ),
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                              colors: [
-                                                Color(0xFF06489B),
-                                                Color(0xFF3B66D4),
-                                              ],
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              14,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: const Color(
-                                                  0xFF06489B,
-                                                ).withValues(alpha: 0.3),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 4),
-                                              ),
-                                            ],
-                                          ),
-                                          child: ElevatedButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute<void>(
-                                                    builder: (_) =>
-                                                        _BannerPackageLandingPage(
-                                                          packageTarget:
-                                                              pkg.slug,
-                                                          isSpecific: true,
-                                                          package: pkg,
-                                                        ),
-                                                  ),
-                                                ),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  Colors.transparent,
-                                              shadowColor: Colors.transparent,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 24,
-                                                    vertical: 12,
-                                                  ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(14),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              'Book',
-                                              style: TextStyle(
-                                                fontFamily: 'Manrope',
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: 15,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
                                   ],
                                 ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ),
         );

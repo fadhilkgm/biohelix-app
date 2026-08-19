@@ -325,6 +325,7 @@ Sample response:
     {
       "id": 1,
       "name": "Basic Health Package",
+      "packageCode": "PKG-001",
       "slug": "basic-health-package",
       "status": true,
       "basePrice": 1200,
