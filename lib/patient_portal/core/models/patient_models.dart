@@ -1547,6 +1547,7 @@ class ChatMessage {
     this.attachments = const [],
     this.suggestedPackages = const [],
     this.suggestedTests = const [],
+    this.action,
   });
 
   final int? id;
@@ -1556,6 +1557,7 @@ class ChatMessage {
   final List<ChatAttachment> attachments;
   final List<LabPackageItem> suggestedPackages;
   final List<LabTestItem> suggestedTests;
+  final ChatAssistantAction? action;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     // Documented chat endpoints expose the body under `message`; older payloads
@@ -1565,6 +1567,7 @@ class ChatMessage {
     final parsed = ChatMessageCodec.decode(rawContent);
     final pkgsRaw = json['suggestedPackages'] as List<dynamic>? ?? const [];
     final testsRaw = json['suggestedTests'] as List<dynamic>? ?? const [];
+    final actionRaw = json['action'];
     return ChatMessage(
       id: (json['id'] as num?)?.toInt(),
       role: json['role'] as String? ?? 'assistant',
@@ -1589,11 +1592,132 @@ class ChatMessage {
             ),
           )
           .toList(),
+      action: actionRaw is Map
+          ? ChatAssistantAction.fromJson(_map(actionRaw))
+          : null,
     );
   }
 
   String toWireContent() {
     return ChatMessageCodec.encode(content: content, attachments: attachments);
+  }
+}
+
+class ChatAssistantAction {
+  const ChatAssistantAction({
+    required this.intent,
+    required this.state,
+    required this.urgency,
+    required this.outcome,
+    this.sourceSessionToken,
+    this.supportRequired = false,
+    this.bookingCreated = false,
+    this.bookingId,
+    this.bookingNumber,
+    this.recommendedDoctors = const [],
+    this.customPackage,
+  });
+
+  final String intent;
+  final String state;
+  final String urgency;
+  final String outcome;
+  final String? sourceSessionToken;
+  final bool supportRequired;
+  final bool bookingCreated;
+  final int? bookingId;
+  final String? bookingNumber;
+  final List<ChatDoctorRecommendation> recommendedDoctors;
+  final ChatCustomPackage? customPackage;
+
+  bool get isAdviceOnly =>
+      intent == 'advice' && urgency != 'emergency' && !supportRequired;
+
+  factory ChatAssistantAction.fromJson(Map<String, dynamic> json) {
+    final doctors = json['recommended_doctors'] as List<dynamic>? ?? const [];
+    final custom = json['custom_package'];
+    return ChatAssistantAction(
+      intent: json['intent']?.toString() ?? 'advice',
+      state: json['state']?.toString() ?? 'completed',
+      urgency: json['urgency']?.toString() ?? 'routine',
+      outcome: json['outcome']?.toString() ?? 'advice_only',
+      sourceSessionToken: json['source_session_token']?.toString(),
+      supportRequired: json['support_required'] as bool? ?? false,
+      bookingCreated: json['booking_created'] as bool? ?? false,
+      bookingId: (json['booking_id'] as num?)?.toInt(),
+      bookingNumber: json['booking_number']?.toString(),
+      recommendedDoctors: doctors
+          .map((item) => ChatDoctorRecommendation.fromJson(_map(item)))
+          .toList(),
+      customPackage: custom is Map
+          ? ChatCustomPackage.fromJson(_map(custom))
+          : null,
+    );
+  }
+}
+
+class ChatDoctorRecommendation {
+  const ChatDoctorRecommendation({
+    required this.id,
+    required this.name,
+    this.specialization,
+    this.consultationFee,
+    this.reason,
+  });
+
+  final int id;
+  final String name;
+  final String? specialization;
+  final String? consultationFee;
+  final String? reason;
+
+  factory ChatDoctorRecommendation.fromJson(Map<String, dynamic> json) {
+    return ChatDoctorRecommendation(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      name: json['name']?.toString() ?? 'Doctor',
+      specialization: json['specialization']?.toString(),
+      consultationFee: json['consultation_fee']?.toString(),
+      reason: json['reason']?.toString(),
+    );
+  }
+}
+
+class ChatCustomPackage {
+  const ChatCustomPackage({
+    required this.name,
+    required this.testIds,
+    this.id,
+    this.draftToken,
+    this.reason,
+    this.price,
+    this.status = 'draft',
+    this.validUntil,
+  });
+
+  final int? id;
+  final String? draftToken;
+  final String name;
+  final String? reason;
+  final String? price;
+  final String status;
+  final DateTime? validUntil;
+  final List<int> testIds;
+
+  factory ChatCustomPackage.fromJson(Map<String, dynamic> json) {
+    final tests = json['tests'] as List<dynamic>? ?? const [];
+    return ChatCustomPackage(
+      id: (json['id'] as num?)?.toInt(),
+      draftToken: json['draft_token']?.toString(),
+      name: json['name']?.toString() ?? 'Custom health package',
+      reason: json['reason']?.toString(),
+      price: json['price']?.toString(),
+      status: json['status']?.toString() ?? 'draft',
+      validUntil: DateTime.tryParse(json['valid_until']?.toString() ?? ''),
+      testIds: tests
+          .map((item) => (_map(item)['id'] as num?)?.toInt() ?? 0)
+          .where((id) => id > 0)
+          .toList(),
+    );
   }
 }
 

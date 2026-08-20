@@ -107,7 +107,11 @@ class _MessageBubbleWidget extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.s8),
                     for (final pkg in message.suggestedPackages)
-                      _PackageSuggestionCard(pkg: pkg),
+                      _PackageSuggestionCard(
+                        pkg: pkg,
+                        sourceAssessmentToken:
+                            message.action?.sourceSessionToken,
+                      ),
                   ],
                   if (!isUser && message.suggestedTests.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.s10),
@@ -121,7 +125,17 @@ class _MessageBubbleWidget extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.s8),
                     for (final test in message.suggestedTests)
-                      _TestSuggestionCard(test: test),
+                      _TestSuggestionCard(
+                        test: test,
+                        sourceAssessmentToken:
+                            message.action?.sourceSessionToken,
+                      ),
+                  ],
+                  if (!isUser &&
+                      message.action != null &&
+                      !message.action!.isAdviceOnly) ...[
+                    const SizedBox(height: AppSpacing.s10),
+                    _ChatActionPanel(action: message.action!),
                   ],
                   const SizedBox(height: AppSpacing.s8),
                   Align(
@@ -275,9 +289,10 @@ class _DateSeparator extends StatelessWidget {
 }
 
 class _PackageSuggestionCard extends StatelessWidget {
-  const _PackageSuggestionCard({required this.pkg});
+  const _PackageSuggestionCard({required this.pkg, this.sourceAssessmentToken});
 
   final LabPackageItem pkg;
+  final String? sourceAssessmentToken;
 
   @override
   Widget build(BuildContext context) {
@@ -393,9 +408,10 @@ class _PackageSuggestionCard extends StatelessWidget {
 }
 
 class _TestSuggestionCard extends StatelessWidget {
-  const _TestSuggestionCard({required this.test});
+  const _TestSuggestionCard({required this.test, this.sourceAssessmentToken});
 
   final LabTestItem test;
+  final String? sourceAssessmentToken;
 
   @override
   Widget build(BuildContext context) {
@@ -519,6 +535,7 @@ class _TestSuggestionCard extends StatelessWidget {
       patientPhone: portal.dashboard?.patient.phone,
       tests: portal.labTests,
       bodyPoints: portal.bodyPoints,
+      sourceAssessmentToken: sourceAssessmentToken,
     );
     controller.addToCart(_toBookable(test));
 
@@ -527,6 +544,214 @@ class _TestSuggestionCard extends StatelessWidget {
         builder: (_) => ChangeNotifierProvider.value(
           value: controller,
           child: const TestBookingScreen(),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatActionPanel extends StatelessWidget {
+  const _ChatActionPanel({required this.action});
+
+  final ChatAssistantAction action;
+
+  @override
+  Widget build(BuildContext context) {
+    if (action.urgency == 'emergency') {
+      return FilledButton.icon(
+        key: const ValueKey('assistant_emergency_action'),
+        style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC43D4B)),
+        onPressed: () => _openEmergency(context),
+        icon: const Icon(Icons.emergency_rounded),
+        label: const Text('Open emergency contacts'),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (action.bookingCreated)
+          _ActionNotice(
+            key: const ValueKey('assistant_booking_confirmed'),
+            icon: Icons.check_circle_rounded,
+            color: const Color(0xFF16855B),
+            text: action.bookingNumber == null
+                ? 'Appointment booked successfully.'
+                : 'Appointment booked • ${action.bookingNumber}',
+          ),
+        if (action.state == 'awaiting_confirmation')
+          const _ActionNotice(
+            key: ValueKey('assistant_confirmation_required'),
+            icon: Icons.help_outline_rounded,
+            color: Color(0xFF9A6212),
+            text: 'Reply Yes to confirm or No to decline.',
+          ),
+        for (final doctor in action.recommendedDoctors)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: OutlinedButton.icon(
+              key: ValueKey('assistant_doctor_${doctor.id}'),
+              onPressed: () => _openDoctor(context, doctor),
+              icon: const Icon(Icons.medical_services_outlined),
+              label: Text(
+                [doctor.name, doctor.specialization]
+                    .whereType<String>()
+                    .where((value) => value.trim().isNotEmpty)
+                    .join(' • '),
+              ),
+            ),
+          ),
+        if (action.customPackage != null) ...[
+          const SizedBox(height: 8),
+          _CustomPackageActionCard(
+            package: action.customPackage!,
+            sourceAssessmentToken: action.sourceSessionToken,
+          ),
+        ],
+        if (action.supportRequired) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const ValueKey('assistant_hospital_support'),
+            onPressed: () => launchUrl(Uri.parse('tel:+917510210224')),
+            icon: const Icon(Icons.support_agent_rounded),
+            label: const Text('Contact BHRC reception'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _openDoctor(
+    BuildContext context,
+    ChatDoctorRecommendation recommendation,
+  ) {
+    final doctors = context.read<PatientPortalProvider>().doctors;
+    DoctorListing? match;
+    for (final doctor in doctors) {
+      if (doctor.id == recommendation.id) {
+        match = doctor;
+        break;
+      }
+    }
+    if (match == null) {
+      AppToast.show(
+        context,
+        message: 'This doctor is no longer available.',
+        type: AppToastType.warning,
+      );
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _DoctorDetailPage(
+          doctor: match!,
+          sourceAssessmentToken: action.sourceSessionToken,
+        ),
+      ),
+    );
+  }
+
+  void _openEmergency(BuildContext context) {
+    final portal = context.read<PatientPortalProvider>();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => EmergencySupportScreen(
+          patientName: portal.dashboard?.patient.name ?? 'Patient',
+          contacts: portal.dashboard?.emergencyContacts ?? const [],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionNotice extends StatelessWidget {
+  const _ActionNotice({
+    super.key,
+    required this.icon,
+    required this.color,
+    required this.text,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 12))),
+        ],
+      ),
+    );
+  }
+}
+
+class _CustomPackageActionCard extends StatelessWidget {
+  const _CustomPackageActionCard({
+    required this.package,
+    required this.sourceAssessmentToken,
+  });
+
+  final ChatCustomPackage package;
+  final String? sourceAssessmentToken;
+
+  @override
+  Widget build(BuildContext context) {
+    final price = double.tryParse(package.price ?? '');
+    return Container(
+      key: const ValueKey('assistant_custom_package'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEFAF7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF26A89A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            package.name,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${package.testIds.length} tests${price == null ? '' : ' • ₹${price.toStringAsFixed(0)}'}',
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.icon(
+            key: const ValueKey('assistant_custom_package_review'),
+            onPressed: package.testIds.isEmpty ? null : () => _review(context),
+            icon: const Icon(Icons.edit_note_rounded),
+            label: const Text('Review and edit panel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _review(BuildContext context) {
+    final activeIds = context
+        .read<PatientPortalProvider>()
+        .labTests
+        .where((test) => test.status && package.testIds.contains(test.id))
+        .map((test) => test.id)
+        .toList(growable: false);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => LabTestHomeScreen(
+          initialTestIds: activeIds,
+          sourceAssessmentToken: sourceAssessmentToken,
         ),
       ),
     );

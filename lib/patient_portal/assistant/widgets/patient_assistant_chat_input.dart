@@ -140,6 +140,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
               child: widget.isListening
                   ? _AudioWaveform(soundLevel: widget.soundLevel)
                   : TextField(
+                      key: const ValueKey('assistant_message_input'),
                       focusNode: _inputFocus,
                       controller: widget.controller,
                       minLines: 1,
@@ -378,6 +379,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
             shape: BoxShape.circle,
           ),
           child: IconButton(
+            key: const ValueKey('assistant_send_button'),
             onPressed: widget.isBusy
                 ? null
                 : hasText
