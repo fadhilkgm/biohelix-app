@@ -1385,6 +1385,7 @@ class PatientRepository {
         )
         .toList();
     final messagePayload = _map(response['message']);
+    final actionPayload = response['action'] ?? messagePayload['action'];
 
     return ChatMessage(
       id: (messagePayload['id'] as num?)?.toInt(),
@@ -1398,6 +1399,9 @@ class PatientRepository {
           messagePayload['created_at'] as String?,
       suggestedPackages: suggestedPackages,
       suggestedTests: suggestedTests,
+      action: actionPayload is Map
+          ? ChatAssistantAction.fromJson(_map(actionPayload))
+          : null,
     );
   }
 
