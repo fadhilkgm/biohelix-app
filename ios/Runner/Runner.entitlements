@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:demo.bhrchospital.com</string>
+		<string>applinks:www.bhrchospital.com</string>
 	</array>
 	<key>com.apple.developer.healthkit</key>
 	<true/>

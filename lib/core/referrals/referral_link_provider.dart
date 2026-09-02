@@ -15,14 +15,14 @@ class ReferralLinkProvider extends ChangeNotifier {
     required Stream<Uri> linkStream,
     required InstallReferrerReader installReferrerReader,
     required ReferralPreferencesReader preferencesReader,
-    this.allowedHttpsHost = 'demo.bhrchospital.com',
+    this.allowedHttpsHost = 'www.bhrchospital.com',
   }) : _initialLinkReader = initialLinkReader,
        _linkStream = linkStream,
        _installReferrerReader = installReferrerReader,
        _preferencesReader = preferencesReader;
 
   factory ReferralLinkProvider.production({
-    String allowedHttpsHost = 'demo.bhrchospital.com',
+    String allowedHttpsHost = 'www.bhrchospital.com',
   }) {
     final appLinks = AppLinks();
     return ReferralLinkProvider(

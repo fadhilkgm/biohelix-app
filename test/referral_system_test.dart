@@ -22,7 +22,7 @@ void main() {
     final linkEvents = StreamController<Uri>();
     final provider = ReferralLinkProvider(
       initialLinkReader: () async =>
-          Uri.parse('https://demo.bhrchospital.com/r/bhrcabc12345'),
+          Uri.parse('https://www.bhrchospital.com/r/bhrcabc12345'),
       linkStream: linkEvents.stream,
       installReferrerReader: () async => null,
       preferencesReader: SharedPreferences.getInstance,
@@ -87,7 +87,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final provider = ReferralLinkProvider(
       initialLinkReader: () async =>
-          Uri.parse('http://demo.bhrchospital.com/r/BHRCBAD12345'),
+          Uri.parse('http://www.bhrchospital.com/r/BHRCBAD12345'),
       linkStream: const Stream.empty(),
       installReferrerReader: () async => null,
       preferencesReader: SharedPreferences.getInstance,

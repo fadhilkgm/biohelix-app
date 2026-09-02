@@ -6,7 +6,7 @@ class AppConfig {
     required this.apiBaseUrl,
     required this.healthEndpoint,
     required this.showDevOtp,
-    this.referralLinkHost = 'demo.bhrchospital.com',
+    this.referralLinkHost = 'www.bhrchospital.com',
   });
 
   final String appName;
@@ -24,11 +24,11 @@ class AppConfig {
     const definedHealthEndpoint = String.fromEnvironment('HEALTH_ENDPOINT');
     const referralLinkHost = String.fromEnvironment(
       'REFERRAL_LINK_HOST',
-      defaultValue: 'demo.bhrchospital.com',
+      defaultValue: 'www.bhrchospital.com',
     );
     String defaultBaseUrl = definedApiBaseUrl.isNotEmpty
         ? definedApiBaseUrl
-        : 'https://demo.bhrchospital.com/api/v1';
+        : 'https://www.bhrchospital.com/api/v1';
 
     if (!kIsWeb && defaultBaseUrl.contains('localhost')) {
       // In Flutter, if running on Android emulator, localhost points to the emulator.
