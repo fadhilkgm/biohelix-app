@@ -125,9 +125,6 @@ class _LoginPageState extends State<LoginPage> {
       if ((_selectedGender ?? '').isEmpty) {
         errors['gender'] = strings.fieldRequired;
       }
-      if ((_selectedBloodGroup ?? '').isEmpty) {
-        errors['bloodGroup'] = strings.fieldRequired;
-      }
       if (email.isNotEmpty && !email.contains('@')) {
         errors['email'] = strings.enterValidEmail;
       }

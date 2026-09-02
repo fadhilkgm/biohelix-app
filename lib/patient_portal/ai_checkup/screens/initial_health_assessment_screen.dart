@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/providers/language_provider.dart';
@@ -16,7 +15,7 @@ class InitialHealthAssessmentScreen extends StatefulWidget {
 
 class _InitialHealthAssessmentScreenState
     extends State<InitialHealthAssessmentScreen> {
-  static const _stepCount = 8;
+  static const _stepCount = 7;
 
   final _height = TextEditingController();
   final _allergies = TextEditingController();
@@ -29,7 +28,6 @@ class _InitialHealthAssessmentScreenState
   final _cholesterol = TextEditingController();
 
   int _step = 0;
-  DateTime? _dob;
   String? _activityLevel;
   String? _smokingStatus;
   String? _sleepQuality;
@@ -46,9 +44,6 @@ class _InitialHealthAssessmentScreenState
   @override
   void initState() {
     super.initState();
-    final patient = context.read<SessionProvider>().patient;
-    final parsedDob = DateTime.tryParse(patient?.dob ?? '');
-    if (parsedDob != null) _dob = parsedDob;
   }
 
   @override
@@ -75,18 +70,6 @@ class _InitialHealthAssessmentScreenState
       .where((item) => item.isNotEmpty)
       .toList(growable: false);
 
-  Future<void> _pickDob() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _dob ?? DateTime(now.year - 30),
-      firstDate: DateTime(now.year - 130),
-      lastDate: now.subtract(const Duration(days: 1)),
-    );
-    if (picked == null || !mounted) return;
-    setState(() => _dob = picked);
-  }
-
   void _next() {
     FocusScope.of(context).unfocus();
     if (_step < _stepCount - 1) {
@@ -102,9 +85,6 @@ class _InitialHealthAssessmentScreenState
   Future<void> _submit() async {
     await _completeAssessment(
       InitialHealthAssessmentInput(
-        dateOfBirth: _dob == null
-            ? null
-            : DateFormat('yyyy-MM-dd').format(_dob!),
         height: double.tryParse(_height.text.trim()),
         weight: double.tryParse(_weight.text.trim()),
         bloodPressureSystolic: int.tryParse(_systolic.text.trim()),
@@ -284,31 +264,6 @@ class _InitialHealthAssessmentScreenState
   Widget _stepContent() {
     return switch (_step) {
       0 => _question(
-        icon: Icons.cake_outlined,
-        title: _text(
-          'What is your date of birth?',
-          'നിങ്ങളുടെ ജനനത്തീയതി എന്താണ്?',
-        ),
-        subtitle: _text(
-          'Your age is calculated automatically from your date of birth.',
-          'നിങ്ങളുടെ ജനനത്തീയതിയിൽ നിന്ന് പ്രായം സ്വയം കണക്കാക്കും.',
-        ),
-        children: [
-          OutlinedButton.icon(
-            onPressed: _pickDob,
-            icon: const Icon(Icons.calendar_month_outlined),
-            label: Text(
-              _dob == null
-                  ? _text(
-                      'Add date of birth (optional)',
-                      'ജനനത്തീയതി ചേർക്കുക (optional)',
-                    )
-                  : DateFormat('dd MMM yyyy').format(_dob!),
-            ),
-          ),
-        ],
-      ),
-      1 => _question(
         icon: Icons.height_rounded,
         title: _text('What is your height?', 'നിങ്ങളുടെ ഉയരം എത്രയാണ്?'),
         subtitle: _knownOnly,
@@ -321,7 +276,7 @@ class _InitialHealthAssessmentScreenState
           ),
         ],
       ),
-      2 => _question(
+      1 => _question(
         icon: Icons.warning_amber_rounded,
         title: _text(
           'Do you have any allergies?',
@@ -339,7 +294,7 @@ class _InitialHealthAssessmentScreenState
           ),
         ],
       ),
-      3 => _question(
+      2 => _question(
         icon: Icons.medication_outlined,
         title: _text(
           'Are you taking any medications?',
@@ -360,7 +315,7 @@ class _InitialHealthAssessmentScreenState
           ),
         ],
       ),
-      4 => _question(
+      3 => _question(
         icon: Icons.medical_information_outlined,
         title: _text(
           'Do you have any known health conditions?',
@@ -381,7 +336,7 @@ class _InitialHealthAssessmentScreenState
           ),
         ],
       ),
-      5 => _question(
+      4 => _question(
         icon: Icons.directions_walk_rounded,
         title: _text(
           'A little about your routine',
@@ -426,7 +381,7 @@ class _InitialHealthAssessmentScreenState
           ),
         ],
       ),
-      6 => _question(
+      5 => _question(
         icon: Icons.monitor_heart_outlined,
         title: _text(
           'Do you know these readings?',

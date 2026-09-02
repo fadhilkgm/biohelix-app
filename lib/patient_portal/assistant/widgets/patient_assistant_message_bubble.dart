@@ -1,5 +1,12 @@
 part of 'package:biohelix_app/patient_portal/shell/patient_app_shell.dart';
 
+String _normalizeAssistantMarkdown(String value) {
+  return value.replaceAllMapped(
+    RegExp(r'(^|\n)([A-Za-z][^:\n]{0,80}):\*\s*', multiLine: true),
+    (match) => '${match.group(1)}**${match.group(2)}:** ',
+  );
+}
+
 class _MessageBubbleWidget extends StatelessWidget {
   const _MessageBubbleWidget({
     required this.message,
@@ -70,7 +77,7 @@ class _MessageBubbleWidget extends StatelessWidget {
                     )
                   else
                     _RevealingMarkdown(
-                      data: message.content,
+                      data: _normalizeAssistantMarkdown(message.content),
                       animate: false,
                       styleSheet:
                           MarkdownStyleSheet.fromTheme(
