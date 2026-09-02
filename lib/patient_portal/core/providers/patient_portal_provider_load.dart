@@ -322,13 +322,18 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
   Future<void> refreshDoctorBookings() => _refreshDoctorBookings();
 
   Future<void> refreshMyClub() async {
+    final generation = _loadGeneration;
+    final patientId = _sessionProvider.patient?.id;
     try {
-      _myClub = await _repository.getMyClub();
+      final myClub = await _repository.getMyClub();
+      if (!_isCurrentLoad(generation, patientId)) return;
+      _myClub = myClub;
       _mergeMyClubIntoDashboard();
       _errorMessage = null;
     } catch (error) {
-      _errorMessage = error.toString();
+      if (!_isCurrentLoad(generation, patientId)) return;
+      _errorMessage = 'Could not refresh membership details.';
     }
-    _notify();
+    if (_isCurrentLoad(generation, patientId)) _notify();
   }
 }

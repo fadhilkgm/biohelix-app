@@ -7,6 +7,60 @@ String _normalizeAssistantMarkdown(String value) {
   );
 }
 
+/// `MarkdownStyleSheet.fromTheme` walks the whole text theme, which is far too
+/// expensive to redo for every bubble on every frame. Cache one sheet per
+/// [ThemeData] identity (an Expando keeps it alive only as long as the theme).
+final Expando<MarkdownStyleSheet> _assistantMarkdownStyles =
+    Expando<MarkdownStyleSheet>('assistantMarkdownStyleSheet');
+
+MarkdownStyleSheet _assistantMarkdownStyleSheet(BuildContext context) {
+  final theme = Theme.of(context);
+  final cached = _assistantMarkdownStyles[theme];
+  if (cached != null) return cached;
+
+  final bubbleAi = AppTextStyles.bubbleAi(context);
+  final sheet = MarkdownStyleSheet.fromTheme(theme).copyWith(
+    p: bubbleAi,
+    listBullet: bubbleAi,
+    blockquote: bubbleAi,
+    code: bubbleAi.copyWith(fontFamily: 'monospace'),
+  );
+  _assistantMarkdownStyles[theme] = sheet;
+  return sheet;
+}
+
+void _openAssistantMessageActions(BuildContext context, ChatMessage message) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              key: const ValueKey('assistant_copy_message'),
+              leading: const Icon(Icons.copy_rounded),
+              title: const Text('Copy'),
+              onTap: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.pop(sheetContext);
+                await Clipboard.setData(ClipboardData(text: message.content));
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Copied'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 class _MessageBubbleWidget extends StatelessWidget {
   const _MessageBubbleWidget({
     required this.message,
@@ -14,6 +68,7 @@ class _MessageBubbleWidget extends StatelessWidget {
     required this.attachments,
     required this.isSpeaking,
     required this.onAttachmentTap,
+    this.isStreaming = false,
   });
 
   final ChatMessage message;
@@ -22,9 +77,22 @@ class _MessageBubbleWidget extends StatelessWidget {
   final bool isSpeaking;
   final ValueChanged<_ChatAttachment> onAttachmentTap;
 
+  /// True when this is the trailing placeholder currently being streamed into.
+  final bool isStreaming;
+
   @override
   Widget build(BuildContext context) {
     final isUser = message.role == 'user';
+
+    // An empty placeholder reads as a broken bubble; show the typing indicator
+    // until the first token lands.
+    if (!isUser && isStreaming && message.content.trim().isEmpty) {
+      return const Align(
+        alignment: Alignment.centerLeft,
+        child: TypingIndicatorWidget(),
+      );
+    }
+
     final radius = BorderRadius.only(
       topLeft: Radius.circular(
         isUser ? AppRadius.bubbleTight : AppRadius.bubble,
@@ -36,7 +104,11 @@ class _MessageBubbleWidget extends StatelessWidget {
       bottomRight: const Radius.circular(AppRadius.bubble),
     );
 
-    return Align(
+    return GestureDetector(
+      onLongPress: isUser
+          ? null
+          : () => _openAssistantMessageActions(context, message),
+      child: Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -76,26 +148,28 @@ class _MessageBubbleWidget extends StatelessWidget {
                       style: AppTextStyles.bubbleUser(context),
                     )
                   else
-                    _RevealingMarkdown(
-                      data: _normalizeAssistantMarkdown(message.content),
-                      animate: false,
-                      styleSheet:
-                          MarkdownStyleSheet.fromTheme(
-                            Theme.of(context),
-                          ).copyWith(
-                            p: AppTextStyles.bubbleAi(context),
-                            listBullet: AppTextStyles.bubbleAi(context),
-                            blockquote: AppTextStyles.bubbleAi(context),
-                            code: AppTextStyles.bubbleAi(
-                              context,
-                            ).copyWith(fontFamily: 'monospace'),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: MarkdownBody(
+                            data: _normalizeAssistantMarkdown(message.content),
+                            selectable: true,
+                            styleSheet: _assistantMarkdownStyleSheet(context),
+                            onTapLink: (text, href, title) {
+                              if ((href ?? '').isEmpty) return;
+                              final uri = Uri.tryParse(href!);
+                              if (uri == null) return;
+                              launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
+                            },
                           ),
-                      onTapLink: (text, href, title) {
-                        if ((href ?? '').isEmpty) return;
-                        final uri = Uri.tryParse(href!);
-                        if (uri == null) return;
-                        launchUrl(uri, mode: LaunchMode.externalApplication);
-                      },
+                        ),
+                        if (isStreaming) const _StreamingCaret(),
+                      ],
                     ),
                   for (final attachment in attachments)
                     _ChatAttachmentWidget(
@@ -163,90 +237,31 @@ class _MessageBubbleWidget extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 }
 
-/// Renders an AI reply as markdown, progressively revealing it word-by-word
-/// while [animate] is true (i.e. while the reply is being spoken aloud). When
-/// [animate] turns false the full text is shown immediately, so the reveal
-/// self-corrects to the actual speech duration.
-class _RevealingMarkdown extends StatefulWidget {
-  const _RevealingMarkdown({
-    required this.data,
-    required this.animate,
-    required this.styleSheet,
-    this.onTapLink,
-  });
-
-  final String data;
-  final bool animate;
-  final MarkdownStyleSheet styleSheet;
-  final void Function(String text, String? href, String? title)? onTapLink;
+/// A cheap blinking caret pinned to the tail of a reply while it streams.
+/// Deliberately a plain timer + opacity rather than an animation controller:
+/// it repaints one glyph, not the bubble.
+class _StreamingCaret extends StatefulWidget {
+  const _StreamingCaret();
 
   @override
-  State<_RevealingMarkdown> createState() => _RevealingMarkdownState();
+  State<_StreamingCaret> createState() => _StreamingCaretState();
 }
 
-class _RevealingMarkdownState extends State<_RevealingMarkdown> {
-  static const Duration _wordInterval = Duration(milliseconds: 190);
-
-  // End offsets of each word in `data`, used to reveal a growing prefix that
-  // keeps the original markdown/whitespace intact.
-  List<int> _wordEnds = const [];
-  int _revealed = 0;
+class _StreamingCaretState extends State<_StreamingCaret> {
   Timer? _timer;
+  bool _visible = true;
 
   @override
   void initState() {
     super.initState();
-    _computeWordEnds();
-    if (widget.animate) {
-      _revealed = 0;
-      _startTimer();
-    } else {
-      _revealed = _wordEnds.length;
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant _RevealingMarkdown oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.data != oldWidget.data) {
-      _computeWordEnds();
-      _revealed = widget.animate ? 0 : _wordEnds.length;
-    }
-    if (widget.animate && !oldWidget.animate) {
-      _revealed = 0;
-      _startTimer();
-    } else if (!widget.animate && oldWidget.animate) {
-      // Speech ended — snap to the full text.
-      _timer?.cancel();
-      _revealed = _wordEnds.length;
-    }
-  }
-
-  void _computeWordEnds() {
-    _wordEnds = RegExp(
-      r'\S+',
-    ).allMatches(widget.data).map((match) => match.end).toList(growable: false);
-  }
-
-  void _startTimer() {
-    _timer?.cancel();
-    if (_wordEnds.isEmpty) return;
-    _timer = Timer.periodic(_wordInterval, (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_revealed >= _wordEnds.length) {
-        timer.cancel();
-        return;
-      }
-      setState(() {
-        _revealed++;
-      });
+    _timer = Timer.periodic(const Duration(milliseconds: 520), (_) {
+      if (!mounted) return;
+      setState(() => _visible = !_visible);
     });
   }
 
@@ -258,18 +273,10 @@ class _RevealingMarkdownState extends State<_RevealingMarkdown> {
 
   @override
   Widget build(BuildContext context) {
-    final shown =
-        (!widget.animate || _revealed >= _wordEnds.length || _wordEnds.isEmpty)
-        ? widget.data
-        : widget.data.substring(
-            0,
-            _wordEnds[_revealed - 1 < 0 ? 0 : _revealed - 1],
-          );
-
-    return MarkdownBody(
-      data: _revealed == 0 && widget.animate ? '' : shown,
-      styleSheet: widget.styleSheet,
-      onTapLink: widget.onTapLink,
+    return AnimatedOpacity(
+      opacity: _visible ? 1 : 0,
+      duration: const Duration(milliseconds: 160),
+      child: Text('▍', style: AppTextStyles.bubbleAi(context)),
     );
   }
 }

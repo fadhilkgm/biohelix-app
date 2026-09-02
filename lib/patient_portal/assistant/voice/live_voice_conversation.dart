@@ -1,3 +1,11 @@
+/// Sent as the `response.create` instruction when the per-turn context lookup
+/// is slower than the live latency budget, or fails outright. The call keeps
+/// going on the session instructions already delivered in `session.update`.
+const String kLiveVoiceFallbackTurnInstructions =
+    "Answer the patient's last message now using the session instructions "
+    'and any health background already provided. Keep it to one to three '
+    'short spoken sentences.';
+
 String normalizeLiveVoicePhrase(String value) {
   return value
       .toLowerCase()
@@ -10,6 +18,8 @@ bool isLiveConversationEndingPhrase(String transcript) {
   final phrase = normalizeLiveVoicePhrase(transcript);
   if (phrase.isEmpty || phrase.length > 80) return false;
 
+  // Gratitude on its own is not a farewell: patients routinely say "thanks"
+  // in the middle of a consultation and the call must stay open.
   const exactPhrases = {
     'bye',
     'bye bye',
@@ -17,31 +27,15 @@ bool isLiveConversationEndingPhrase(String transcript) {
     'good bye',
     'see you',
     'see you later',
-    'thank you',
-    'thank you so much',
-    'thank you very much',
-    'thanks',
-    'thanks a lot',
-    'thanks for your help',
-    'thanks for explaining',
     'that is all',
     'that s all',
     'no more questions',
     'ok bye',
     'okay bye',
-    'ok thank you',
-    'okay thank you',
-    'alright thank you',
-    'നന്ദി',
-    'വളരെ നന്ദി',
     'ബൈ',
     'ബൈ ബൈ',
     'വിട',
     'പിന്നെ കാണാം',
-    'മതി നന്ദി',
-    'ശരി നന്ദി',
-    'nanni',
-    'valare nanni',
   };
 
   return exactPhrases.contains(phrase);

@@ -7,17 +7,34 @@ class _AssistantTab extends StatefulWidget {
   State<_AssistantTab> createState() => _AssistantTabState();
 }
 
+/// How close to the bottom the patient must already be for a new message to
+/// pull the view down.
+const double _stickToBottomThreshold = 120;
+
+/// How far up the patient must scroll before the jump-to-latest button appears.
+const double _scrollToBottomThreshold = 300;
+
 class _AssistantTabState extends State<_AssistantTab> {
   final _inputController = TextEditingController();
   final _messagesController = ScrollController();
+  late final InworldSignalingApi _signalingApi;
   late final LiveVoiceController _liveVoiceController;
-  int _lastAutoScrolledMessageCount = 0;
-  String? _lastAutoScrolledThreadId;
+  Timer? _voicePrewarmTimer;
+  PatientPortalProvider? _portal;
+  int _lastMessageCount = 0;
+  String? _lastScrolledThreadId;
+  double _lastKeyboardInset = 0;
+  bool _showScrollToBottom = false;
+  bool _forceStickToBottomOnNextMessage = false;
   bool _showMobileSidebar = false;
   bool _isListening = false;
   bool _isSpeaking = false;
   bool _isLiveVoiceMode = false;
   bool _isEndingLiveVoice = false;
+  bool _isMicMuted = false;
+  String _liveUserPartial = '';
+  String _liveUserFinal = '';
+  String _liveResponseText = '';
   String? _liveVoiceError;
   String? _liveConversationId;
   final List<ChatAttachment> _pendingAttachments = <ChatAttachment>[];
@@ -50,8 +67,11 @@ class _AssistantTabState extends State<_AssistantTab> {
   void initState() {
     super.initState();
     final apiClient = context.read<ApiClient>();
+    // One signaling client for the tab: it owns the bootstrap cache, so a new
+    // instance per turn would throw away every prewarm.
+    _signalingApi = InworldSignalingApi(apiClient);
     _liveVoiceController = LiveVoiceController(
-      signalingApi: InworldSignalingApi(apiClient),
+      signalingApi: _signalingApi,
       onTurnCompleted: (transcript, response) async {
         if (!mounted) return;
         final portal = context.read<PatientPortalProvider>();
@@ -60,7 +80,7 @@ class _AssistantTabState extends State<_AssistantTab> {
         final conversationId = _liveConversationId;
         if ((conversationId ?? '').isNotEmpty) {
           try {
-            await InworldSignalingApi(apiClient).persistTurn(
+            await _signalingApi.persistTurn(
               conversationId: conversationId!,
               transcript: transcript,
               response: response,
@@ -76,7 +96,7 @@ class _AssistantTabState extends State<_AssistantTab> {
         }
         if (shouldEndLiveVoice && mounted && !_isEndingLiveVoice) {
           updateAssistantState(() => _isEndingLiveVoice = true);
-          await Future<void>.delayed(const Duration(milliseconds: 2200));
+          await Future<void>.delayed(const Duration(milliseconds: 1600));
           if (!mounted || !_isLiveVoiceMode) return;
           await _toggleLiveVoiceMode(portal);
         }
@@ -89,31 +109,149 @@ class _AssistantTabState extends State<_AssistantTab> {
         if ((conversationId ?? '').isEmpty) {
           throw StateError('A chat conversation is required for live voice.');
         }
-        return InworldSignalingApi(apiClient).responseInstructions(
+        return _signalingApi.responseInstructions(
           conversationId: conversationId!,
           transcript: transcript,
         );
       },
     );
     _liveVoiceController.addListener(_handleLiveVoiceControllerChanged);
+    _messagesController.addListener(_handleMessagesScrolled);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<PatientPortalProvider>().initializeChatThreads();
-      // Fetch ICE/session config early. This is network-only: the microphone
-      // stays off until the patient explicitly starts live voice.
-      final language = context.read<LanguageProvider>().language;
-      unawaited(
-        _liveVoiceController.prewarm(
-          locale: language == AppLanguage.ml ? 'ml-IN' : 'en-IN',
-        ),
+      _prewarmLiveVoice();
+      // The bootstrap cache is short lived, so keep it warm while the patient
+      // reads the thread. This is network-only: the microphone stays off until
+      // live voice is explicitly started.
+      _voicePrewarmTimer?.cancel();
+      _voicePrewarmTimer = Timer.periodic(
+        const Duration(seconds: 30),
+        (_) => _prewarmLiveVoice(),
       );
     });
+  }
+
+  void _prewarmLiveVoice() {
+    if (!mounted || _isLiveVoiceMode) return;
+    final language = context.read<LanguageProvider>().language;
+    unawaited(
+      _liveVoiceController.prewarm(
+        locale: language == AppLanguage.ml ? 'ml-IN' : 'en-IN',
+      ),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final portal = context.read<PatientPortalProvider>();
+    if (!identical(portal, _portal)) {
+      _portal?.removeListener(_handlePortalChanged);
+      _portal = portal;
+      portal.addListener(_handlePortalChanged);
+      _lastScrolledThreadId = portal.activeChatThreadId;
+      _lastMessageCount = portal.chatMessages.length;
+      _maybeStickToBottom(force: true, jump: true);
+    }
+
+    // Depending on the inset here also means the keyboard opening/closing
+    // re-runs this callback.
+    final inset = MediaQuery.viewInsetsOf(context).bottom;
+    if ((inset - _lastKeyboardInset).abs() > 1) {
+      final opening = inset > _lastKeyboardInset;
+      _lastKeyboardInset = inset;
+      _maybeStickToBottom(force: opening, jump: true);
+    }
+  }
+
+  /// Scrolls to the newest message only when the patient is already reading the
+  /// tail (or when [force] — they just sent something, or the thread changed).
+  /// Scrolling someone back down while they read history is worse than not
+  /// scrolling at all.
+  void _maybeStickToBottom({bool force = false, bool jump = false}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_messagesController.hasClients) return;
+      final position = _messagesController.position;
+      if (!position.hasContentDimensions) return;
+      final distance = position.maxScrollExtent - position.pixels;
+      if (!force && distance > _stickToBottomThreshold) return;
+      if (distance.abs() < 1) return;
+      try {
+        if (jump) {
+          _messagesController.jumpTo(position.maxScrollExtent);
+        } else {
+          _messagesController.animateTo(
+            position.maxScrollExtent,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+          );
+        }
+      } catch (_) {
+        // Ignore transient detach/layout races during route and keyboard changes.
+      }
+    });
+  }
+
+  void _handlePortalChanged() {
+    if (!mounted) return;
+    final portal = _portal;
+    if (portal == null) return;
+
+    final threadId = portal.activeChatThreadId;
+    final count = portal.chatMessages.length;
+
+    if (threadId != _lastScrolledThreadId) {
+      _lastScrolledThreadId = threadId;
+      _lastMessageCount = count;
+      _maybeStickToBottom(force: true, jump: true);
+      return;
+    }
+
+    if (count != _lastMessageCount) {
+      _lastMessageCount = count;
+      final force = _forceStickToBottomOnNextMessage;
+      _forceStickToBottomOnNextMessage = false;
+      _maybeStickToBottom(force: force, jump: force);
+      return;
+    }
+
+    if (portal.isStreamingReply) {
+      // Deltas land every few tens of ms; an animation per delta would fight
+      // itself, so follow the tail with a jump.
+      _maybeStickToBottom(jump: true);
+    }
+  }
+
+  void _handleMessagesScrolled() {
+    if (!mounted || !_messagesController.hasClients) return;
+    final position = _messagesController.position;
+    if (!position.hasContentDimensions) return;
+    final show =
+        position.maxScrollExtent - position.pixels > _scrollToBottomThreshold;
+    if (show == _showScrollToBottom) return;
+    setState(() => _showScrollToBottom = show);
+  }
+
+  void _scrollToBottom() {
+    if (!_messagesController.hasClients) return;
+    _messagesController.animateTo(
+      _messagesController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
   void dispose() {
     _isLiveVoiceMode = false;
     _isEndingLiveVoice = false;
+    _portal?.removeListener(_handlePortalChanged);
+    _portal = null;
+    _messagesController.removeListener(_handleMessagesScrolled);
+    _voicePrewarmTimer?.cancel();
+    _voicePrewarmTimer = null;
     _liveVoiceController.removeListener(_handleLiveVoiceControllerChanged);
     _liveVoiceController.dispose();
     _liveConversationId = null;
@@ -130,7 +268,6 @@ class _AssistantTabState extends State<_AssistantTab> {
     return Consumer<PatientPortalProvider>(
       builder: (context, portal, _) {
         final messages = portal.chatMessages;
-        final activeThreadId = portal.activeChatThreadId;
         final busy = portal.isSendingMessage || portal.isUploadingDocument;
         final pendingAttachments = List<ChatAttachment>.unmodifiable(
           _pendingAttachments,
@@ -141,34 +278,8 @@ class _AssistantTabState extends State<_AssistantTab> {
         final analysisInProgress =
             _isAttachmentAnalysisInFlight || portal.analyzingDocumentId != null;
 
-        if (activeThreadId != _lastAutoScrolledThreadId) {
-          _lastAutoScrolledThreadId = activeThreadId;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || !_messagesController.hasClients) return;
-            final position = _messagesController.position;
-            if (!position.hasContentDimensions) return;
-            _messagesController.jumpTo(position.maxScrollExtent);
-          });
-        }
-
-        if (messages.length != _lastAutoScrolledMessageCount || busy) {
-          _lastAutoScrolledMessageCount = messages.length;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || !_messagesController.hasClients) return;
-            final position = _messagesController.position;
-            if (!position.hasContentDimensions) return;
-            try {
-              _messagesController.animateTo(
-                position.maxScrollExtent,
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
-              );
-            } catch (_) {
-              // Ignore transient detach/layout races during route and keyboard changes.
-            }
-          });
-        }
-
+        // Auto-scroll is driven by the provider listener and
+        // didChangeDependencies; build() stays a pure function of state.
         return PopScope<void>(
           canPop: !_isLiveVoiceMode,
           onPopInvokedWithResult: (didPop, result) {
@@ -224,10 +335,16 @@ class _AssistantTabState extends State<_AssistantTab> {
                               isListening: _isListening,
                               isSpeaking: _isSpeaking,
                               isBusy: portal.isSendingMessage,
-                              soundLevel: _soundLevel,
+                              soundLevel: _liveVoiceController.soundLevel,
+                              isMuted: _isMicMuted,
+                              partialTranscript: _liveUserPartial,
+                              finalTranscript: _liveUserFinal,
+                              responseText: _liveResponseText,
                               errorMessage: _liveVoiceError,
                               onInterrupt: () =>
                                   _interruptAiSpeechAndListen(portal),
+                              onToggleMute: () =>
+                                  unawaited(_liveVoiceController.toggleMute()),
                               onStopLive: () => _toggleLiveVoiceMode(portal),
                               onRetry: () {
                                 _updateAssistantState(() {
@@ -236,7 +353,24 @@ class _AssistantTabState extends State<_AssistantTab> {
                                 _toggleLiveVoiceMode(portal);
                               },
                             )
-                          : messages.isEmpty && !portal.isSendingMessage
+                          : messages.isEmpty && portal.isLoadingChatHistory
+                          // A spinner, not the onboarding prompts: an empty
+                          // state during a load reads as "you have no chats".
+                          ? const Center(
+                              key: ValueKey('assistant_history_loading'),
+                              child: SizedBox(
+                                width: 26,
+                                height: 26,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                ),
+                              ),
+                            )
+                          : messages.isEmpty && portal.chatHistoryError != null
+                          ? _AssistantHistoryError(
+                              onRetry: () => portal.retryChatHistory(),
+                            )
+                          : messages.isEmpty
                           ? _AssistantEmptyState(
                               prompts: strings.assistantStarterPrompts,
                               patientName: patientName,
@@ -245,70 +379,100 @@ class _AssistantTabState extends State<_AssistantTab> {
                                 _sendMessage(portal);
                               },
                             )
-                          : ListView.separated(
-                              controller: _messagesController,
-                              padding: const EdgeInsets.fromLTRB(14, 8, 14, 18),
-                              itemCount:
-                                  messages.length +
-                                  (portal.isSendingMessage ? 1 : 0),
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(height: AppSpacing.s14),
-                              itemBuilder: (context, index) {
-                                if (index >= messages.length) {
-                                  return const TypingIndicatorWidget();
-                                }
+                          : Stack(
+                              children: [
+                                ListView.separated(
+                                  controller: _messagesController,
+                                  padding: const EdgeInsets.fromLTRB(
+                                    14,
+                                    8,
+                                    14,
+                                    18,
+                                  ),
+                                  itemCount: messages.length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(height: AppSpacing.s14),
+                                  itemBuilder: (context, index) {
+                                    final message = messages[index];
+                                    final date = _messageDate(message);
+                                    final showDate =
+                                        index == 0 ||
+                                        _dateLabel(_strings, date) !=
+                                            _dateLabel(
+                                              _strings,
+                                              _messageDate(messages[index - 1]),
+                                            );
+                                    final attachments = _attachmentsFromMessage(
+                                      context,
+                                      message,
+                                    );
+                                    final isLast =
+                                        index == messages.length - 1;
 
-                                final message = messages[index];
-                                final date = _messageDate(message, index);
-                                final showDate =
-                                    index == 0 ||
-                                    _dateLabel(_strings, date) !=
-                                        _dateLabel(
-                                          _strings,
-                                          _messageDate(
-                                            messages[index - 1],
-                                            index - 1,
+                                    return RepaintBoundary(
+                                      key: ValueKey<Object>(
+                                        message.id ?? 'index-$index',
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          if (showDate)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                bottom: AppSpacing.s12,
+                                              ),
+                                              child: _DateSeparator(
+                                                label: _dateLabel(
+                                                  _strings,
+                                                  date,
+                                                ),
+                                              ),
+                                            ),
+                                          _MessageBubbleWidget(
+                                            message: message,
+                                            timeLabel: _messageTimeLabel(
+                                              message,
+                                            ),
+                                            attachments: attachments,
+                                            isStreaming:
+                                                portal.isStreamingReply &&
+                                                isLast &&
+                                                message.role != 'user',
+                                            isSpeaking:
+                                                _isSpeaking &&
+                                                message.role != 'user' &&
+                                                isLast,
+                                            onAttachmentTap: (attachment) {
+                                              _openAttachmentPreview(
+                                                context,
+                                                attachment,
+                                              );
+                                            },
                                           ),
-                                        );
-                                final attachments = _attachmentsFromMessage(
-                                  context,
-                                  message,
-                                );
-
-                                return Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    if (showDate)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: AppSpacing.s12,
-                                        ),
-                                        child: _DateSeparator(
-                                          label: _dateLabel(_strings, date),
-                                        ),
+                                        ],
                                       ),
-                                    _MessageBubbleWidget(
-                                      message: message,
-                                      timeLabel: _messageTimeLabel(
-                                        message,
-                                        index,
+                                    );
+                                  },
+                                ),
+                                if (_showScrollToBottom)
+                                  Positioned(
+                                    right: 14,
+                                    bottom: 12,
+                                    child: FloatingActionButton.small(
+                                      key: const ValueKey(
+                                        'assistant_scroll_to_bottom',
                                       ),
-                                      attachments: attachments,
-                                      isSpeaking:
-                                          _isSpeaking &&
-                                          message.role != 'user' &&
-                                          index == messages.length - 1,
-                                      onAttachmentTap: (attachment) {
-                                        _openAttachmentPreview(
-                                          context,
-                                          attachment,
-                                        );
-                                      },
+                                      heroTag: 'assistantScrollToBottom',
+                                      onPressed: _scrollToBottom,
+                                      backgroundColor: AiChatColors.bubbleAi,
+                                      foregroundColor: AiChatColors.primary,
+                                      child: const Icon(
+                                        Icons.arrow_downward_rounded,
+                                      ),
                                     ),
-                                  ],
-                                );
-                              },
+                                  ),
+                              ],
                             ),
                     ),
                     if (pendingAttachments.isNotEmpty)
@@ -423,12 +587,14 @@ class _AssistantTabState extends State<_AssistantTab> {
                               isListening: _isListening,
                               isLiveMode: _isLiveVoiceMode,
                               isSpeaking: _isSpeaking,
+                              isStreaming: portal.isStreamingReply,
                               soundLevel: _soundLevel,
                               onAttach: () => _attachFile(portal),
                               onLiveTap: () => _toggleLiveVoiceMode(portal),
                               onVoiceTap: () => _toggleLiveVoiceMode(portal),
                               onInterrupt: () =>
                                   _interruptAiSpeechAndListen(portal),
+                              onStop: portal.cancelReply,
                               onSend: () => _sendMessage(portal),
                             ),
                     ),
@@ -549,8 +715,54 @@ class _AssistantTabState extends State<_AssistantTab> {
       _isListening = state.isListening;
       _isSpeaking = state.isSpeaking;
       _soundLevel = state.soundLevel;
+      _isMicMuted = _liveVoiceController.isMuted;
+      _liveUserPartial = state.partialTranscript;
+      _liveUserFinal = state.finalTranscript;
+      _liveResponseText = state.responseText;
       _liveVoiceError = state.errorMessage;
     });
+  }
+}
+
+/// Shown when the thread history could not be loaded. Deliberately not the
+/// empty state: "start a chat" would hide the fact that existing messages are
+/// simply unreachable right now.
+class _AssistantHistoryError extends StatelessWidget {
+  const _AssistantHistoryError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      key: const ValueKey('assistant_history_error'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 20,
+              color: AiChatColors.textSecondary,
+            ),
+            const SizedBox(width: AppSpacing.s8),
+            Flexible(
+              child: Text(
+                'This chat could not be loaded.',
+                style: AppTextStyles.subtitle(context),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s8),
+            TextButton(
+              key: const ValueKey('assistant_history_retry'),
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -768,8 +980,13 @@ class _AssistantLiveStage extends StatelessWidget {
     required this.isSpeaking,
     required this.isBusy,
     required this.soundLevel,
+    required this.isMuted,
+    required this.partialTranscript,
+    required this.finalTranscript,
+    required this.responseText,
     required this.errorMessage,
     required this.onInterrupt,
+    required this.onToggleMute,
     required this.onStopLive,
     required this.onRetry,
   });
@@ -779,9 +996,17 @@ class _AssistantLiveStage extends StatelessWidget {
   final bool isListening;
   final bool isSpeaking;
   final bool isBusy;
-  final double soundLevel;
+
+  /// Sampled 5x a second, so it is listened to in place instead of being
+  /// rebuilt through the whole assistant tab.
+  final ValueNotifier<double> soundLevel;
+  final bool isMuted;
+  final String partialTranscript;
+  final String finalTranscript;
+  final String responseText;
   final String? errorMessage;
   final VoidCallback onInterrupt;
+  final VoidCallback onToggleMute;
   final VoidCallback onStopLive;
   final VoidCallback onRetry;
 
@@ -825,12 +1050,15 @@ class _AssistantLiveStage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _VoiceOrb(
-                  isListening: isListening,
-                  isSpeaking: isSpeaking,
-                  isBusy: isBusy,
-                  soundLevel: soundLevel,
-                  hasError: hasError,
+                ValueListenableBuilder<double>(
+                  valueListenable: soundLevel,
+                  builder: (context, level, _) => _VoiceOrb(
+                    isListening: isListening,
+                    isSpeaking: isSpeaking,
+                    isBusy: isBusy,
+                    soundLevel: level,
+                    hasError: hasError,
+                  ),
                 ),
                 const SizedBox(height: 28),
                 Text(
@@ -860,6 +1088,14 @@ class _AssistantLiveStage extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (!hasError) ...[
+                  const SizedBox(height: 20),
+                  _LiveCaption(
+                    partialTranscript: partialTranscript,
+                    finalTranscript: finalTranscript,
+                    responseText: responseText,
+                  ),
+                ],
                 const SizedBox(height: 24),
                 if (hasError) ...[
                   FilledButton.icon(
@@ -883,7 +1119,9 @@ class _AssistantLiveStage extends StatelessWidget {
           child: _LiveControlsDock(
             isListening: isListening,
             isSpeaking: isSpeaking,
+            isMuted: isMuted,
             onInterrupt: onInterrupt,
+            onToggleMute: onToggleMute,
             onStopLive: onStopLive,
           ),
         ),
@@ -892,21 +1130,103 @@ class _AssistantLiveStage extends StatelessWidget {
   }
 }
 
+/// Live captions under the orb: what the patient is saying, then what the
+/// assistant answers as it streams in.
+class _LiveCaption extends StatelessWidget {
+  const _LiveCaption({
+    required this.partialTranscript,
+    required this.finalTranscript,
+    required this.responseText,
+  });
+
+  final String partialTranscript;
+  final String finalTranscript;
+  final String responseText;
+
+  @override
+  Widget build(BuildContext context) {
+    final answer = responseText.trim();
+    final partial = partialTranscript.trim();
+    final spoken = finalTranscript.trim();
+
+    final String text;
+    final bool isTentative;
+    final bool isAssistant;
+    if (answer.isNotEmpty) {
+      text = answer;
+      isTentative = false;
+      isAssistant = true;
+    } else if (partial.isNotEmpty) {
+      text = partial;
+      isTentative = true;
+      isAssistant = false;
+    } else {
+      text = spoken;
+      isTentative = false;
+      isAssistant = false;
+    }
+
+    return SizedBox(
+      height: 92,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: text.isEmpty
+            ? const SizedBox.shrink(key: ValueKey('live-caption-empty'))
+            : Align(
+                key: ValueKey(
+                  'live-caption-${isAssistant ? 'ai' : 'patient'}-$isTentative',
+                ),
+                alignment: Alignment.topCenter,
+                child: Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 15,
+                    height: 1.42,
+                    fontWeight: isAssistant
+                        ? FontWeight.w600
+                        : FontWeight.w500,
+                    fontStyle: isTentative
+                        ? FontStyle.italic
+                        : FontStyle.normal,
+                    color: isTentative
+                        ? AiChatColors.textSecondary.withValues(alpha: 0.7)
+                        : isAssistant
+                        ? AiChatColors.textPrimary
+                        : AiChatColors.textSecondary,
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+}
+
 class _LiveControlsDock extends StatelessWidget {
   const _LiveControlsDock({
     required this.isListening,
     required this.isSpeaking,
+    required this.isMuted,
     required this.onInterrupt,
+    required this.onToggleMute,
     required this.onStopLive,
   });
 
   final bool isListening;
   final bool isSpeaking;
+  final bool isMuted;
   final VoidCallback onInterrupt;
+  final VoidCallback onToggleMute;
   final VoidCallback onStopLive;
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context.read<LanguageProvider>().language);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -914,17 +1234,23 @@ class _LiveControlsDock extends StatelessWidget {
           icon: Icons.stop_rounded,
           onTap: isSpeaking ? onInterrupt : null,
           highlighted: isSpeaking,
-          label: AppStrings.of(
-            context.read<LanguageProvider>().language,
-          ).assistantInterruptAi,
+          label: strings.assistantInterruptAi,
+        ),
+        const SizedBox(width: 18),
+        _RoundLiveButton(
+          icon: isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+          onTap: onToggleMute,
+          highlighted: isMuted,
+          label: isMuted ? 'Unmute' : 'Mute',
+          semanticsLabel: isMuted
+              ? 'Unmute microphone'
+              : 'Mute microphone',
         ),
         const SizedBox(width: 18),
         _RoundLiveButton(
           icon: Icons.call_end_rounded,
           onTap: onStopLive,
-          label: AppStrings.of(
-            context.read<LanguageProvider>().language,
-          ).assistantStop,
+          label: strings.assistantStop,
           destructive: true,
         ),
       ],
@@ -937,6 +1263,7 @@ class _RoundLiveButton extends StatelessWidget {
     required this.icon,
     required this.onTap,
     required this.label,
+    this.semanticsLabel,
     this.highlighted = false,
     this.destructive = false,
   });
@@ -944,20 +1271,22 @@ class _RoundLiveButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
   final String label;
+  final String? semanticsLabel;
   final bool highlighted;
   final bool destructive;
 
   @override
   Widget build(BuildContext context) {
     final color = destructive ? const Color(0xFFC43D4B) : AiChatColors.primary;
+    final accessibleLabel = semanticsLabel ?? label;
     return Semantics(
       button: true,
-      label: label,
+      label: accessibleLabel,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Tooltip(
-            message: label,
+            message: accessibleLabel,
             child: IconButton.filled(
               onPressed: onTap,
               style: IconButton.styleFrom(
@@ -978,13 +1307,19 @@ class _RoundLiveButton extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Manrope',
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AiChatColors.textSecondary,
+          SizedBox(
+            width: 92,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AiChatColors.textSecondary,
+              ),
             ),
           ),
         ],

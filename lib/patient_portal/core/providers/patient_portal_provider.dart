@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart' show CancelToken;
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../data/patient_repository.dart';
 import '../models/home_feed_models.dart';
@@ -76,7 +78,12 @@ class PatientPortalProvider extends ChangeNotifier {
   bool _isCreatingHomeCareBooking = false;
   bool _isUploadingDocument = false;
   int? _analyzingDocumentId;
-  bool _isSendingMessage = false;
+  String? _sendingThreadId;
+  String? _streamingThreadId;
+  CancelToken? _replyCancelToken;
+  String? _loadingChatHistoryThreadId;
+  String? _chatHistoryError;
+  String? _chatHistoryErrorThreadId;
   int? _loadingDocumentChatId;
   int? _sendingDocumentChatId;
   DocumentAnalysisResult? _lastAnalysisResult;
@@ -142,7 +149,38 @@ class PatientPortalProvider extends ChangeNotifier {
   bool get isCreatingHomeCareBooking => _isCreatingHomeCareBooking;
   bool get isUploadingDocument => _isUploadingDocument;
   int? get analyzingDocumentId => _analyzingDocumentId;
-  bool get isSendingMessage => _isSendingMessage;
+  /// True only while a send is in flight for the thread currently on screen, so
+  /// a reply streaming into thread A never shows a typing indicator in thread B.
+  bool get isSendingMessage =>
+      _sendingThreadId != null && _sendingThreadId == _activeChatThreadId;
+
+  /// True while assistant text is streaming into the thread on screen.
+  bool get isStreamingReply =>
+      _streamingThreadId != null && _streamingThreadId == _activeChatThreadId;
+
+  String? get streamingThreadId => _streamingThreadId;
+
+  /// True while the active thread's history is being fetched for the first time
+  /// (a cached history keeps the messages on screen instead of a spinner).
+  bool get isLoadingChatHistory {
+    final threadId = _activeChatThreadId;
+    if (threadId == null) {
+      return _chatInitialization != null && _chatHistoryError == null;
+    }
+    if (_chatHistories.containsKey(threadId)) return false;
+    return _loadingChatHistoryThreadId == threadId ||
+        _chatInitialization != null;
+  }
+
+  /// Set when loading the active thread's history (or the thread list) failed.
+  String? get chatHistoryError {
+    final error = _chatHistoryError;
+    if (error == null) return null;
+    final errorThreadId = _chatHistoryErrorThreadId;
+    if (errorThreadId == null) return error;
+    return errorThreadId == _activeChatThreadId ? error : null;
+  }
+
   int? get loadingDocumentChatId => _loadingDocumentChatId;
   int? get sendingDocumentChatId => _sendingDocumentChatId;
   DocumentAnalysisResult? get lastAnalysisResult => _lastAnalysisResult;
@@ -209,6 +247,13 @@ class PatientPortalProvider extends ChangeNotifier {
     _chatThreads = const [];
     _activeChatThreadId = null;
     _chatHistories.clear();
+    _replyCancelToken?.cancel('patient-scope-reset');
+    _replyCancelToken = null;
+    _sendingThreadId = null;
+    _streamingThreadId = null;
+    _loadingChatHistoryThreadId = null;
+    _chatHistoryError = null;
+    _chatHistoryErrorThreadId = null;
     _documentAnalyses.clear();
     _documentChats.clear();
     _lastAnalysisResult = null;

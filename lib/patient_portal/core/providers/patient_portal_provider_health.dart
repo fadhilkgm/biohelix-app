@@ -2,53 +2,71 @@ part of 'package:biohelix_app/patient_portal/core/providers/patient_portal_provi
 
 extension PatientPortalHealthMixin on PatientPortalProvider {
   Future<void> refreshHealthSnapshot() async {
+    final generation = _loadGeneration;
+    final patientId = _sessionProvider.patient?.id;
     try {
-      _healthSnapshot = await _repository.refreshHealthSnapshot();
+      final snapshot = await _repository.refreshHealthSnapshot();
+      if (!_isCurrentLoad(generation, patientId)) return;
+      _healthSnapshot = snapshot;
       _errorMessage = null;
     } catch (error) {
+      if (!_isCurrentLoad(generation, patientId)) return;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _notify();
+      if (_isCurrentLoad(generation, patientId)) _notify();
     }
   }
 
   /// Manual entry ("add/update today's readings"). Updates local state with
   /// the upserted snapshot returned by the API.
   Future<void> submitHealthSnapshot(HealthSnapshotInput input) async {
+    final generation = _loadGeneration;
+    final patientId = _sessionProvider.patient?.id;
     _isSubmittingHealthSnapshot = true;
     _errorMessage = null;
     _notify();
 
     try {
-      _healthSnapshot = await _repository.submitHealthSnapshot(input);
+      final snapshot = await _repository.submitHealthSnapshot(input);
+      if (!_isCurrentLoad(generation, patientId)) return;
+      _healthSnapshot = snapshot;
     } catch (error) {
+      if (!_isCurrentLoad(generation, patientId)) return;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isSubmittingHealthSnapshot = false;
-      _notify();
+      if (_isCurrentLoad(generation, patientId)) {
+        _isSubmittingHealthSnapshot = false;
+        _notify();
+      }
     }
   }
 
   /// Loads the first page of health-snapshot history, replacing any
   /// previously loaded pages.
   Future<void> loadHealthSnapshotHistory() async {
+    final generation = _loadGeneration;
+    final patientId = _sessionProvider.patient?.id;
     _isLoadingHealthSnapshotHistory = true;
     _errorMessage = null;
     _notify();
 
     try {
       final page = await _repository.getHealthSnapshotHistory(page: 1);
+      if (!_isCurrentLoad(generation, patientId)) return;
       _healthSnapshotHistory = page.items;
       _healthSnapshotHistoryPage = page.currentPage;
       _healthSnapshotHistoryLastPage = page.lastPage;
     } catch (error) {
+      if (!_isCurrentLoad(generation, patientId)) return;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isLoadingHealthSnapshotHistory = false;
-      _notify();
+      if (_isCurrentLoad(generation, patientId)) {
+        _isLoadingHealthSnapshotHistory = false;
+        _notify();
+      }
     }
   }
 
@@ -57,6 +75,8 @@ extension PatientPortalHealthMixin on PatientPortalProvider {
     if (_isLoadingMoreHealthSnapshotHistory || !hasMoreHealthSnapshotHistory) {
       return;
     }
+    final generation = _loadGeneration;
+    final patientId = _sessionProvider.patient?.id;
     _isLoadingMoreHealthSnapshotHistory = true;
     _notify();
 
@@ -64,21 +84,28 @@ extension PatientPortalHealthMixin on PatientPortalProvider {
       final nextPage = await _repository.getHealthSnapshotHistory(
         page: _healthSnapshotHistoryPage + 1,
       );
+      if (!_isCurrentLoad(generation, patientId)) return;
       _healthSnapshotHistory = [..._healthSnapshotHistory, ...nextPage.items];
       _healthSnapshotHistoryPage = nextPage.currentPage;
       _healthSnapshotHistoryLastPage = nextPage.lastPage;
     } catch (error) {
+      if (!_isCurrentLoad(generation, patientId)) return;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isLoadingMoreHealthSnapshotHistory = false;
-      _notify();
+      if (_isCurrentLoad(generation, patientId)) {
+        _isLoadingMoreHealthSnapshotHistory = false;
+        _notify();
+      }
     }
   }
 
   Future<void> acceptAiSuggestion(int suggestionId) async {
+    final generation = _loadGeneration;
+    final patientId = _sessionProvider.patient?.id;
     try {
       final updated = await _repository.acceptAiSuggestion(suggestionId);
+      if (!_isCurrentLoad(generation, patientId)) return;
       _aiSuggestions = _aiSuggestions
           .map(
             (item) => item.id == suggestionId
@@ -88,10 +115,11 @@ extension PatientPortalHealthMixin on PatientPortalProvider {
           .toList();
       _errorMessage = null;
     } catch (error) {
+      if (!_isCurrentLoad(generation, patientId)) return;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _notify();
+      if (_isCurrentLoad(generation, patientId)) _notify();
     }
   }
 }

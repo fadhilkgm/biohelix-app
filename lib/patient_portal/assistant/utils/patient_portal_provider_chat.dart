@@ -1,5 +1,15 @@
 part of 'package:biohelix_app/patient_portal/core/providers/patient_portal_provider.dart';
 
+/// A user-safe failure the assistant reported inside the reply stream.
+class AssistantStreamException implements Exception {
+  const AssistantStreamException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 extension PatientPortalChatMixin on PatientPortalProvider {
   Future<void> initializeChatThreads({bool force = false}) async {
     if (_chatThreads.isNotEmpty && !force) {
@@ -25,6 +35,8 @@ extension PatientPortalChatMixin on PatientPortalProvider {
 
   Future<void> _loadInitialChatThreads() async {
     _errorMessage = null;
+    _chatHistoryError = null;
+    _chatHistoryErrorThreadId = null;
 
     try {
       final threads = await _repository.getGlobalChatThreads();
@@ -39,6 +51,9 @@ extension PatientPortalChatMixin on PatientPortalProvider {
       _notify();
     } catch (error) {
       _errorMessage = error.toString();
+      // No thread is addressable yet, so the failure is not thread-scoped.
+      _chatHistoryError = error.toString();
+      _chatHistoryErrorThreadId = null;
       _notify();
     }
   }
@@ -127,15 +142,38 @@ extension PatientPortalChatMixin on PatientPortalProvider {
   Future<void> loadChatHistory(String threadId) async {
     if (threadId.isEmpty) return;
 
+    _loadingChatHistoryThreadId = threadId;
+    if (_chatHistoryErrorThreadId == threadId || _chatHistoryErrorThreadId == null) {
+      _chatHistoryError = null;
+      _chatHistoryErrorThreadId = null;
+    }
+    _notify();
+
     try {
       final history = await _repository.getGlobalChatHistory(threadId);
       _chatHistories[threadId] = history;
       _errorMessage = null;
-      _notify();
     } catch (error) {
       _errorMessage = error.toString();
+      _chatHistoryError = error.toString();
+      _chatHistoryErrorThreadId = threadId;
+    } finally {
+      if (_loadingChatHistoryThreadId == threadId) {
+        _loadingChatHistoryThreadId = null;
+      }
       _notify();
     }
+  }
+
+  /// Retries whatever failed: the thread bootstrap, or the active thread's
+  /// history.
+  Future<void> retryChatHistory() async {
+    final threadId = _activeChatThreadId;
+    if ((threadId ?? '').isEmpty) {
+      await initializeChatThreads(force: true);
+      return;
+    }
+    await loadChatHistory(threadId!);
   }
 
   Future<void> sendChatMessage(
@@ -144,6 +182,10 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     String? language,
     String? mode,
   }) async {
+    // Re-entrancy guard: one send at a time across every thread. A second send
+    // would race the placeholder bookkeeping of the first.
+    if (_sendingThreadId != null) return;
+
     final trimmed = message.trim();
     if (trimmed.isEmpty && attachments.isEmpty) return;
 
@@ -158,12 +200,21 @@ extension PatientPortalChatMixin on PatientPortalProvider {
 
     final currentThreadId = threadId!;
     final existing = _chatHistories[currentThreadId] ?? const <ChatMessage>[];
+    final nowIso = DateTime.now().toIso8601String();
     final userMessage = ChatMessage(
       role: 'user',
       content: trimmed,
       attachments: attachments,
+      createdAt: nowIso,
     );
-    _chatHistories[currentThreadId] = [...existing, userMessage];
+    // The placeholder is what the tab renders as a typing indicator, then as
+    // growing text; it is replaced wholesale by the authoritative `done` reply.
+    final placeholder = ChatMessage(
+      role: 'ai',
+      content: '',
+      createdAt: nowIso,
+    );
+    _chatHistories[currentThreadId] = [...existing, userMessage, placeholder];
 
     final preview = trimmed.isNotEmpty
         ? trimmed
@@ -171,32 +222,158 @@ extension PatientPortalChatMixin on PatientPortalProvider {
         ? 'Sent ${attachments.first.isImage ? 'an image' : 'an attachment'}'
         : '';
 
-    _isSendingMessage = true;
+    final idempotencyKey =
+        '$currentThreadId-${DateTime.now().microsecondsSinceEpoch}';
+    final cancelToken = CancelToken();
+    _replyCancelToken = cancelToken;
+    _sendingThreadId = currentThreadId;
+    _streamingThreadId = currentThreadId;
     _errorMessage = null;
     _touchThread(currentThreadId, preview);
     _notify();
 
+    final wireMessage = userMessage.toWireContent();
+    final buffer = StringBuffer();
+    var sawDelta = false;
+    var completed = false;
+    var lastNotify = DateTime.now();
+
     try {
-      final wireMessage = userMessage.toWireContent();
-      final reply = await _repository.sendGlobalChatMessage(
+      await for (final event in _repository.streamGlobalChatMessage(
         threadId: currentThreadId,
         message: wireMessage,
         language: language,
         mode: mode,
-      );
-      final updated = _chatHistories[currentThreadId] ?? const <ChatMessage>[];
-      _chatHistories[currentThreadId] = [...updated, reply];
-      _touchThread(currentThreadId, reply.content);
+        idempotencyKey: idempotencyKey,
+        cancelToken: cancelToken,
+      )) {
+        if (event.type == ChatStreamEventType.delta) {
+          sawDelta = true;
+          buffer.write(event.text);
+          _replaceStreamingReply(
+            currentThreadId,
+            ChatMessage(
+              role: 'ai',
+              content: buffer.toString(),
+              createdAt: nowIso,
+            ),
+          );
+          // Throttle: a notify per delta would rebuild the whole list at token
+          // rate.
+          final now = DateTime.now();
+          if (now.difference(lastNotify).inMilliseconds >= 50) {
+            lastNotify = now;
+            _notify();
+          }
+        } else if (event.type == ChatStreamEventType.done) {
+          final reply = event.message!;
+          _replaceStreamingReply(currentThreadId, reply);
+          _touchThread(currentThreadId, reply.content);
+          completed = true;
+          break;
+        } else {
+          throw AssistantStreamException(event.text);
+        }
+      }
+
+      if (!completed) {
+        if (cancelToken.isCancelled) {
+          // Stop-generation: keep whatever arrived as the assistant turn.
+          _touchThread(currentThreadId, buffer.toString());
+        } else if (!sawDelta) {
+          // The stream ended without producing anything usable.
+          await _sendChatMessageNonStreaming(
+            threadId: currentThreadId,
+            message: wireMessage,
+            language: language,
+            mode: mode,
+            idempotencyKey: idempotencyKey,
+          );
+        } else {
+          _touchThread(currentThreadId, buffer.toString());
+        }
+      }
     } catch (error) {
-      _errorMessage = error.toString();
-      // Roll back the optimistic turn. A transport failure is UI state, not an
-      // assistant-authored message, and callers need the error to offer retry.
-      _chatHistories[currentThreadId] = existing;
-      rethrow;
+      if (cancelToken.isCancelled) {
+        // Cancellation is not a failure: keep the partial text.
+        _touchThread(currentThreadId, buffer.toString());
+      } else if (!sawDelta && _isTransportFailure(error)) {
+        // The streaming endpoint may not be deployed (404) or may be rate
+        // limited; the non-streaming endpoint remains the contract.
+        try {
+          await _sendChatMessageNonStreaming(
+            threadId: currentThreadId,
+            message: wireMessage,
+            language: language,
+            mode: mode,
+            idempotencyKey: idempotencyKey,
+          );
+        } catch (fallbackError) {
+          _errorMessage = fallbackError.toString();
+          _chatHistories[currentThreadId] = existing;
+          rethrow;
+        }
+      } else {
+        _errorMessage = error.toString();
+        // Roll back the optimistic turn (user message and placeholder). A
+        // transport failure is UI state, not an assistant-authored message,
+        // and callers need the error to offer retry.
+        _chatHistories[currentThreadId] = existing;
+        rethrow;
+      }
     } finally {
-      _isSendingMessage = false;
+      if (identical(_replyCancelToken, cancelToken)) {
+        _replyCancelToken = null;
+      }
+      if (_sendingThreadId == currentThreadId) _sendingThreadId = null;
+      if (_streamingThreadId == currentThreadId) _streamingThreadId = null;
       _notify();
     }
+  }
+
+  Future<void> _sendChatMessageNonStreaming({
+    required String threadId,
+    required String message,
+    required String? language,
+    required String? mode,
+    required String idempotencyKey,
+  }) async {
+    final reply = await _repository.sendGlobalChatMessage(
+      threadId: threadId,
+      message: message,
+      language: language,
+      mode: mode,
+      idempotencyKey: idempotencyKey,
+    );
+    _replaceStreamingReply(threadId, reply);
+    _touchThread(threadId, reply.content);
+  }
+
+  /// Swaps the trailing assistant placeholder for [reply]. No-op if the tail is
+  /// no longer the placeholder (thread reloaded mid-flight).
+  void _replaceStreamingReply(String threadId, ChatMessage reply) {
+    final history = _chatHistories[threadId];
+    if (history == null || history.isEmpty) return;
+    if (history.last.role == 'user') return;
+    _chatHistories[threadId] = [
+      ...history.sublist(0, history.length - 1),
+      reply,
+    ];
+  }
+
+  /// A server-authored `error` frame is an application failure, not a transport
+  /// one, so it must not trigger the non-streaming fallback.
+  bool _isTransportFailure(Object error) {
+    if (error is AssistantStreamException) return false;
+    return error is ApiException || error is TimeoutException;
+  }
+
+  /// Stops an in-flight reply. Whatever text already streamed stays as the
+  /// assistant message.
+  void cancelReply() {
+    final token = _replyCancelToken;
+    if (token == null || token.isCancelled) return;
+    token.cancel('stopped-by-user');
   }
 
   void _touchThread(String threadId, String preview) {

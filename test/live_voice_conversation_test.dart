@@ -5,8 +5,9 @@ void main() {
   group('isLiveConversationEndingPhrase', () {
     test('recognizes short English and Malayalam endings', () {
       expect(isLiveConversationEndingPhrase('Bye!'), isTrue);
-      expect(isLiveConversationEndingPhrase('Okay, thank you.'), isTrue);
-      expect(isLiveConversationEndingPhrase('നന്ദി'), isTrue);
+      expect(isLiveConversationEndingPhrase('Okay, bye.'), isTrue);
+      expect(isLiveConversationEndingPhrase('That is all'), isTrue);
+      expect(isLiveConversationEndingPhrase('ബൈ'), isTrue);
       expect(isLiveConversationEndingPhrase('പിന്നെ കാണാം!'), isTrue);
     });
 
@@ -22,6 +23,20 @@ void main() {
         isFalse,
       );
     });
+
+    test('gratitude alone keeps the call open', () {
+      // Patients thank the assistant mid-consultation; hanging up there was
+      // the single most reported live-voice complaint.
+      expect(isLiveConversationEndingPhrase('Thank you'), isFalse);
+      expect(isLiveConversationEndingPhrase('Thanks a lot'), isFalse);
+      expect(isLiveConversationEndingPhrase('Okay, thank you.'), isFalse);
+      expect(isLiveConversationEndingPhrase('നന്ദി'), isFalse);
+    });
+  });
+
+  test('fallback turn instructions stay short and spoken', () {
+    expect(kLiveVoiceFallbackTurnInstructions, contains('session instructions'));
+    expect(kLiveVoiceFallbackTurnInstructions, contains('short spoken'));
   });
 
   test('farewell prompt does not invite another question', () {

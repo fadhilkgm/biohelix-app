@@ -11,8 +11,10 @@ class ChatInputWidget extends StatefulWidget {
     required this.onVoiceTap,
     required this.onSend,
     this.isSpeaking = false,
+    this.isStreaming = false,
     this.soundLevel = 0.0,
     this.onInterrupt,
+    this.onStop,
     super.key,
   });
 
@@ -21,12 +23,18 @@ class ChatInputWidget extends StatefulWidget {
   final bool isListening;
   final bool isLiveMode;
   final bool isSpeaking;
+
+  /// True while an assistant reply is streaming: the send button becomes Stop.
+  final bool isStreaming;
   final double soundLevel;
   final VoidCallback onAttach;
   final VoidCallback onLiveTap;
   final VoidCallback onVoiceTap;
   final VoidCallback onSend;
   final VoidCallback? onInterrupt;
+
+  /// Invoked by the Stop button while [isStreaming].
+  final VoidCallback? onStop;
 
   @override
   State<ChatInputWidget> createState() => _ChatInputWidgetState();
@@ -153,7 +161,12 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                       ),
                       cursorColor: AiChatColors.primary,
                       textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => widget.onSend(),
+                      // Enter must respect the same busy gate as the button,
+                      // otherwise it queues a second send mid-reply.
+                      onSubmitted: (_) {
+                        if (widget.isBusy || widget.isStreaming) return;
+                        widget.onSend();
+                      },
                       decoration: InputDecoration(
                         isDense: true,
                         filled: false,
@@ -367,6 +380,25 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   //  Send Button — gradient circle with soft shadow
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildSendButton() {
+    // While a reply streams the affordance is Stop, not a dead spinner: the
+    // patient can always interrupt generation.
+    if (widget.isStreaming) {
+      return Container(
+        width: 48,
+        height: 48,
+        decoration: const BoxDecoration(
+          gradient: AiChatColors.userBubbleGradient,
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          key: const ValueKey('assistant_stop_button'),
+          tooltip: 'Stop',
+          onPressed: widget.onStop,
+          icon: const Icon(Icons.stop_rounded, color: Colors.white, size: 24),
+        ),
+      );
+    }
+
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, child) {

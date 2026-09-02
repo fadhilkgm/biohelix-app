@@ -26,13 +26,24 @@ String _dateLabel(LocalizedStrings strings, DateTime date) {
   return DateFormat('dd MMM yyyy').format(date);
 }
 
-DateTime _messageDate(ChatMessage message, int index) {
+/// Per-message fallback timestamps, so a message without `createdAt` keeps one
+/// stable time instead of drifting on every rebuild.
+final Expando<DateTime> _messageFallbackDates = Expando<DateTime>(
+  'assistantMessageFallbackDate',
+);
+
+DateTime _messageDate(ChatMessage message) {
   final parsed = DateTime.tryParse(message.createdAt ?? '');
-  return parsed ?? DateTime.now().subtract(Duration(minutes: index));
+  if (parsed != null) return parsed;
+  final cached = _messageFallbackDates[message];
+  if (cached != null) return cached;
+  final now = DateTime.now();
+  _messageFallbackDates[message] = now;
+  return now;
 }
 
-String _messageTimeLabel(ChatMessage message, int index) {
-  return DateFormat('hh:mm a').format(_messageDate(message, index));
+String _messageTimeLabel(ChatMessage message) {
+  return DateFormat('hh:mm a').format(_messageDate(message));
 }
 
 String _resolveAttachmentUrl(BuildContext context, String rawUrl) {
@@ -48,6 +59,13 @@ String _resolveAttachmentUrl(BuildContext context, String rawUrl) {
   final path = value.startsWith('/') ? value.substring(1) : value;
   return Uri.parse(origin).resolve(path).toString();
 }
+
+/// The quoted string only counts as a legacy attachment if it actually looks
+/// like an uploadable file name.
+final RegExp _legacyAttachmentNamePattern = RegExp(
+  r'\.(pdf|png|jpe?g|webp|heic)$',
+  caseSensitive: false,
+);
 
 List<_ChatAttachment> _attachmentsFromMessage(
   BuildContext context,
@@ -66,18 +84,19 @@ List<_ChatAttachment> _attachmentsFromMessage(
         .toList();
   }
 
-  // Backward compatibility for legacy messages that embedded file names in text.
+  // Backward compatibility for legacy *patient* messages that embedded file
+  // names in text. Assistant replies quote ordinary prose constantly, so
+  // applying this to them invents phantom attachments.
+  if (message.role != 'user') return const [];
+
   final content = message.content;
   final quoted = RegExp(r'"([^"]+)"').firstMatch(content);
   if (quoted == null) return const [];
   final name = quoted.group(1) ?? '';
   if (name.isEmpty) return const [];
+  if (!_legacyAttachmentNamePattern.hasMatch(name)) return const [];
   final lower = name.toLowerCase();
-  final isImage =
-      lower.endsWith('.png') ||
-      lower.endsWith('.jpg') ||
-      lower.endsWith('.jpeg') ||
-      lower.endsWith('.webp');
+  final isImage = !lower.endsWith('.pdf');
   return [
     _ChatAttachment(
       name: name,
@@ -108,6 +127,10 @@ extension _AssistantActions on _AssistantTabState {
       _assistantLanguage == AppLanguage.ml ? 'ml-IN' : 'en-IN';
 
   Future<void> _sendMessage(PatientPortalProvider portal) async {
+    // The provider also guards re-entrancy; bail here so the composer is not
+    // cleared for a send that will be dropped.
+    if (portal.isSendingMessage) return;
+
     final message = inputController.text.trim();
     final attachments = List<ChatAttachment>.from(_pendingAttachments);
     if (message.isEmpty && attachments.isEmpty) return;
@@ -116,6 +139,7 @@ extension _AssistantActions on _AssistantTabState {
     updateAssistantState(() {
       _pendingAttachments.clear();
     });
+    _forceStickToBottomOnNextMessage = true;
 
     try {
       await portal.sendChatMessage(
@@ -136,8 +160,17 @@ extension _AssistantActions on _AssistantTabState {
           ..addAll(attachments);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Message not sent. Check your connection and retry.'),
+        SnackBar(
+          content: const Text(
+            'Message not sent. Check your connection and retry.',
+          ),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () {
+              if (!mounted) return;
+              unawaited(_sendMessage(portal));
+            },
+          ),
         ),
       );
     }
@@ -451,7 +484,11 @@ extension _AssistantActions on _AssistantTabState {
         _isListening = false;
         _isSpeaking = false;
         _isEndingLiveVoice = false;
+        _isMicMuted = false;
         _soundLevel = 0;
+        _liveUserPartial = '';
+        _liveUserFinal = '';
+        _liveResponseText = '';
         _liveVoiceError = null;
         _liveConversationId = null;
       });

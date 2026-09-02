@@ -215,7 +215,6 @@ class _PatientAppShellState extends State<PatientAppShell>
                         ? const Center(child: CircularProgressIndicator())
                         : RefreshIndicator(
                             onRefresh: portal.refresh,
-                            notificationPredicate: (_) => false,
                             child: IndexedStack(
                               index: _selectedIndex,
                               children: pages,

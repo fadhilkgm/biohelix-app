@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
@@ -32,23 +34,31 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          _logger.i('REQ ${options.method} ${options.uri}');
+          // Release builds must not leak request URLs/bodies (chat content) to
+          // device logs.
+          if (kDebugMode) {
+            _logger.i('REQ ${options.method} ${options.uri}');
+          }
           handler.next(options);
         },
         onResponse: (response, handler) {
-          _logger.i(
-            'RES ${response.statusCode} ${response.requestOptions.uri}',
-          );
+          if (kDebugMode) {
+            _logger.i(
+              'RES ${response.statusCode} ${response.requestOptions.uri}',
+            );
+          }
           handler.next(response);
         },
         onError: (error, handler) {
           final status = error.response?.statusCode;
-          final summary =
-              'ERR $status ${error.requestOptions.uri}: ${_errorMessage(error)}';
-          if (status == 503) {
-            _logger.w(summary);
-          } else {
-            _logger.e(summary);
+          if (kDebugMode) {
+            final summary =
+                'ERR $status ${error.requestOptions.uri}: ${_errorMessage(error)}';
+            if (status == 503) {
+              _logger.w(summary);
+            } else {
+              _logger.e(summary);
+            }
           }
           if (error.response?.statusCode == 401) {
             _onUnauthorized?.call();
@@ -157,6 +167,77 @@ class ApiClient {
         statusCode: error.response?.statusCode,
       );
     }
+  }
+
+  /// POSTs [data] and yields the JSON payload of every `data:` line of a
+  /// `text/event-stream` response.
+  ///
+  /// Blank lines, comment lines (`:` prefixed) and non-`data:` fields are
+  /// ignored. Chunk boundaries that split a line are handled by the line
+  /// splitter, so a payload is only emitted once its line is complete.
+  /// Non-2xx responses surface as [ApiException] before the first payload,
+  /// which lets callers fall back to a non-streaming endpoint.
+  Stream<String> postEventStream(
+    String path, {
+    Object? data,
+    CancelToken? cancelToken,
+    Duration? receiveTimeout,
+  }) async* {
+    final Response<ResponseBody> response;
+    try {
+      response = await _dio.post<ResponseBody>(
+        path,
+        data: data,
+        cancelToken: cancelToken,
+        options: Options(
+          responseType: ResponseType.stream,
+          headers: const {'Accept': 'text/event-stream'},
+          receiveTimeout: receiveTimeout ?? const Duration(seconds: 120),
+        ),
+      );
+    } on DioException catch (error) {
+      throw ApiException(
+        _streamErrorMessage(error),
+        statusCode: error.response?.statusCode,
+      );
+    }
+
+    final body = response.data;
+    if (body == null) {
+      throw ApiException(
+        'The assistant stream returned no data.',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final lines = body.stream
+        .cast<List<int>>()
+        .transform(utf8.decoder)
+        .transform(const LineSplitter());
+
+    try {
+      await for (final line in lines) {
+        if (line.isEmpty || line.startsWith(':')) continue;
+        if (!line.startsWith('data:')) continue;
+        final payload = line.substring(5).trim();
+        if (payload.isEmpty) continue;
+        yield payload;
+      }
+    } on DioException catch (error) {
+      throw ApiException(
+        _streamErrorMessage(error),
+        statusCode: error.response?.statusCode,
+      );
+    }
+  }
+
+  static String _streamErrorMessage(DioException error) {
+    // Stream responses carry a ResponseBody, not a decoded map, so the generic
+    // extractor would stringify a handle instead of a message.
+    if (error.response?.data is ResponseBody) {
+      return error.message ?? 'Request failed';
+    }
+    return _errorMessage(error);
   }
 
   Future<Map<String, dynamic>> patchJson(String path, {Object? data}) async {

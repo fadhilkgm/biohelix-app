@@ -32,6 +32,9 @@ class LiveVoiceState {
   final String finalTranscript;
   final String responseText;
   final String? errorMessage;
+
+  /// Kept for compatibility. Live microphone/speaker levels are published on
+  /// [LiveVoiceController.soundLevel] so 5-8Hz updates never rebuild the tab.
   final double soundLevel;
 
   bool get isActive =>
@@ -68,4 +71,30 @@ class LiveVoiceState {
       soundLevel: soundLevel ?? this.soundLevel,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is LiveVoiceState &&
+        other.phase == phase &&
+        other.sessionId == sessionId &&
+        other.turnId == turnId &&
+        other.partialTranscript == partialTranscript &&
+        other.finalTranscript == finalTranscript &&
+        other.responseText == responseText &&
+        other.errorMessage == errorMessage &&
+        other.soundLevel == soundLevel;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    phase,
+    sessionId,
+    turnId,
+    partialTranscript,
+    finalTranscript,
+    responseText,
+    errorMessage,
+    soundLevel,
+  );
 }

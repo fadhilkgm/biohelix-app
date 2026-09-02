@@ -11,6 +11,30 @@ import '../models/home_feed_models.dart';
 import '../models/patient_models.dart';
 import '../../fitness/models/fitness_activity_models.dart';
 
+enum ChatStreamEventType { delta, done, error }
+
+/// One frame of the assistant SSE stream.
+class ChatStreamEvent {
+  /// An incremental chunk of the draft reply.
+  const ChatStreamEvent.delta(this.text)
+    : type = ChatStreamEventType.delta,
+      message = null;
+
+  /// The terminal, authoritative reply. Replaces any streamed text.
+  const ChatStreamEvent.done(ChatMessage this.message)
+    : type = ChatStreamEventType.done,
+      text = '';
+
+  /// A user-safe failure reported by the server mid-stream.
+  const ChatStreamEvent.error(this.text)
+    : type = ChatStreamEventType.error,
+      message = null;
+
+  final ChatStreamEventType type;
+  final String text;
+  final ChatMessage? message;
+}
+
 Map<String, dynamic> _map(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) return Map<String, dynamic>.from(value);
@@ -1345,44 +1369,36 @@ class PatientRepository {
     );
   }
 
-  Future<ChatMessage> sendGlobalChatMessage({
-    required String threadId,
+  Map<String, dynamic> _globalChatRequestBody({
     required String message,
     String? language,
     String? mode,
-  }) async {
+    String? idempotencyKey,
+  }) {
     final normalizedLanguage = (language ?? '').trim().toLowerCase();
     final normalizedMode = (mode ?? '').trim().toLowerCase();
-    final response = await _apiClient.postJson(
-      '/patients/chat/global/threads/$threadId/messages',
-      receiveTimeout: const Duration(seconds: 75),
-      data: {
-        'message': message,
-        if (normalizedLanguage == 'en' || normalizedLanguage == 'ml')
-          'language': normalizedLanguage,
-        if (normalizedMode == 'voice' || normalizedMode == 'text')
-          'mode': normalizedMode,
-      },
-    );
+    return <String, dynamic>{
+      'message': message,
+      if (normalizedLanguage == 'en' || normalizedLanguage == 'ml')
+        'language': normalizedLanguage,
+      if (normalizedMode == 'voice' || normalizedMode == 'text')
+        'mode': normalizedMode,
+      if ((idempotencyKey ?? '').trim().isNotEmpty)
+        'idempotency_key': idempotencyKey!.trim(),
+    };
+  }
+
+  /// Builds the assistant [ChatMessage] from a reply payload. Shared by the
+  /// non-streaming endpoint and the terminal `done` event of the SSE endpoint,
+  /// which carry the identical shape.
+  ChatMessage _chatMessageFromReplyPayload(Map<String, dynamic> response) {
     final pkgsRaw = response['suggestedPackages'] as List<dynamic>? ?? const [];
     final suggestedPackages = pkgsRaw
-        .map(
-          (item) => LabPackageItem.fromJson(
-            item is Map<String, dynamic>
-                ? item
-                : Map<String, dynamic>.from(item as Map),
-          ),
-        )
+        .map((item) => LabPackageItem.fromJson(_map(item)))
         .toList();
     final testsRaw = response['suggestedTests'] as List<dynamic>? ?? const [];
     final suggestedTests = testsRaw
-        .map(
-          (item) => LabTestItem.fromJson(
-            item is Map<String, dynamic>
-                ? item
-                : Map<String, dynamic>.from(item as Map),
-          ),
-        )
+        .map((item) => LabTestItem.fromJson(_map(item)))
         .toList();
     final messagePayload = _map(response['message']);
     final actionPayload = response['action'] ?? messagePayload['action'];
@@ -1393,6 +1409,7 @@ class PatientRepository {
       content:
           messagePayload['content'] as String? ??
           response['reply'] as String? ??
+          response['content'] as String? ??
           'No response',
       createdAt:
           messagePayload['createdAt'] as String? ??
@@ -1403,6 +1420,83 @@ class PatientRepository {
           ? ChatAssistantAction.fromJson(_map(actionPayload))
           : null,
     );
+  }
+
+  Future<ChatMessage> sendGlobalChatMessage({
+    required String threadId,
+    required String message,
+    String? language,
+    String? mode,
+    String? idempotencyKey,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/patients/chat/global/threads/$threadId/messages',
+      receiveTimeout: const Duration(seconds: 75),
+      data: _globalChatRequestBody(
+        message: message,
+        language: language,
+        mode: mode,
+        idempotencyKey: idempotencyKey,
+      ),
+    );
+    return _chatMessageFromReplyPayload(response);
+  }
+
+  /// Streams the assistant reply over SSE.
+  ///
+  /// Emits [ChatStreamEvent.delta] for each incremental chunk, then exactly one
+  /// terminal [ChatStreamEvent.done] (whose message is authoritative and may
+  /// differ from the concatenated deltas) or [ChatStreamEvent.error].
+  ///
+  /// Transport/HTTP failures (including a 404 when the endpoint is not deployed)
+  /// surface as [ApiException] so callers can fall back to
+  /// [sendGlobalChatMessage].
+  Stream<ChatStreamEvent> streamGlobalChatMessage({
+    required String threadId,
+    required String message,
+    String? language,
+    String? mode,
+    String? idempotencyKey,
+    CancelToken? cancelToken,
+  }) async* {
+    final events = _apiClient.postEventStream(
+      '/patients/chat/global/threads/$threadId/messages/stream',
+      cancelToken: cancelToken,
+      receiveTimeout: const Duration(seconds: 120),
+      data: _globalChatRequestBody(
+        message: message,
+        language: language,
+        mode: mode,
+        idempotencyKey: idempotencyKey,
+      ),
+    );
+
+    await for (final raw in events) {
+      Map<String, dynamic> payload;
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is! Map) continue;
+        payload = _map(decoded);
+      } catch (_) {
+        // A malformed frame must not kill an otherwise healthy stream.
+        continue;
+      }
+
+      final type = payload['type']?.toString();
+      if (type == 'delta') {
+        final text = payload['text']?.toString() ?? '';
+        if (text.isEmpty) continue;
+        yield ChatStreamEvent.delta(text);
+      } else if (type == 'done') {
+        yield ChatStreamEvent.done(_chatMessageFromReplyPayload(payload));
+        return;
+      } else if (type == 'error') {
+        yield ChatStreamEvent.error(
+          payload['message']?.toString() ?? 'The assistant could not reply.',
+        );
+        return;
+      }
+    }
   }
 
   Future<ChatThreadSummary> renameGlobalChatThread({
