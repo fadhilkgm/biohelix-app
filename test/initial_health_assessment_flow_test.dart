@@ -84,14 +84,11 @@ void main() {
         ),
       );
 
-      expect(find.text('1/8'), findsOneWidget);
+      expect(find.text('1/7'), findsOneWidget);
       expect(find.text('Skip'), findsOneWidget);
-      expect(find.text('What is your date of birth?'), findsOneWidget);
-      expect(find.text('Age (optional)'), findsNothing);
-      expect(find.text('Add date of birth (optional)'), findsOneWidget);
+      expect(find.text('What is your date of birth?'), findsNothing);
+      expect(find.text('Add date of birth (optional)'), findsNothing);
 
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
 

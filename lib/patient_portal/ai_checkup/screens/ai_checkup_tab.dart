@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
@@ -837,12 +838,24 @@ class _MessageBubble extends StatelessWidget {
               ? null
               : Border.all(color: const Color(0xFFE0E6EF)),
         ),
-        child: Text(
-          message.text,
-          style: TextStyle(
-            color: message.patient ? Colors.white : const Color(0xFF273348),
-            height: 1.4,
-            fontWeight: FontWeight.w500,
+        child: MarkdownBody(
+          data: message.text,
+          styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+            p: TextStyle(
+              color: message.patient ? Colors.white : const Color(0xFF273348),
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
+            strong: TextStyle(
+              color: message.patient ? Colors.white : const Color(0xFF273348),
+              height: 1.4,
+              fontWeight: FontWeight.w800,
+            ),
+            listBullet: TextStyle(
+              color: message.patient ? Colors.white : const Color(0xFF273348),
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ),
