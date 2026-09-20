@@ -94,88 +94,27 @@ class _TestsTabState extends State<_TestsTab> {
 
     return Consumer<PatientPortalProvider>(
       builder: (context, portal, _) {
-        final filteredTests = portal.labTests.where((test) {
-          final name = test.testName.toLowerCase();
-          final category = test.categoryName.toLowerCase();
-          final organ = _selectedOrgan.toLowerCase();
-
-          // Rough mapping logic as we don't have explicit organ mapping in metadata
-          if (organ == 'heart' &&
-              (name.contains('lipid') ||
-                  name.contains('troponin') ||
-                  name.contains('heart'))) {
-            return true;
-          }
-          if (organ == 'liver' &&
-              (name.contains('lft') ||
-                  name.contains('liver') ||
-                  name.contains('bilirubin'))) {
-            return true;
-          }
-          if (organ == 'kidneys' &&
-              (name.contains('kft') ||
-                  name.contains('kidney') ||
-                  name.contains('creatinine'))) {
-            return true;
-          }
-          if (organ == 'thyroid' &&
-              (name.contains('thyroid') ||
-                  name.contains('tsh') ||
-                  name.contains('t3') ||
-                  name.contains('t4'))) {
-            return true;
-          }
-          if (organ == 'blood' &&
-              (name.contains('cbc') ||
-                  name.contains('blood') ||
-                  name.contains('hemoglobin'))) {
-            return true;
-          }
-          if (organ == 'urine' &&
-              (name.contains('urine') || name.contains('urinalysis'))) {
-            return true;
-          }
-          if (organ == 'stomach' &&
-              (name.contains('pylori') || name.contains('gastrin'))) {
-            return true;
-          }
-          if (organ == 'lungs' &&
-              (name.contains('pft') ||
-                  name.contains('lung') ||
-                  name.contains('chest'))) {
-            return true;
-          }
-          if (organ == 'pancreas' &&
-              (name.contains('amylase') ||
-                  name.contains('lipase') ||
-                  name.contains('sugar') ||
-                  name.contains('insulin'))) {
-            return true;
-          }
-          if (organ == 'brain' &&
-              (name.contains('brain') || name.contains('neuro'))) {
-            return true;
-          }
-          if (organ == 'spine' &&
-              (name.contains('spine') || name.contains('back'))) {
-            return true;
-          }
-          if (organ == 'bones' &&
-              (name.contains('bone') ||
-                  name.contains('calcium') ||
-                  name.contains('vitamin d'))) {
-            return true;
-          }
-          if (organ == 'tumor/cancer' &&
-              (name.contains('cancer') ||
-                  name.contains('cea') ||
-                  name.contains('psa') ||
-                  name.contains('afp'))) {
-            return true;
-          }
-
-          return category.contains(organ) || name.contains(organ);
-        }).toList();
+        // Prefer the hospital-curated body-point mapping. It is the only
+        // clinically reviewed link between an area and a test; name matching
+        // below is a text search fallback and is labelled as such in the UI.
+        final organ = _selectedOrgan.toLowerCase();
+        final curated = portal.labTests
+            .where(
+              (test) => test.bodyPoints.any(
+                (point) => point.name.toLowerCase() == organ,
+              ),
+            )
+            .toList();
+        final usingCuratedMapping = curated.isNotEmpty;
+        final filteredTests = usingCuratedMapping
+            ? curated
+            : portal.labTests
+                  .where(
+                    (test) =>
+                        test.testName.toLowerCase().contains(organ) ||
+                        test.categoryName.toLowerCase().contains(organ),
+                  )
+                  .toList();
 
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -342,9 +281,20 @@ class _TestsTabState extends State<_TestsTab> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Recommended for $_selectedOrgan',
+              usingCuratedMapping
+                  ? 'Tests for $_selectedOrgan'
+                  : 'Tests matching “$_selectedOrgan”',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              usingCuratedMapping
+                  ? 'Your doctor will advise which of these you need.'
+                  : 'Matched by test name. Ask your doctor which tests you need.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 12),
@@ -424,13 +374,7 @@ class _TestsTabState extends State<_TestsTab> {
                       Icons.chevron_right_rounded,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => LabTestDetailPage(test: test),
-                        ),
-                      );
-                    },
+                    onTap: () => LabTestDetailSheet.show(context, test: test),
                   ),
                 ),
               ),

@@ -147,6 +147,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                       maxLines: 4,
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
                         color: AiChatColors.textPrimary,
@@ -325,6 +326,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                         strings.assistantRecording,
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           color: Colors.white,
                           fontSize: 8,
                           fontWeight: FontWeight.w800,

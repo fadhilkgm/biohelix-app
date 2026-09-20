@@ -17,7 +17,11 @@ class CartScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Your Cart',
-          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontFamily: 'Manrope',
+            fontWeight: FontWeight.w800,
+            fontFamilyFallback: const ['AnekMalayalam'],
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -38,6 +42,7 @@ class CartScreen extends StatelessWidget {
                     'Your cart is empty',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFF192233),
@@ -48,6 +53,7 @@ class CartScreen extends StatelessWidget {
                     'Add tests to continue booking',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 14,
                       color: const Color(0xFF192233).withValues(alpha: 0.5),
                     ),
@@ -86,11 +92,12 @@ class CartScreen extends StatelessWidget {
                         label: 'Subtotal',
                         value: '\u20B9${c.subtotal.toStringAsFixed(0)}',
                       ),
-                      _SummaryRow(
-                        label: 'Discount',
-                        value: '- \u20B9${c.discount.toStringAsFixed(0)}',
-                        valueColor: const Color(0xFF1F9A6D),
-                      ),
+                      if (c.discount > 0)
+                        _SummaryRow(
+                          label: 'Discount',
+                          value: '- \u20B9${c.discount.toStringAsFixed(0)}',
+                          valueColor: const Color(0xFF1F9A6D),
+                        ),
                       _SummaryRow(
                         label: 'Collection Fee',
                         value: '\u20B9${c.collectionFee.toStringAsFixed(0)}',
@@ -141,6 +148,7 @@ class CartScreen extends StatelessWidget {
                         'Proceed to Checkout',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontWeight: FontWeight.w900,
                           fontSize: 18,
                         ),
@@ -159,6 +167,7 @@ class CartScreen extends StatelessWidget {
                           '${c.cart.length}',
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
                             color: Colors.white,
@@ -228,6 +237,7 @@ class _CartItemCard extends StatelessWidget {
                   item.test.name,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF192233),
@@ -242,6 +252,7 @@ class _CartItemCard extends StatelessWidget {
                       : 'Lab test',
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 13,
                     color: const Color(0xFF192233).withValues(alpha: 0.5),
                   ),
@@ -251,6 +262,7 @@ class _CartItemCard extends StatelessWidget {
                   '\u20B9${item.test.price.toStringAsFixed(0)}',
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                     color: const Color(0xFF06489B),
@@ -295,6 +307,7 @@ class _SummaryRow extends StatelessWidget {
             label,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 14,
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
               color: const Color(
@@ -307,6 +320,7 @@ class _SummaryRow extends StatelessWidget {
             value,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 14,
               fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
               color:

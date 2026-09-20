@@ -214,6 +214,7 @@ class _RecordsTabState extends State<_RecordsTab> {
                               'Medical Records',
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 26,
                                 fontWeight: FontWeight.w800,
                                 color: theme.colorScheme.onSurface,
@@ -246,6 +247,7 @@ class _RecordsTabState extends State<_RecordsTab> {
                         '${items.length} records in your vault',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: theme.colorScheme.onSurfaceVariant,
@@ -672,6 +674,7 @@ class _RecordsFilterChip extends StatelessWidget {
               label,
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 14,
                 fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 color: selected
@@ -734,6 +737,7 @@ class _RecordsListCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontFamily: 'Manrope',
+                              fontFamilyFallback: const ['AnekMalayalam'],
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                               color: theme.colorScheme.onSurface,
@@ -747,6 +751,7 @@ class _RecordsListCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontFamily: 'Manrope',
+                              fontFamilyFallback: const ['AnekMalayalam'],
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                               color: theme.colorScheme.onSurfaceVariant,
@@ -766,6 +771,7 @@ class _RecordsListCard extends StatelessWidget {
                                 item.meta,
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: theme.colorScheme.onSurfaceVariant,
@@ -804,6 +810,7 @@ class _RecordsListCard extends StatelessWidget {
                                 'View Details',
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 12,
                                   fontWeight: FontWeight.w800,
                                   color: const Color(0xFF06489B),
@@ -881,6 +888,7 @@ class _RecordsAvailabilityBadge extends StatelessWidget {
             label,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               color: accentColor,
               fontWeight: FontWeight.w800,
               fontSize: 11,
@@ -936,6 +944,7 @@ class _RecordsEmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 16,
               fontWeight: FontWeight.w800,
               color: theme.colorScheme.onSurface,
@@ -947,6 +956,7 @@ class _RecordsEmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurfaceVariant,

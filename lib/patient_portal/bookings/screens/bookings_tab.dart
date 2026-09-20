@@ -125,6 +125,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                           'My Bookings',
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
                             color: theme.colorScheme.onSurface,
@@ -136,6 +137,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                           'Upcoming and previous bookings',
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: theme.colorScheme.onSurfaceVariant,
@@ -340,6 +342,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                                 booking.doctorName,
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
                                   color: theme.colorScheme.onSurface,
@@ -352,6 +355,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                                     'Doctor consultation',
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                   color: theme.colorScheme.onSurfaceVariant,
@@ -417,6 +421,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                                     : 'Tap to manage',
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.primary,
@@ -538,6 +543,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                                 order.testName,
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
                                   color: theme.colorScheme.onSurface,
@@ -549,6 +555,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                                 order.categoryName ?? 'Lab test',
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                   color: theme.colorScheme.onSurfaceVariant,
@@ -682,6 +689,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                                 order.packageName,
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
                                   color: theme.colorScheme.onSurface,
@@ -693,6 +701,7 @@ class _BookingsTabState extends State<_BookingsTab> {
                                 order.packageCategory ?? 'Health package',
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                   color: theme.colorScheme.onSurfaceVariant,
@@ -1007,6 +1016,7 @@ class _BookingsFilterChip extends StatelessWidget {
               label,
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 color: selected
@@ -1054,6 +1064,7 @@ class _TimelineSectionHeader extends StatelessWidget {
             title,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 13,
               fontWeight: FontWeight.w800,
               color: theme.colorScheme.onSurface,
@@ -1071,6 +1082,7 @@ class _TimelineSectionHeader extends StatelessWidget {
               '$count',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 color: color,
@@ -1122,6 +1134,7 @@ class _CompactActionButton extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: color,
@@ -1169,6 +1182,7 @@ class _MetaLine extends StatelessWidget {
             text,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurfaceVariant,
@@ -1221,6 +1235,7 @@ class _EmptyBookingsState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 16,
               fontWeight: FontWeight.w800,
               color: theme.colorScheme.onSurface,
@@ -1232,6 +1247,7 @@ class _EmptyBookingsState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurfaceVariant,

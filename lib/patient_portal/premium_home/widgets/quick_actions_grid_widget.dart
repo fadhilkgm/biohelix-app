@@ -199,6 +199,7 @@ class _QuickActionCard extends StatelessWidget {
                               'AI',
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 color: Colors.white,
                                 fontSize: 8,
                                 fontWeight: FontWeight.w900,

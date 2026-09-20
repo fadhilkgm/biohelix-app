@@ -15,6 +15,9 @@ class LabBookingController extends ChangeNotifier {
     required List<LabTestItem> tests,
     required List<BodyPointItem> bodyPoints,
     String? patientPhone,
+    int? patientAge,
+    String? patientGender,
+    String? patientAddress,
     Iterable<int> initialTestIds = const [],
     this.sourceAssessmentToken,
   }) {
@@ -22,13 +25,24 @@ class LabBookingController extends ChangeNotifier {
       PatientProfile(
         id: 'self',
         name: patientName,
-        age: 29,
-        gender: 'Male',
+        age: patientAge,
+        gender: patientGender,
         phone: patientPhone,
       ),
     ];
+    final registeredAddress = (patientAddress ?? '').trim();
+    if (registeredAddress.isNotEmpty) {
+      _addresses.add(
+        AddressProfile(
+          id: 'registered',
+          label: 'Registered address',
+          fullAddress: registeredAddress,
+        ),
+      );
+      _selectedAddressId = 'registered';
+    }
     _bodyPoints = bodyPoints;
-    _tests = tests.map(_mapTest).toList();
+    _tests = tests.map(BookableLabTest.fromLabTest).toList();
     final activeIds = tests.where((test) => test.status).map((test) => test.id);
     final selectedIds = initialTestIds.toSet().intersection(activeIds.toSet());
     _cart.addAll(
@@ -47,28 +61,19 @@ class LabBookingController extends ChangeNotifier {
   final List<CartItem> _cart = [];
   int _preselectedCount = 0;
   late List<PatientProfile> _patients;
-  final List<AddressProfile> _addresses = const [
-    AddressProfile(
-      id: 'home',
-      label: 'Home',
-      fullAddress: '24 Green View, Health City',
-    ),
-    AddressProfile(
-      id: 'office',
-      label: 'Office',
-      fullAddress: '8 Apollo Park, Business Bay',
-    ),
-  ].toList();
+
+  /// Seeded from the patient's registered address only. Placeholder addresses
+  /// must never appear here: a home collection would be sent to the wrong door.
+  final List<AddressProfile> _addresses = [];
   String _query = '';
   BodyPointItem? _selectedBodyPoint;
-  bool _popularOnly = false;
   double _maxPrice = 2500;
   String _coupon = '';
   CollectionType _collectionType = CollectionType.home;
   DateTime _date = DateTime.now().add(const Duration(days: 1));
   String? _slot = '07:00 - 08:00 AM';
   String _selectedPatientId = 'self';
-  String _selectedAddressId = 'home';
+  String _selectedAddressId = '';
   BookingPaymentMethod _paymentMethod = BookingPaymentMethod.online;
   LabOrderQuote? _quote;
   bool _quoteLoading = false;
@@ -86,7 +91,6 @@ class LabBookingController extends ChangeNotifier {
   List<PatientProfile> get patients => List.unmodifiable(_patients);
   List<AddressProfile> get addresses => List.unmodifiable(_addresses);
   String get query => _query;
-  bool get popularOnly => _popularOnly;
   double get maxPrice => _maxPrice;
   CollectionType get collectionType => _collectionType;
   DateTime get date => _date;
@@ -100,27 +104,38 @@ class LabBookingController extends ChangeNotifier {
   bool get quoteLoading => _quoteLoading;
   String? get quoteError => _quoteError;
 
-  PatientProfile get selectedPatient =>
-      _patients.firstWhere((e) => e.id == _selectedPatientId);
-  AddressProfile? get selectedAddress => _collectionType == CollectionType.home
-      ? _addresses.firstWhere((e) => e.id == _selectedAddressId)
-      : null;
-  List<BookableLabTest> get popularTests {
+  PatientProfile get selectedPatient => _patients.firstWhere(
+    (e) => e.id == _selectedPatientId,
+    orElse: () => _patients.first,
+  );
+  AddressProfile? get selectedAddress {
+    if (_collectionType != CollectionType.home || _addresses.isEmpty) {
+      return null;
+    }
+    for (final address in _addresses) {
+      if (address.id == _selectedAddressId) return address;
+    }
+    return _addresses.first;
+  }
+
+  /// Tests shown on the lab home screen. The catalogue carries no popularity
+  /// signal, so this is simply the start of the filtered list.
+  List<BookableLabTest> get featuredTests {
     if (_selectedBodyPoint != null) {
       return filteredTests;
     }
-    return filteredTests.where((e) => e.popular).take(10).toList();
+    return filteredTests.take(10).toList();
   }
 
   List<BookableLabTest> get filteredTests {
+    final query = _query.toLowerCase();
     return _tests.where((BookableLabTest t) {
-      final inQuery = t.name.toLowerCase().contains(_query.toLowerCase());
+      final inQuery = t.name.toLowerCase().contains(query);
       final inBodyPoint =
           _selectedBodyPoint == null ||
           t.bodyPoints.any((bp) => bp.id == _selectedBodyPoint!.id);
       final inPrice = t.price <= _maxPrice;
-      final inPopular = !_popularOnly || t.popular;
-      return inQuery && inBodyPoint && inPrice && inPopular;
+      return inQuery && inBodyPoint && inPrice;
     }).toList();
   }
 
@@ -182,11 +197,6 @@ class LabBookingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setPopularOnly(bool value) {
-    _popularOnly = value;
-    notifyListeners();
-  }
-
   void setMaxPrice(double value) {
     _maxPrice = value;
     notifyListeners();
@@ -234,8 +244,8 @@ class LabBookingController extends ChangeNotifier {
 
   void setPrimaryPatient({
     required String name,
-    required int age,
-    required String gender,
+    int? age,
+    String? gender,
     String? phone,
   }) {
     _patients = [
@@ -253,8 +263,8 @@ class LabBookingController extends ChangeNotifier {
 
   void addPatient({
     required String name,
-    required int age,
-    required String gender,
+    int? age,
+    String? gender,
     String? phone,
   }) {
     _patients = [
@@ -347,29 +357,5 @@ class LabBookingController extends ChangeNotifier {
     _cart.clear();
     notifyListeners();
     return confirmation.reference;
-  }
-
-  BookableLabTest _mapTest(LabTestItem test) {
-    final lower = test.testName.toLowerCase();
-    return BookableLabTest(
-      id: test.id,
-      name: test.testName,
-      bodyPoints: test.bodyPoints,
-      imageUrl: test.imageUrl,
-      description:
-          'Advanced ${test.testName} profile with clinically reviewed parameters and fast turnaround.',
-      preparation: (test.instructions ?? '').trim().isNotEmpty
-          ? test.instructions!.trim()
-          : (lower.contains('fbs')
-                ? 'Fasting required for 8-10 hours before sample collection.'
-                : 'Stay hydrated and follow physician instructions before collection.'),
-      parameters: lower.contains('cbc')
-          ? ['Hemoglobin', 'WBC', 'RBC', 'Platelets']
-          : ['Primary marker', 'Secondary marker', 'Reference range'],
-      price: (test.discountedPrice ?? test.basePrice).toDouble(),
-      basePrice: test.basePrice.toDouble(),
-      popular: test.id % 2 == 0,
-      originalItem: test,
-    );
   }
 }

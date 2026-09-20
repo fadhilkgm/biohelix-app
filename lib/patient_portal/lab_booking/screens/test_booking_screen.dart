@@ -95,6 +95,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
               'Add New Member',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -153,6 +154,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                       'Use logged-in phone number',
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -195,13 +197,12 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
   }
 
   String _patientSubtitle(PatientProfile patient) {
-    final parts = <String>['${patient.age} yrs'];
-    if (patient.phone?.trim().isNotEmpty ?? false) {
-      parts.add(patient.phone!.trim());
-    } else if (patient.gender.trim().isNotEmpty) {
-      parts.add(patient.gender.trim());
+    final phone = patient.phone?.trim() ?? '';
+    if (phone.isNotEmpty) {
+      final age = patient.age;
+      return age == null ? phone : '$age yrs • $phone';
     }
-    return parts.join(' • ');
+    return patient.demographicsLabel ?? '';
   }
 
   // Kept temporarily for compatibility with the legacy in-booking selector.
@@ -212,8 +213,8 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
     if (patient == null) return;
     context.read<LabBookingController>().setPrimaryPatient(
       name: patient.name,
-      age: patient.age ?? 29,
-      gender: patient.gender ?? 'Male',
+      age: patient.age,
+      gender: patient.gender,
       phone: patient.phone,
     );
   }
@@ -337,10 +338,8 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                                                   .read<LabBookingController>();
                                               c.setPrimaryPatient(
                                                 name: profile.patient.name,
-                                                age: profile.patient.age ?? 29,
-                                                gender:
-                                                    profile.patient.gender ??
-                                                    'Male',
+                                                age: profile.patient.age,
+                                                gender: profile.patient.gender,
                                                 phone: profile.patient.phone,
                                               );
                                             },
@@ -523,7 +522,11 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
       appBar: AppBar(
         title: Text(
           'Complete Booking',
-          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontFamily: 'Manrope',
+            fontWeight: FontWeight.w800,
+            fontFamilyFallback: const ['AnekMalayalam'],
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -556,6 +559,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                     'Test Summary',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFF192233),
@@ -575,6 +579,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                                   item.test.name,
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF192233),
@@ -587,6 +592,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                                       : 'Lab test',
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 12,
                                     color: const Color(
                                       0xFF192233,
@@ -600,6 +606,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                             '\u20B9${item.test.price.toStringAsFixed(0)}',
                             style: TextStyle(
                               fontFamily: 'Manrope',
+                              fontFamilyFallback: const ['AnekMalayalam'],
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                               color: const Color(0xFF06489B),
@@ -617,6 +624,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                         'Total Tests',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF192233).withValues(alpha: 0.5),
@@ -626,6 +634,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                         '${c.cart.length}',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF192233),
@@ -644,6 +653,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
               'Sample Collection Mode',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
@@ -686,6 +696,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                 'Collection Address',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF192233),
@@ -718,6 +729,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
               'Patient Details',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
@@ -760,6 +772,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                           c.selectedPatient.name,
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: const Color(0xFF192233),
@@ -769,6 +782,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                           _patientSubtitle(c.selectedPatient),
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             fontSize: 13,
                             color: const Color(
                               0xFF192233,
@@ -792,6 +806,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                   'Select Date',
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF192233),
@@ -801,6 +816,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                   DateFormat('MMMM yyyy').format(c.date),
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF06489B),
@@ -821,6 +837,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
               'Available Slots',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
@@ -855,11 +872,12 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
                     label: 'Subtotal',
                     value: '\u20B9${c.subtotal.toStringAsFixed(0)}',
                   ),
-                  _PriceRow(
-                    label: 'Discount',
-                    value: '- \u20B9${c.discount.toStringAsFixed(0)}',
-                    valueColor: const Color(0xFF1F9A6D),
-                  ),
+                  if (c.discount > 0)
+                    _PriceRow(
+                      label: 'Discount',
+                      value: '- \u20B9${c.discount.toStringAsFixed(0)}',
+                      valueColor: const Color(0xFF1F9A6D),
+                    ),
                   _PriceRow(
                     label: 'Collection Fee',
                     value: '\u20B9${c.collectionFee.toStringAsFixed(0)}',
@@ -945,6 +963,7 @@ class _TestBookingScreenState extends State<TestBookingScreen> {
               'Review Payment',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: ['AnekMalayalam'],
                 fontWeight: FontWeight.w900,
                 fontSize: 18,
               ),
@@ -1005,6 +1024,7 @@ class _CollectionTab extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontSize: 14,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   color: selected
@@ -1063,6 +1083,7 @@ class _HorizontalDatePicker extends StatelessWidget {
                     DateFormat('EEE').format(date).toUpperCase(),
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       color: isSelected
@@ -1075,6 +1096,7 @@ class _HorizontalDatePicker extends StatelessWidget {
                     date.day.toString(),
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                       color: isSelected
@@ -1115,6 +1137,7 @@ class _PriceRow extends StatelessWidget {
             label,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 14,
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
               color: const Color(
@@ -1127,6 +1150,7 @@ class _PriceRow extends StatelessWidget {
             value,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 14,
               fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
               color:

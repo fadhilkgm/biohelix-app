@@ -256,6 +256,7 @@ class _OfferCard extends StatelessWidget {
                             item.title,
                             style: TextStyle(
                               fontFamily: 'Manrope',
+                              fontFamilyFallback: const ['AnekMalayalam'],
                               color: Colors.white,
                               fontSize: 17,
                               fontWeight: FontWeight.w900,
@@ -268,6 +269,7 @@ class _OfferCard extends StatelessWidget {
                             item.subtitle,
                             style: TextStyle(
                               fontFamily: 'Manrope',
+                              fontFamilyFallback: const ['AnekMalayalam'],
                               color: Colors.white.withValues(alpha: 0.85),
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
@@ -295,6 +297,7 @@ class _OfferCard extends StatelessWidget {
                                   item.buttonLabel,
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     color: Colors.white,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w800,

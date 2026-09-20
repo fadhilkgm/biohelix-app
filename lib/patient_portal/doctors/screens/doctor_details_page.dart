@@ -191,8 +191,11 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
+                              // Sits directly on the doctor's photo, whose
+                              // brightness varies per doctor.
                               AppChevronBackButton(
                                 onPressed: () => Navigator.pop(context),
+                                surface: AppBackButtonSurface.dark,
                               ),
                             ],
                           ),

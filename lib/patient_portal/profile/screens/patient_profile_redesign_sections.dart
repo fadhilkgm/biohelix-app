@@ -62,6 +62,7 @@ class _ProfileSettingsCard extends StatelessWidget {
           //   value: 'Open the previous tests screen',
           //   onTap: onOpenTestsHub,
           // ),
+          const _TextSizeSetting(),
           _ProfileInfoTile(
             icon: Icons.verified_user_outlined,
             label: 'Privacy Policy',
@@ -398,6 +399,124 @@ class _SignOutButton extends StatelessWidget {
       label: const Text(
         'Sign Out',
         style: TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+/// Lets a patient enlarge every screen without hunting through Android
+/// settings. Sits in Profile because that is where people look for it.
+class _TextSizeSetting extends StatelessWidget {
+  const _TextSizeSetting();
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<TextScaleProvider>();
+    final malayalam = context.watch<LanguageProvider>().isMalayalam;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.format_size_rounded,
+                size: 22,
+                color: Color(0xFF06489B),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  malayalam ? 'അക്ഷര വലുപ്പം' : 'Text size',
+                  style: const TextStyle(
+                    fontFamily: 'Manrope',
+                    fontFamilyFallback: ['AnekMalayalam'],
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              for (final option in AppTextScale.values) ...[
+                Expanded(
+                  child: _TextSizeOption(
+                    option: option,
+                    selected: provider.scale == option,
+                    malayalam: malayalam,
+                    onTap: () => provider.setScale(option),
+                  ),
+                ),
+                if (option != AppTextScale.values.last)
+                  const SizedBox(width: 8),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            malayalam
+                ? 'ആപ്പിലെ എല്ലാ എഴുത്തിനും ഇത് ബാധകമാകും.'
+                : 'This applies to every screen in the app.',
+            style: TextStyle(
+              fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TextSizeOption extends StatelessWidget {
+  const _TextSizeOption({
+    required this.option,
+    required this.selected,
+    required this.malayalam,
+    required this.onTap,
+  });
+
+  final AppTextScale option;
+  final bool selected;
+  final bool malayalam;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? const Color(0xFF06489B) : const Color(0xFFF4F7FF),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Semantics(
+          button: true,
+          selected: selected,
+          child: Container(
+            // 48dp keeps this reachable for the patients who need it most.
+            constraints: const BoxConstraints(minHeight: 48),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            child: Text(
+              option.labelFor(malayalam),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: selected ? Colors.white : const Color(0xFF192233),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

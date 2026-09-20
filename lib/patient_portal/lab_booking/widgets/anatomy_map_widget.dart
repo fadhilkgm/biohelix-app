@@ -201,6 +201,7 @@ class _PulsatingMarkerState extends State<PulsatingMarker>
                   widget.label,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     color: Colors.white,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,

@@ -176,9 +176,15 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         else
           SizedBox(
-            // The details area must accommodate a two-line doctor name,
-            // specialty and booking button without clipping on narrow phones.
-            height: 392,
+            // The photo is a fixed 252 inside the card; the rest holds a
+            // two-line doctor name, specialty and booking button. That text
+            // block has to grow with the system font size, otherwise the card
+            // clips as soon as a patient raises it one notch.
+            height:
+                HomeDoctorCard.imageHeight +
+                MediaQuery.textScalerOf(
+                  context,
+                ).scale(HomeDoctorCard.detailsHeight),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: doctors.length,
@@ -697,6 +703,7 @@ class _TestCard extends StatelessWidget {
                   test.testName,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF192233),
@@ -707,6 +714,7 @@ class _TestCard extends StatelessWidget {
                   "${test.resultEta?.replaceAll(' hrs', '') ?? '24'} hrs",
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF06489B),
@@ -913,6 +921,7 @@ class HomePackageCard extends StatelessWidget {
                           'View Package',
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
                           ),
@@ -952,6 +961,13 @@ class HomeDoctorCard extends StatelessWidget {
     required this.resolvedImageUrl,
   });
 
+  /// Fixed portrait area; does not scale with the system font.
+  static const double imageHeight = 252;
+
+  /// Unscaled height of the name/specialty/button block. Callers sizing the
+  /// carousel must pass this through MediaQuery.textScalerOf().scale().
+  static const double detailsHeight = 140;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -973,7 +989,7 @@ class HomeDoctorCard extends StatelessWidget {
                 top: Radius.circular(31),
               ),
               child: SizedBox(
-                height: 252,
+                height: imageHeight,
                 width: double.infinity,
                 child: resolvedImageUrl.isNotEmpty
                     ? Image.network(
@@ -1268,6 +1284,7 @@ class _EmergencyStrip extends StatelessWidget {
                           'Medical Emergency?',
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
@@ -1280,6 +1297,7 @@ class _EmergencyStrip extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Colors.white.withValues(alpha: 0.85),
@@ -1311,6 +1329,7 @@ class _EmergencyStrip extends StatelessWidget {
                           'Call',
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             fontSize: 14,
                             fontWeight: FontWeight.w900,
                             color: const Color(0xFFE53935),
@@ -1401,6 +1420,7 @@ class _EmergencyQuickCall extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: textColor,
@@ -1464,6 +1484,7 @@ class _QuickLink extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF192233),
@@ -1540,6 +1561,7 @@ class _HomeActionBanner extends StatelessWidget {
                           maxLines: 4,
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             color: const Color(0xFF183B68),
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
@@ -1567,6 +1589,7 @@ class _HomeActionBanner extends StatelessWidget {
                               'Book now',
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1637,6 +1660,7 @@ class _HomeActionBanner extends StatelessWidget {
                       label,
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         color: foregroundColor,
                         fontSize: 14,
                         fontWeight: FontWeight.w800,

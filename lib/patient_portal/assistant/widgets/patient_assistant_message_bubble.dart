@@ -511,40 +511,19 @@ class _TestSuggestionCard extends StatelessWidget {
     );
   }
 
-  BookableLabTest _toBookable(LabTestItem item) {
-    final lower = item.testName.toLowerCase();
-    return BookableLabTest(
-      id: item.id,
-      name: item.testName,
-      bodyPoints: item.bodyPoints,
-      imageUrl: item.imageUrl,
-      description:
-          'Advanced ${item.testName} profile with clinically reviewed parameters and fast turnaround.',
-      preparation: (item.instructions ?? '').trim().isNotEmpty
-          ? item.instructions!.trim()
-          : (lower.contains('fbs')
-                ? 'Fasting required for 8-10 hours before sample collection.'
-                : 'Stay hydrated and follow physician instructions before collection.'),
-      parameters: lower.contains('cbc')
-          ? const ['Hemoglobin', 'WBC', 'RBC', 'Platelets']
-          : const ['Primary marker', 'Secondary marker', 'Reference range'],
-      price: (item.discountedPrice ?? item.basePrice).toDouble(),
-      basePrice: item.basePrice.toDouble(),
-      popular: item.id % 2 == 0,
-      originalItem: item,
-    );
-  }
-
   void _addAndBook(BuildContext context) {
     final portal = context.read<PatientPortalProvider>();
     final controller = LabBookingController(
       patientName: portal.dashboard?.patient.name ?? 'Patient',
       patientPhone: portal.dashboard?.patient.phone,
+      patientAge: portal.dashboard?.patient.age,
+      patientGender: portal.dashboard?.patient.gender,
+      patientAddress: portal.dashboard?.patient.address,
       tests: portal.labTests,
       bodyPoints: portal.bodyPoints,
       sourceAssessmentToken: sourceAssessmentToken,
     );
-    controller.addToCart(_toBookable(test));
+    controller.addToCart(BookableLabTest.fromLabTest(test));
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(

@@ -142,9 +142,7 @@ class _HomeFeedTargetHandler {
       return true;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => LabTestDetailPage(test: test)),
-    );
+    unawaited(LabTestDetailSheet.show(context, test: test));
     return true;
   }
 

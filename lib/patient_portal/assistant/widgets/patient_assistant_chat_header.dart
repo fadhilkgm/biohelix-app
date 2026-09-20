@@ -42,6 +42,7 @@ class ChatHeaderWidget extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 color: AiChatColors.textPrimary,
                 fontSize: 21,
                 fontWeight: FontWeight.w700,

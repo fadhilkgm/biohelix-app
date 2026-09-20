@@ -139,6 +139,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
           'Health Profile',
           style: TextStyle(
             fontFamily: 'Manrope',
+            fontFamilyFallback: const ['AnekMalayalam'],
             fontSize: 20,
             fontWeight: FontWeight.w800,
             color: HealthProfileScreen._ink,
@@ -169,6 +170,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                     'personalise your AI health assessments.',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 13,
                       height: 1.5,
                       color: HealthProfileScreen._ink.withValues(alpha: 0.6),
@@ -229,6 +231,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                               'Save Health Profile',
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontWeight: FontWeight.w800,
                                 fontSize: 16,
                               ),
@@ -241,6 +244,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                       _error!,
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontSize: 13,
                         color: const Color(0xFFDB4C4C),
                       ),
@@ -252,6 +256,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                       'History',
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                         color: HealthProfileScreen._ink,
@@ -281,6 +286,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
             label,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: HealthProfileScreen._ink,
@@ -309,6 +315,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
             ),
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
@@ -366,6 +373,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                   dateLabel,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
                     color: HealthProfileScreen._ink,
@@ -385,6 +393,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                   _sourceLabels[snapshot.source] ?? snapshot.source,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: HealthProfileScreen._accent,
@@ -402,6 +411,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                   line,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 13,
                     height: 1.4,
                     color: HealthProfileScreen._ink.withValues(alpha: 0.75),

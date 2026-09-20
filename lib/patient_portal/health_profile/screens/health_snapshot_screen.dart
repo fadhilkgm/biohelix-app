@@ -314,6 +314,7 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
                     '${((_step + 1) / _stepCount * 100).round()}%',
                     style: const TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: ['AnekMalayalam'],
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
                       color: _accent,
@@ -342,6 +343,7 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
                   _error!,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 13,
                     color: _danger,
                   ),
@@ -1016,6 +1018,7 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
             label,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -1045,6 +1048,7 @@ class _HealthSnapshotEntrySheetState extends State<_HealthSnapshotEntrySheet> {
             ),
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -1281,6 +1285,7 @@ class _HealthSnapshotHistoryScreenState
           'Health Update History',
           style: TextStyle(
             fontFamily: 'Manrope',
+            fontFamilyFallback: const ['AnekMalayalam'],
             fontSize: 18,
             fontWeight: FontWeight.w800,
             color: _ink,
@@ -1353,6 +1358,7 @@ class _HealthSnapshotHistoryScreenState
                       '${filtered.length == 1 ? 'update' : 'updates'}',
                       style: const TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: ['AnekMalayalam'],
                         color: _ink,
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
@@ -1364,6 +1370,7 @@ class _HealthSnapshotHistoryScreenState
                         'of ${history.length}',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           color: _ink.withValues(alpha: 0.55),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -1445,6 +1452,7 @@ class _HealthSnapshotHistoryScreenState
         textAlign: TextAlign.center,
         style: TextStyle(
           fontFamily: 'Manrope',
+          fontFamilyFallback: const ['AnekMalayalam'],
           fontSize: 14,
           color: _ink.withValues(alpha: 0.65),
         ),
@@ -1535,6 +1543,7 @@ class _HealthSnapshotHistoryScreenState
                   _formatDate(snapshot.snapshotDate),
                   style: const TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: ['AnekMalayalam'],
                     fontWeight: FontWeight.w900,
                     fontSize: 15,
                     color: _ink,
@@ -1550,6 +1559,7 @@ class _HealthSnapshotHistoryScreenState
               '${snapshot.generatedAt == null ? '' : ' · ${_formatDate(snapshot.generatedAt)}'}',
               style: const TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: ['AnekMalayalam'],
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF718096),
@@ -1581,6 +1591,7 @@ class _HealthSnapshotHistoryScreenState
                             metric.label,
                             style: TextStyle(
                               fontFamily: 'Manrope',
+                              fontFamilyFallback: const ['AnekMalayalam'],
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                               color: metric.color,
@@ -1616,6 +1627,7 @@ class _HealthSnapshotHistoryScreenState
                       snapshot.aiSummary!.trim(),
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontSize: 12,
                         height: 1.45,
                         color: _ink.withValues(alpha: 0.72),
@@ -1632,6 +1644,7 @@ class _HealthSnapshotHistoryScreenState
               'Reported conditions: ${snapshot.otherConditions!.trim()}',
               style: const TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: ['AnekMalayalam'],
                 fontSize: 12,
                 height: 1.4,
                 color: Color(0xFF9A4D13),
@@ -1727,6 +1740,7 @@ class _HistoryFilterPanel extends StatelessWidget {
             'Filters',
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: ['AnekMalayalam'],
               fontSize: 15,
               fontWeight: FontWeight.w900,
               color: _ink,
@@ -1740,6 +1754,7 @@ class _HistoryFilterPanel extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: _ink.withValues(alpha: 0.58),
@@ -1788,6 +1803,7 @@ class _HistoryFilterPanel extends StatelessWidget {
                 'Measurement',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: ['AnekMalayalam'],
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF526176),
@@ -1829,6 +1845,7 @@ class _HistoryFilterPanel extends StatelessWidget {
                 'Risk score',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: ['AnekMalayalam'],
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF526176),

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../../core/widgets/app_chevron_back_button.dart';
 import '../../../features/session/providers/session_provider.dart';
@@ -703,6 +704,36 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
               onInterrupt: state.isSpeaking ? _voice.interrupt : null,
               onUseText: () => setState(() => _textFallback = true),
             ),
+          // The text assistant shows this on every screen; the checkup collects
+          // clinical information, so it needs the same standing reminder.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.info_outline_rounded,
+                  size: 14,
+                  color: Color(0xFF5B7190),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    AppStrings.of(
+                      context.watch<LanguageProvider>().language,
+                    ).assistantDisclaimer,
+                    style: const TextStyle(
+                      fontFamily: 'Manrope',
+                      fontFamilyFallback: ['AnekMalayalam'],
+                      fontSize: 11.5,
+                      height: 1.35,
+                      color: Color(0xFF5B7190),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
             child: SizedBox(

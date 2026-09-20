@@ -45,8 +45,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
       _selectedPatient = PatientProfile(
         id: session.patient!.uuid,
         name: session.patient!.name,
-        age: session.patient!.age ?? 29,
-        gender: session.patient!.gender ?? 'Male',
+        age: session.patient!.age,
+        gender: session.patient!.gender,
         phone: session.patient!.phone,
       );
     }
@@ -72,6 +72,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
               'Add New Member',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -130,6 +131,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       'Use logged-in phone number',
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -175,13 +177,12 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   }
 
   String _patientSubtitle(PatientProfile patient) {
-    final parts = <String>['${patient.age} yrs'];
-    if (patient.phone?.trim().isNotEmpty ?? false) {
-      parts.add(patient.phone!.trim());
-    } else if (patient.gender.trim().isNotEmpty) {
-      parts.add(patient.gender.trim());
+    final phone = patient.phone?.trim() ?? '';
+    if (phone.isNotEmpty) {
+      final age = patient.age;
+      return age == null ? phone : '$age yrs • $phone';
     }
-    return parts.join(' • ');
+    return patient.demographicsLabel ?? '';
   }
 
   // Kept temporarily for compatibility with the legacy in-booking selector.
@@ -193,8 +194,8 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
       _selectedPatient = PatientProfile(
         id: patient.uuid,
         name: patient.name,
-        age: patient.age ?? 29,
-        gender: patient.gender ?? 'Male',
+        age: patient.age,
+        gender: patient.gender,
         phone: patient.phone,
       );
     });
@@ -640,7 +641,11 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
       appBar: AppBar(
         title: Text(
           'Complete Booking',
-          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontFamily: 'Manrope',
+            fontWeight: FontWeight.w800,
+            fontFamilyFallback: const ['AnekMalayalam'],
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -673,6 +678,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                     widget.package.name,
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFF192233),
@@ -686,6 +692,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                         'Package Price',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF192233).withValues(alpha: 0.5),
@@ -695,6 +702,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                         '₹${widget.package.discountedPrice ?? widget.package.basePrice}',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF06489B),
@@ -708,6 +716,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       'Tests Included ${hasTests ? "(${widget.package.includedTests.length})" : ""}',
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF192233),
@@ -740,6 +749,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                                   test,
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(
@@ -757,6 +767,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                         widget.package.description!,
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 14,
                           color: const Color(0xFF192233).withValues(alpha: 0.6),
                           height: 1.5,
@@ -775,6 +786,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
               'Sample Collection Mode',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
@@ -811,6 +823,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                 'Collection Address',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF192233),
@@ -844,6 +857,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
               'Patient Details',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
@@ -886,6 +900,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                           _selectedPatient?.name ?? 'Select Patient',
                           style: TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: const ['AnekMalayalam'],
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: const Color(0xFF192233),
@@ -896,6 +911,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                             _patientSubtitle(_selectedPatient!),
                             style: TextStyle(
                               fontFamily: 'Manrope',
+                              fontFamilyFallback: const ['AnekMalayalam'],
                               fontSize: 13,
                               color: const Color(
                                 0xFF192233,
@@ -919,6 +935,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                   'Select Date',
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF192233),
@@ -928,6 +945,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                   DateFormat('MMMM yyyy').format(_selectedDate),
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF06489B),
@@ -953,6 +971,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
               'Available Slots',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
@@ -979,6 +998,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         color: const Color(0xFF192233).withValues(alpha: 0.5),
                       ),
                     ),
@@ -998,6 +1018,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
               'Choose Payment Method',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF192233),
@@ -1056,6 +1077,7 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
                     'Confirm & Book',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontWeight: FontWeight.w900,
                       fontSize: 18,
                     ),
@@ -1116,6 +1138,7 @@ class _CollectionTab extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontSize: 14,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   color: selected
@@ -1171,6 +1194,7 @@ class _HorizontalDatePicker extends StatelessWidget {
                     DateFormat('EEE').format(date).toUpperCase(),
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       color: isSelected
@@ -1183,6 +1207,7 @@ class _HorizontalDatePicker extends StatelessWidget {
                     date.day.toString(),
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                       color: isSelected

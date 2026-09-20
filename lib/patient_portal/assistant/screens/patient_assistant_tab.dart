@@ -605,6 +605,7 @@ class _AssistantEmptyState extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     color: const Color(0xFF173B63),
                     fontSize: 25,
                     height: 1.2,
@@ -618,6 +619,7 @@ class _AssistantEmptyState extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     color: const Color(0xFF5B7190),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -685,6 +687,7 @@ class _AssistantEmptyState extends StatelessWidget {
                                 prompt,
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   color: const Color(0xFF173B63),
                                   fontSize: 14,
                                   height: 1.35,
@@ -733,6 +736,7 @@ class _AssistantEmptyState extends StatelessWidget {
                         'For your safety',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF173B63),
@@ -743,6 +747,7 @@ class _AssistantEmptyState extends StatelessWidget {
                         strings.assistantDisclaimer,
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 11.5,
                           height: 1.4,
                           color: const Color(0xFF5B7190),
@@ -837,6 +842,7 @@ class _AssistantLiveStage extends StatelessWidget {
                   phaseLabel,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: AiChatColors.textPrimary,
@@ -982,6 +988,7 @@ class _RoundLiveButton extends StatelessWidget {
             label,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AiChatColors.textSecondary,

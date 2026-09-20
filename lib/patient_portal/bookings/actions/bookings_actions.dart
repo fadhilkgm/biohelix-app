@@ -143,6 +143,7 @@ extension _BookingsTabActions on _BookingsTab {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: theme.colorScheme.onSurface,
@@ -157,6 +158,7 @@ extension _BookingsTabActions on _BookingsTab {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -182,6 +184,7 @@ extension _BookingsTabActions on _BookingsTab {
                             cancelLabel,
                             style: TextStyle(
                               fontFamily: 'Manrope',
+                              fontFamilyFallback: const ['AnekMalayalam'],
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               color: theme.colorScheme.onSurfaceVariant,
@@ -204,6 +207,7 @@ extension _BookingsTabActions on _BookingsTab {
                             confirmLabel,
                             style: TextStyle(
                               fontFamily: 'Manrope',
+                              fontFamilyFallback: const ['AnekMalayalam'],
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                               color: isDestructive

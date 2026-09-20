@@ -35,6 +35,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'Payment',
           style: TextStyle(
             fontFamily: 'Manrope',
+            fontFamilyFallback: const ['AnekMalayalam'],
             fontWeight: FontWeight.w800,
             color: const Color(0xFF2D3142),
           ),
@@ -51,6 +52,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 'Choose Payment Method',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontWeight: FontWeight.w800,
                   fontSize: 18,
                   color: const Color(0xFF2D3142),
@@ -73,6 +75,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 'Final Summary',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: const Color(0xFF2D3142),
@@ -132,6 +135,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       'Confirm Order',
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                       ),

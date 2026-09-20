@@ -13,7 +13,7 @@ import '../../lab_booking/state/lab_booking_controller.dart';
 import '../../lab_booking/widgets/anatomy_map_widget.dart';
 import '../../lab_booking/widgets/category_chip_widget.dart';
 import '../../lab_booking/widgets/test_card_widget.dart';
-import '../../labs/screens/lab_test_detail_page.dart';
+import '../../labs/screens/lab_test_detail_sheet.dart';
 import 'cart_screen.dart';
 import 'test_booking_screen.dart';
 import 'test_list_screen.dart';
@@ -36,6 +36,9 @@ class LabTestHomeScreen extends StatelessWidget {
       create: (_) => LabBookingController(
         patientName: patientName,
         patientPhone: portal.dashboard?.patient.phone,
+        patientAge: portal.dashboard?.patient.age,
+        patientGender: portal.dashboard?.patient.gender,
+        patientAddress: portal.dashboard?.patient.address,
         tests: portal.labTests,
         bodyPoints: portal.bodyPoints,
         initialTestIds: initialTestIds,
@@ -60,6 +63,7 @@ class _LabHomeContent extends StatelessWidget {
           'Lab Tests',
           style: TextStyle(
             fontFamily: 'Manrope',
+            fontFamilyFallback: const ['AnekMalayalam'],
             fontWeight: FontWeight.w800,
             color: const Color(0xFF192233),
           ),
@@ -179,7 +183,7 @@ class _LabHomeContent extends StatelessWidget {
               children: [
                 Text(
                   c.selectedBodyPoint == null
-                      ? 'Popular Tests'
+                      ? 'Lab Tests'
                       : '${c.selectedBodyPoint!.name} Tests',
                   style: AppTextStyles.section(context),
                 ),
@@ -190,7 +194,7 @@ class _LabHomeContent extends StatelessWidget {
                 ),
               ],
             ),
-            if (c.popularTests.isEmpty)
+            if (c.featuredTests.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                 child: Center(
@@ -203,15 +207,16 @@ class _LabHomeContent extends StatelessWidget {
                 ),
               )
             else
-              ...c.popularTests.map(
+              ...c.featuredTests.map(
                 (t) => TestCardWidget(
                   test: t,
                   onAdd: () => _handleAddToCart(context, c, t),
                   onOpen: () {
                     if (t.originalItem != null) {
-                      _push(
+                      LabTestDetailSheet.show(
                         context,
-                        LabTestDetailPage(test: t.originalItem!, controller: c),
+                        test: t.originalItem!,
+                        controller: c,
                       );
                     } else {
                       c.addToCart(t);
@@ -261,6 +266,7 @@ class _LabHomeContent extends StatelessWidget {
                 'Confirm Booking',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -276,6 +282,7 @@ class _LabHomeContent extends StatelessWidget {
                   '${c.cartCount}',
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -313,7 +320,11 @@ class _LabHomeContent extends StatelessWidget {
         duration: const Duration(milliseconds: 1500),
         content: Text(
           '${test.name} added',
-          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
+          style: TextStyle(
+            fontFamily: 'Manrope',
+            fontWeight: FontWeight.w700,
+            fontFamilyFallback: const ['AnekMalayalam'],
+          ),
         ),
         backgroundColor: const Color(0xFF4CAF50),
         behavior: SnackBarBehavior.floating,

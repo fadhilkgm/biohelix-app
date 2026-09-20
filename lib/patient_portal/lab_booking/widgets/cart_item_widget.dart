@@ -42,6 +42,7 @@ class CartItemWidget extends StatelessWidget {
                   item.test.name,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     color: const Color(0xFF2D3142),
@@ -54,6 +55,7 @@ class CartItemWidget extends StatelessWidget {
                   '₹${item.test.price.toStringAsFixed(0)}',
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
                     color: const Color(0xFF06489B),

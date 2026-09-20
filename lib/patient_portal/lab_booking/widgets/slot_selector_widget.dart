@@ -64,6 +64,7 @@ class SlotSelectorWidget extends StatelessWidget {
                     slot.replaceAll(' - ', ' to '),
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 12,
                       fontWeight: isSelected
                           ? FontWeight.w800
