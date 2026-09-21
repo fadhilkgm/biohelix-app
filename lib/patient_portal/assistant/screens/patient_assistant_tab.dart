@@ -1327,6 +1327,7 @@ class _RoundLiveButton extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: AiChatColors.textSecondary,
               ),
+            ),
           ),
         ],
       ),
