@@ -42,6 +42,7 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
           'Our Specialists',
           style: TextStyle(
             fontFamily: 'Manrope',
+            fontFamilyFallback: const ['AnekMalayalam'],
             fontWeight: FontWeight.w800,
             color: const Color(0xFF192233),
           ),
@@ -101,6 +102,7 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                     controller: _searchController,
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       color: const Color(0xFF192233),
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -109,6 +111,7 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                       hintText: 'Search for doctors...',
                       hintStyle: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         color: const Color(0xFF192233).withValues(alpha: 0.4),
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -167,6 +170,7 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                             : 'No doctors found matching "$_searchQuery"',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 14,
                           color: const Color(0xFF192233).withValues(alpha: 0.6),
                         ),
@@ -198,6 +202,7 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                                   department,
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 20,
                                     fontWeight: FontWeight.w900,
                                     color: const Color(0xFF192233),
@@ -208,6 +213,7 @@ class _DoctorsDirectoryPageState extends State<_DoctorsDirectoryPage> {
                                   '${departmentDoctors.length} Doctors',
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF06489B),
@@ -315,6 +321,7 @@ class _DoctorShortCard extends StatelessWidget {
                         doc.name,
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF192233),
@@ -325,6 +332,7 @@ class _DoctorShortCard extends StatelessWidget {
                         doc.specialization,
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF06489B),
@@ -348,6 +356,7 @@ class _DoctorShortCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: const Color(

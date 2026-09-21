@@ -2,6 +2,7 @@ import 'package:biohelix_app/core/config/app_config.dart';
 import 'package:biohelix_app/core/l10n/app_strings.dart';
 import 'package:biohelix_app/core/network/api_client.dart';
 import 'package:biohelix_app/core/providers/language_provider.dart';
+import 'package:biohelix_app/core/providers/text_scale_provider.dart';
 import 'package:biohelix_app/core/providers/theme_provider.dart';
 import 'package:biohelix_app/core/storage/auth_storage.dart';
 import 'package:biohelix_app/features/session/providers/session_provider.dart';
@@ -201,6 +202,9 @@ Future<_ShellHarness> _buildHarness() async {
         ChangeNotifierProvider<PatientPortalProvider>.value(value: portal),
         ChangeNotifierProvider<FitnessProvider>.value(value: fitness),
         ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider<TextScaleProvider>(
+          create: (_) => TextScaleProvider(),
+        ),
         ChangeNotifierProvider<LanguageProvider>(
           create: (_) => LanguageProvider(apiClient: apiClient),
         ),

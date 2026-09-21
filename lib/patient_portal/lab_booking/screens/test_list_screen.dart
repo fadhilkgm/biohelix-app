@@ -9,7 +9,7 @@ import '../state/lab_booking_controller.dart';
 import '../widgets/test_card_widget.dart';
 import 'cart_screen.dart';
 import 'test_booking_screen.dart';
-import '../../labs/screens/lab_test_detail_page.dart';
+import '../../labs/screens/lab_test_detail_sheet.dart';
 import '../../shared/widgets/patient_screen_header.dart';
 
 class TestListScreen extends StatelessWidget {
@@ -49,6 +49,7 @@ class TestListScreen extends StatelessWidget {
                     onChanged: c.setQuery,
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontWeight: FontWeight.w600,
                     ),
                     decoration: InputDecoration(
@@ -59,6 +60,7 @@ class TestListScreen extends StatelessWidget {
                       hintText: 'Search tests or biomarkers',
                       hintStyle: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         color: const Color(0xFF192233).withValues(alpha: 0.4),
                         fontWeight: FontWeight.w600,
                       ),
@@ -100,6 +102,7 @@ class TestListScreen extends StatelessWidget {
                               'All',
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: c.selectedBodyPoint == null
@@ -137,6 +140,7 @@ class TestListScreen extends StatelessWidget {
                                 bp.name,
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
                                   color: isSelected
@@ -174,9 +178,10 @@ class TestListScreen extends StatelessWidget {
                       if (onTestTap != null) {
                         onTestTap!(t);
                       } else if (t.originalItem != null) {
-                        _push(
+                        LabTestDetailSheet.show(
                           context,
-                          LabTestDetailPage(test: t.originalItem!),
+                          test: t.originalItem!,
+                          controller: c,
                         );
                       } else {
                         c.addToCart(t);
@@ -227,6 +232,7 @@ class TestListScreen extends StatelessWidget {
                 'Confirm Booking',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -242,6 +248,7 @@ class TestListScreen extends StatelessWidget {
                   '${c.cartCount}',
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -279,7 +286,11 @@ class TestListScreen extends StatelessWidget {
         duration: const Duration(milliseconds: 1500),
         content: Text(
           '${test.name} added',
-          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
+          style: TextStyle(
+            fontFamily: 'Manrope',
+            fontWeight: FontWeight.w700,
+            fontFamilyFallback: const ['AnekMalayalam'],
+          ),
         ),
         backgroundColor: const Color(0xFF4CAF50),
         behavior: SnackBarBehavior.floating,

@@ -85,13 +85,7 @@ class _LabTestCard extends StatelessWidget {
     final imageUrl = resolveUrl(test.imageUrl);
 
     return InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => LabTestDetailPage(test: test),
-          ),
-        );
-      },
+      onTap: () => LabTestDetailSheet.show(context, test: test),
       borderRadius: BorderRadius.circular(24),
       child: Container(
         padding: const EdgeInsets.all(12),

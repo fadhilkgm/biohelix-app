@@ -219,6 +219,7 @@ class _AppointmentCard extends StatelessWidget {
           fontWeight: FontWeight.w700,
           fontSize: 16,
           fontFamily: 'Manrope',
+          fontFamilyFallback: ['AnekMalayalam'],
         ),
       ),
     );

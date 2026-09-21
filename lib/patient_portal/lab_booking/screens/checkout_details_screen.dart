@@ -26,6 +26,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
           'Booking Details',
           style: TextStyle(
             fontFamily: 'Manrope',
+            fontFamilyFallback: const ['AnekMalayalam'],
             fontWeight: FontWeight.w800,
             color: const Color(0xFF2D3142),
           ),
@@ -45,6 +46,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
                     'Select Patient',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
                       color: const Color(0xFF2D3142),
@@ -130,7 +132,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '${p.age} yrs • ${p.gender.characters.first}',
+                                  p.demographicsLabel ?? '',
                                   style: TextStyle(
                                     color: isSelected
                                         ? Colors.white.withValues(alpha: 0.8)
@@ -158,6 +160,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
                 'Collection Type',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: const Color(0xFF2D3142),
@@ -201,6 +204,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
                       'Collection Address',
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
                         color: const Color(0xFF2D3142),
@@ -214,6 +218,21 @@ class CheckoutDetailsScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              if (c.addresses.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                  child: Text(
+                    'No address saved yet. Tap “${strings.addNew}” to add the '
+                    'address where the sample should be collected.',
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                      height: 1.4,
+                    ),
+                  ),
+                ),
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -268,6 +287,7 @@ class CheckoutDetailsScreen extends StatelessWidget {
                 'Choose Time Slot',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
                 ),
@@ -459,6 +479,7 @@ class _CollectionOption extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
                   color: selected

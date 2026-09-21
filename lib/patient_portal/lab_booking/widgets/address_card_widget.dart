@@ -63,6 +63,7 @@ class AddressCardWidget extends StatelessWidget {
                     address.label,
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       color: const Color(0xFF2D3142),
@@ -73,6 +74,7 @@ class AddressCardWidget extends StatelessWidget {
                     address.fullAddress,
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 12,
                       color: Colors.grey[600],
                     ),

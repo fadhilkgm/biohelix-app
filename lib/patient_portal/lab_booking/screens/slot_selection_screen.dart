@@ -23,6 +23,7 @@ class SlotSelectionScreen extends StatelessWidget {
           'Select Slot',
           style: TextStyle(
             fontFamily: 'Manrope',
+            fontFamilyFallback: const ['AnekMalayalam'],
             fontWeight: FontWeight.w800,
             color: const Color(0xFF2D3142),
           ),
@@ -39,6 +40,7 @@ class SlotSelectionScreen extends StatelessWidget {
                 'When should we arrive?',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontWeight: FontWeight.w800,
                   fontSize: 18,
                   color: const Color(0xFF2D3142),
@@ -105,6 +107,7 @@ class SlotSelectionScreen extends StatelessWidget {
                               'Appointment Date',
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 13,
                                 color: Colors.grey,
                                 fontWeight: FontWeight.w600,
@@ -115,6 +118,7 @@ class SlotSelectionScreen extends StatelessWidget {
                               DateFormat('EEEE, dd MMM yyyy').format(c.date),
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
                                 color: const Color(0xFF2D3142),
@@ -143,6 +147,7 @@ class SlotSelectionScreen extends StatelessWidget {
                 'Available Time Slots',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: const Color(0xFF2D3142),
@@ -192,6 +197,7 @@ class SlotSelectionScreen extends StatelessWidget {
                 'Proceed to Payment',
                 style: TextStyle(
                   fontFamily: 'Manrope',
+                  fontFamilyFallback: const ['AnekMalayalam'],
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
                 ),

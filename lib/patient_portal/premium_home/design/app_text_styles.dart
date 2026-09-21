@@ -6,6 +6,7 @@ class AppTextStyles {
   static TextStyle headerTitle(BuildContext context) {
     return Theme.of(context).textTheme.titleLarge!.copyWith(
       fontFamily: 'Manrope',
+      fontFamilyFallback: const ['AnekMalayalam'],
       color: AppColors.textPrimary,
       fontWeight: FontWeight.w800,
       letterSpacing: -0.3,
@@ -16,6 +17,7 @@ class AppTextStyles {
   static TextStyle subText(BuildContext context) {
     return Theme.of(context).textTheme.bodyMedium!.copyWith(
       fontFamily: 'Manrope',
+      fontFamilyFallback: const ['AnekMalayalam'],
       color: AppColors.textSecondary,
       fontWeight: FontWeight.w500,
       height: 1.35,
@@ -25,6 +27,7 @@ class AppTextStyles {
   static TextStyle sectionTitle(BuildContext context) {
     return Theme.of(context).textTheme.titleMedium!.copyWith(
       fontFamily: 'Manrope',
+      fontFamilyFallback: const ['AnekMalayalam'],
       color: AppColors.textPrimary,
       fontWeight: FontWeight.w700,
     );
@@ -33,6 +36,7 @@ class AppTextStyles {
   static TextStyle cardTitle(BuildContext context) {
     return Theme.of(context).textTheme.titleSmall!.copyWith(
       fontFamily: 'Manrope',
+      fontFamilyFallback: const ['AnekMalayalam'],
       color: AppColors.textPrimary,
       fontWeight: FontWeight.w800,
       letterSpacing: -0.2,
@@ -42,6 +46,7 @@ class AppTextStyles {
   static TextStyle cardSubtitle(BuildContext context) {
     return Theme.of(context).textTheme.bodySmall!.copyWith(
       fontFamily: 'Manrope',
+      fontFamilyFallback: const ['AnekMalayalam'],
       color: AppColors.secondary,
       fontWeight: FontWeight.w600,
     );

@@ -105,6 +105,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                         'Reschedule',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: theme.colorScheme.onSurface,
@@ -122,6 +123,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     'Choose a new date and time with ${selectedDoctor.name}',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -187,6 +189,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                                   'Selected Date',
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: theme.colorScheme.onSurfaceVariant,
@@ -198,6 +201,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                                   ).format(selectedDate),
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                     color: theme.colorScheme.onSurface,
@@ -220,6 +224,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     'Available Slots',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: theme.colorScheme.onSurface,
@@ -250,6 +255,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                             'No slots available on this day',
                             style: TextStyle(
                               fontFamily: 'Manrope',
+                              fontFamilyFallback: const ['AnekMalayalam'],
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: theme.colorScheme.onSurfaceVariant,
@@ -301,6 +307,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                               slot,
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 12,
                                 fontWeight: isSelected
                                     ? FontWeight.w800
@@ -491,6 +498,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                         'Reschedule Lab Test',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: theme.colorScheme.onSurface,
@@ -508,6 +516,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     'Order: ${order.testName}',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -565,6 +574,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                                   'Selected Date',
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: theme.colorScheme.onSurfaceVariant,
@@ -576,6 +586,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                                   ).format(selectedDate),
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                     color: theme.colorScheme.onSurface,
@@ -598,6 +609,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     'Available Intervals',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: theme.colorScheme.onSurface,
@@ -654,6 +666,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                               slot,
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 12,
                                 fontWeight: isSelected
                                     ? FontWeight.w800
@@ -823,6 +836,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                         'Reschedule Package',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: theme.colorScheme.onSurface,
@@ -840,6 +854,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     'Order: ${order.packageName}',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -897,6 +912,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                                   'Selected Date',
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: theme.colorScheme.onSurfaceVariant,
@@ -908,6 +924,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                                   ).format(selectedDate),
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                     color: theme.colorScheme.onSurface,
@@ -930,6 +947,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                     'Available Intervals',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: theme.colorScheme.onSurface,
@@ -986,6 +1004,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
                               slot,
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 12,
                                 fontWeight: isSelected
                                     ? FontWeight.w800

@@ -145,6 +145,7 @@ class BookingSuccessScreen extends StatelessWidget {
               'Back',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: ['AnekMalayalam'],
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
@@ -181,6 +182,7 @@ class BookingSuccessScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontSize: isCompact ? 24 : 28,
                         fontWeight: FontWeight.w900,
                         color: const Color(0xFF192233),
@@ -193,6 +195,7 @@ class BookingSuccessScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontSize: isCompact ? 14 : 16,
                         color: const Color(0xFF192233).withValues(alpha: 0.6),
                         height: isCompact ? 1.35 : 1.5,
@@ -227,6 +230,7 @@ class BookingSuccessScreen extends StatelessWidget {
                           'Reference: $bookingId',
                           style: const TextStyle(
                             fontFamily: 'Manrope',
+                            fontFamilyFallback: ['AnekMalayalam'],
                             fontSize: 14,
                             color: Color(0xFF06489B),
                             fontWeight: FontWeight.w800,
@@ -353,6 +357,7 @@ class _BookingSummaryCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF192233),
@@ -366,6 +371,7 @@ class _BookingSummaryCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF06489B),
@@ -415,6 +421,7 @@ class _BookingSummaryCard extends StatelessWidget {
                     'Token Number',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: ['AnekMalayalam'],
                       fontSize: 18,
                       color: Color(0xFF345A7D),
                       fontWeight: FontWeight.w900,
@@ -424,6 +431,7 @@ class _BookingSummaryCard extends StatelessWidget {
                     '#$tokenNumber',
                     style: const TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: ['AnekMalayalam'],
                       fontSize: 32,
                       height: 1,
                       color: Color(0xFF06489B),
@@ -490,6 +498,7 @@ class _BookingDetailTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF192233).withValues(alpha: 0.45),
@@ -502,6 +511,7 @@ class _BookingDetailTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'Manrope',
+                    fontFamilyFallback: const ['AnekMalayalam'],
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
                     color: const Color(0xFF192233),

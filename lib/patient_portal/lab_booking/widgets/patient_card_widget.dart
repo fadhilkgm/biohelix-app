@@ -66,6 +66,7 @@ class PatientCardWidget extends StatelessWidget {
                     patient.name,
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       color: const Color(0xFF2D3142),
@@ -76,6 +77,7 @@ class PatientCardWidget extends StatelessWidget {
                     '${patient.age} yrs • ${patient.gender}',
                     style: TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: const ['AnekMalayalam'],
                       fontSize: 12,
                       color: Colors.grey[600],
                     ),

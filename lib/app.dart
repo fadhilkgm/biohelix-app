@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'core/config/app_config.dart';
 import 'core/network/api_client.dart';
 import 'core/providers/language_provider.dart';
+import 'core/providers/text_scale_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/referrals/referral_link_provider.dart';
 import 'core/storage/auth_storage.dart';
@@ -55,6 +56,7 @@ class _BioHelixAppState extends State<BioHelixApp> {
   late final ReferralLinkProvider _referralLinkProvider;
   late final Future<void> _languageInitialization;
   final ThemeProvider _themeProvider = ThemeProvider();
+  final TextScaleProvider _textScaleProvider = TextScaleProvider();
   bool _languageSyncedForSession = false;
 
   @override
@@ -79,6 +81,7 @@ class _BioHelixAppState extends State<BioHelixApp> {
     )..initialize();
     _languageProvider = LanguageProvider(apiClient: _apiClient);
     _languageInitialization = _languageProvider.initialize();
+    unawaited(_textScaleProvider.initialize());
     _sessionProvider.addListener(_handleSessionChanged);
     _patientPortalProvider = PatientPortalProvider(
       repository: _patientRepository,
@@ -135,6 +138,9 @@ class _BioHelixAppState extends State<BioHelixApp> {
         ),
         ChangeNotifierProvider<FitnessProvider>.value(value: _fitnessProvider),
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
+        ChangeNotifierProvider<TextScaleProvider>.value(
+          value: _textScaleProvider,
+        ),
         ChangeNotifierProvider<LanguageProvider>.value(
           value: _languageProvider,
         ),
@@ -154,13 +160,25 @@ class _BioHelixAppState extends State<BioHelixApp> {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          builder: (context, child) => DefaultTextStyle.merge(
-            style: const TextStyle(
-              fontFamily: 'Manrope',
-              fontFamilyFallback: ['AnekMalayalam'],
-            ),
-            child: child ?? const SizedBox.shrink(),
-          ),
+          builder: (context, child) {
+            // The patient's in-app text size is applied on top of the system
+            // setting, for people who never find Android's own font control.
+            final textScale = context.watch<TextScaleProvider>();
+            final media = MediaQuery.of(context);
+
+            return MediaQuery(
+              data: media.copyWith(
+                textScaler: textScale.resolve(media.textScaler),
+              ),
+              child: DefaultTextStyle.merge(
+                style: const TextStyle(
+                  fontFamily: 'Manrope',
+                  fontFamilyFallback: ['AnekMalayalam'],
+                ),
+                child: child ?? const SizedBox.shrink(),
+              ),
+            );
+          },
           home: const SplashScreen(),
         ),
       ),

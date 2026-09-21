@@ -305,6 +305,7 @@ class _StatusBadge extends StatelessWidget {
             label,
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontSize: 11,
               fontWeight: FontWeight.w800,
               color: accentColor,

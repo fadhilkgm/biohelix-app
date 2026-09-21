@@ -82,13 +82,7 @@ class _DashboardDiscoverySections extends StatelessWidget {
           ),
         );
       },
-      onLabTap: (test) {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => LabTestDetailPage(test: test),
-          ),
-        );
-      },
+      onLabTap: (test) => LabTestDetailSheet.show(context, test: test),
       onPackageTap: onPackageTap,
       onBannerTap: onBannerTap,
       onViewAllDoctors: onViewAllDoctors,

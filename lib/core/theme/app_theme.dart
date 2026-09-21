@@ -31,6 +31,7 @@ class AppTheme {
       // Typography
       textTheme: textTheme,
       fontFamily: 'Manrope',
+      fontFamilyFallback: const ['AnekMalayalam'],
 
       // Card Theme
       cardTheme: CardThemeData(
@@ -140,6 +141,7 @@ class AppTheme {
       // Typography
       textTheme: textTheme,
       fontFamily: 'Manrope',
+      fontFamilyFallback: const ['AnekMalayalam'],
 
       // Card Theme
       cardTheme: CardThemeData(

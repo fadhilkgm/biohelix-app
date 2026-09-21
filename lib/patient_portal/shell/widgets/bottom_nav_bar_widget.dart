@@ -65,7 +65,7 @@ class BottomNavBarWidget extends StatelessWidget {
                         Icon(
                           selected ? item.selectedIcon : item.icon,
                           color: Colors.white,
-                          size: 24,
+                          size: 26,
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -75,7 +75,9 @@ class BottomNavBarWidget extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: selected ? 11 : 10.5,
+                            // Primary navigation should not carry the
+                            // smallest type in the app.
+                            fontSize: selected ? 13 : 12.5,
                             fontWeight: selected
                                 ? FontWeight.w700
                                 : FontWeight.w500,

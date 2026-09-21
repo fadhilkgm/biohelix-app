@@ -30,6 +30,7 @@ class PriceSummaryWidget extends StatelessWidget {
               label,
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: 14,
                 fontWeight: strong ? FontWeight.w800 : FontWeight.w500,
                 color: strong ? const Color(0xFF2D3142) : Colors.grey[600],
@@ -40,6 +41,7 @@ class PriceSummaryWidget extends StatelessWidget {
               value,
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontSize: strong ? 18 : 14,
                 fontWeight: strong ? FontWeight.w800 : FontWeight.w700,
                 color:
@@ -68,6 +70,7 @@ class PriceSummaryWidget extends StatelessWidget {
             'Order Summary',
             style: TextStyle(
               fontFamily: 'Manrope',
+              fontFamilyFallback: const ['AnekMalayalam'],
               fontWeight: FontWeight.w800,
               fontSize: 15,
               color: const Color(0xFF2D3142),

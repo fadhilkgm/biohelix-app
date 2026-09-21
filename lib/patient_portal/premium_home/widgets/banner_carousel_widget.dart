@@ -178,6 +178,7 @@ class _BannerCarouselWidgetState extends State<BannerCarouselWidget> {
                       'Explore doctors',
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,

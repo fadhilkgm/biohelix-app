@@ -99,6 +99,7 @@ class _BookingPaymentOption extends StatelessWidget {
                     title,
                     style: const TextStyle(
                       fontFamily: 'Manrope',
+                      fontFamilyFallback: ['AnekMalayalam'],
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       color: Color(0xFF2D3142),

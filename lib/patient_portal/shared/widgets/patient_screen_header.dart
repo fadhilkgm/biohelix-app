@@ -67,6 +67,7 @@ class PatientScreenHeader extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'Manrope',
+                        fontFamilyFallback: const ['AnekMalayalam'],
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
                         color: theme.colorScheme.onSurface,
@@ -81,6 +82,7 @@ class PatientScreenHeader extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: theme.colorScheme.onSurfaceVariant,

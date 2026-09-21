@@ -34,6 +34,7 @@ class AiChatColors {
 class AppTextStyles {
   static TextStyle title(BuildContext context) => TextStyle(
     fontFamily: 'Manrope',
+    fontFamilyFallback: const ['AnekMalayalam'],
     fontSize: 22,
     fontWeight: FontWeight.w500,
     color: AiChatColors.textPrimary,
@@ -42,6 +43,7 @@ class AppTextStyles {
 
   static TextStyle subtitle(BuildContext context) => TextStyle(
     fontFamily: 'Manrope',
+    fontFamilyFallback: const ['AnekMalayalam'],
     fontSize: 14,
     fontWeight: FontWeight.w500,
     color: AiChatColors.textSecondary,
@@ -49,6 +51,7 @@ class AppTextStyles {
 
   static TextStyle bubbleUser(BuildContext context) => TextStyle(
     fontFamily: 'Manrope',
+    fontFamilyFallback: const ['AnekMalayalam'],
     fontSize: 15,
     height: 1.45,
     fontWeight: FontWeight.w500,
@@ -57,6 +60,7 @@ class AppTextStyles {
 
   static TextStyle bubbleAi(BuildContext context) => TextStyle(
     fontFamily: 'Manrope',
+    fontFamilyFallback: const ['AnekMalayalam'],
     fontSize: 15,
     height: 1.45,
     fontWeight: FontWeight.w400,
@@ -65,6 +69,7 @@ class AppTextStyles {
 
   static TextStyle dateSeparator(BuildContext context) => TextStyle(
     fontFamily: 'Manrope',
+    fontFamilyFallback: const ['AnekMalayalam'],
     fontSize: 11,
     fontWeight: FontWeight.w700,
     color: AiChatColors.textSecondary,
@@ -73,6 +78,7 @@ class AppTextStyles {
 
   static TextStyle inputHint(BuildContext context) => TextStyle(
     fontFamily: 'Manrope',
+    fontFamilyFallback: const ['AnekMalayalam'],
     fontSize: 16,
     fontWeight: FontWeight.w400,
     color: AiChatColors.textSecondary,

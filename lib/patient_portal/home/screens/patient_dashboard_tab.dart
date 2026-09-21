@@ -63,88 +63,21 @@ class _DashboardTab extends StatelessWidget {
                             final patient = profile.patient;
                             final isActive = patient.id == activePatientId;
 
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Material(
-                                color: isActive
-                                    ? const Color(0xFFEAF2FF)
-                                    : Theme.of(context).colorScheme.surface,
-                                borderRadius: BorderRadius.circular(18),
-                                child: InkWell(
-                                  key: ValueKey(
-                                    'patient-profile-${patient.id}',
-                                  ),
-                                  onTap: isActive
-                                      ? null
-                                      : () async {
-                                          Navigator.of(sheetContext).pop();
-                                          try {
-                                            await shellContext
-                                                .read<SessionProvider>()
-                                                .switchFamilyProfile(
-                                                  profile.token,
-                                                );
-                                          } catch (error) {
-                                            if (!shellContext.mounted) return;
-                                            ScaffoldMessenger.of(
-                                              shellContext,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(error.toString()),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(14),
-                                    child: Row(
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundColor: const Color(
-                                            0xFF06489B,
-                                          ),
-                                          foregroundColor: Colors.white,
-                                          child: Text(
-                                            _patientInitial(patient.name),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                patient.name,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                patient.registrationNumber,
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.bodySmall,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        if (isActive)
-                                          const Icon(
-                                            Icons.check_circle_rounded,
-                                            color: Color(0xFF06489B),
-                                          )
-                                        else
-                                          const Icon(
-                                            Icons.chevron_right_rounded,
-                                          ),
-                                      ],
+                            return _PatientSwitcherTile(
+                              key: ValueKey('patient-profile-${patient.id}'),
+                              initial: _patientInitial(patient.name),
+                              name: patient.name,
+                              subtitle: patient.registrationNumber,
+                              isActive: isActive,
+                              onTap: isActive
+                                  ? null
+                                  : () => _runSwitch(
+                                      sheetContext,
+                                      shellContext,
+                                      (session) => session.switchFamilyProfile(
+                                        profile.token,
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ),
                             );
                           }),
                           if (relatives.isNotEmpty) ...[
@@ -160,93 +93,19 @@ class _DashboardTab extends StatelessWidget {
                               ),
                             ),
                             ...relatives.map(
-                              (relative) => Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: Material(
-                                  color: const Color(0xFFF7F9FC),
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: InkWell(
-                                    key: ValueKey(
-                                      'linked-relative-${relative.patientId}',
-                                    ),
-                                    borderRadius: BorderRadius.circular(18),
-                                    onTap: () async {
-                                      Navigator.of(sheetContext).pop();
-                                      try {
-                                        await shellContext
-                                            .read<SessionProvider>()
-                                            .switchLinkedFamilyMember(
-                                              relative.linkId,
-                                            );
-                                      } catch (error) {
-                                        if (!shellContext.mounted) return;
-                                        ScaffoldMessenger.of(
-                                          shellContext,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(error.toString()),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(14),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(18),
-                                        border: Border.all(
-                                          color: const Color(0xFFDCE5F0),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          CircleAvatar(
-                                            backgroundColor: const Color(
-                                              0xFFE6F0FC,
-                                            ),
-                                            foregroundColor: const Color(
-                                              0xFF06489B,
-                                            ),
-                                            child: Text(
-                                              _patientInitial(relative.name),
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  relative.name,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  _relativeSubtitle(relative),
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.copyWith(
-                                                        color: const Color(
-                                                          0xFF617086,
-                                                        ),
-                                                      ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const Icon(
-                                            Icons.chevron_right_rounded,
-                                            color: Color(0xFF7A8BA3),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                              (relative) => _PatientSwitcherTile(
+                                key: ValueKey(
+                                  'linked-relative-${relative.patientId}',
+                                ),
+                                initial: _patientInitial(relative.name),
+                                name: relative.name,
+                                subtitle: _relativeSubtitle(relative),
+                                isActive: false,
+                                onTap: () => _runSwitch(
+                                  sheetContext,
+                                  shellContext,
+                                  (session) => session.switchLinkedFamilyMember(
+                                    relative.linkId,
                                   ),
                                 ),
                               ),
@@ -291,6 +150,28 @@ class _DashboardTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Closes the sheet, performs the switch, and reports failures in plain
+  /// language. `SessionProvider` drives the loading state while this runs.
+  Future<void> _runSwitch(
+    BuildContext sheetContext,
+    BuildContext shellContext,
+    Future<void> Function(SessionProvider session) action,
+  ) async {
+    Navigator.of(sheetContext).pop();
+    try {
+      await action(shellContext.read<SessionProvider>());
+    } catch (_) {
+      if (!shellContext.mounted) return;
+      ScaffoldMessenger.of(shellContext).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not switch patient. Please check your connection and try again.',
+          ),
+        ),
+      );
+    }
   }
 
   String _patientInitial(String name) {
@@ -583,6 +464,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                   'HEALTH PACKAGE',
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 10,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 0.9,
@@ -595,6 +477,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                 activePackage.name,
                                 style: TextStyle(
                                   fontFamily: 'Manrope',
+                                  fontFamilyFallback: const ['AnekMalayalam'],
                                   fontSize: 23,
                                   fontWeight: FontWeight.w900,
                                   color: const Color(0xFF192233),
@@ -629,6 +512,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                               '${activePackage.totalTests ?? activePackage.includedTests.length} tests included',
                                               style: TextStyle(
                                                 fontFamily: 'Manrope',
+                                                fontFamilyFallback: const [
+                                                  'AnekMalayalam',
+                                                ],
                                                 fontSize: 12,
                                                 color: const Color(0xFF356FD3),
                                                 fontWeight: FontWeight.w800,
@@ -647,6 +533,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                         '₹${activePackage.discountedPrice ?? activePackage.basePrice}',
                                         style: TextStyle(
                                           fontFamily: 'Manrope',
+                                          fontFamilyFallback: const [
+                                            'AnekMalayalam',
+                                          ],
                                           fontSize: 25,
                                           fontWeight: FontWeight.w900,
                                           color: const Color(0xFF356FD3),
@@ -660,6 +549,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                           '₹${activePackage.basePrice}',
                                           style: TextStyle(
                                             fontFamily: 'Manrope',
+                                            fontFamilyFallback: const [
+                                              'AnekMalayalam',
+                                            ],
                                             fontSize: 13,
                                             decoration:
                                                 TextDecoration.lineThrough,
@@ -685,6 +577,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                   'Tests Included ${hasTests ? "(${activePackage.includedTests.length})" : ""}',
                                   style: TextStyle(
                                     fontFamily: 'Manrope',
+                                    fontFamilyFallback: const ['AnekMalayalam'],
                                     fontSize: 20,
                                     fontWeight: FontWeight.w900,
                                     color: const Color(0xFF192233),
@@ -696,6 +589,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                     'Everything covered in this package',
                                     style: TextStyle(
                                       fontFamily: 'Manrope',
+                                      fontFamilyFallback: const [
+                                        'AnekMalayalam',
+                                      ],
                                       fontSize: 12,
                                       color: const Color(0xFF6B7A90),
                                       fontWeight: FontWeight.w500,
@@ -743,6 +639,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                           testName,
                                           style: TextStyle(
                                             fontFamily: 'Manrope',
+                                            fontFamilyFallback: const [
+                                              'AnekMalayalam',
+                                            ],
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
                                             color: const Color(
@@ -761,6 +660,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                               activePackage.description!,
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 16,
                                 color: const Color(
                                   0xFF192233,
@@ -820,6 +720,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                         'Book This Package',
                         style: TextStyle(
                           fontFamily: 'Manrope',
+                          fontFamilyFallback: const ['AnekMalayalam'],
                           fontWeight: FontWeight.w900,
                           fontSize: 17,
                         ),
@@ -851,6 +752,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
               'Health Packages',
               style: TextStyle(
                 fontFamily: 'Manrope',
+                fontFamilyFallback: const ['AnekMalayalam'],
                 fontWeight: FontWeight.w900,
                 fontSize: 22,
                 color: const Color(0xFF192233),
@@ -890,6 +792,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(
@@ -919,6 +822,7 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontFamily: 'Manrope',
+                                fontFamilyFallback: const ['AnekMalayalam'],
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(
@@ -1034,6 +938,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               fontFamily: 'Manrope',
+                                              fontFamilyFallback: const [
+                                                'AnekMalayalam',
+                                              ],
                                               fontSize: 16,
                                               fontWeight: FontWeight.w800,
                                               color: const Color(0xFF1A1A1A),
@@ -1069,6 +976,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                                   '${pkg.totalTests ?? pkg.includedTests.length} Tests',
                                                   style: TextStyle(
                                                     fontFamily: 'Manrope',
+                                                    fontFamilyFallback: const [
+                                                      'AnekMalayalam',
+                                                    ],
                                                     fontSize: 12,
                                                     color: const Color(
                                                       0xFF06489B,
@@ -1088,6 +998,9 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                                 '₹${pkg.discountedPrice ?? pkg.basePrice}',
                                                 style: TextStyle(
                                                   fontFamily: 'Manrope',
+                                                  fontFamilyFallback: const [
+                                                    'AnekMalayalam',
+                                                  ],
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.w900,
                                                   color: const Color(
@@ -1160,6 +1073,10 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
                                                     'Book',
                                                     style: TextStyle(
                                                       fontFamily: 'Manrope',
+                                                      fontFamilyFallback:
+                                                          const [
+                                                            'AnekMalayalam',
+                                                          ],
                                                       fontWeight:
                                                           FontWeight.w800,
                                                       fontSize: 15,
@@ -1215,6 +1132,103 @@ class _BannerPackageLandingPageState extends State<_BannerPackageLandingPage> {
             Icons.health_and_safety_rounded,
             size: 40,
             color: Color(0xFF06489B),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One row in the "Switch patient" sheet. Shared by signed-in profiles and by
+/// linked relatives so both render identically.
+class _PatientSwitcherTile extends StatelessWidget {
+  const _PatientSwitcherTile({
+    super.key,
+    required this.initial,
+    required this.name,
+    required this.subtitle,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final String initial;
+  final String name;
+  final String subtitle;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: isActive ? const Color(0xFFEAF2FF) : const Color(0xFFF7F9FC),
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isActive
+                    ? const Color(0xFF06489B)
+                    : const Color(0xFFDCE5F0),
+              ),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: isActive
+                      ? const Color(0xFF06489B)
+                      : const Color(0xFFE6F0FC),
+                  foregroundColor: isActive
+                      ? Colors.white
+                      : const Color(0xFF06489B),
+                  child: Text(
+                    initial,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      if (subtitle.trim().isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF617086),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (isActive)
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF06489B),
+                  )
+                else
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF7A8BA3),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
