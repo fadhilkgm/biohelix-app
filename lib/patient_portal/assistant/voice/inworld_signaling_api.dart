@@ -1,4 +1,5 @@
 import '../../../core/network/api_client.dart';
+import 'live_voice_conversation.dart';
 
 class InworldIceServer {
   const InworldIceServer({required this.urls, this.username, this.credential});
@@ -36,6 +37,17 @@ class InworldSessionBootstrap {
   final Map<String, dynamic> sessionUpdate;
 }
 
+class InworldCallAnswer {
+  const InworldCallAnswer({required this.sdp, required this.sessionConfigured});
+
+  final String sdp;
+
+  /// Laravel attached the session configuration to the call itself, so the
+  /// session is live the moment the data channel opens and no
+  /// `session.update` round trip is needed before listening.
+  final bool sessionConfigured;
+}
+
 class LiveVoiceUsageUpdate {
   const LiveVoiceUsageUpdate({
     required this.sessionId,
@@ -71,8 +83,11 @@ class InworldSignalingApi {
 
   static const _bootstrapCacheTtl = Duration(seconds: 45);
 
+  static String languageFor(String locale) =>
+      locale.toLowerCase().startsWith('ml') ? 'ml' : 'en';
+
   Future<InworldSessionBootstrap> bootstrap({required String locale}) async {
-    final language = locale.toLowerCase().startsWith('ml') ? 'ml' : 'en';
+    final language = languageFor(locale);
     final cached = _cachedBootstrap;
     final cachedAt = _cachedAt;
     if (cached != null &&
@@ -130,16 +145,37 @@ class InworldSignalingApi {
     );
   }
 
-  Future<String> createCall(String offerSdp) async {
-    final answer = await _client.postSdp('/realtime/calls', sdp: offerSdp);
+  /// Exchanges the SDP offer. Passing [locale] lets Laravel attach the session
+  /// configuration to the call, which removes a round trip from start-up.
+  Future<InworldCallAnswer> createCall(
+    String offerSdp, {
+    String? locale,
+  }) async {
+    final response = await _client.postSdp(
+      '/realtime/calls',
+      sdp: offerSdp,
+      queryParameters: locale == null
+          ? null
+          : {'language': languageFor(locale)},
+    );
+    final answer = response.body;
     if (!answer.trimLeft().startsWith('v=0')) {
       throw const FormatException('Realtime server returned an invalid SDP.');
     }
-    return answer;
+    final configured = response.headers.entries.any(
+      (header) =>
+          header.key.toLowerCase() == 'x-realtime-session-configured' &&
+          header.value.any((value) => value.trim() == '1'),
+    );
+    return InworldCallAnswer(sdp: answer, sessionConfigured: configured);
   }
 
   /// Laravel selects only completed, patient-owned report summaries for this
   /// transcript. Inworld never receives a document tool or raw report file.
+  ///
+  /// Server-owned actions (bookings, emergencies) come back as verbatim
+  /// instructions; everything else is a short directive plus the record
+  /// context, which the controller layers on top of the session prompt.
   Future<String> responseInstructions({
     required String conversationId,
     required String transcript,
@@ -154,6 +190,14 @@ class InworldSignalingApi {
     final instructions = response['instructions']?.toString().trim() ?? '';
     if (instructions.isEmpty) {
       throw const FormatException('Voice context response is invalid.');
+    }
+    if (response['exact'] == true) return instructions;
+    final turnContext = response['turn_context'];
+    if (turnContext is String) {
+      final records = turnContext.trim();
+      return records.isEmpty
+          ? kLiveVoiceTurnInstructions
+          : '$kLiveVoiceTurnInstructions\n\n$records';
     }
     return instructions;
   }

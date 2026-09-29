@@ -829,6 +829,7 @@ class _FakeLiveVoiceController extends LiveVoiceController {
     String sessionInstructions = '',
     List<Map<String, dynamic>> tools = const [],
     RealtimeFunctionCallHandler? onFunctionCall,
+    List<LiveVoiceHistoryItem> history = const [],
   }) async {
     startCallCount++;
     _fakeState = failOnStart

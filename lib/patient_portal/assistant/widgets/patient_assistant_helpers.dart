@@ -474,58 +474,138 @@ extension _AssistantActions on _AssistantTabState {
     await portal.renameChatThread(threadId: threadId, title: title);
   }
 
-  Future<void> _toggleLiveVoiceMode(PatientPortalProvider portal) async {
-    if (_isLiveVoiceMode) {
-      await liveVoiceController.stop();
-      await portal.refreshMyClub();
-      if (!mounted) return;
-      updateAssistantState(() {
-        _isLiveVoiceMode = false;
-        _isListening = false;
-        _isSpeaking = false;
-        _isEndingLiveVoice = false;
-        _isMicMuted = false;
-        _soundLevel = 0;
-        _liveUserPartial = '';
-        _liveUserFinal = '';
-        _liveResponseText = '';
-        _liveVoiceError = null;
-        _liveConversationId = null;
-      });
-      return;
-    }
-
-    // Voice turns must be persisted against a real global chat thread. The
-    // assistant tab can be opened before the initial background load finishes.
-    await portal.initializeChatThreads(
-      force: (portal.activeChatThreadId ?? '').isEmpty,
-    );
-    if (!mounted) return;
-
-    if ((portal.activeChatThreadId ?? '').isEmpty) {
-      await portal.createNewChatThread();
-    }
-    if (!mounted || (portal.activeChatThreadId ?? '').isEmpty) return;
-
+  /// Opens the voice screen at once and connects in the background, like
+  /// ChatGPT voice mode: no greeting to sit through, the patient can talk as
+  /// soon as the orb turns green.
+  Future<void> _startLiveVoice(PatientPortalProvider portal) async {
+    if (_isLiveVoiceMode) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    final existingThread = portal.activeChatThreadId ?? '';
     updateAssistantState(() {
       _isLiveVoiceMode = true;
       _isEndingLiveVoice = false;
-      _liveConversationId = portal.activeChatThreadId;
-      _liveVoiceError = null;
+      _liveConversationId = existingThread.isEmpty ? null : existingThread;
     });
+
+    // Voice turns belong to a real chat thread, but creating one must not
+    // delay the connection: resolve it alongside the WebRTC handshake.
+    final conversationReady = _ensureLiveConversation(portal);
+    _liveConversationReady = conversationReady;
+    unawaited(
+      conversationReady.then((conversationId) {
+        if (!mounted || !_isLiveVoiceMode || conversationId == null) return;
+        if (!identical(_liveConversationReady, conversationReady)) return;
+        _liveConversationId = conversationId;
+        liveVoiceController.attachConversation(conversationId);
+      }),
+    );
+
     await liveVoiceController.start(
       locale: _ttsLanguageCode,
-      conversationId: _liveConversationId!,
-      initialResponseInstructions:
-          'Start the conversation now. Greet the patient warmly in the '
-          'session language, introduce yourself as the BHRC health assistant, '
-          'and ask how you can help. Keep it to one short spoken response.',
+      conversationId: existingThread,
+      history: existingThread.isEmpty
+          ? const []
+          : _liveVoiceHistory(portal.chatMessages),
     );
   }
 
-  Future<void> _interruptAiSpeechAndListen(PatientPortalProvider portal) async {
+  Future<void> _endLiveVoice(PatientPortalProvider portal) async {
     if (!_isLiveVoiceMode) return;
-    await liveVoiceController.interrupt();
+    updateAssistantState(() {
+      _isLiveVoiceMode = false;
+      _isEndingLiveVoice = true;
+      _liveConversationId = null;
+      _liveConversationReady = null;
+    });
+    await liveVoiceController.stop(reason: 'patient_ended');
+    unawaited(portal.refreshMyClub());
+  }
+
+  Future<void> _retryLiveVoice(PatientPortalProvider portal) async {
+    if (!_isLiveVoiceMode || liveVoiceController.state.isActive) return;
+    final conversationId = await _awaitLiveConversationId();
+    if (!mounted || !_isLiveVoiceMode) return;
+    await liveVoiceController.start(
+      locale: _ttsLanguageCode,
+      conversationId: conversationId,
+      history: _liveVoiceHistory(portal.chatMessages),
+    );
+  }
+
+  Future<String?> _ensureLiveConversation(PatientPortalProvider portal) async {
+    try {
+      if ((portal.activeChatThreadId ?? '').isEmpty) {
+        // The assistant can be opened before the background load finishes.
+        await portal.initializeChatThreads(force: true);
+      }
+      if ((portal.activeChatThreadId ?? '').isEmpty) {
+        await portal.createNewChatThread();
+      }
+    } catch (error) {
+      if (kDebugMode) debugPrint('[LiveVoice] chat thread unavailable: $error');
+    }
+    final conversationId = portal.activeChatThreadId ?? '';
+    return conversationId.isEmpty ? null : conversationId;
+  }
+
+  /// The live call's chat thread, waiting for it to be created if needed.
+  Future<String> _awaitLiveConversationId() async {
+    final current = _liveConversationId ?? '';
+    if (current.isNotEmpty) return current;
+    final pending = _liveConversationReady;
+    if (pending == null) return '';
+    return await pending ?? '';
+  }
+
+  /// The last few text messages of the thread, so the voice assistant picks
+  /// up the conversation instead of starting cold.
+  List<LiveVoiceHistoryItem> _liveVoiceHistory(List<ChatMessage> messages) {
+    final items = <LiveVoiceHistoryItem>[];
+    for (final message in messages.reversed) {
+      if (items.length >= kLiveVoiceHistoryMessageLimit) break;
+      final role = message.role;
+      if (role != 'user' && role != 'assistant') continue;
+      final text = message.content.trim();
+      if (text.isEmpty) continue;
+      items.add(LiveVoiceHistoryItem(fromPatient: role == 'user', text: text));
+    }
+    return items.reversed.toList(growable: false);
+  }
+
+  /// Saves one voice exchange, retrying once. A failure never interrupts the
+  /// call: the conversation matters more than its transcript.
+  Future<void> _persistLiveTurn(
+    String conversationId,
+    String transcript,
+    String response,
+  ) async {
+    final idempotencyKey =
+        '$conversationId-${DateTime.now().microsecondsSinceEpoch}';
+    final safeTranscript = transcript.length > 2000
+        ? transcript.substring(0, 2000)
+        : transcript;
+    final safeResponse = response.length > 4000
+        ? response.substring(0, 4000)
+        : response;
+    for (var attempt = 1; attempt <= 2; attempt++) {
+      try {
+        await _signalingApi.persistTurn(
+          conversationId: conversationId,
+          transcript: safeTranscript,
+          response: safeResponse,
+          idempotencyKey: idempotencyKey,
+        );
+        return;
+      } catch (error) {
+        if (attempt == 2) {
+          if (kDebugMode) {
+            debugPrint('[LiveVoice] voice turn could not be saved: $error');
+          }
+          return;
+        }
+        await Future<void>.delayed(const Duration(seconds: 2));
+      }
+    }
   }
 }
 

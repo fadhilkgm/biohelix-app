@@ -35,7 +35,7 @@ void main() {
   });
 
   test('fallback turn instructions stay short and spoken', () {
-    expect(kLiveVoiceFallbackTurnInstructions, contains('session instructions'));
+    expect(kLiveVoiceFallbackTurnInstructions, contains('health background'));
     expect(kLiveVoiceFallbackTurnInstructions, contains('short spoken'));
   });
 
@@ -48,5 +48,56 @@ void main() {
       liveVoiceFarewellInstructions('ml-IN'),
       contains('നന്ദി. ശ്രദ്ധിക്കൂ. വീണ്ടും കാണാം.'),
     );
+    // Farewells are verbatim, so they must never be merged into the session
+    // prompt, which asks for two to four sentences.
+    expect(
+      isExactLiveVoiceInstruction(liveVoiceFarewellInstructions('en-IN')),
+      isTrue,
+    );
+    expect(
+      isExactLiveVoiceInstruction(liveVoiceFarewellInstructions('ml-IN')),
+      isTrue,
+    );
+  });
+
+  group('isExactLiveVoiceInstruction', () {
+    test('recognises server-owned verbatim replies', () {
+      expect(
+        isExactLiveVoiceInstruction(
+          'Speak exactly this text with no introduction or extra words: "Hi"',
+        ),
+        isTrue,
+      );
+      expect(
+        isExactLiveVoiceInstruction(
+          'Do not ask another question or give routine advice. Speak exactly '
+          'this text with no introduction, labels, markdown, or additional '
+          'words: "Call an ambulance"',
+        ),
+        isTrue,
+      );
+    });
+
+    test('treats ordinary directives as composable', () {
+      expect(isExactLiveVoiceInstruction(kLiveVoiceTurnInstructions), isFalse);
+      expect(
+        isExactLiveVoiceInstruction(
+          "Continue as the patient's health checkup assistant. Ask one short "
+          'next question, or if enough information is available say exactly: '
+          'Thank you.',
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  test('replayed chat text is stripped of markdown and capped', () {
+    expect(
+      plainLiveVoiceText('## Summary\n- **Haemoglobin** is [normal](http://x)'),
+      'Summary Haemoglobin is normal',
+    );
+    final long = plainLiveVoiceText('a' * 900);
+    expect(long.length, kLiveVoiceHistoryCharacterLimit);
+    expect(long.endsWith('…'), isTrue);
   });
 }

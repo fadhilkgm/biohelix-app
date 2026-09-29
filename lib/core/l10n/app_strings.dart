@@ -117,6 +117,31 @@ abstract class LocalizedStrings {
   String get assistantStopVoice;
   String get assistantStopAiVoice;
   String get assistantInterruptAi;
+  String get voiceChat;
+  String get voiceConnecting;
+  String get voiceConnectingHint;
+  String get voiceReconnecting;
+  String get voiceReconnectingHint;
+  String get voiceListening;
+  String get voiceListeningHint;
+  String get voiceThinking;
+  String get voiceSpeaking;
+  String get voiceSpeakingHint;
+  String get voiceMicOff;
+  String get voiceMicOffHint;
+  String get voiceMute;
+  String get voiceUnmute;
+  String get voiceEnd;
+  String get voiceStopReply;
+  String get voiceCaptionsOn;
+  String get voiceCaptionsOff;
+  String get voiceTryAgain;
+  String get voiceUnavailableTitle;
+  String get voiceEnding;
+  String get voiceEnded;
+  String get voiceEndedIdle;
+  String get voiceEmptyPrompt;
+  String get voiceYou;
   String get assistantPreviousChats;
   String get assistantNewChat;
   String get assistantBack;
@@ -490,6 +515,60 @@ class _EnStrings extends LocalizedStrings {
   String get assistantStopAiVoice => 'Stop AI voice';
   @override
   String get assistantInterruptAi => 'Interrupt AI and talk';
+  @override
+  String get voiceChat => 'Voice chat';
+  @override
+  String get voiceConnecting => 'Connecting…';
+  @override
+  String get voiceConnectingHint => 'Setting up your private voice line';
+  @override
+  String get voiceReconnecting => 'Reconnecting…';
+  @override
+  String get voiceReconnectingHint =>
+      'The connection dropped. Hold on a moment.';
+  @override
+  String get voiceListening => 'Listening';
+  @override
+  String get voiceListeningHint => 'Go ahead, I’m listening';
+  @override
+  String get voiceThinking => 'Thinking…';
+  @override
+  String get voiceSpeaking => 'Speaking';
+  @override
+  String get voiceSpeakingHint =>
+      'Tap the circle or start talking to interrupt';
+  @override
+  String get voiceMicOff => 'Microphone off';
+  @override
+  String get voiceMicOffHint => 'Tap the mic when you want to talk';
+  @override
+  String get voiceMute => 'Mute';
+  @override
+  String get voiceUnmute => 'Unmute';
+  @override
+  String get voiceEnd => 'End';
+  @override
+  String get voiceStopReply => 'Stop';
+  @override
+  String get voiceCaptionsOn => 'Show captions';
+  @override
+  String get voiceCaptionsOff => 'Hide captions';
+  @override
+  String get voiceTryAgain => 'Try again';
+  @override
+  String get voiceUnavailableTitle => 'Voice chat unavailable';
+  @override
+  String get voiceEnding => 'Ending…';
+  @override
+  String get voiceEnded => 'Voice chat ended';
+  @override
+  String get voiceEndedIdle =>
+      'Voice chat ended after a few quiet minutes. Tap the voice button to talk again.';
+  @override
+  String get voiceEmptyPrompt =>
+      'Ask about symptoms, your reports, medicines or appointments.';
+  @override
+  String get voiceYou => 'You';
   @override
   String get assistantPreviousChats => 'Previous Chats';
   @override
@@ -992,6 +1071,61 @@ class _MlStrings extends LocalizedStrings {
   String get assistantStopAiVoice => 'AI വോയ്സ് നിർത്തുക';
   @override
   String get assistantInterruptAi => 'AI നിർത്തി സംസാരിക്കുക';
+  @override
+  String get voiceChat => 'വോയ്സ് ചാറ്റ്';
+  @override
+  String get voiceConnecting => 'കണക്റ്റ് ചെയ്യുന്നു…';
+  @override
+  String get voiceConnectingHint =>
+      'നിങ്ങളുടെ സ്വകാര്യ വോയ്സ് ലൈൻ തയ്യാറാക്കുന്നു';
+  @override
+  String get voiceReconnecting => 'വീണ്ടും കണക്റ്റ് ചെയ്യുന്നു…';
+  @override
+  String get voiceReconnectingHint =>
+      'കണക്ഷൻ നഷ്ടപ്പെട്ടു. ഒരു നിമിഷം കാത്തിരിക്കൂ.';
+  @override
+  String get voiceListening => 'കേൾക്കുന്നു';
+  @override
+  String get voiceListeningHint => 'സംസാരിച്ചോളൂ, ഞാൻ കേൾക്കുന്നുണ്ട്';
+  @override
+  String get voiceThinking => 'ആലോചിക്കുന്നു…';
+  @override
+  String get voiceSpeaking => 'സംസാരിക്കുന്നു';
+  @override
+  String get voiceSpeakingHint =>
+      'ഇടയ്ക്ക് കയറാൻ വൃത്തത്തിൽ തൊടുകയോ സംസാരിക്കുകയോ ചെയ്യൂ';
+  @override
+  String get voiceMicOff => 'മൈക്ക് ഓഫാണ്';
+  @override
+  String get voiceMicOffHint => 'സംസാരിക്കാൻ മൈക്കിൽ തൊടൂ';
+  @override
+  String get voiceMute => 'മ്യൂട്ട്';
+  @override
+  String get voiceUnmute => 'അൺമ്യൂട്ട്';
+  @override
+  String get voiceEnd => 'അവസാനിപ്പിക്കുക';
+  @override
+  String get voiceStopReply => 'നിർത്തുക';
+  @override
+  String get voiceCaptionsOn => 'അടിക്കുറിപ്പുകൾ കാണിക്കുക';
+  @override
+  String get voiceCaptionsOff => 'അടിക്കുറിപ്പുകൾ മറയ്ക്കുക';
+  @override
+  String get voiceTryAgain => 'വീണ്ടും ശ്രമിക്കുക';
+  @override
+  String get voiceUnavailableTitle => 'വോയ്സ് ചാറ്റ് ലഭ്യമല്ല';
+  @override
+  String get voiceEnding => 'അവസാനിപ്പിക്കുന്നു…';
+  @override
+  String get voiceEnded => 'വോയ്സ് ചാറ്റ് അവസാനിച്ചു';
+  @override
+  String get voiceEndedIdle =>
+      'കുറച്ചു നേരം സംസാരമില്ലാത്തതിനാൽ വോയ്സ് ചാറ്റ് അവസാനിപ്പിച്ചു. വീണ്ടും സംസാരിക്കാൻ വോയ്സ് ബട്ടൺ തൊടൂ.';
+  @override
+  String get voiceEmptyPrompt =>
+      'ലക്ഷണങ്ങൾ, റിപ്പോർട്ടുകൾ, മരുന്നുകൾ, അപ്പോയിന്റ്മെന്റുകൾ എന്നിവയെക്കുറിച്ച് ചോദിക്കൂ.';
+  @override
+  String get voiceYou => 'നിങ്ങൾ';
   @override
   String get assistantPreviousChats => 'മുൻ ചാറ്റുകൾ';
   @override

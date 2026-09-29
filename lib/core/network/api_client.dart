@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 
 import '../config/app_config.dart';
 import 'api_exception.dart';
+import 'keep_alive_adapter.dart';
 
 class ApiClient {
   ApiClient({
@@ -28,8 +29,9 @@ class ApiClient {
            },
          ),
        ) {
-    if (httpClientAdapter != null) {
-      _dio.httpClientAdapter = httpClientAdapter;
+    final adapter = httpClientAdapter ?? createKeepAliveHttpClientAdapter();
+    if (adapter != null) {
+      _dio.httpClientAdapter = adapter;
     }
     _dio.interceptors.add(
       InterceptorsWrapper(
@@ -123,11 +125,18 @@ class ApiClient {
     }
   }
 
-  Future<String> postSdp(String path, {required String sdp}) async {
+  /// POSTs a raw SDP offer and returns the SDP answer together with the
+  /// response headers, which carry signalling metadata.
+  Future<({String body, Map<String, List<String>> headers})> postSdp(
+    String path, {
+    required String sdp,
+    Map<String, dynamic>? queryParameters,
+  }) async {
     try {
       final response = await _dio.post<String>(
         path,
         data: sdp,
+        queryParameters: queryParameters,
         options: Options(
           contentType: 'application/sdp',
           responseType: ResponseType.plain,
@@ -135,7 +144,7 @@ class ApiClient {
           receiveTimeout: const Duration(seconds: 20),
         ),
       );
-      return response.data ?? '';
+      return (body: response.data ?? '', headers: response.headers.map);
     } on DioException catch (error) {
       throw ApiException(
         _errorMessage(error),

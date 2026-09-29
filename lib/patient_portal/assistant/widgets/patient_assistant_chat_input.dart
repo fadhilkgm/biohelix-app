@@ -29,6 +29,9 @@ class ChatInputWidget extends StatefulWidget {
   final double soundLevel;
   final VoidCallback onAttach;
   final VoidCallback onLiveTap;
+
+  /// Starts the hands-free voice chat. The primary button turns into this
+  /// whenever the composer is empty, the way ChatGPT and Gemini do it.
   final VoidCallback onVoiceTap;
   final VoidCallback onSend;
   final VoidCallback? onInterrupt;
@@ -40,59 +43,12 @@ class ChatInputWidget extends StatefulWidget {
   State<ChatInputWidget> createState() => _ChatInputWidgetState();
 }
 
-class _ChatInputWidgetState extends State<ChatInputWidget>
-    with TickerProviderStateMixin {
-  late final AnimationController _pulseCtrl;
-  late final AnimationController _liveGlowCtrl;
+class _ChatInputWidgetState extends State<ChatInputWidget> {
   final FocusNode _inputFocus = FocusNode();
   double _downwardDragDistance = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-    _liveGlowCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    );
-
-    if (widget.isListening && !widget.isLiveMode) {
-      _pulseCtrl.repeat();
-    }
-    if (widget.isLiveMode) {
-      _liveGlowCtrl.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant ChatInputWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    // Recording pulse (disabled in live mode to keep the mic button quiet/idle)
-    final bool shouldPulse = widget.isListening && !widget.isLiveMode;
-    if (shouldPulse && !_pulseCtrl.isAnimating) {
-      _pulseCtrl.repeat();
-    } else if (!shouldPulse && _pulseCtrl.isAnimating) {
-      _pulseCtrl.stop();
-      _pulseCtrl.reset();
-    }
-
-    // Live mode breathing glow
-    if (widget.isLiveMode && !_liveGlowCtrl.isAnimating) {
-      _liveGlowCtrl.repeat(reverse: true);
-    } else if (!widget.isLiveMode && _liveGlowCtrl.isAnimating) {
-      _liveGlowCtrl.stop();
-      _liveGlowCtrl.reset();
-    }
-  }
-
-  @override
   void dispose() {
-    _pulseCtrl.dispose();
-    _liveGlowCtrl.dispose();
     _inputFocus.dispose();
     super.dispose();
   }
@@ -103,9 +59,6 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     return _buildComposer(strings);
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  Folded Bar — collapsed pill that reopens the composer on tap
-  // ═══════════════════════════════════════════════════════════════════════════
   // ═══════════════════════════════════════════════════════════════════════════
   //  Composer — full input row
   // ═══════════════════════════════════════════════════════════════════════════
@@ -183,9 +136,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                       ),
                     ),
             ),
-            _buildMicButton(strings),
             const SizedBox(width: 5),
-            _buildSendButton(),
+            _buildPrimaryButton(strings),
           ],
         ),
       ),
@@ -235,153 +187,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  //  Mic Button — 52×52 with expanding sound-wave ring animation
+  //  Primary Button — Send with text, Voice chat when empty, Stop while a
+  //  reply streams. One button, like ChatGPT and Gemini.
   // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildMicButton(LocalizedStrings strings) {
-    return GestureDetector(
-      onTap: widget.isBusy
-          ? null
-          : (widget.isSpeaking && widget.onInterrupt != null)
-          ? widget.onInterrupt
-          : widget.onVoiceTap,
-      child: AnimatedBuilder(
-        animation: _pulseCtrl,
-        builder: (context, child) {
-          // Bypassed during Live Mode to keep standard mic button quiet/idle,
-          // only standard Tap-to-Record mode utilizes active red gradient & expanding rings.
-          final bool isRecording = widget.isListening && !widget.isLiveMode;
-          final bool isSpeaking = widget.isSpeaking && !widget.isLiveMode;
-
-          return SizedBox(
-            width: 48,
-            height: 48,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                // ── 3 concentric red sound-wave rings ──
-                if (isRecording)
-                  for (int i = 0; i < 3; i++) _buildWaveRing(i),
-
-                // ── Background circle ──
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 260),
-                  curve: Curves.easeInOutCubic,
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: isRecording
-                        ? const LinearGradient(
-                            colors: [Color(0xFFE11D48), Color(0xFFFF6B8A)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : isSpeaking
-                        ? const LinearGradient(
-                            colors: [AiChatColors.primary, AiChatColors.accent],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                    color: (isRecording || isSpeaking)
-                        ? null
-                        : Colors.transparent,
-                    boxShadow: [
-                      BoxShadow(
-                        color: isRecording
-                            ? const Color(0x40E11D48)
-                            : isSpeaking
-                            ? const Color(0x301B4D3E)
-                            : const Color(0x00000000),
-                        blurRadius: 12,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                ),
-
-                // ── Mic icon ──
-                Icon(
-                  isRecording || isSpeaking
-                      ? Icons.mic_rounded
-                      : Icons.mic_none_rounded,
-                  color: isRecording || isSpeaking
-                      ? Colors.white
-                      : AiChatColors.primary,
-                  size: 25,
-                ),
-
-                // ── REC badge ──
-                if (isRecording)
-                  Positioned(
-                    top: -4,
-                    right: -6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 1.5,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFE11D48), Color(0xFFFF4068)],
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x40E11D48),
-                            blurRadius: 4,
-                            offset: Offset(0, 1.5),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        strings.assistantRecording,
-                        style: TextStyle(
-                          fontFamily: 'Manrope',
-                          fontFamilyFallback: const ['AnekMalayalam'],
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildWaveRing(int index) {
-    final double offset = index * 0.33;
-    final double t = (_pulseCtrl.value + offset) % 1.0;
-    final double scale = 1.0 + (t * 0.65);
-    final double opacity = (1.0 - t) * 0.55;
-
-    return Transform.scale(
-      scale: scale,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Color.fromRGBO(225, 29, 72, opacity),
-            width: 2.0,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  Send Button — gradient circle with soft shadow
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildSendButton() {
+  Widget _buildPrimaryButton(LocalizedStrings strings) {
     // While a reply streams the affordance is Stop, not a dead spinner: the
     // patient can always interrupt generation.
     if (widget.isStreaming) {
@@ -413,12 +222,15 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            key: const ValueKey('assistant_send_button'),
+            key: ValueKey(
+              hasText ? 'assistant_send_button' : 'assistant_voice_button',
+            ),
+            tooltip: hasText ? null : strings.voiceChat,
             onPressed: widget.isBusy
                 ? null
                 : hasText
                 ? widget.onSend
-                : widget.onLiveTap,
+                : widget.onVoiceTap,
             icon: widget.isBusy
                 ? const SizedBox(
                     width: 18,
@@ -428,12 +240,21 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                       color: Colors.white,
                     ),
                   )
-                : Icon(
-                    hasText
-                        ? Icons.arrow_upward_rounded
-                        : Icons.graphic_eq_rounded,
-                    color: Colors.white,
-                    size: 24,
+                : AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, animation) => ScaleTransition(
+                      scale: animation,
+                      child: FadeTransition(opacity: animation, child: child),
+                    ),
+                    child: Icon(
+                      hasText
+                          ? Icons.arrow_upward_rounded
+                          : Icons.graphic_eq_rounded,
+                      key: ValueKey(hasText ? 'send' : 'voice'),
+                      color: Colors.white,
+                      size: 24,
+                      semanticLabel: hasText ? 'Send' : strings.voiceChat,
+                    ),
                   ),
           ),
         );

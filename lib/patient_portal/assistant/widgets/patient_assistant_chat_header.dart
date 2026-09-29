@@ -6,10 +6,6 @@ class ChatHeaderWidget extends StatelessWidget {
     required this.onToggleThreads,
     required this.showToggleThreads,
     required this.onNewChat,
-    required this.isLiveMode,
-    required this.isListening,
-    required this.isSpeaking,
-    required this.onInterruptAi,
     super.key,
   });
 
@@ -17,10 +13,6 @@ class ChatHeaderWidget extends StatelessWidget {
   final VoidCallback onToggleThreads;
   final bool showToggleThreads;
   final VoidCallback onNewChat;
-  final bool isLiveMode;
-  final bool isListening;
-  final bool isSpeaking;
-  final VoidCallback onInterruptAi;
 
   @override
   Widget build(BuildContext context) {
@@ -50,13 +42,9 @@ class ChatHeaderWidget extends StatelessWidget {
             ),
           ),
           _HeaderIconButton(
-            onPressed: isSpeaking ? onInterruptAi : onNewChat,
-            icon: isSpeaking
-                ? Icons.stop_circle_outlined
-                : Icons.add_comment_outlined,
-            tooltip: isSpeaking
-                ? strings.assistantInterruptAi
-                : strings.assistantNewChat,
+            onPressed: onNewChat,
+            icon: Icons.add_comment_outlined,
+            tooltip: strings.assistantNewChat,
           ),
           // History (previous chats) lives at the right end on compact layouts;
           // on wide layouts the threads sidebar is always visible instead.
