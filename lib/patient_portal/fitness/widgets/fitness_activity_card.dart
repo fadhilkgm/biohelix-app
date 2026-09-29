@@ -304,8 +304,6 @@ class _ConnectedContent extends StatelessWidget {
     final today = fitness.today;
     final score = today?.activityScore ?? 0;
     final steps = today?.steps ?? 0;
-    final calories = today?.activeCalories ?? 0;
-    final distanceKm = (today?.distanceMeters ?? 0) / 1000;
     final goal = fitness.summary.rewardProgram.stepGoal;
 
     return Column(
@@ -363,15 +361,6 @@ class _ConnectedContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     color: const Color(0xFF06489B),
                     backgroundColor: const Color(0xFFD4E5F1),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${calories.toStringAsFixed(0)} active kcal  •  '
-                    '${distanceKm.toStringAsFixed(1)} km',
-                    style: const TextStyle(
-                      color: Color(0xFF52708F),
-                      fontSize: 12,
-                    ),
                   ),
                 ],
               ),

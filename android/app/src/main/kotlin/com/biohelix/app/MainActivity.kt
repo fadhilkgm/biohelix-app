@@ -9,8 +9,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
-import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
@@ -42,8 +40,6 @@ class MainActivity : FlutterFragmentActivity() {
 
     private val readPermissions = setOf(
         HealthPermission.getReadPermission(StepsRecord::class),
-        HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
-        HealthPermission.getReadPermission(DistanceRecord::class),
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -215,11 +211,7 @@ class MainActivity : FlutterFragmentActivity() {
                     val end = date.plusDays(1).atStartOfDay(zone).toInstant()
                     val aggregate = client.aggregate(
                         AggregateRequest(
-                            metrics = setOf(
-                                StepsRecord.COUNT_TOTAL,
-                                ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL,
-                                DistanceRecord.DISTANCE_TOTAL,
-                            ),
+                            metrics = setOf(StepsRecord.COUNT_TOTAL),
                             timeRangeFilter = TimeRangeFilter.between(start, end),
                         ),
                     )
@@ -227,13 +219,6 @@ class MainActivity : FlutterFragmentActivity() {
                         mapOf(
                             "date" to date.toString(),
                             "steps" to (aggregate[StepsRecord.COUNT_TOTAL] ?: 0L),
-                            "activeCalories" to (
-                                aggregate[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]
-                                    ?.inKilocalories ?: 0.0
-                                ),
-                            "distanceMeters" to (
-                                aggregate[DistanceRecord.DISTANCE_TOTAL]?.inMeters ?: 0.0
-                                ),
                         ),
                     )
                 }

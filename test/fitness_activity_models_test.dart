@@ -2,12 +2,11 @@ import 'package:biohelix_app/patient_portal/fitness/models/fitness_activity_mode
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('activity score follows the transparent 80/20 reward formula', () {
-    expect(calculateActivityScore(0, 0), 0);
-    expect(calculateActivityScore(7500, 0), 60);
-    expect(calculateActivityScore(10000, 0), 80);
-    expect(calculateActivityScore(10000, 500), 100);
-    expect(calculateActivityScore(30000, 3000), 100);
+  test('activity score is the share of the 10,000-step goal', () {
+    expect(calculateActivityScore(0), 0);
+    expect(calculateActivityScore(7500), 75);
+    expect(calculateActivityScore(10000), 100);
+    expect(calculateActivityScore(30000), 100);
   });
 
   test('fitness API summary parses daily rewards and unlocked offers', () {

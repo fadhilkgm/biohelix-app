@@ -28,8 +28,6 @@ class DailyFitnessActivity {
   const DailyFitnessActivity({
     required this.date,
     required this.steps,
-    required this.activeCalories,
-    required this.distanceMeters,
     this.activityScore = 0,
     this.rewardPointsAwarded = 0,
     this.source = 'health_connect',
@@ -38,8 +36,6 @@ class DailyFitnessActivity {
 
   final String date;
   final int steps;
-  final double activeCalories;
-  final double distanceMeters;
   final int activityScore;
   final int rewardPointsAwarded;
   final String source;
@@ -47,13 +43,10 @@ class DailyFitnessActivity {
 
   factory DailyFitnessActivity.fromPlatform(Map<dynamic, dynamic> json) {
     final steps = (json['steps'] as num?)?.toInt() ?? 0;
-    final activeCalories = (json['activeCalories'] as num?)?.toDouble() ?? 0;
     return DailyFitnessActivity(
       date: json['date']?.toString() ?? '',
       steps: steps,
-      activeCalories: activeCalories,
-      distanceMeters: (json['distanceMeters'] as num?)?.toDouble() ?? 0,
-      activityScore: calculateActivityScore(steps, activeCalories),
+      activityScore: calculateActivityScore(steps),
     );
   }
 
@@ -61,14 +54,6 @@ class DailyFitnessActivity {
     return DailyFitnessActivity(
       date: json['date']?.toString() ?? '',
       steps: (json['steps'] as num?)?.toInt() ?? 0,
-      activeCalories:
-          (json['active_calories'] as num?)?.toDouble() ??
-          (json['activeCalories'] as num?)?.toDouble() ??
-          0,
-      distanceMeters:
-          (json['distance_meters'] as num?)?.toDouble() ??
-          (json['distanceMeters'] as num?)?.toDouble() ??
-          0,
       activityScore:
           (json['activity_score'] as num?)?.toInt() ??
           (json['activityScore'] as num?)?.toInt() ??
@@ -85,8 +70,6 @@ class DailyFitnessActivity {
   Map<String, dynamic> toSyncJson() => {
     'date': date,
     'steps': steps,
-    'active_calories': activeCalories,
-    'distance_meters': distanceMeters,
   };
 }
 
@@ -172,8 +155,6 @@ class FitnessActivitySummary {
   }
 }
 
-int calculateActivityScore(int steps, double activeCalories) {
-  final stepScore = ((steps / 10000) * 80).clamp(0, 80);
-  final calorieScore = ((activeCalories / 500) * 20).clamp(0, 20);
-  return (stepScore + calorieScore).clamp(0, 100).round();
+int calculateActivityScore(int steps) {
+  return ((steps / 10000) * 100).clamp(0, 100).round();
 }
