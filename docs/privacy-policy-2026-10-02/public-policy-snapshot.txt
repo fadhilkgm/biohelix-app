@@ -1,0 +1,206 @@
+- text: 1800-572-0005
+- text: contact@bhrc.hospital
+- text: "Call:"
+- strong: 931-125-387-5
+- banner:
+  - img "Logo"
+  - link "Biohelix Health and Research Center":
+    - /url: /
+    - generic: Biohelix Health and Research Center
+  - navigation
+  - link "Sign in":
+    - /url: /login
+- link "Home":
+  - /url: /
+- generic: Privacy Policy
+- heading "Privacy Policy" [level=1]
+- paragraph: "Last Updated: October 2, 2026"
+- main:
+  - paragraph:
+    - strong: "Last updated: 2 October 2026"
+  - heading "1. Who We Are" [level=2]
+  - paragraph: This Privacy Policy explains how Biohelix Health and Research Center collects, uses, stores and protects your personal information when you use our website and the BHRC / BioHelix mobile app (together, the "Services"). We act as the data fiduciary / controller of the information described below.
+  - paragraph:
+    - strong: "Contact:"
+    - text: "Biohelix Health and Research Center, Ponnani,Malappuram . Email:"
+    - link "info@bhrchospital.com":
+      - /url: mailto:info@bhrchospital.com
+    - text: "· Phone: 7510210222"
+  - paragraph: By using the Services you agree to this policy. If you do not agree, please do not use the Services.
+  - heading "2. Information We Collect" [level=2]
+  - paragraph:
+    - strong: Information you give us
+  - list:
+    - listitem: "Identity and contact details: name, phone number, email address, date of birth, gender, address."
+    - listitem: "Medical and health information: blood group, medical history, vitals, lab results, prescriptions, reports and documents you upload."
+    - listitem: "Booking and payment information: appointments, lab tests, packages, home-care requests and payment status. Card or UPI details are handled by our payment processors and are not stored by us."
+    - listitem: Family members you add to your account, and their details, only when you or they consent.
+    - listitem: Messages you send to the Health AI assistant, and voice input if you use voice chat.
+  - paragraph:
+    - strong: Fitness data from Health Connect (Android) and Apple Health (iOS)
+    - text: On Android, Activity Rewards reads
+    - strong: daily step totals only
+    - text: from Health Connect after you tap
+    - strong: Connect activity
+    - text: and grant permission. It does not read active calories burned, distance or step cadence.
+  - paragraph: The iOS app currently requests permission to read daily steps, active calories burned and walking/running distance from Apple Health. These iOS permissions are separate from Android's steps-only Health Connect permission.
+  - paragraph:
+    - text: The current activity-sync request sends up to
+    - strong: seven days of daily step totals, their dates and your timezone
+    - text: to BHRC servers, linked to your authenticated patient profile. It does not send minute-by-minute records or location data. We use these totals to show progress toward a step goal, calculate a wellness activity score and award eligible MyClub points under our reward rules.
+  - paragraph:
+    - strong: Information collected automatically
+  - list:
+    - listitem: Device and app information (device model, operating system version, app version), log and error data.
+    - listitem: Install referral information supplied by Google Play, and referral or deep-link codes you open, to attribute sign-ups and rewards.
+  - paragraph:
+    - strong: Permissions the app may request
+  - list:
+    - listitem: "Health Connect on Android: read steps only, for optional Activity Rewards."
+    - listitem: "Apple Health on iOS: read steps, active calories and walking/running distance. The current patient-profile sync sends daily steps, dates and timezone only."
+    - listitem: "Microphone: only for voice chat with Health AI."
+    - listitem: "Photos: only when you choose an image to attach."
+    - listitem: Notifications and internet access.
+  - heading "3. How We Use Your Information" [level=2]
+  - paragraph: "We use your information to:"
+  - list:
+    - listitem: create and manage your account and patient profile, and verify you with one-time passwords (OTP);
+    - listitem: book and manage appointments, lab tests, packages and home-care services;
+    - listitem: provide your health records, reports, vitals, health snapshot and AI-assisted health insights;
+    - listitem: calculate your wellness activity score and MyClub points, and provide membership benefits;
+    - listitem: send service messages such as OTPs, booking confirmations and reminders;
+    - listitem: improve safety, security and performance of the Services, prevent fraud and misuse;
+    - listitem: comply with legal and medical-record obligations.
+  - paragraph:
+    - strong: We do not use your fitness data or health information for advertising, marketing to third parties, insurance or credit decisions, or unrelated profiling. We do not sell your personal data.
+  - heading "4. Fitness and Health Connect Data" [level=2]
+  - list:
+    - listitem: Activity Rewards is optional. You can use the other app features without connecting activity data.
+    - listitem: On Android, we read only daily step totals after you explicitly connect activity and grant Health Connect permission. We do not request calorie, distance or step-cadence access. Apple Health permissions on iOS are described in section 2.
+    - listitem: Fitness data is linked only to the patient who connects the device. Switching to a family member's profile does not sync or transfer the phone owner's activity to that person.
+    - listitem: Up to seven days of daily step totals, dates and timezone are sent to BHRC servers when you connect, reopen or resume the app, or refresh activity while connected. Server records are used for your step-goal progress, wellness activity score, activity history and eligible MyClub points. Step quantities may also be recorded in reward events and points transaction descriptions.
+    - listitem: Health Connect data is not shared with advertisers or data brokers and is not used for advertising, diagnosis, insurance decisions, unrelated profiling, or training advertising or unrelated models.
+    - text: To stop future syncing from this phone, open
+    - strong: Activity Rewards → More activity options → Disconnect activity
+    - text: and confirm. This removes the local connection to your patient profile. It does not revoke Health Connect permission or delete Health Connect records or previously synced BHRC server data.
+    - listitem: To revoke Android access separately, open Health Connect settings, select BHRC's app permissions and turn off steps access. On iOS, revoke BHRC's permissions in Apple Health settings.
+    - listitem: Disconnecting or revoking permission does not erase records already held by BHRC. Retention and deletion requests are explained in sections 7 and 8.
+    - listitem: Activity scores are wellness indicators only and are not medical advice, diagnosis or treatment.
+  - heading "5. Sharing of Information" [level=2]
+  - paragraph: "We do not sell, rent or trade your personal data. We share information only:"
+  - list:
+    - strong: With BHRC doctors and authorised staff
+    - text: who need it to treat you and run your bookings.
+    - strong: With service providers
+    - text: who process data for us under confidentiality obligations, such as cloud hosting and file storage, SMS / WhatsApp / email delivery, payment processing, and AI and voice-processing providers that power Health AI features.
+    - strong: With family members
+    - text: you have linked to your account, to the extent you or they have agreed.
+    - strong: When required by law
+    - text: ", court order, or to protect health, safety, or our legal rights."
+  - heading "6. Health AI Assistant" [level=2]
+  - paragraph: Health AI provides general wellness information and suggestions. It is not a doctor and does not replace professional medical advice. Messages, uploaded documents and voice input you send to Health AI may be processed by our AI service providers to generate a response. In an emergency, call your local emergency number or visit the nearest hospital.
+  - heading "7. Data Security and Retention" [level=2]
+  - paragraph: We protect data using encryption in transit (HTTPS), access controls limited to authorised personnel, and audit logs. No system is perfectly secure, so please keep your login details private.
+  - paragraph: We keep information as needed to provide the Services. Medical records may be retained for the period required by applicable medical and legal regulations.
+  - paragraph:
+    - strong: "Synced fitness and reward records:"
+    - text: "The current fitness service has no automatic expiry period. The seven-day sync and activity-history window is not a deletion schedule: older server records may remain. Daily step records and step quantities in reward events and points transaction descriptions remain until separately deleted."
+  - paragraph:
+    - strong: "Portal account deletion:"
+    - text: Deleting your account closes portal access, revokes login tokens and removes the portal user account. It does not automatically delete the retained patient profile, synced fitness records or reward records. Disconnecting activity also does not delete these records.
+  - paragraph:
+    - text: To request deletion of previously synced fitness data, including step quantities in reward events and points transaction descriptions, email
+    - strong:
+      - link "info@bhrchospital.com":
+        - /url: mailto:info@bhrchospital.com
+    - text: . This is a separate request; do not assume that disconnecting or closing your account completes deletion. Ask BHRC to confirm which records have been deleted and explain any records retained, the reason and the applicable retention period.
+  - heading "8. Your Rights and Choices" [level=2]
+  - paragraph: "You may:"
+  - list:
+    - listitem: access and update your profile information in the app;
+    - listitem: withdraw consent, including revoking Health Connect / Apple Health permissions at any time;
+    - listitem: request a copy, correction or deletion of your personal data, including your synced fitness data;
+    - listitem: delete your portal account from within the app (Profile settings), or by contacting us; synced fitness and reward-record deletion requires a separate request as explained in section 7;
+    - listitem: nominate another person to exercise your rights in the event of death or incapacity, as permitted by the Digital Personal Data Protection Act, 2023;
+    - listitem: raise a complaint with us. If we cannot resolve it, you may approach the Data Protection Board of India.
+  - paragraph:
+    - text: To exercise these rights, email
+    - link "info@bhrchospital.com":
+      - /url: mailto:info@bhrchospital.com
+    - text: . We will respond within a reasonable time and within any period required by law.
+  - heading "9. Children" [level=2]
+  - paragraph: The Services are intended for adults. A parent or legal guardian may create and manage a profile for a child. We do not knowingly collect a child's data without verifiable parental consent.
+  - heading "10. International Transfers" [level=2]
+  - paragraph: Our service providers may process data on servers outside your state or country. Where this happens we take reasonable steps to ensure your data is protected as described in this policy.
+  - heading "11. Changes to This Policy" [level=2]
+  - paragraph: We may update this policy from time to time. The "Last updated" date will change and, for significant changes, we will notify you in the app or by other means. Continued use of the Services after an update means you accept the revised policy.
+  - heading "12. Contact Us" [level=2]
+  - paragraph:
+    - text: "Biohelix Health and Research Center, Ponnani Kerala Email:"
+    - link "info@bhrchospital.com":
+      - /url: mailto:info@bhrchospital.com
+    - text: "Website: bhrchospital.com"
+  - complementary:
+    - heading "Privacy Guarantee" [level=3]:
+      - text: Privacy Guarantee
+    - list:
+      - strong: End-to-End Encryption
+      - text: for vital documents and medical chats.
+      - strong: No Third-party Sharing
+      - text: of patient diagnoses or personal details.
+      - strong: Compliance
+      - text: with standard healthcare data regulations.
+    - heading "Have Questions?" [level=4]
+    - paragraph: Our data privacy officer is here to help.
+    - link "Contact Privacy Officer":
+      - /url: mailto:contact@bhrc.hospital
+- generic: 15,00+
+- generic: Patients Served
+- generic: 98%
+- generic: Satisfaction Rate
+- generic: 10+
+- generic: Specialists
+- generic: 24/7
+- generic: Emergency Care
+- contentinfo:
+  - img "Biohelix Health and Research Center logo"
+  - generic: Biohelix Health and Research Center
+  - generic: Biohelix Health and Research Center
+  - paragraph: Compassionate clinical care, advanced diagnostics, and rehabilitation services—all under one roof.
+  - text: BHRC Hospital, Ponnani
+  - text: Malappuram, Kerala 679577
+  - text: India
+  - heading "Sitemap" [level=3]
+  - navigation:
+    - link "About Us":
+      - /url: "#about"
+    - link "Our Doctors":
+      - /url: "#doctors"
+    - link "Services":
+      - /url: "#services"
+    - link "Health Packages":
+      - /url: "#packages"
+    - link "Lab Tests":
+      - /url: "#tests"
+    - link "Health Blog":
+      - /url: /blog
+  - heading "Useful Links" [level=3]
+  - navigation:
+    - link "Privacy Policy":
+      - /url: /privacy-policy
+    - link "Contact Us":
+      - /url: /contact
+    - link "Terms & Conditions":
+      - /url: "#"
+  - heading "Contact & Hours" [level=3]
+  - link "1800-572-0005":
+    - /url: tel:1800-572-0005
+    - text: 1800-572-0005
+  - link "contact@bhrc.hospital":
+    - /url: mailto:contact@bhrc.hospital
+    - generic: contact@bhrc.hospital
+  - paragraph: "Outpatient: Mon–Sat, 8 AM–8 PM"
+  - paragraph: "Emergency care: Open 24/7"
+  - paragraph: © 2026 Biohelix Health and Research Center. All rights reserved.
+  - paragraph: Committed to care, research, and better health.
+- region "Notifications alt+T"

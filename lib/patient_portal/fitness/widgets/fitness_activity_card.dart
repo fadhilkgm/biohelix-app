@@ -21,10 +21,15 @@ class FitnessActivityCard extends StatelessWidget {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
+            scrollable: true,
             title: Text('Disconnect ${fitness.platformName}?'),
             content: const Text(
-              'This removes the link between activity data on this phone and '
-              'the patient profile. Health data on the phone will not be deleted.',
+              'This stops future activity syncing from this phone to your BHRC '
+              'profile. Data already synced to BHRC servers and data on your '
+              'phone will not be deleted. The health permission remains granted; '
+              'you can revoke it separately in your health app settings. '
+              'Contact BHRC through the Privacy Policy to request deletion of '
+              'previously synced activity and reward records.',
             ),
             actions: [
               TextButton(
@@ -272,8 +277,12 @@ class _ConnectContent extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Only daily totals are securely synced to your BHRC profile.',
-          style: TextStyle(color: Color(0xFF627D95), fontSize: 11, height: 1.3),
+          'Connecting sends up to seven days of daily step totals, their dates '
+          'and your timezone to BHRC servers, linked to your patient profile, '
+          'for step goals, activity scores and MyClub rewards. Sync refreshes '
+          'when you reopen the app or refresh activity. Disconnecting stops '
+          'future sync; previously synced data remains on BHRC servers.',
+          style: TextStyle(color: Color(0xFF627D95), fontSize: 12, height: 1.4),
         ),
         const SizedBox(height: 10),
         _CompactActionButton(

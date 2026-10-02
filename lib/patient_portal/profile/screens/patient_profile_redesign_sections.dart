@@ -229,6 +229,7 @@ class _DeleteAccountConfirmationDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       icon: const Icon(
         Icons.warning_amber_rounded,
         color: Color(0xFFD94444),
@@ -241,7 +242,9 @@ class _DeleteAccountConfirmationDialogState
           const Text(
             'This action cannot be undone. You will lose portal access and be '
             'signed out on every device. Clinical records held by BHRC will '
-            'be retained for medical and legal requirements.',
+            'be retained for medical and legal requirements. Previously synced '
+            'activity and reward records are not automatically deleted. '
+            'Contact BHRC through the Privacy Policy to request their deletion.',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 18),
