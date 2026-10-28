@@ -1126,6 +1126,9 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       // client mirrors it so playback stops and the captions settle at once.
       transcript = _bargeIn();
     }
+    if (_currentInputItemId.isNotEmpty) {
+      transcript = _withPatientPlaceholder(transcript, _currentInputItemId);
+    }
     if (_responseRequested) {
       // The reply for the previous utterance has not started yet; the patient
       // is still talking, so it must not start playing over them.
@@ -1164,15 +1167,13 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     if (_currentInputItemId.isEmpty) _currentInputItemId = itemId;
     final buffer = _inputTranscripts.putIfAbsent(itemId, StringBuffer.new);
     buffer.write(event['delta']?.toString() ?? '');
-    final text = toPatientScript(buffer.toString());
+    // Partial hypotheses are revised (and resent whole) as the patient talks,
+    // so the caption shows a typing placeholder until the final transcript
+    // instead of a growing pile of repeated half-words.
     _setState(
       _state.copyWith(
-        partialTranscript: text,
-        transcript: _withEntry(
-          _patientEntryId(itemId),
-          LiveVoiceSpeaker.patient,
-          text,
-        ),
+        partialTranscript: toPatientScript(buffer.toString()),
+        transcript: _withPatientPlaceholder(_state.transcript, itemId),
       ),
     );
   }
@@ -1423,9 +1424,12 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     } else {
       _debugTurnLatency('response created');
     }
-    if (!_state.isSpeaking) {
-      _setState(_state.copyWith(phase: LiveVoicePhase.thinking));
-    }
+    _setState(
+      _state.copyWith(
+        phase: _state.isSpeaking ? null : LiveVoicePhase.thinking,
+        transcript: _withoutStalePlaceholders(),
+      ),
+    );
   }
 
   void _appendResponseDelta(
@@ -1793,6 +1797,41 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
     return List.unmodifiable(entries);
+  }
+
+  /// Adds an empty, non-final caption for [itemId] (drawn as typing dots)
+  /// unless it already has one.
+  List<LiveVoiceTranscriptEntry> _withPatientPlaceholder(
+    List<LiveVoiceTranscriptEntry> transcript,
+    String itemId,
+  ) {
+    final id = _patientEntryId(itemId);
+    if (transcript.any((entry) => entry.id == id)) return transcript;
+    final entries = List<LiveVoiceTranscriptEntry>.of(transcript)
+      ..add(
+        LiveVoiceTranscriptEntry(
+          id: id,
+          speaker: LiveVoiceSpeaker.patient,
+          text: '',
+        ),
+      );
+    if (entries.length > _maxTranscriptEntries) {
+      entries.removeRange(0, entries.length - _maxTranscriptEntries);
+    }
+    return List.unmodifiable(entries);
+  }
+
+  /// Drops typing placeholders of utterances that never produced words (a
+  /// cough, an event the provider never sent), except the one in progress.
+  List<LiveVoiceTranscriptEntry> _withoutStalePlaceholders() {
+    final current = _patientEntryId(_currentInputItemId);
+    bool stale(LiveVoiceTranscriptEntry entry) =>
+        entry.isPatient &&
+        !entry.isFinal &&
+        entry.text.isEmpty &&
+        entry.id != current;
+    if (!_state.transcript.any(stale)) return _state.transcript;
+    return List.unmodifiable(_state.transcript.where((entry) => !stale(entry)));
   }
 
   List<LiveVoiceTranscriptEntry> _withoutEntry(String id) {

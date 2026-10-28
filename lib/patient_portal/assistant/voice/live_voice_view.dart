@@ -553,6 +553,17 @@ class _CaptionLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = entry.interrupted ? '${entry.text} …' : entry.text;
+    if (entry.isPatient && !entry.isFinal && entry.text.isEmpty) {
+      // Still speaking or being transcribed: only the final words are shown.
+      return Semantics(
+        label: '$youLabel: …',
+        excludeSemantics: true,
+        child: const Align(
+          alignment: Alignment.centerRight,
+          child: _TypingDots(key: ValueKey('live_voice_patient_typing')),
+        ),
+      );
+    }
     if (entry.isPatient) {
       return Semantics(
         label: '$youLabel: ${entry.text}',
@@ -584,6 +595,62 @@ class _CaptionLine extends StatelessWidget {
                 : _VoicePalette.textPrimary,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Three softly pulsing dots in place of the patient's caption while their
+/// words are still being recognised.
+class _TypingDots extends StatefulWidget {
+  const _TypingDots({super.key});
+
+  @override
+  State<_TypingDots> createState() => _TypingDotsState();
+}
+
+class _TypingDotsState extends State<_TypingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, _) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < 3; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
+              child: Opacity(
+                // Each dot peaks a third of a cycle after the previous one.
+                opacity:
+                    0.3 +
+                    0.7 *
+                        (0.5 +
+                            0.5 *
+                                math.sin(2 * math.pi * (_pulse.value - i / 3))),
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: _VoicePalette.textSecondary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

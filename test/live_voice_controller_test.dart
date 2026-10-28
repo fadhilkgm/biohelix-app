@@ -164,6 +164,65 @@ void main() {
     });
   });
 
+  group('patient captions', () {
+    test('show a placeholder while speaking, then only the final words', () {
+      voice.debugStartSimulatedSession(baseInstructions: _base);
+
+      voice.debugHandleEvent({
+        'type': 'input_audio_buffer.speech_started',
+        'item_id': 'item_1',
+      });
+      expect(voice.state.transcript.single.text, isEmpty);
+      expect(voice.state.transcript.single.isFinal, isFalse);
+
+      // Inworld resends its whole revised hypothesis as each delta.
+      for (final delta in ['ഹ', 'ഹലോ', 'ഹലോ, എനിക്ക്']) {
+        voice.debugHandleEvent({
+          'type': 'conversation.item.input_audio_transcription.delta',
+          'item_id': 'item_1',
+          'delta': delta,
+        });
+      }
+      expect(voice.state.transcript.single.text, isEmpty);
+
+      voice.debugHandleEvent({
+        'type': 'input_audio_buffer.speech_stopped',
+        'item_id': 'item_1',
+      });
+      voice.debugHandleEvent({
+        'type': 'conversation.item.input_audio_transcription.completed',
+        'item_id': 'item_1',
+        'transcript': 'ഹലോ, എനിക്ക് മുട്ടുവേദന ഉണ്ട്',
+      });
+
+      final caption = voice.state.transcript.single;
+      expect(caption.text, 'ഹലോ, എനിക്ക് മുട്ടുവേദന ഉണ്ട്');
+      expect(caption.isFinal, isTrue);
+    });
+
+    test(
+      'a placeholder for speech that never produced words goes away',
+      () async {
+        voice.debugStartSimulatedSession(baseInstructions: _base);
+
+        // A cough the provider never sends a transcript for.
+        voice.debugHandleEvent({
+          'type': 'input_audio_buffer.speech_started',
+          'item_id': 'cough',
+        });
+        await patientSays('item_2', 'I have a fever');
+        voice.debugHandleEvent({
+          'type': 'response.created',
+          'response': {'id': 'resp_1'},
+        });
+
+        expect(voice.state.transcript.map((entry) => entry.id), [
+          'patient:item_2',
+        ]);
+      },
+    );
+  });
+
   group('unrequested replies', () {
     test('a reply the provider starts on its own is cancelled unheard', () {
       voice.debugStartSimulatedSession(baseInstructions: _base);
@@ -317,7 +376,11 @@ void main() {
       expect(voice.sentOfType('response.create'), isEmpty);
       expect(voice.state.phase, LiveVoicePhase.listening);
       expect(voice.state.isUserSpeaking, isTrue);
-      expect(voice.state.transcript.single.text, 'I have had a fever');
+      // The first utterance settles; the one still going shows typing dots.
+      expect(voice.state.transcript.map((entry) => entry.text), [
+        'I have had a fever',
+        '',
+      ]);
 
       voice.debugHandleEvent({'type': 'input_audio_buffer.speech_stopped'});
       voice.debugHandleEvent({
@@ -385,7 +448,10 @@ void main() {
         expect(voice.state.isUserSpeaking, isTrue);
         expect(voice.sentOfType('response.cancel'), hasLength(1));
         expect(voice.sentOfType('output_audio_buffer.clear'), hasLength(1));
-        final interrupted = voice.state.transcript.last;
+        // Last comes the placeholder for what the patient is saying now.
+        final captions = voice.state.transcript;
+        expect(captions.last.id, 'patient:item_2');
+        final interrupted = captions[captions.length - 2];
         expect(interrupted.speaker, LiveVoiceSpeaker.assistant);
         expect(interrupted.interrupted, isTrue);
 
