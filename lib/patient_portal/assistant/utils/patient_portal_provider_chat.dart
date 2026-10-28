@@ -186,7 +186,9 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     // would race the placeholder bookkeeping of the first.
     if (_sendingThreadId != null) return;
 
-    final trimmed = message.trim();
+    // English and Malayalam only: keyboard voice typing can write Malayalam
+    // speech in Hindi letters.
+    final trimmed = toPatientScript(message.trim());
     if (trimmed.isEmpty && attachments.isEmpty) return;
 
     var threadId = _activeChatThreadId;
@@ -254,7 +256,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
             currentThreadId,
             ChatMessage(
               role: 'ai',
-              content: buffer.toString(),
+              content: toPatientScript(buffer.toString()),
               createdAt: nowIso,
             ),
           );

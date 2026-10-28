@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:biohelix_app/core/utils/patient_script.dart';
+
 double? _doubleValue(dynamic value) {
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value.trim());
@@ -1571,7 +1573,7 @@ class ChatMessage {
     return ChatMessage(
       id: (json['id'] as num?)?.toInt(),
       role: json['role'] as String? ?? 'assistant',
-      content: parsed.content,
+      content: toPatientScript(parsed.content),
       createdAt: json['createdAt'] as String? ?? json['created_at'] as String?,
       attachments: parsed.attachments,
       suggestedPackages: pkgsRaw

@@ -8,6 +8,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/utils/patient_script.dart';
 import 'inworld_signaling_api.dart';
 import 'live_voice_conversation.dart';
 import 'live_voice_state.dart';
@@ -1153,7 +1154,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     if (_currentInputItemId.isEmpty) _currentInputItemId = itemId;
     final buffer = _inputTranscripts.putIfAbsent(itemId, StringBuffer.new);
     buffer.write(event['delta']?.toString() ?? '');
-    final text = buffer.toString();
+    final text = toPatientScript(buffer.toString());
     _setState(
       _state.copyWith(
         partialTranscript: text,
@@ -1168,10 +1169,11 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
 
   void _onTranscriptionCompleted(Map<String, dynamic> event) {
     final itemId = event['item_id']?.toString() ?? _currentInputItemId;
-    final transcript =
-        event['transcript']?.toString().trim() ??
-        _inputTranscripts[itemId]?.toString().trim() ??
-        '';
+    final transcript = toPatientScript(
+      event['transcript']?.toString().trim() ??
+          _inputTranscripts[itemId]?.toString().trim() ??
+          '',
+    );
     final superseded =
         _state.isUserSpeaking &&
         _currentInputItemId.isNotEmpty &&
@@ -1415,10 +1417,12 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     final target = audioTranscript ? _responseAudioTranscripts : _responseText;
     final buffer = target.putIfAbsent(responseId, StringBuffer.new);
     buffer.write(event['delta']?.toString() ?? '');
-    final display = _firstNonEmpty([
-      _responseAudioTranscripts[responseId]?.toString(),
-      _responseText[responseId]?.toString(),
-    ]);
+    final display = toPatientScript(
+      _firstNonEmpty([
+        _responseAudioTranscripts[responseId]?.toString(),
+        _responseText[responseId]?.toString(),
+      ]),
+    );
     final entryId = _assistantEntryId(responseId);
     _speakingEntryId = entryId;
     if (!_state.isSpeaking) _speakingSince = DateTime.now();
@@ -1528,10 +1532,12 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       _responseActive = false;
       _currentResponseId = '';
     }
-    final answer = _firstNonEmpty([
-      _responseAudioTranscripts.remove(responseId)?.toString().trim(),
-      _responseText.remove(responseId)?.toString().trim(),
-    ]);
+    final answer = toPatientScript(
+      _firstNonEmpty([
+        _responseAudioTranscripts.remove(responseId)?.toString().trim(),
+        _responseText.remove(responseId)?.toString().trim(),
+      ]),
+    );
     if (_cancelledResponseIds.remove(responseId) || status == 'cancelled') {
       // Barge-in already moved the UI on.
       _debugLog('response $responseId finished as cancelled');
