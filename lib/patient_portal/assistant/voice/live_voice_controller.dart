@@ -70,8 +70,10 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   static const Duration _responseStartBudget = Duration(seconds: 10);
 
   /// `session.updated` is the readiness signal after a data-channel
-  /// `session.update`, but some edges never echo it.
-  static const Duration _sessionReadyFallback = Duration(milliseconds: 1500);
+  /// `session.update`, but some edges never echo it. Inworld usually echoes
+  /// it about two seconds after the channel opens; listening before then
+  /// runs on its defaults (automatic replies, guessed speech language).
+  static const Duration _sessionReadyFallback = Duration(seconds: 4);
 
   /// A call nobody has spoken on for this long is ended: an open line keeps
   /// the provider session billing, the screen awake and reward time ticking.
@@ -165,6 +167,11 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   bool _responseRequested = false;
   bool _responseActive = false;
 
+  /// `response.create` events sent that have not produced `response.created`
+  /// yet. Unlike [_responseRequested] it survives the start watchdog and
+  /// barge-in, so a reply is unrequested only when this is zero.
+  int _pendingResponseCreates = 0;
+
   /// Set when the patient starts talking while a requested reply has not been
   /// created yet. Bounded in time so a request the provider silently dropped
   /// can never swallow the next, legitimate reply.
@@ -173,6 +180,9 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   bool _audioBufferEventsSeen = false;
   DateTime? _speakingSince;
   final Set<String> _cancelledResponseIds = {};
+
+  /// Replies the provider started on its own; they never touch turn state.
+  final Set<String> _unrequestedResponseIds = {};
 
   String _initialResponseInstructions = '';
   bool _initialResponseRequested = false;
@@ -1319,6 +1329,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _createResponse(String instructions) async {
     _responseCreateSentAtMs = _turnLatency?.elapsedMilliseconds;
     _responseRequested = true;
+    _pendingResponseCreates++;
     _armResponseStartWatchdog();
     await sendRealtimeEvent({
       'type': 'response.create',
@@ -1371,6 +1382,22 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         response['id']?.toString() ??
         event['response_id']?.toString() ??
         'current-response';
+    if (_pendingResponseCreates == 0) {
+      // The session turns automatic replies off, but Inworld has started one
+      // anyway (it ignored a session setting). Such a reply skips the turn
+      // context and language rules, and was heard speaking Hindi until the
+      // requested reply cut it off: never let one play.
+      _cancelledResponseIds.add(responseId);
+      _unrequestedResponseIds.add(responseId);
+      _debugLog('cancelling a reply nobody requested: $responseId');
+      unawaited(sendRealtimeEvent({'type': 'response.cancel'}));
+      if (!_responseActive) {
+        // Drop any of its audio already queued; no requested reply is playing.
+        unawaited(sendRealtimeEvent({'type': 'output_audio_buffer.clear'}));
+      }
+      return;
+    }
+    _pendingResponseCreates--;
     final suppressUntil = _suppressResponsesUntil;
     _suppressResponsesUntil = null;
     if (suppressUntil != null && DateTime.now().isBefore(suppressUntil)) {
@@ -1523,6 +1550,14 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         response['id']?.toString() ??
         event['response_id']?.toString() ??
         _currentResponseId;
+    if (_unrequestedResponseIds.remove(responseId)) {
+      // Cancelled on arrival; a requested reply may be in flight by now.
+      _cancelledResponseIds.remove(responseId);
+      _responseAudioTranscripts.remove(responseId);
+      _responseText.remove(responseId);
+      _debugLog('unrequested response $responseId finished');
+      return;
+    }
     final status = response['status']?.toString() ?? 'completed';
     // The start watchdog and `_responseRequested` belong to whichever reply
     // was requested last, which may already be a newer turn: leave them be.
@@ -1842,10 +1877,12 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     _speakingEntryId = '';
     _responseRequested = false;
     _responseActive = false;
+    _pendingResponseCreates = 0;
     _suppressResponsesUntil = null;
     _audioBufferActive = false;
     _speakingSince = null;
     _cancelledResponseIds.clear();
+    _unrequestedResponseIds.clear();
     _inputTranscripts.clear();
     _responseText.clear();
     _responseAudioTranscripts.clear();

@@ -164,6 +164,63 @@ void main() {
     });
   });
 
+  group('unrequested replies', () {
+    test('a reply the provider starts on its own is cancelled unheard', () {
+      voice.debugStartSimulatedSession(baseInstructions: _base);
+
+      voice.debugHandleEvent({
+        'type': 'response.created',
+        'response': {'id': 'auto_1'},
+      });
+      voice.debugHandleEvent({
+        'type': 'response.output_audio_transcript.delta',
+        'response_id': 'auto_1',
+        'delta': 'नमस्ते',
+      });
+
+      expect(voice.sentOfType('response.cancel'), hasLength(1));
+      expect(voice.sentOfType('output_audio_buffer.clear'), hasLength(1));
+      expect(voice.state.transcript, isEmpty);
+      expect(voice.state.phase, LiveVoicePhase.listening);
+    });
+
+    test('the requested reply still plays after an unrequested one', () async {
+      voice.debugStartSimulatedSession(baseInstructions: _base);
+
+      // Inworld auto-answers the raw transcript before the app's request.
+      voice.debugHandleEvent({
+        'type': 'input_audio_buffer.speech_started',
+        'item_id': 'item_1',
+      });
+      voice.debugHandleEvent({
+        'type': 'input_audio_buffer.speech_stopped',
+        'item_id': 'item_1',
+      });
+      voice.debugHandleEvent({
+        'type': 'response.created',
+        'response': {'id': 'auto_1'},
+      });
+      voice.debugHandleEvent({
+        'type': 'conversation.item.input_audio_transcription.completed',
+        'item_id': 'item_1',
+        'transcript': 'എനിക്ക് മുട്ടുവേദന ഉണ്ട്',
+      });
+      await _settle();
+      expect(voice.sentOfType('response.create'), hasLength(1));
+
+      assistantReplies('reply_1', 'എത്ര ദിവസമായി?');
+      voice.debugHandleEvent({
+        'type': 'response.done',
+        'response': {'id': 'auto_1', 'status': 'cancelled'},
+      });
+      voice.debugHandleEvent({'type': 'output_audio_buffer.stopped'});
+
+      expect(voice.sentOfType('response.cancel'), hasLength(1));
+      expect(completedTurns, [('എനിക്ക് മുട്ടുവേദന ഉണ്ട്', 'എത്ര ദിവസമായി?')]);
+      expect(voice.state.phase, LiveVoicePhase.listening);
+    });
+  });
+
   group('turn instructions', () {
     test('turn context is layered on top of the session prompt', () async {
       voice.debugStartSimulatedSession(baseInstructions: _base);
