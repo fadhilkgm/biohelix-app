@@ -651,6 +651,90 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Hospital support recommended'), findsOneWidget);
   });
+
+  group('error screen', () {
+    _FakeLiveVoiceController createVoice(
+      RealtimeTurnCompleted onTurnCompleted,
+      RealtimeTurnContext onTurnContext,
+    ) {
+      return voice = _FakeLiveVoiceController(
+        onTurnCompleted: onTurnCompleted,
+        onTurnContext: onTurnContext,
+      );
+    }
+
+    testWidgets('shows friendly text when the server is unavailable', (
+      tester,
+    ) async {
+      service.startVoiceError = const AiCheckupUnavailableException(525);
+
+      await tester.pumpWidget(_buildSubject(service, createVoice));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining("We couldn't connect"), findsOneWidget);
+      expect(find.textContaining('525'), findsNothing);
+      expect(find.text('Start again'), findsOneWidget);
+    });
+
+    testWidgets('shows a patient-facing API message unchanged', (tester) async {
+      service.startVoiceError = Exception('This session has expired.');
+
+      await tester.pumpWidget(_buildSubject(service, createVoice));
+      await tester.pumpAndSettle();
+
+      expect(find.text('This session has expired.'), findsOneWidget);
+    });
+
+    testWidgets('hides developer text from unexpected errors', (tester) async {
+      service.startVoiceError = StateError('internal parser detail');
+
+      await tester.pumpWidget(_buildSubject(service, createVoice));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('internal parser detail'), findsNothing);
+      expect(find.textContaining("We couldn't connect"), findsOneWidget);
+    });
+
+    testWidgets('scrolls a long message on a small screen and can retry', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(320, 480);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      service.startVoiceError = Exception(
+        List.filled(120, 'A long server message.').join(' '),
+      );
+
+      await tester.pumpWidget(_buildSubject(service, createVoice));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+
+      service.startVoiceError = Exception('Still unavailable.');
+      await tester.ensureVisible(find.text('Start again'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start again'));
+      await tester.pumpAndSettle();
+
+      expect(service.startVoiceCallCount, 2);
+      expect(find.text('Still unavailable.'), findsOneWidget);
+    });
+
+    testWidgets('shows friendly text when history fails to load', (
+      tester,
+    ) async {
+      service.listHistoryError = const AiCheckupUnavailableException(525);
+
+      await tester.pumpWidget(_buildSubject(service, createVoice));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('History'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not load checkup history'), findsOneWidget);
+      expect(find.textContaining("We couldn't connect"), findsOneWidget);
+      expect(find.textContaining('AiCheckupUnavailable'), findsNothing);
+    });
+  });
 }
 
 Widget _buildSubject(
@@ -721,6 +805,8 @@ class _FakeAiCheckupService extends AiCheckupService {
   int finalizeVoiceCallCount = 0;
   bool? lastConsent;
   bool? lastCustomPackageConsent;
+  Object? startVoiceError;
+  Object? listHistoryError;
   VoiceAssessmentTurnDecision nextDecision = const VoiceAssessmentTurnDecision(
     acceptedTranscript: 'I feel unwell.',
     spokenResponse: 'Tell me more.',
@@ -737,6 +823,11 @@ class _FakeAiCheckupService extends AiCheckupService {
   }) async {
     startVoiceCallCount++;
     lastConsent = consent;
+    final failure = startVoiceError;
+    if (failure != null) {
+      startVoiceError = null;
+      throw failure;
+    }
     return const VoiceAssessmentSession(
       sessionToken: 'voice-token',
       initialInstructions:
@@ -785,6 +876,13 @@ class _FakeAiCheckupService extends AiCheckupService {
   @override
   Future<void> cancelVoiceAssessment(String sessionToken) async {
     cancelVoiceCallCount++;
+  }
+
+  @override
+  Future<List<AssessmentHistoryItem>> listHistory() async {
+    final failure = listHistoryError;
+    if (failure != null) throw failure;
+    return const [];
   }
 }
 

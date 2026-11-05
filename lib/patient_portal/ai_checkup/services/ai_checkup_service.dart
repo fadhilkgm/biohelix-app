@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 abstract final class AiCheckupContract {
   static const intents = {
@@ -483,6 +484,17 @@ Map<String, dynamic> _map(dynamic value) {
   return <String, dynamic>{};
 }
 
+/// The assessment API could not be reached or failed without a message meant
+/// for patients.
+class AiCheckupUnavailableException implements Exception {
+  const AiCheckupUnavailableException([this.statusCode]);
+
+  final int? statusCode;
+
+  @override
+  String toString() => 'AiCheckupUnavailableException(status: $statusCode)';
+}
+
 /// Client for the documented 3-step AI health assessment flow:
 /// `start` -> `answers` -> `results`.
 ///
@@ -509,15 +521,17 @@ class AiCheckupService {
     );
   }
 
-  static String _dioMessage(DioException error) {
+  /// Only 4xx JSON messages are written for patients. Anything else (Dio's
+  /// developer text, proxy HTML, framework 5xx output) stays out of the UI.
+  static Exception _apiException(DioException error) {
+    final status = error.response?.statusCode;
     final data = error.response?.data;
-    if (data is Map) {
-      return data['error']?.toString() ??
-          data['message']?.toString() ??
-          error.message ??
-          'Request failed';
+    if (status != null && status < 500 && data is Map) {
+      final message = (data['error'] ?? data['message'])?.toString().trim();
+      if (message != null && message.isNotEmpty) return Exception(message);
     }
-    return data?.toString() ?? error.message ?? 'Request failed';
+    debugPrint('AI checkup request failed: status=$status type=${error.type}');
+    return AiCheckupUnavailableException(status);
   }
 
   Future<VoiceAssessmentSession> startVoiceAssessment({
@@ -531,7 +545,7 @@ class AiCheckupService {
       );
       return VoiceAssessmentSession.fromJson(response.data ?? const {});
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -546,7 +560,7 @@ class AiCheckupService {
       );
       return VoiceAssessmentTurnDecision.fromJson(response.data ?? const {});
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -561,7 +575,7 @@ class AiCheckupService {
       );
       return VoiceAssessmentTurnDecision.fromJson(response.data ?? const {});
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -580,7 +594,7 @@ class AiCheckupService {
       );
       return VoiceAssessmentTurnDecision.fromJson(response.data ?? const {});
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -595,7 +609,7 @@ class AiCheckupService {
         data: {'transcript': transcript, 'response': response},
       );
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -605,7 +619,7 @@ class AiCheckupService {
         '/health-assessment/voice/$sessionToken/cancel',
       );
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -621,7 +635,7 @@ class AiCheckupService {
       );
       return AssessmentSession.fromJson(response.data ?? const {});
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -636,7 +650,7 @@ class AiCheckupService {
           .map((item) => AssessmentHistoryItem.fromJson(_map(item)))
           .toList();
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -648,7 +662,7 @@ class AiCheckupService {
       );
       return AssessmentSession.fromJson(response.data ?? const {});
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -664,7 +678,7 @@ class AiCheckupService {
       );
       return AssessmentResults.fromJson(_map(response.data?['results']));
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -676,7 +690,7 @@ class AiCheckupService {
       );
       return AssessmentResults.fromJson(_map(response.data?['results']));
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 
@@ -697,7 +711,7 @@ class AiCheckupService {
         },
       );
     } on DioException catch (error) {
-      throw Exception(_dioMessage(error));
+      throw _apiException(error);
     }
   }
 }
