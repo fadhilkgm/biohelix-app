@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/utils/patient_script.dart';
 import '../../../features/session/providers/session_provider.dart';
 import '../data/patient_repository.dart';
 import '../models/home_feed_models.dart';
@@ -23,12 +24,17 @@ class PatientPortalProvider extends ChangeNotifier {
     required PatientRepository repository,
     required SessionProvider sessionProvider,
   }) : _repository = repository,
-       _sessionProvider = sessionProvider;
+       _sessionProvider = sessionProvider {
+    _loadedPatientId = sessionProvider.patient?.id;
+    _sessionProvider.addListener(_handleSessionChanged);
+  }
 
   final PatientRepository _repository;
   final SessionProvider _sessionProvider;
   int? _loadedPatientId;
   int _loadGeneration = 0;
+  int _patientScopeRevision = 0;
+  bool _disposed = false;
   int _labOrdersRevision = 0;
   int _labPackageOrdersRevision = 0;
 
@@ -79,6 +85,7 @@ class PatientPortalProvider extends ChangeNotifier {
   bool _isUploadingDocument = false;
   int? _analyzingDocumentId;
   String? _sendingThreadId;
+  bool _creatingThreadForSend = false;
   String? _streamingThreadId;
   CancelToken? _replyCancelToken;
   String? _loadingChatHistoryThreadId;
@@ -149,6 +156,7 @@ class PatientPortalProvider extends ChangeNotifier {
   bool get isCreatingHomeCareBooking => _isCreatingHomeCareBooking;
   bool get isUploadingDocument => _isUploadingDocument;
   int? get analyzingDocumentId => _analyzingDocumentId;
+
   /// True only while a send is in flight for the thread currently on screen, so
   /// a reply streaming into thread A never shows a typing indicator in thread B.
   bool get isSendingMessage =>
@@ -207,11 +215,44 @@ class PatientPortalProvider extends ChangeNotifier {
   }
 
   void _notify() {
-    notifyListeners();
+    if (!_disposed) notifyListeners();
+  }
+
+  bool _isCurrentScope(int revision) =>
+      !_disposed &&
+      revision == _patientScopeRevision &&
+      _sessionProvider.isAuthenticated;
+
+  void _handleSessionChanged() {
+    final patientId = _sessionProvider.isAuthenticated
+        ? _sessionProvider.patient?.id
+        : null;
+    if (_loadedPatientId == patientId) return;
+    _loadedPatientId = patientId;
+    _patientScopeRevision++;
+    _loadGeneration++;
+    _resetPatientScopedState();
+    _isLoading = false;
+    _notify();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _loadGeneration++;
+    _patientScopeRevision++;
+    _replyCancelToken?.cancel('portal-disposed');
+    _sessionProvider.removeListener(_handleSessionChanged);
+    super.dispose();
   }
 
   void _resetPatientScopedState() {
     _isLoadingDeferred = false;
+    _isSavingProfile = false;
+    _isSavingVitals = false;
+    _isCreatingBooking = false;
+    _isCreatingLabOrder = false;
+    _isUploadingDocument = false;
     _labOrdersRevision = 0;
     _labPackageOrdersRevision = 0;
     _dashboard = null;
@@ -245,11 +286,13 @@ class PatientPortalProvider extends ChangeNotifier {
     _aiSuggestions = const [];
     _myClub = null;
     _chatThreads = const [];
+    _chatInitialization = null;
     _activeChatThreadId = null;
     _chatHistories.clear();
     _replyCancelToken?.cancel('patient-scope-reset');
     _replyCancelToken = null;
     _sendingThreadId = null;
+    _creatingThreadForSend = false;
     _streamingThreadId = null;
     _loadingChatHistoryThreadId = null;
     _chatHistoryError = null;

@@ -29,6 +29,9 @@ class _LoginPageState extends State<LoginPage> {
   String? _selectedBloodGroup;
   final Map<String, String> _fieldErrors = {};
   bool _isSignup = false;
+  bool _usePassword = false;
+  bool _obscurePassword = true;
+  final _passwordController = TextEditingController();
   bool _isRegistrationPhoneCheck = false;
   bool _registrationPhoneNotFound = false;
   String? _appliedReferralLinkCode;
@@ -60,6 +63,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void dispose() {
     _phoneController.dispose();
+    _passwordController.dispose();
     _nameController.dispose();
     _dobController.dispose();
     _placeController.dispose();
@@ -114,6 +118,9 @@ class _LoginPageState extends State<LoginPage> {
     if (phone.isEmpty) {
       errors['phone'] = strings.fieldRequired;
     }
+    if (_showPasswordLogin && _passwordController.text.isEmpty) {
+      errors['password'] = strings.fieldRequired;
+    }
 
     if (_isSignup) {
       if (_nameController.text.trim().isEmpty) {
@@ -138,6 +145,9 @@ class _LoginPageState extends State<LoginPage> {
 
     return errors.isEmpty;
   }
+
+  bool get _showPasswordLogin =>
+      _usePassword && !_isSignup && !_isRegistrationPhoneCheck;
 
   bool _looksLikeDuplicate(String message) {
     final lower = message.toLowerCase();
@@ -204,6 +214,13 @@ class _LoginPageState extends State<LoginPage> {
     if (!_validate(strings)) return;
 
     final session = context.read<SessionProvider>();
+    if (_showPasswordLogin) {
+      await session.login(
+        phone: _phoneController.text,
+        password: _passwordController.text,
+      );
+      return;
+    }
     if (_isRegistrationPhoneCheck) {
       await _checkRegistrationPhone();
       return;
@@ -487,7 +504,29 @@ class _LoginPageState extends State<LoginPage> {
                                 errorText: _fieldErrors['referralCode'],
                               ),
                             ],
-                            if (_isSignup &&
+                            if (_showPasswordLogin) ...[
+                              const SizedBox(height: 18),
+                              AuthTextField(
+                                key: const ValueKey('field_password'),
+                                controller: _passwordController,
+                                label: 'Password',
+                                hint: 'Enter your password',
+                                prefixIcon: Icons.lock_outline_rounded,
+                                obscureText: _obscurePassword,
+                                errorText: _fieldErrors['password'],
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if ((_isSignup || _showPasswordLogin) &&
                                 (session.errorMessage ?? '').isNotEmpty)
                               AuthErrorText(message: session.errorMessage!),
                             const SizedBox(height: 32),
@@ -542,10 +581,36 @@ class _LoginPageState extends State<LoginPage> {
                                   ? strings.registerWithWhatsAppOtp
                                   : _isRegistrationPhoneCheck
                                   ? strings.continueRegistration
+                                  : _showPasswordLogin
+                                  ? 'Log in with password'
                                   : strings.sendWhatsAppOtp,
                               isLoading: session.isSubmittingAuth,
                               onPressed: _submit,
                             ),
+                            if (!_isSignup && !_isRegistrationPhoneCheck)
+                              Center(
+                                child: TextButton(
+                                  key: const ValueKey('toggle_password_login'),
+                                  onPressed: session.isSubmittingAuth
+                                      ? null
+                                      : () {
+                                          session.clearError();
+                                          setState(() {
+                                            _usePassword = !_usePassword;
+                                            _fieldErrors.clear();
+                                          });
+                                        },
+                                  child: Text(
+                                    _usePassword
+                                        ? 'Use OTP instead'
+                                        : 'Log in with password',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             const SizedBox(height: 18),
                             if (!_isRegistrationPhoneCheck)
                               Center(

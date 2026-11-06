@@ -5,7 +5,9 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
     String filePath, {
     String? fileName,
     String? documentType,
+    List<int>? fileBytes,
   }) async {
+    final scope = _patientScopeRevision;
     _isUploadingDocument = true;
     _errorMessage = null;
     _notify();
@@ -15,15 +17,19 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
         filePath,
         fileName: fileName,
         documentType: documentType,
+        fileBytes: fileBytes,
       );
-      await loadPortal();
+      if (_isCurrentScope(scope)) await loadPortal();
       return uploaded;
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isUploadingDocument = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isUploadingDocument = false;
+        _notify();
+      }
     }
   }
 
@@ -31,36 +37,44 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
     int documentId, {
     String language = 'en',
   }) async {
+    final scope = _patientScopeRevision;
     _analyzingDocumentId = documentId;
     _lastAnalysisResult = null;
     _errorMessage = null;
     _notify();
 
     try {
-      _lastAnalysisResult = await _repository.analyzeDocument(
+      final result = await _repository.analyzeDocument(
         documentId,
         language: language,
       );
+      if (!_isCurrentScope(scope)) return null;
+      _lastAnalysisResult = result;
       if (_lastAnalysisResult != null) {
         _documentAnalyses[documentId] = _lastAnalysisResult!;
       }
       await loadPortal();
-      return _lastAnalysisResult;
+      return _isCurrentScope(scope) ? result : null;
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _analyzingDocumentId = null;
-      _notify();
+      if (_isCurrentScope(scope) && _analyzingDocumentId == documentId) {
+        _analyzingDocumentId = null;
+        _notify();
+      }
     }
   }
 
   Future<void> deleteDocument(int documentId) async {
+    final scope = _patientScopeRevision;
     _errorMessage = null;
     _notify();
 
     try {
       await _repository.deleteDocument(documentId);
+      if (!_isCurrentScope(scope)) return;
       _documentAnalyses.remove(documentId);
       _documentChats.remove(documentId);
       if (_lastAnalysisResult != null &&
@@ -70,6 +84,7 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
       }
       await loadPortal();
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
@@ -78,20 +93,24 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
   }
 
   Future<void> loadDocumentConversation(int documentId) async {
+    final scope = _patientScopeRevision;
     _loadingDocumentChatId = documentId;
     _errorMessage = null;
     _notify();
 
     try {
-      _documentChats[documentId] = await _repository.getDocumentChatHistory(
-        documentId,
-      );
+      final history = await _repository.getDocumentChatHistory(documentId);
+      if (!_isCurrentScope(scope)) return;
+      _documentChats[documentId] = history;
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _loadingDocumentChatId = null;
-      _notify();
+      if (_isCurrentScope(scope) && _loadingDocumentChatId == documentId) {
+        _loadingDocumentChatId = null;
+        _notify();
+      }
     }
   }
 
@@ -100,7 +119,8 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
     required String message,
   }) async {
     final trimmed = message.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty || _sendingDocumentChatId != null) return;
+    final scope = _patientScopeRevision;
 
     final history = _documentChats[documentId] ?? const [];
     _documentChats[documentId] = [
@@ -116,11 +136,13 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
         documentId: documentId,
         message: trimmed,
       );
-      _documentChats[documentId] = [..._documentChats[documentId]!, reply];
+      if (!_isCurrentScope(scope)) return;
+      _documentChats[documentId] = [...?_documentChats[documentId], reply];
     } catch (error) {
+      if (!_isCurrentScope(scope)) return;
       _errorMessage = error.toString();
       _documentChats[documentId] = [
-        ..._documentChats[documentId]!,
+        ...?_documentChats[documentId],
         const ChatMessage(
           role: 'ai',
           content:
@@ -128,8 +150,10 @@ extension PatientPortalDocumentMixin on PatientPortalProvider {
         ),
       ];
     } finally {
-      _sendingDocumentChatId = null;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _sendingDocumentChatId = null;
+        _notify();
+      }
     }
   }
 }

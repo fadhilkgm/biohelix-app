@@ -216,18 +216,25 @@ extension _AssistantActions on _AssistantTabState {
   }
 
   Future<void> _attachGalleryImage(PatientPortalProvider portal) async {
+    final patientId = context.read<SessionProvider>().patient?.id;
     try {
       final picked = await ImagePicker().pickImage(
         source: ImageSource.gallery,
         imageQuality: 90,
       );
-      if (picked == null || !mounted) return;
+      if (picked == null ||
+          !mounted ||
+          context.read<SessionProvider>().patient?.id != patientId) {
+        return;
+      }
 
       await _uploadChatAttachment(
         portal,
         path: picked.path,
         fileName: _friendlyGalleryImageName(picked.name, picked.path),
         sizeBytes: await picked.length(),
+        fileBytes: kIsWeb ? await picked.readAsBytes() : null,
+        patientId: patientId,
       );
     } catch (error) {
       if (_isImagePickerChannelError(error)) {
@@ -244,23 +251,32 @@ extension _AssistantActions on _AssistantTabState {
   }
 
   Future<void> _attachDocumentFile(PatientPortalProvider portal) async {
+    final patientId = context.read<SessionProvider>().patient?.id;
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: const ['pdf', 'png', 'jpg', 'jpeg', 'webp'],
         allowMultiple: false,
+        withData: kIsWeb,
       );
       if (result == null || result.files.isEmpty) return;
 
-      final path = result.files.single.path;
-      if ((path ?? '').isEmpty || !mounted) return;
+      final file = result.files.single;
+      final path = kIsWeb ? '' : file.path;
+      if (!mounted ||
+          context.read<SessionProvider>().patient?.id != patientId ||
+          (kIsWeb ? file.bytes == null : (path ?? '').isEmpty)) {
+        return;
+      }
       final fileName = result.files.single.name;
 
       await _uploadChatAttachment(
         portal,
-        path: path!,
+        path: path ?? '',
         fileName: fileName,
         sizeBytes: result.files.single.size,
+        fileBytes: kIsWeb ? file.bytes : null,
+        patientId: patientId,
       );
     } catch (error) {
       _handleAttachmentError(error);
@@ -272,7 +288,12 @@ extension _AssistantActions on _AssistantTabState {
     required String path,
     required String fileName,
     required int sizeBytes,
+    required int? patientId,
+    List<int>? fileBytes,
   }) async {
+    if (!mounted || context.read<SessionProvider>().patient?.id != patientId) {
+      return;
+    }
     if (sizeBytes <= 0) {
       _handleAttachmentError(
         const FormatException('The selected report is empty.'),
@@ -291,7 +312,16 @@ extension _AssistantActions on _AssistantTabState {
         _uploadingAttachmentName = fileName;
       });
 
-      final uploaded = await portal.uploadDocument(path, fileName: fileName);
+      final uploaded = await portal.uploadDocument(
+        path,
+        fileName: fileName,
+        fileBytes: fileBytes,
+      );
+      if (!mounted) return;
+      if (context.read<SessionProvider>().patient?.id != patientId) {
+        updateAssistantState(_clearComposer);
+        return;
+      }
       final attachment = ChatAttachment(
         name: fileName,
         url: uploaded.documentPath,
@@ -312,7 +342,10 @@ extension _AssistantActions on _AssistantTabState {
             uploaded.id,
             language: _assistantLanguageCode,
           );
-          if (!mounted) return;
+          if (!mounted ||
+              context.read<SessionProvider>().patient?.id != patientId) {
+            return;
+          }
           updateAssistantState(() {
             _isAttachmentAnalysisInFlight = false;
           });
@@ -331,7 +364,10 @@ extension _AssistantActions on _AssistantTabState {
             );
           }
         } catch (_) {
-          if (!mounted) return;
+          if (!mounted ||
+              context.read<SessionProvider>().patient?.id != patientId) {
+            return;
+          }
           updateAssistantState(() {
             _isAttachmentAnalysisInFlight = false;
           });
@@ -533,13 +569,16 @@ extension _AssistantActions on _AssistantTabState {
   }
 
   Future<String?> _ensureLiveConversation(PatientPortalProvider portal) async {
+    final patientId = _composerPatientId;
     try {
       if ((portal.activeChatThreadId ?? '').isEmpty) {
         // The assistant can be opened before the background load finishes.
         await portal.initializeChatThreads(force: true);
+        if (!mounted || _composerPatientId != patientId) return null;
       }
       if ((portal.activeChatThreadId ?? '').isEmpty) {
         await portal.createNewChatThread();
+        if (!mounted || _composerPatientId != patientId) return null;
       }
     } catch (error) {
       if (kDebugMode) debugPrint('[LiveVoice] chat thread unavailable: $error');
@@ -554,7 +593,10 @@ extension _AssistantActions on _AssistantTabState {
     if (current.isNotEmpty) return current;
     final pending = _liveConversationReady;
     if (pending == null) return '';
-    return await pending ?? '';
+    final conversationId = await pending;
+    return mounted && identical(pending, _liveConversationReady)
+        ? conversationId ?? ''
+        : '';
   }
 
   /// The last few text messages of the thread, so the voice assistant picks
@@ -579,6 +621,7 @@ extension _AssistantActions on _AssistantTabState {
     String transcript,
     String response,
   ) async {
+    final patientId = _composerPatientId;
     final idempotencyKey =
         '$conversationId-${DateTime.now().microsecondsSinceEpoch}';
     final safeTranscript = transcript.length > 2000
@@ -588,6 +631,7 @@ extension _AssistantActions on _AssistantTabState {
         ? response.substring(0, 4000)
         : response;
     for (var attempt = 1; attempt <= 2; attempt++) {
+      if (!mounted || _composerPatientId != patientId) return;
       try {
         await _signalingApi.persistTurn(
           conversationId: conversationId,
@@ -643,15 +687,11 @@ Future<void> _openAttachmentPreview(
                       child: Image.network(
                         resolvedUrl,
                         fit: BoxFit.contain,
-                        headers: {
-                          if (Provider.of<SessionProvider>(
-                                context,
-                                listen: false,
-                              ).authToken !=
-                              null)
-                            'Authorization':
-                                'Bearer ${Provider.of<SessionProvider>(context, listen: false).authToken}',
-                        },
+                        headers: InAppDocumentViewer.requestHeaders(
+                          url: resolvedUrl,
+                          apiBaseUrl: context.read<AppConfig>().apiBaseUrl,
+                          authToken: context.read<SessionProvider>().authToken,
+                        ),
                         errorBuilder: (_, _, _) => Text(
                           'Image preview unavailable.',
                           style: AppTextStyles.subtitle(sheetContext),

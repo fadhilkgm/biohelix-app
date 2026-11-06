@@ -36,6 +36,18 @@ class _BannerCarouselWidgetState extends State<BannerCarouselWidget> {
   }
 
   @override
+  void didUpdateWidget(covariant BannerCarouselWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.banners.length == widget.banners.length) return;
+    _startTimer();
+    if (_index < widget.banners.length) return;
+    _index = 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _controller.hasClients) _controller.jumpToPage(0);
+    });
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     _controller.dispose();

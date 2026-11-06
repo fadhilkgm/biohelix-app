@@ -64,6 +64,16 @@ class _ProfileSettingsCard extends StatelessWidget {
           // ),
           const _TextSizeSetting(),
           _ProfileInfoTile(
+            key: const ValueKey('profile_password_tile'),
+            icon: Icons.lock_outline_rounded,
+            label: 'Password',
+            value: 'Add or change your login password',
+            onTap: () => showDialog<void>(
+              context: context,
+              builder: (_) => const _PasswordDialog(),
+            ),
+          ),
+          _ProfileInfoTile(
             icon: Icons.verified_user_outlined,
             label: 'Privacy Policy',
             value: '',
@@ -229,6 +239,7 @@ class _DeleteAccountConfirmationDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       icon: const Icon(
         Icons.warning_amber_rounded,
         color: Color(0xFFD94444),
@@ -241,7 +252,9 @@ class _DeleteAccountConfirmationDialogState
           const Text(
             'This action cannot be undone. You will lose portal access and be '
             'signed out on every device. Clinical records held by BHRC will '
-            'be retained for medical and legal requirements.',
+            'be retained for medical and legal requirements. Previously synced '
+            'activity and reward records are not automatically deleted. '
+            'Contact BHRC through the Privacy Policy to request their deletion.',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 18),
@@ -309,6 +322,7 @@ class _HealthProfileCard extends StatelessWidget {
 
 class _ProfileInfoTile extends StatelessWidget {
   const _ProfileInfoTile({
+    super.key,
     required this.icon,
     required this.label,
     required this.value,
@@ -518,6 +532,159 @@ class _TextSizeOption extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Lets a patient add (or change) a password so they can log in with their
+/// mobile number and password instead of an OTP.
+class _PasswordDialog extends StatefulWidget {
+  const _PasswordDialog();
+
+  @override
+  State<_PasswordDialog> createState() => _PasswordDialogState();
+}
+
+class _PasswordDialogState extends State<_PasswordDialog> {
+  final _current = TextEditingController();
+  final _new = TextEditingController();
+  final _confirm = TextEditingController();
+  bool _loading = true;
+  bool _saving = false;
+  bool _hasPassword = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
+  }
+
+  @override
+  void dispose() {
+    _current.dispose();
+    _new.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadStatus() async {
+    try {
+      final response = await context.read<ApiClient>().getJson(
+        '/auth/password',
+      );
+      if (!mounted) return;
+      setState(() {
+        _hasPassword = response['has_password'] == true;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    if (_new.text.length < 8) {
+      setState(() => _error = 'Password must be at least 8 characters.');
+      return;
+    }
+    if (_new.text != _confirm.text) {
+      setState(() => _error = 'Passwords do not match.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await context.read<ApiClient>().postJson(
+        '/auth/password',
+        data: {
+          if (_hasPassword) 'current_password': _current.text,
+          'password': _new.text,
+          'password_confirmation': _confirm.text,
+        },
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password saved. You can now log in with it.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = error.toString();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(_hasPassword ? 'Change password' : 'Add password'),
+      content: _loading
+          ? const SizedBox(
+              height: 80,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_hasPassword)
+                    TextField(
+                      key: const ValueKey('field_current_password'),
+                      controller: _current,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Current password',
+                      ),
+                    ),
+                  TextField(
+                    key: const ValueKey('field_new_password'),
+                    controller: _new,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'New password (min 8 characters)',
+                    ),
+                  ),
+                  TextField(
+                    key: const ValueKey('field_confirm_password'),
+                    controller: _confirm,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Confirm new password',
+                    ),
+                  ),
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: Color(0xFFD94444)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const ValueKey('save_password'),
+          onPressed: _loading || _saving ? null : _save,
+          child: Text(_saving ? 'Saving…' : 'Save'),
+        ),
+      ],
     );
   }
 }

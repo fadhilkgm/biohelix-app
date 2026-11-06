@@ -10,7 +10,8 @@ import 'core/widgets/custom_text_field.dart';
 import 'features/auth/presentation/widgets/auth_form_widgets.dart';
 
 Future<void> main() async {
-  final isFlutterTest = Platform.environment.containsKey('FLUTTER_TEST');
+  final isFlutterTest =
+      !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
   if (kDebugMode && !isFlutterTest) {
     MarionetteBinding.ensureInitialized(
       MarionetteConfiguration(

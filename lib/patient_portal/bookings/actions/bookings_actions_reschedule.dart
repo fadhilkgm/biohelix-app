@@ -44,18 +44,24 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
 
     if (!context.mounted) return;
 
+    var sheetOpen = true;
     Future<void> loadSlots(StateSetter setModalState) async {
-      setModalState(() {
+      final requestedDate = selectedDate;
+      void setIfCurrent(VoidCallback update) {
+        if (sheetOpen && selectedDate == requestedDate) setModalState(update);
+      }
+
+      setIfCurrent(() {
         loadingSlots = true;
       });
 
       try {
         final slots = await portal.getDoctorAvailableSlots(
           doctorId: selectedDoctor.id,
-          date: DateFormat('yyyy-MM-dd').format(selectedDate),
+          date: DateFormat('yyyy-MM-dd').format(requestedDate),
         );
 
-        setModalState(() {
+        setIfCurrent(() {
           availableSlots = slots;
           selectedSlot = slots.contains(selectedSlot)
               ? selectedSlot
@@ -63,7 +69,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
         });
       } catch (_) {
       } finally {
-        setModalState(() {
+        setIfCurrent(() {
           loadingSlots = false;
         });
       }
@@ -393,7 +399,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
           },
         );
       },
-    );
+    ).whenComplete(() => sheetOpen = false);
   }
 
   Future<void> _showRescheduleLabOrderSheet(
@@ -421,8 +427,14 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
     List<String> availableSlots = fallbackSlots;
     var loadingSlots = false;
 
+    var sheetOpen = true;
     Future<void> loadSlots(StateSetter setModalState) async {
-      setModalState(() {
+      final requestedDate = selectedDate;
+      void setIfCurrent(VoidCallback update) {
+        if (sheetOpen && selectedDate == requestedDate) setModalState(update);
+      }
+
+      setIfCurrent(() {
         loadingSlots = true;
       });
 
@@ -431,7 +443,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
             ? portal.doctors.first.id
             : null;
         if (doctorId == null) {
-          setModalState(() {
+          setIfCurrent(() {
             availableSlots = fallbackSlots;
             loadingSlots = false;
           });
@@ -440,21 +452,21 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
 
         final slots = await portal.getDoctorAvailableSlots(
           doctorId: doctorId,
-          date: DateFormat('yyyy-MM-dd').format(selectedDate),
+          date: DateFormat('yyyy-MM-dd').format(requestedDate),
         );
 
-        setModalState(() {
+        setIfCurrent(() {
           availableSlots = slots.isNotEmpty ? slots : fallbackSlots;
           selectedSlot = availableSlots.contains(selectedSlot)
               ? selectedSlot
               : (availableSlots.isNotEmpty ? availableSlots.first : null);
         });
       } catch (_) {
-        setModalState(() {
+        setIfCurrent(() {
           availableSlots = fallbackSlots;
         });
       } finally {
-        setModalState(() {
+        setIfCurrent(() {
           loadingSlots = false;
         });
       }
@@ -731,7 +743,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
           },
         );
       },
-    );
+    ).whenComplete(() => sheetOpen = false);
   }
 
   Future<void> _showRescheduleLabPackageOrderSheet(
@@ -759,8 +771,14 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
     List<String> availableSlots = fallbackSlots;
     var loadingSlots = false;
 
+    var sheetOpen = true;
     Future<void> loadSlots(StateSetter setModalState) async {
-      setModalState(() {
+      final requestedDate = selectedDate;
+      void setIfCurrent(VoidCallback update) {
+        if (sheetOpen && selectedDate == requestedDate) setModalState(update);
+      }
+
+      setIfCurrent(() {
         loadingSlots = true;
       });
 
@@ -769,7 +787,7 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
             ? portal.doctors.first.id
             : null;
         if (doctorId == null) {
-          setModalState(() {
+          setIfCurrent(() {
             availableSlots = fallbackSlots;
             loadingSlots = false;
           });
@@ -778,21 +796,21 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
 
         final slots = await portal.getDoctorAvailableSlots(
           doctorId: doctorId,
-          date: DateFormat('yyyy-MM-dd').format(selectedDate),
+          date: DateFormat('yyyy-MM-dd').format(requestedDate),
         );
 
-        setModalState(() {
+        setIfCurrent(() {
           availableSlots = slots.isNotEmpty ? slots : fallbackSlots;
           selectedSlot = availableSlots.contains(selectedSlot)
               ? selectedSlot
               : (availableSlots.isNotEmpty ? availableSlots.first : null);
         });
       } catch (_) {
-        setModalState(() {
+        setIfCurrent(() {
           availableSlots = fallbackSlots;
         });
       } finally {
-        setModalState(() {
+        setIfCurrent(() {
           loadingSlots = false;
         });
       }
@@ -1069,6 +1087,6 @@ extension _BookingsTabRescheduleActions on _BookingsTab {
           },
         );
       },
-    );
+    ).whenComplete(() => sheetOpen = false);
   }
 }

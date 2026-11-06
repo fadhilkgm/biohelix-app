@@ -34,7 +34,10 @@ class _OtpPageState extends State<OtpPage> {
     if ((session.pendingPhone ?? '').isEmpty) return;
     await session.resendPendingOtp();
     if (!mounted) return;
-    final message = session.otpStatusMessage ?? strings.otpResentDefault;
+    final message =
+        session.errorMessage ??
+        session.otpStatusMessage ??
+        strings.otpResentDefault;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));

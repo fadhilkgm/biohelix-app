@@ -584,7 +584,7 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
         doctorId: widget.doctor.id,
         date: DateFormat('yyyy-MM-dd').format(date),
       );
-      if (!mounted) return;
+      if (!mounted || _selectedDate != date) return;
       final selectableSlots = slots
           .where((item) => item.isAvailable)
           .map((item) => item.slot)
@@ -606,13 +606,13 @@ class _DoctorDetailPageState extends State<_DoctorDetailPage> {
             : (selectableSlots.isNotEmpty ? selectableSlots.first : null);
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || _selectedDate != date) return;
       setState(() {
         _availableSlots = const [];
         _selectedSlot = null;
       });
     } finally {
-      if (mounted) {
+      if (mounted && _selectedDate == date) {
         setState(() {
           _loadingSlots = false;
         });

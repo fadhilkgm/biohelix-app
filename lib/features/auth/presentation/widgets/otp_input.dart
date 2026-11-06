@@ -22,12 +22,14 @@ class _OtpInputState extends State<OtpInput> {
 
   late final List<TextEditingController> _controllers;
   late final List<FocusNode> _focusNodes;
+  late final List<FocusNode> _keyboardFocusNodes;
 
   @override
   void initState() {
     super.initState();
     _controllers = List.generate(_length, (_) => TextEditingController());
     _focusNodes = List.generate(_length, (_) => FocusNode());
+    _keyboardFocusNodes = List.generate(_length, (_) => FocusNode());
   }
 
   @override
@@ -36,6 +38,9 @@ class _OtpInputState extends State<OtpInput> {
       c.dispose();
     }
     for (final f in _focusNodes) {
+      f.dispose();
+    }
+    for (final f in _keyboardFocusNodes) {
       f.dispose();
     }
     super.dispose();
@@ -47,11 +52,16 @@ class _OtpInputState extends State<OtpInput> {
     if (value.length > 1) {
       // Handle paste: distribute digits across boxes
       final digits = value.replaceAll(RegExp(r'\D'), '');
-      for (int i = 0; i < _length && i < digits.length; i++) {
-        _controllers[i].text = digits[i];
+      final start = digits.length >= _length ? 0 : index;
+      for (int i = 0; start + i < _length && i < digits.length; i++) {
+        _controllers[start + i].text = digits[i];
       }
-      final nextEmpty = digits.length < _length ? digits.length : _length - 1;
-      _focusNodes[nextEmpty].requestFocus();
+      final nextEmpty = start + digits.length;
+      if (nextEmpty < _length) {
+        _focusNodes[nextEmpty].requestFocus();
+      } else {
+        _focusNodes[index].unfocus();
+      }
     } else if (value.length == 1) {
       if (index < _length - 1) {
         _focusNodes[index + 1].requestFocus();
@@ -74,6 +84,7 @@ class _OtpInputState extends State<OtpInput> {
         index > 0) {
       _focusNodes[index - 1].requestFocus();
       _controllers[index - 1].clear();
+      widget.onChanged(_currentValue);
     }
   }
 
@@ -86,6 +97,7 @@ class _OtpInputState extends State<OtpInput> {
         (i) => _DigitBox(
           controller: _controllers[i],
           focusNode: _focusNodes[i],
+          keyboardFocusNode: _keyboardFocusNodes[i],
           onChanged: (v) => _onDigitChanged(i, v),
           onKeyEvent: (e) => _onKeyEvent(i, e),
         ),
@@ -98,12 +110,14 @@ class _DigitBox extends StatelessWidget {
   const _DigitBox({
     required this.controller,
     required this.focusNode,
+    required this.keyboardFocusNode,
     required this.onChanged,
     required this.onKeyEvent,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
+  final FocusNode keyboardFocusNode;
   final ValueChanged<String> onChanged;
   final ValueChanged<KeyEvent> onKeyEvent;
 
@@ -115,14 +129,14 @@ class _DigitBox extends StatelessWidget {
       width: 44,
       height: 52,
       child: KeyboardListener(
-        focusNode: FocusNode(),
+        focusNode: keyboardFocusNode,
         onKeyEvent: onKeyEvent,
         child: TextField(
           controller: controller,
           focusNode: focusNode,
           textAlign: TextAlign.center,
           keyboardType: TextInputType.number,
-          maxLength: 1,
+          maxLength: 6,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           onChanged: onChanged,
           style: const TextStyle(

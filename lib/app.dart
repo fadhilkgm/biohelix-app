@@ -58,6 +58,8 @@ class _BioHelixAppState extends State<BioHelixApp> {
   final ThemeProvider _themeProvider = ThemeProvider();
   final TextScaleProvider _textScaleProvider = TextScaleProvider();
   bool _languageSyncedForSession = false;
+  bool _hadAuthenticatedSession = false;
+  final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -69,7 +71,9 @@ class _BioHelixAppState extends State<BioHelixApp> {
       allowedHttpsHost: _config.referralLinkHost,
     )..initialize();
     _apiClient.setOnUnauthorized(() {
-      if (_sessionProvider.isAuthenticated) {
+      if (_sessionProvider.isAuthenticated &&
+          !_sessionProvider.isBootstrapping &&
+          !_sessionProvider.isSubmittingAuth) {
         unawaited(_sessionProvider.signOut());
       }
     });
@@ -96,9 +100,18 @@ class _BioHelixAppState extends State<BioHelixApp> {
 
   void _handleSessionChanged() {
     if (!_sessionProvider.isAuthenticated) {
+      if (_hadAuthenticatedSession) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_sessionProvider.isAuthenticated) {
+            _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+          }
+        });
+      }
+      _hadAuthenticatedSession = false;
       _languageSyncedForSession = false;
       return;
     }
+    _hadAuthenticatedSession = true;
     if (_languageSyncedForSession) return;
     _languageSyncedForSession = true;
     unawaited(_syncLanguageAfterLogin());
@@ -106,6 +119,7 @@ class _BioHelixAppState extends State<BioHelixApp> {
 
   Future<void> _syncLanguageAfterLogin() async {
     await _languageInitialization;
+    if (!mounted || !_sessionProvider.isAuthenticated) return;
     await _languageProvider.syncToServer();
   }
 
@@ -117,7 +131,9 @@ class _BioHelixAppState extends State<BioHelixApp> {
     _sessionProvider.dispose();
     _themeProvider.dispose();
     _languageProvider.dispose();
+    _textScaleProvider.dispose();
     _referralLinkProvider.dispose();
+    _apiClient.setOnUnauthorized(null);
     super.dispose();
   }
 
@@ -147,6 +163,7 @@ class _BioHelixAppState extends State<BioHelixApp> {
       ],
       child: Consumer2<ThemeProvider, LanguageProvider>(
         builder: (context, themeProvider, languageProvider, _) => MaterialApp(
+          navigatorKey: _navigatorKey,
           debugShowCheckedModeBanner: false,
           scrollBehavior: const _ClampedScrollBehavior(),
           title: _config.appName,

@@ -36,6 +36,17 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
+          const publicAuthPaths = {
+            '/auth/otp/send',
+            '/auth/otp/verify',
+            '/auth/login',
+            '/auth/password/login',
+            '/auth/signup',
+            '/auth/register',
+          };
+          if (publicAuthPaths.contains(options.path)) {
+            options.headers.remove('Authorization');
+          }
           // Release builds must not leak request URLs/bodies (chat content) to
           // device logs.
           if (kDebugMode) {
@@ -62,7 +73,10 @@ class ApiClient {
               _logger.e(summary);
             }
           }
-          if (error.response?.statusCode == 401) {
+          final requestToken = error.requestOptions.headers['Authorization'];
+          if (error.response?.statusCode == 401 &&
+              requestToken != null &&
+              requestToken == _dio.options.headers['Authorization']) {
             _onUnauthorized?.call();
           }
           handler.next(error);

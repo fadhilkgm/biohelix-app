@@ -42,7 +42,10 @@ class LabBookingController extends ChangeNotifier {
       _selectedAddressId = 'registered';
     }
     _bodyPoints = bodyPoints;
-    _tests = tests.map(BookableLabTest.fromLabTest).toList();
+    _tests = tests
+        .where((test) => test.status)
+        .map(BookableLabTest.fromLabTest)
+        .toList();
     final activeIds = tests.where((test) => test.status).map((test) => test.id);
     final selectedIds = initialTestIds.toSet().intersection(activeIds.toSet());
     _cart.addAll(
@@ -78,6 +81,22 @@ class LabBookingController extends ChangeNotifier {
   LabOrderQuote? _quote;
   bool _quoteLoading = false;
   String? _quoteError;
+  int _quoteRevision = 0;
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _quoteRevision++;
+    super.dispose();
+  }
+
+  void _invalidateQuote() {
+    _quoteRevision++;
+    _quote = null;
+    _quoteError = null;
+    _quoteLoading = false;
+  }
 
   List<BodyPointItem> get bodyPoints => List.unmodifiable(_bodyPoints);
   BodyPointItem? get selectedBodyPoint => _selectedBodyPoint;
@@ -169,21 +188,27 @@ class LabBookingController extends ChangeNotifier {
   }
 
   Future<void> refreshQuote(PatientPortalProvider portal) async {
-    if (_cart.isEmpty) return;
+    if (_disposed || _cart.isEmpty) return;
+    final revision = ++_quoteRevision;
     _quoteLoading = true;
     _quoteError = null;
     notifyListeners();
     try {
-      _quote = await portal.quoteLabOrder(
+      final quote = await portal.quoteLabOrder(
         labTestIds: _cart.map((item) => item.test.id).toList(),
         collectionType: _collectionType.name,
       );
+      if (_disposed || revision != _quoteRevision) return;
+      _quote = quote;
     } catch (error) {
+      if (_disposed || revision != _quoteRevision) return;
       _quote = null;
       _quoteError = error.toString();
     } finally {
-      _quoteLoading = false;
-      notifyListeners();
+      if (!_disposed && revision == _quoteRevision) {
+        _quoteLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -209,7 +234,7 @@ class LabBookingController extends ChangeNotifier {
 
   void setCollectionType(CollectionType value) {
     _collectionType = value;
-    _quote = null;
+    _invalidateQuote();
     notifyListeners();
   }
 
@@ -297,7 +322,7 @@ class LabBookingController extends ChangeNotifier {
     final index = _cart.indexWhere((e) => e.test.id == test.id);
     if (index == -1) {
       _cart.add(CartItem(test: test, quantity: 1));
-      _quote = null;
+      _invalidateQuote();
       notifyListeners();
       return true;
     }
@@ -312,14 +337,21 @@ class LabBookingController extends ChangeNotifier {
     } else {
       _cart[index] = _cart[index].copyWith(quantity: qty);
     }
-    _quote = null;
+    _invalidateQuote();
     notifyListeners();
   }
 
   Future<String> placeOrder(PatientPortalProvider portal) async {
     if (_cart.isEmpty) throw StateError('Cart is empty');
+    if (_slot == null || _slot!.trim().isEmpty) {
+      throw StateError('Select a collection time.');
+    }
+    if (_collectionType == CollectionType.home &&
+        (selectedAddress?.fullAddress.trim() ?? '').isEmpty) {
+      throw StateError('Enter a collection address.');
+    }
     await refreshQuote(portal);
-    if (_quote == null) {
+    if (_disposed || _quoteLoading || _quote == null || _cart.isEmpty) {
       throw StateError('Unable to verify the current price. Please try again.');
     }
     final dateStr = DateFormat('yyyy-MM-dd').format(_date);
@@ -355,7 +387,8 @@ class LabBookingController extends ChangeNotifier {
     );
 
     _cart.clear();
-    notifyListeners();
+    _invalidateQuote();
+    if (!_disposed) notifyListeners();
     return confirmation.reference;
   }
 }

@@ -39,6 +39,28 @@ void _openAssistantMessageActions(BuildContext context, ChatMessage message) {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              key: const ValueKey('assistant_report_message'),
+              leading: const Icon(Icons.flag_outlined),
+              title: Text(
+                AppStrings.of(
+                  context.read<LanguageProvider>().language,
+                ).assistantReportResponse,
+              ),
+              onTap: () {
+                final conversationId = context
+                    .read<PatientPortalProvider>()
+                    .activeChatThreadId;
+                Navigator.pop(sheetContext);
+                showAiContentReportDialog(
+                  context,
+                  content: message.content,
+                  source: 'chat',
+                  conversationId: conversationId,
+                  messageId: message.id,
+                );
+              },
+            ),
+            ListTile(
               key: const ValueKey('assistant_copy_message'),
               leading: const Icon(Icons.copy_rounded),
               title: const Text('Copy'),
@@ -109,134 +131,164 @@ class _MessageBubbleWidget extends StatelessWidget {
           ? null
           : () => _openAssistantMessageActions(context, message),
       child: Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!isUser) ...[
-            Container(
-              width: 28,
-              height: 28,
-              decoration: const BoxDecoration(
-                gradient: AiChatColors.userBubbleGradient,
-                shape: BoxShape.circle,
+        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (!isUser) ...[
+              Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  gradient: AiChatColors.userBubbleGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 16,
+                  color: Colors.white,
+                ),
               ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
-                size: 16,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.s8),
-          ],
-          Flexible(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 340),
-              padding: const EdgeInsets.all(AppSpacing.s14),
-              decoration: BoxDecoration(
-                color: isUser ? AiChatColors.userBubble : AiChatColors.bubbleAi,
-                border: isUser ? null : Border.all(color: AiChatColors.border),
-                borderRadius: radius,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isUser)
-                    Text(
-                      message.content,
-                      style: AppTextStyles.bubbleUser(context),
-                    )
-                  else
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: MarkdownBody(
-                            data: _normalizeAssistantMarkdown(message.content),
-                            selectable: true,
-                            styleSheet: _assistantMarkdownStyleSheet(context),
-                            onTapLink: (text, href, title) {
-                              if ((href ?? '').isEmpty) return;
-                              final uri = Uri.tryParse(href!);
-                              if (uri == null) return;
-                              launchUrl(
-                                uri,
-                                mode: LaunchMode.externalApplication,
-                              );
-                            },
+              const SizedBox(width: AppSpacing.s8),
+            ],
+            Flexible(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 340),
+                padding: const EdgeInsets.all(AppSpacing.s14),
+                decoration: BoxDecoration(
+                  color: isUser
+                      ? AiChatColors.userBubble
+                      : AiChatColors.bubbleAi,
+                  border: isUser
+                      ? null
+                      : Border.all(color: AiChatColors.border),
+                  borderRadius: radius,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isUser)
+                      Text(
+                        message.content,
+                        style: AppTextStyles.bubbleUser(context),
+                      )
+                    else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: MarkdownBody(
+                              data: _normalizeAssistantMarkdown(
+                                message.content,
+                              ),
+                              selectable: true,
+                              styleSheet: _assistantMarkdownStyleSheet(context),
+                              onTapLink: (text, href, title) {
+                                if ((href ?? '').isEmpty) return;
+                                final uri = Uri.tryParse(href!);
+                                if (uri == null) return;
+                                launchUrl(
+                                  uri,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              },
+                            ),
+                          ),
+                          if (isStreaming) const _StreamingCaret(),
+                        ],
+                      ),
+                    for (final attachment in attachments)
+                      _ChatAttachmentWidget(
+                        attachment: attachment,
+                        onTap: () => onAttachmentTap(attachment),
+                      ),
+                    if (!isUser && message.suggestedPackages.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.s10),
+                      const Divider(thickness: 0.5, height: 1),
+                      const SizedBox(height: AppSpacing.s8),
+                      Text(
+                        '🧪 Suggested Packages',
+                        style: AppTextStyles.bubbleAi(
+                          context,
+                        ).copyWith(fontWeight: FontWeight.w700, fontSize: 12),
+                      ),
+                      const SizedBox(height: AppSpacing.s8),
+                      for (final pkg in message.suggestedPackages)
+                        _PackageSuggestionCard(
+                          pkg: pkg,
+                          sourceAssessmentToken:
+                              message.action?.sourceSessionToken,
+                        ),
+                    ],
+                    if (!isUser && message.suggestedTests.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.s10),
+                      const Divider(thickness: 0.5, height: 1),
+                      const SizedBox(height: AppSpacing.s8),
+                      Text(
+                        '🔬 Suggested Tests',
+                        style: AppTextStyles.bubbleAi(
+                          context,
+                        ).copyWith(fontWeight: FontWeight.w700, fontSize: 12),
+                      ),
+                      const SizedBox(height: AppSpacing.s8),
+                      for (final test in message.suggestedTests)
+                        _TestSuggestionCard(
+                          test: test,
+                          sourceAssessmentToken:
+                              message.action?.sourceSessionToken,
+                        ),
+                    ],
+                    if (!isUser &&
+                        message.action != null &&
+                        !message.action!.isAdviceOnly) ...[
+                      const SizedBox(height: AppSpacing.s10),
+                      _ChatActionPanel(action: message.action!),
+                    ],
+                    const SizedBox(height: AppSpacing.s8),
+                    if (!isUser &&
+                        !isStreaming &&
+                        message.content.trim().isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(
+                          key: ValueKey(
+                            'assistant_report_${message.id ?? message.createdAt}',
+                          ),
+                          tooltip: AppStrings.of(
+                            context.watch<LanguageProvider>().language,
+                          ).assistantReportResponse,
+                          icon: const Icon(Icons.flag_outlined, size: 18),
+                          onPressed: () => showAiContentReportDialog(
+                            context,
+                            content: message.content,
+                            source: 'chat',
+                            conversationId: context
+                                .read<PatientPortalProvider>()
+                                .activeChatThreadId,
+                            messageId: message.id,
                           ),
                         ),
-                        if (isStreaming) const _StreamingCaret(),
-                      ],
-                    ),
-                  for (final attachment in attachments)
-                    _ChatAttachmentWidget(
-                      attachment: attachment,
-                      onTap: () => onAttachmentTap(attachment),
-                    ),
-                  if (!isUser && message.suggestedPackages.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.s10),
-                    const Divider(thickness: 0.5, height: 1),
-                    const SizedBox(height: AppSpacing.s8),
-                    Text(
-                      '🧪 Suggested Packages',
-                      style: AppTextStyles.bubbleAi(
-                        context,
-                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 12),
-                    ),
-                    const SizedBox(height: AppSpacing.s8),
-                    for (final pkg in message.suggestedPackages)
-                      _PackageSuggestionCard(
-                        pkg: pkg,
-                        sourceAssessmentToken:
-                            message.action?.sourceSessionToken,
                       ),
-                  ],
-                  if (!isUser && message.suggestedTests.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.s10),
-                    const Divider(thickness: 0.5, height: 1),
-                    const SizedBox(height: AppSpacing.s8),
-                    Text(
-                      '🔬 Suggested Tests',
-                      style: AppTextStyles.bubbleAi(
-                        context,
-                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 12),
-                    ),
-                    const SizedBox(height: AppSpacing.s8),
-                    for (final test in message.suggestedTests)
-                      _TestSuggestionCard(
-                        test: test,
-                        sourceAssessmentToken:
-                            message.action?.sourceSessionToken,
-                      ),
-                  ],
-                  if (!isUser &&
-                      message.action != null &&
-                      !message.action!.isAdviceOnly) ...[
-                    const SizedBox(height: AppSpacing.s10),
-                    _ChatActionPanel(action: message.action!),
-                  ],
-                  const SizedBox(height: AppSpacing.s8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      timeLabel,
-                      style: AppTextStyles.subtitle(context).copyWith(
-                        fontSize: 11,
-                        color: isUser
-                            ? Colors.white.withValues(alpha: 0.9)
-                            : AiChatColors.textSecondary,
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        timeLabel,
+                        style: AppTextStyles.subtitle(context).copyWith(
+                          fontSize: 11,
+                          color: isUser
+                              ? Colors.white.withValues(alpha: 0.9)
+                              : AiChatColors.textSecondary,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

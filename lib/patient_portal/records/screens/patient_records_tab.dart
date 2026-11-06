@@ -24,6 +24,7 @@ class _RecordsTabState extends State<_RecordsTab> {
   String _filter = 'all';
 
   Future<void> _addDocument(PatientPortalProvider portal) async {
+    final patientId = context.read<SessionProvider>().patient?.id;
     final reportType = await showModalBottomSheet<_PatientReportType>(
       context: context,
       useSafeArea: true,
@@ -45,35 +46,54 @@ class _RecordsTabState extends State<_RecordsTab> {
     );
     if (source == null || !mounted) return;
 
-    final files = <({String path, String name})>[];
-    if (source == _MedicalRecordUploadSource.gallery) {
-      final photos = await ImagePicker().pickMultiImage(imageQuality: 92);
-      files.addAll(photos.map((photo) => (path: photo.path, name: photo.name)));
-    } else {
-      final picked = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
-        allowMultiple: true,
-        withData: false,
-      );
-      if (picked != null) {
-        files.addAll(
-          picked.files
-              .where(
-                (file) => file.path != null && file.path!.trim().isNotEmpty,
-              )
-              .map((file) => (path: file.path!, name: file.name)),
-        );
-      }
-    }
-    if (files.isEmpty || !mounted) return;
-
     try {
+      final files = <({String path, String name, List<int>? bytes})>[];
+      if (source == _MedicalRecordUploadSource.gallery) {
+        final photos = await ImagePicker().pickMultiImage(imageQuality: 92);
+        for (final photo in photos) {
+          files.add((
+            path: photo.path,
+            name: photo.name,
+            bytes: kIsWeb ? await photo.readAsBytes() : null,
+          ));
+        }
+      } else {
+        final picked = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
+          allowMultiple: true,
+          withData: kIsWeb,
+        );
+        if (picked != null) {
+          files.addAll(
+            picked.files
+                .where(
+                  (file) => kIsWeb
+                      ? file.bytes != null
+                      : (file.path ?? '').trim().isNotEmpty,
+                )
+                .map(
+                  (file) => (
+                    path: kIsWeb ? '' : file.path!,
+                    name: file.name,
+                    bytes: kIsWeb ? file.bytes : null,
+                  ),
+                ),
+          );
+        }
+      }
+      if (files.isEmpty || !mounted) return;
+
       for (final file in files) {
+        if (!mounted ||
+            context.read<SessionProvider>().patient?.id != patientId) {
+          return;
+        }
         await portal.uploadDocument(
           file.path,
           fileName: file.name,
           documentType: reportType.value,
+          fileBytes: file.bytes,
         );
       }
       if (!mounted) return;

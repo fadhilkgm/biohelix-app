@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
+import '../widgets/ai_content_report_dialog.dart';
 import 'live_voice_controller.dart';
 import 'live_voice_state.dart';
 
@@ -135,6 +136,12 @@ class _LiveVoiceViewState extends State<LiveVoiceView> {
                 final state = widget.controller.state;
                 final showCaptions =
                     _showCaptions && state.phase != LiveVoicePhase.error;
+                final assistantEntries = state.transcript.where(
+                  (entry) => !entry.isPatient && entry.text.trim().isNotEmpty,
+                );
+                final latestResponse = assistantEntries.isNotEmpty
+                    ? assistantEntries.last.text
+                    : state.responseText;
                 return Column(
                   children: [
                     _TopBar(
@@ -226,6 +233,13 @@ class _LiveVoiceViewState extends State<LiveVoiceView> {
                         },
                       ),
                     ),
+                    if (!showCaptions && latestResponse.trim().isNotEmpty)
+                      AiContentReportButton(
+                        key: const ValueKey('live_voice_report_response'),
+                        content: latestResponse,
+                        source: 'voice',
+                        foregroundColor: _VoicePalette.textSecondary,
+                      ),
                     state.phase == LiveVoicePhase.error
                         ? _ErrorControls(
                             strings: strings,
@@ -553,6 +567,17 @@ class _CaptionLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = entry.interrupted ? '${entry.text} …' : entry.text;
+    if (entry.isPatient && !entry.isFinal && entry.text.isEmpty) {
+      // Still speaking or being transcribed: only the final words are shown.
+      return Semantics(
+        label: '$youLabel: …',
+        excludeSemantics: true,
+        child: const Align(
+          alignment: Alignment.centerRight,
+          child: _TypingDots(key: ValueKey('live_voice_patient_typing')),
+        ),
+      );
+    }
     if (entry.isPatient) {
       return Semantics(
         label: '$youLabel: ${entry.text}',
@@ -576,14 +601,85 @@ class _CaptionLine extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
-        child: Text(
-          text,
-          style: _VoiceText.assistantCaption.copyWith(
-            color: entry.interrupted
-                ? _VoicePalette.textSecondary
-                : _VoicePalette.textPrimary,
-          ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                text,
+                style: _VoiceText.assistantCaption.copyWith(
+                  color: entry.interrupted
+                      ? _VoicePalette.textSecondary
+                      : _VoicePalette.textPrimary,
+                ),
+              ),
+            ),
+            if (entry.text.trim().isNotEmpty)
+              AiContentReportButton(
+                key: ValueKey('live_voice_report_${entry.id}'),
+                content: entry.text,
+                source: 'voice',
+                compact: true,
+                foregroundColor: _VoicePalette.textSecondary,
+              ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// Three softly pulsing dots in place of the patient's caption while their
+/// words are still being recognised.
+class _TypingDots extends StatefulWidget {
+  const _TypingDots({super.key});
+
+  @override
+  State<_TypingDots> createState() => _TypingDotsState();
+}
+
+class _TypingDotsState extends State<_TypingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, _) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < 3; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
+              child: Opacity(
+                // Each dot peaks a third of a cycle after the previous one.
+                opacity:
+                    0.3 +
+                    0.7 *
+                        (0.5 +
+                            0.5 *
+                                math.sin(2 * math.pi * (_pulse.value - i / 3))),
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: _VoicePalette.textSecondary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

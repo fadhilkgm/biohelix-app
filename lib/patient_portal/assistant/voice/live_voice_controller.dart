@@ -8,6 +8,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/utils/patient_script.dart';
 import 'inworld_signaling_api.dart';
 import 'live_voice_conversation.dart';
 import 'live_voice_state.dart';
@@ -69,8 +70,10 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   static const Duration _responseStartBudget = Duration(seconds: 10);
 
   /// `session.updated` is the readiness signal after a data-channel
-  /// `session.update`, but some edges never echo it.
-  static const Duration _sessionReadyFallback = Duration(milliseconds: 1500);
+  /// `session.update`, but some edges never echo it. Inworld usually echoes
+  /// it about two seconds after the channel opens; listening before then
+  /// runs on its defaults (automatic replies, guessed speech language).
+  static const Duration _sessionReadyFallback = Duration(seconds: 4);
 
   /// A call nobody has spoken on for this long is ended: an open line keeps
   /// the provider session billing, the screen awake and reward time ticking.
@@ -164,6 +167,11 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   bool _responseRequested = false;
   bool _responseActive = false;
 
+  /// `response.create` events sent that have not produced `response.created`
+  /// yet. Unlike [_responseRequested] it survives the start watchdog and
+  /// barge-in, so a reply is unrequested only when this is zero.
+  int _pendingResponseCreates = 0;
+
   /// Set when the patient starts talking while a requested reply has not been
   /// created yet. Bounded in time so a request the provider silently dropped
   /// can never swallow the next, legitimate reply.
@@ -172,6 +180,9 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   bool _audioBufferEventsSeen = false;
   DateTime? _speakingSince;
   final Set<String> _cancelledResponseIds = {};
+
+  /// Replies the provider started on its own; they never touch turn state.
+  final Set<String> _unrequestedResponseIds = {};
 
   String _initialResponseInstructions = '';
   bool _initialResponseRequested = false;
@@ -1115,6 +1126,9 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       // client mirrors it so playback stops and the captions settle at once.
       transcript = _bargeIn();
     }
+    if (_currentInputItemId.isNotEmpty) {
+      transcript = _withPatientPlaceholder(transcript, _currentInputItemId);
+    }
     if (_responseRequested) {
       // The reply for the previous utterance has not started yet; the patient
       // is still talking, so it must not start playing over them.
@@ -1153,25 +1167,24 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     if (_currentInputItemId.isEmpty) _currentInputItemId = itemId;
     final buffer = _inputTranscripts.putIfAbsent(itemId, StringBuffer.new);
     buffer.write(event['delta']?.toString() ?? '');
-    final text = buffer.toString();
+    // Partial hypotheses are revised (and resent whole) as the patient talks,
+    // so the caption shows a typing placeholder until the final transcript
+    // instead of a growing pile of repeated half-words.
     _setState(
       _state.copyWith(
-        partialTranscript: text,
-        transcript: _withEntry(
-          _patientEntryId(itemId),
-          LiveVoiceSpeaker.patient,
-          text,
-        ),
+        partialTranscript: toPatientScript(buffer.toString()),
+        transcript: _withPatientPlaceholder(_state.transcript, itemId),
       ),
     );
   }
 
   void _onTranscriptionCompleted(Map<String, dynamic> event) {
     final itemId = event['item_id']?.toString() ?? _currentInputItemId;
-    final transcript =
-        event['transcript']?.toString().trim() ??
-        _inputTranscripts[itemId]?.toString().trim() ??
-        '';
+    final transcript = toPatientScript(
+      event['transcript']?.toString().trim() ??
+          _inputTranscripts[itemId]?.toString().trim() ??
+          '',
+    );
     final superseded =
         _state.isUserSpeaking &&
         _currentInputItemId.isNotEmpty &&
@@ -1317,6 +1330,7 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _createResponse(String instructions) async {
     _responseCreateSentAtMs = _turnLatency?.elapsedMilliseconds;
     _responseRequested = true;
+    _pendingResponseCreates++;
     _armResponseStartWatchdog();
     await sendRealtimeEvent({
       'type': 'response.create',
@@ -1369,6 +1383,22 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         response['id']?.toString() ??
         event['response_id']?.toString() ??
         'current-response';
+    if (_pendingResponseCreates == 0) {
+      // The session turns automatic replies off, but Inworld has started one
+      // anyway (it ignored a session setting). Such a reply skips the turn
+      // context and language rules, and was heard speaking Hindi until the
+      // requested reply cut it off: never let one play.
+      _cancelledResponseIds.add(responseId);
+      _unrequestedResponseIds.add(responseId);
+      _debugLog('cancelling a reply nobody requested: $responseId');
+      unawaited(sendRealtimeEvent({'type': 'response.cancel'}));
+      if (!_responseActive) {
+        // Drop any of its audio already queued; no requested reply is playing.
+        unawaited(sendRealtimeEvent({'type': 'output_audio_buffer.clear'}));
+      }
+      return;
+    }
+    _pendingResponseCreates--;
     final suppressUntil = _suppressResponsesUntil;
     _suppressResponsesUntil = null;
     if (suppressUntil != null && DateTime.now().isBefore(suppressUntil)) {
@@ -1394,9 +1424,12 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     } else {
       _debugTurnLatency('response created');
     }
-    if (!_state.isSpeaking) {
-      _setState(_state.copyWith(phase: LiveVoicePhase.thinking));
-    }
+    _setState(
+      _state.copyWith(
+        phase: _state.isSpeaking ? null : LiveVoicePhase.thinking,
+        transcript: _withoutStalePlaceholders(),
+      ),
+    );
   }
 
   void _appendResponseDelta(
@@ -1415,10 +1448,12 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     final target = audioTranscript ? _responseAudioTranscripts : _responseText;
     final buffer = target.putIfAbsent(responseId, StringBuffer.new);
     buffer.write(event['delta']?.toString() ?? '');
-    final display = _firstNonEmpty([
-      _responseAudioTranscripts[responseId]?.toString(),
-      _responseText[responseId]?.toString(),
-    ]);
+    final display = toPatientScript(
+      _firstNonEmpty([
+        _responseAudioTranscripts[responseId]?.toString(),
+        _responseText[responseId]?.toString(),
+      ]),
+    );
     final entryId = _assistantEntryId(responseId);
     _speakingEntryId = entryId;
     if (!_state.isSpeaking) _speakingSince = DateTime.now();
@@ -1519,6 +1554,14 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
         response['id']?.toString() ??
         event['response_id']?.toString() ??
         _currentResponseId;
+    if (_unrequestedResponseIds.remove(responseId)) {
+      // Cancelled on arrival; a requested reply may be in flight by now.
+      _cancelledResponseIds.remove(responseId);
+      _responseAudioTranscripts.remove(responseId);
+      _responseText.remove(responseId);
+      _debugLog('unrequested response $responseId finished');
+      return;
+    }
     final status = response['status']?.toString() ?? 'completed';
     // The start watchdog and `_responseRequested` belong to whichever reply
     // was requested last, which may already be a newer turn: leave them be.
@@ -1528,10 +1571,12 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
       _responseActive = false;
       _currentResponseId = '';
     }
-    final answer = _firstNonEmpty([
-      _responseAudioTranscripts.remove(responseId)?.toString().trim(),
-      _responseText.remove(responseId)?.toString().trim(),
-    ]);
+    final answer = toPatientScript(
+      _firstNonEmpty([
+        _responseAudioTranscripts.remove(responseId)?.toString().trim(),
+        _responseText.remove(responseId)?.toString().trim(),
+      ]),
+    );
     if (_cancelledResponseIds.remove(responseId) || status == 'cancelled') {
       // Barge-in already moved the UI on.
       _debugLog('response $responseId finished as cancelled');
@@ -1754,6 +1799,41 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     return List.unmodifiable(entries);
   }
 
+  /// Adds an empty, non-final caption for [itemId] (drawn as typing dots)
+  /// unless it already has one.
+  List<LiveVoiceTranscriptEntry> _withPatientPlaceholder(
+    List<LiveVoiceTranscriptEntry> transcript,
+    String itemId,
+  ) {
+    final id = _patientEntryId(itemId);
+    if (transcript.any((entry) => entry.id == id)) return transcript;
+    final entries = List<LiveVoiceTranscriptEntry>.of(transcript)
+      ..add(
+        LiveVoiceTranscriptEntry(
+          id: id,
+          speaker: LiveVoiceSpeaker.patient,
+          text: '',
+        ),
+      );
+    if (entries.length > _maxTranscriptEntries) {
+      entries.removeRange(0, entries.length - _maxTranscriptEntries);
+    }
+    return List.unmodifiable(entries);
+  }
+
+  /// Drops typing placeholders of utterances that never produced words (a
+  /// cough, an event the provider never sent), except the one in progress.
+  List<LiveVoiceTranscriptEntry> _withoutStalePlaceholders() {
+    final current = _patientEntryId(_currentInputItemId);
+    bool stale(LiveVoiceTranscriptEntry entry) =>
+        entry.isPatient &&
+        !entry.isFinal &&
+        entry.text.isEmpty &&
+        entry.id != current;
+    if (!_state.transcript.any(stale)) return _state.transcript;
+    return List.unmodifiable(_state.transcript.where((entry) => !stale(entry)));
+  }
+
   List<LiveVoiceTranscriptEntry> _withoutEntry(String id) {
     if (!_state.transcript.any((entry) => entry.id == id)) {
       return _state.transcript;
@@ -1836,10 +1916,12 @@ class LiveVoiceController extends ChangeNotifier with WidgetsBindingObserver {
     _speakingEntryId = '';
     _responseRequested = false;
     _responseActive = false;
+    _pendingResponseCreates = 0;
     _suppressResponsesUntil = null;
     _audioBufferActive = false;
     _speakingSince = null;
     _cancelledResponseIds.clear();
+    _unrequestedResponseIds.clear();
     _inputTranscripts.clear();
     _responseText.clear();
     _responseAudioTranscripts.clear();

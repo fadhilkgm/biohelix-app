@@ -80,6 +80,8 @@ class InworldSignalingApi {
   DateTime? _cachedAt;
   String? _cachedLanguage;
   Future<InworldSessionBootstrap>? _bootstrapInFlight;
+  String? _bootstrapInFlightLanguage;
+  int _bootstrapGeneration = 0;
 
   static const _bootstrapCacheTtl = Duration(seconds: 45);
 
@@ -97,22 +99,34 @@ class InworldSignalingApi {
       return cached;
     }
     final inFlight = _bootstrapInFlight;
-    if (inFlight != null) return inFlight;
+    if (inFlight != null && _bootstrapInFlightLanguage == language) {
+      return inFlight;
+    }
 
+    final generation = _bootstrapGeneration;
     final request = _fetchBootstrap(language);
     _bootstrapInFlight = request;
+    _bootstrapInFlightLanguage = language;
     try {
       final bootstrap = await request;
-      _cachedBootstrap = bootstrap;
-      _cachedAt = DateTime.now();
-      _cachedLanguage = language;
+      if (generation == _bootstrapGeneration) {
+        _cachedBootstrap = bootstrap;
+        _cachedAt = DateTime.now();
+        _cachedLanguage = language;
+      }
       return bootstrap;
     } finally {
-      _bootstrapInFlight = null;
+      if (identical(_bootstrapInFlight, request)) {
+        _bootstrapInFlight = null;
+        _bootstrapInFlightLanguage = null;
+      }
     }
   }
 
   void invalidateBootstrap() {
+    _bootstrapGeneration++;
+    _bootstrapInFlight = null;
+    _bootstrapInFlightLanguage = null;
     _cachedBootstrap = null;
     _cachedAt = null;
     _cachedLanguage = null;

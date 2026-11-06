@@ -29,8 +29,6 @@ android {
 
     defaultConfig {
         applicationId = "com.biohelix.app"
-        // Health Connect's client SDK supports Android 8+, while the Health
-        // Connect provider itself is available from Android 9.
         minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -69,9 +67,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.health.connect:connect-client:1.1.0")
     implementation("com.android.installreferrer:installreferrer:2.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 }
 
 flutter {
