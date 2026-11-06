@@ -537,7 +537,15 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
   }
 
   String _friendlyError(Object error) {
-    return error.toString().replaceFirst('Exception: ', '');
+    // Patient-facing API messages arrive as plain Exceptions; every other
+    // error carries developer text that should not reach the screen.
+    const prefix = 'Exception: ';
+    final text = error.toString();
+    if (text.startsWith(prefix)) return text.substring(prefix.length);
+    return _isMalayalam
+        ? 'കണക്റ്റ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി അൽപ്പസമയത്തിന് ശേഷം വീണ്ടും ശ്രമിക്കുക.'
+        : "We couldn't connect to the checkup service. "
+              'Please try again in a moment.';
   }
 
   Future<void> _leaveCheckup() async {
@@ -645,6 +653,7 @@ class _AiCheckupTabState extends State<AiCheckupTab> {
             onOpen: _openHistoryResult,
             onStart: _startAssessment,
             error: _error,
+            formatError: _friendlyError,
           ),
           _CheckupView.error => _StatusMessage(
             icon: Icons.mic_off_rounded,
@@ -1584,12 +1593,14 @@ class _HistoryView extends StatefulWidget {
     required this.onOpen,
     required this.onStart,
     required this.error,
+    required this.formatError,
   });
 
   final Future<List<AssessmentHistoryItem>> Function() load;
   final ValueChanged<AssessmentHistoryItem> onOpen;
   final VoidCallback onStart;
   final String? error;
+  final String Function(Object error) formatError;
 
   @override
   State<_HistoryView> createState() => _HistoryViewState();
@@ -1616,7 +1627,7 @@ class _HistoryViewState extends State<_HistoryView> {
           return _StatusMessage(
             icon: Icons.cloud_off_rounded,
             title: 'Could not load checkup history',
-            subtitle: snapshot.error.toString(),
+            subtitle: widget.formatError(snapshot.error!),
             actionLabel: 'Retry',
             onAction: () => setState(() => _history = widget.load()),
           );
@@ -1772,38 +1783,51 @@ class _StatusMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 48, color: const Color(0xFF06489B)),
-            const SizedBox(height: 18),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF192233),
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 48, color: const Color(0xFF06489B)),
+                  const SizedBox(height: 18),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF192233),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF617086),
+                      height: 1.45,
+                    ),
+                  ),
+                  if (loading) ...[
+                    const SizedBox(height: 22),
+                    const CircularProgressIndicator(),
+                  ],
+                  if (actionLabel != null && onAction != null) ...[
+                    const SizedBox(height: 22),
+                    FilledButton(
+                      onPressed: onAction,
+                      child: Text(actionLabel!),
+                    ),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF617086), height: 1.45),
-            ),
-            if (loading) ...[
-              const SizedBox(height: 22),
-              const CircularProgressIndicator(),
-            ],
-            if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 22),
-              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
-            ],
-          ],
+          ),
         ),
       ),
     );
