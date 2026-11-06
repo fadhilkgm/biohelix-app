@@ -530,9 +530,16 @@ class _PackageBookingScreenState extends State<PackageBookingScreen> {
   }
 
   Future<void> _handleBooking() async {
+    if (_isSubmitting) return;
     final portal = context.read<PatientPortalProvider>();
 
     if (_selectedSlot == null) return;
+    if (_collectionType == 'home' && _address.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a collection address.')),
+      );
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;

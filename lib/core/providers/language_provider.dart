@@ -12,6 +12,13 @@ class LanguageProvider extends ChangeNotifier {
 
   final ApiClient _apiClient;
   AppLanguage _language = AppLanguage.en;
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   AppLanguage get language => _language;
 
@@ -26,6 +33,7 @@ class LanguageProvider extends ChangeNotifier {
 
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
+    if (_disposed) return;
     final stored = prefs.getString(_storageKey);
     if (stored == 'ml') {
       _language = AppLanguage.ml;
@@ -34,7 +42,7 @@ class LanguageProvider extends ChangeNotifier {
   }
 
   Future<void> setLanguage(AppLanguage lang) async {
-    if (_language == lang) return;
+    if (_disposed || _language == lang) return;
     _language = lang;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
@@ -48,6 +56,7 @@ class LanguageProvider extends ChangeNotifier {
   }
 
   Future<void> syncToServer() async {
+    if (_disposed) return;
     try {
       await _apiClient.patchJson(
         '/me/preferences',

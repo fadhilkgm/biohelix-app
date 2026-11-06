@@ -392,19 +392,6 @@ class _ConnectedContent extends StatelessWidget {
               ),
           ],
         ),
-        if (!fitness.isIOS &&
-            fitness.platformStatus?.nativePhoneStepTracking == false) ...[
-          const SizedBox(height: 8),
-          const Text(
-            'This Android version may need a compatible phone fitness app to '
-            'write steps into Health Connect.',
-            style: TextStyle(
-              color: Color(0xFF7A6438),
-              fontSize: 12,
-              height: 1.35,
-            ),
-          ),
-        ],
         if (fitness.isSyncing) ...[
           const SizedBox(height: 8),
           const LinearProgressIndicator(),

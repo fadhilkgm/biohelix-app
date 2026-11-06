@@ -14,6 +14,7 @@ import '../../../features/session/providers/session_provider.dart';
 import '../../assistant/voice/inworld_signaling_api.dart';
 import '../../assistant/voice/live_voice_controller.dart';
 import '../../assistant/voice/live_voice_state.dart';
+import '../../assistant/widgets/ai_content_report_dialog.dart';
 import '../../core/providers/patient_portal_provider.dart';
 import '../../shell/patient_app_shell.dart';
 import '../services/ai_checkup_service.dart';
@@ -869,25 +870,40 @@ class _MessageBubble extends StatelessWidget {
               ? null
               : Border.all(color: const Color(0xFFE0E6EF)),
         ),
-        child: MarkdownBody(
-          data: message.text,
-          styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-            p: TextStyle(
-              color: message.patient ? Colors.white : const Color(0xFF273348),
-              height: 1.4,
-              fontWeight: FontWeight.w500,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            MarkdownBody(
+              data: message.text,
+              styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                  .copyWith(
+                    p: TextStyle(
+                      color: message.patient
+                          ? Colors.white
+                          : const Color(0xFF273348),
+                      height: 1.4,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    strong: TextStyle(
+                      color: message.patient
+                          ? Colors.white
+                          : const Color(0xFF273348),
+                      height: 1.4,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    listBullet: TextStyle(
+                      color: message.patient
+                          ? Colors.white
+                          : const Color(0xFF273348),
+                      height: 1.4,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
             ),
-            strong: TextStyle(
-              color: message.patient ? Colors.white : const Color(0xFF273348),
-              height: 1.4,
-              fontWeight: FontWeight.w800,
-            ),
-            listBullet: TextStyle(
-              color: message.patient ? Colors.white : const Color(0xFF273348),
-              height: 1.4,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+            if (!message.patient && message.text.trim().isNotEmpty)
+              AiContentReportButton(content: message.text, source: 'checkup'),
+          ],
         ),
       ),
     );
@@ -1116,6 +1132,11 @@ class _ResultView extends StatelessWidget {
               Text(
                 data.summary,
                 style: const TextStyle(color: Color(0xFF56657A), height: 1.5),
+              ),
+              AiContentReportButton(
+                key: const ValueKey('ai_checkup_report_result'),
+                content: [data.summary, ...data.insights].join('\n'),
+                source: 'checkup',
               ),
               if (data.insights.isNotEmpty) ...[
                 const SizedBox(height: 18),
@@ -1689,6 +1710,14 @@ class _ConsentView extends StatelessWidget {
           icon: Icons.task_alt_rounded,
           text:
               'No doctor, test, or package is booked without your separate confirmation.',
+        ),
+        const SizedBox(height: 22),
+        Text(
+          AppStrings.of(
+            context.watch<LanguageProvider>().language,
+          ).assistantDisclaimer,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Color(0xFF56657A), height: 1.5),
         ),
         const SizedBox(height: 22),
         FilledButton(

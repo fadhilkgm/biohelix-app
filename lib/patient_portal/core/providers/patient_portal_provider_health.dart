@@ -107,11 +107,7 @@ extension PatientPortalHealthMixin on PatientPortalProvider {
       final updated = await _repository.acceptAiSuggestion(suggestionId);
       if (!_isCurrentLoad(generation, patientId)) return;
       _aiSuggestions = _aiSuggestions
-          .map(
-            (item) => item.id == suggestionId
-                ? updated
-                : item.copyWithAccepted(updated.isAccepted),
-          )
+          .map((item) => item.id == suggestionId ? updated : item)
           .toList();
       _errorMessage = null;
     } catch (error) {
@@ -121,21 +117,5 @@ extension PatientPortalHealthMixin on PatientPortalProvider {
     } finally {
       if (_isCurrentLoad(generation, patientId)) _notify();
     }
-  }
-}
-
-extension _AiSuggestionCopy on AiSuggestionItem {
-  AiSuggestionItem copyWithAccepted(bool accepted) {
-    return AiSuggestionItem(
-      id: id,
-      recommendationType: recommendationType,
-      reason: reason,
-      score: score,
-      isAccepted: accepted,
-      itemType: itemType,
-      itemName: itemName,
-      labTestId: labTestId,
-      packageId: packageId,
-    );
   }
 }

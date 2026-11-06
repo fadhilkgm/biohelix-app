@@ -1,5 +1,7 @@
+import 'package:biohelix_app/core/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:provider/provider.dart';
 
 class InAppDocumentViewer extends StatelessWidget {
   const InAppDocumentViewer({
@@ -31,9 +33,11 @@ class InAppDocumentViewer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final uri = Uri.parse(url);
-    final headers = <String, String>{
-      if ((authToken ?? '').isNotEmpty) 'Authorization': 'Bearer $authToken',
-    };
+    final headers = requestHeaders(
+      url: url,
+      apiBaseUrl: context.read<AppConfig?>()?.apiBaseUrl,
+      authToken: authToken,
+    );
     final isImage = _isImageDocument(title: title, uri: uri);
 
     return Scaffold(
@@ -88,6 +92,27 @@ class InAppDocumentViewer extends StatelessWidget {
               ),
             ),
     );
+  }
+
+  /// Signed storage URLs authenticate themselves; patient tokens belong only
+  /// on requests to the configured API origin.
+  static Map<String, String> requestHeaders({
+    required String url,
+    required String? apiBaseUrl,
+    String? authToken,
+  }) {
+    final document = Uri.tryParse(url);
+    final api = Uri.tryParse(apiBaseUrl ?? '');
+    if ((authToken ?? '').isEmpty ||
+        document == null ||
+        api == null ||
+        !api.hasAuthority ||
+        document.scheme != api.scheme ||
+        document.host != api.host ||
+        document.port != api.port) {
+      return const {};
+    }
+    return {'Authorization': 'Bearer $authToken'};
   }
 
   static bool _isImageDocument({required String title, required Uri uri}) {

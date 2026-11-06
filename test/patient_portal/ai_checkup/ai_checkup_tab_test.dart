@@ -41,6 +41,11 @@ void main() {
     expect(service.startVoiceCallCount, 0);
     expect(voice.startCallCount, 0);
 
+    await tester.scrollUntilVisible(
+      find.text('I agree — start checkup'),
+      200,
+      scrollable: find.byType(Scrollable),
+    );
     await tester.tap(find.text('I agree — start checkup'));
     await tester.pumpAndSettle();
 
@@ -310,6 +315,11 @@ void main() {
     expect(find.text('General Wellness Package'), findsOneWidget);
     expect(find.text('12 tests included'), findsOneWidget);
     expect(find.text('₹1199'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('View health packages'),
+      150,
+      scrollable: find.byType(Scrollable),
+    );
     expect(find.text('View health packages'), findsOneWidget);
 
     await tester.tap(find.text('View package →'));

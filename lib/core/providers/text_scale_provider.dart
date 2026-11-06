@@ -35,11 +35,19 @@ class TextScaleProvider extends ChangeNotifier {
   static const double maxCombinedScale = 2.0;
 
   AppTextScale _scale = AppTextScale.normal;
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   AppTextScale get scale => _scale;
 
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
+    if (_disposed) return;
     final stored = prefs.getString(_storageKey);
     for (final option in AppTextScale.values) {
       if (option.name == stored) {
@@ -51,7 +59,7 @@ class TextScaleProvider extends ChangeNotifier {
   }
 
   Future<void> setScale(AppTextScale value) async {
-    if (_scale == value) return;
+    if (_disposed || _scale == value) return;
     _scale = value;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();

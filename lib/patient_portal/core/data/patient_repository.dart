@@ -431,7 +431,7 @@ class PatientRepository {
     required String password,
   }) async {
     final response = await _apiClient.postJson(
-      '/auth/login',
+      '/auth/password/login',
       data: {'phone': normalizePatientPhone(phone), 'password': password},
     );
 
@@ -496,8 +496,9 @@ class PatientRepository {
       if (patientJson.isNotEmpty) {
         return PatientIdentity.fromJson(patientJson);
       }
-    } catch (_) {
-      // Fall back to legacy profile endpoint.
+    } on ApiException catch (error) {
+      // A failed session or a network outage must keep its original error.
+      if (error.statusCode != 404 && error.statusCode != 405) rethrow;
     }
 
     final response = await _apiClient.getJson('/auth/profile');
@@ -1034,6 +1035,29 @@ class PatientRepository {
     return history.map((item) => ChatMessage.fromJson(_map(item))).toList();
   }
 
+  Future<void> reportAiContent({
+    required String content,
+    required String source,
+    required String reason,
+    String? conversationId,
+    int? messageId,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/patients/ai/content-reports',
+      data: {
+        'content': String.fromCharCodes(content.runes.take(8000)),
+        'source': source,
+        'reason': reason,
+        'conversation_id': ?conversationId,
+        if (messageId != null && conversationId != null)
+          'message_id': messageId,
+      },
+    );
+    if ((_map(response['report'])['id'] as num?)?.toInt() == null) {
+      throw const FormatException('The report was not acknowledged.');
+    }
+  }
+
   Future<List<LabTestItem>> getLabTests() async {
     final response = await _apiClient.getJson('/patient/lab-tests');
     final tests =
@@ -1278,6 +1302,7 @@ class PatientRepository {
     String filePath, {
     String? fileName,
     String? documentType,
+    List<int>? fileBytes,
   }) async {
     final normalized = filePath.trim();
     final uploadFileName = (fileName ?? '').trim().isNotEmpty
@@ -1287,10 +1312,12 @@ class PatientRepository {
     final response = await _apiClient.postMultipart(
       '/patients/documents',
       data: FormData.fromMap({
-        'document': await MultipartFile.fromFile(
-          File(normalized).path,
-          filename: uploadFileName,
-        ),
+        'document': fileBytes != null
+            ? MultipartFile.fromBytes(fileBytes, filename: uploadFileName)
+            : await MultipartFile.fromFile(
+                File(normalized).path,
+                filename: uploadFileName,
+              ),
         if (documentType != null && documentType.trim().isNotEmpty)
           'documentType': documentType.trim(),
       }),

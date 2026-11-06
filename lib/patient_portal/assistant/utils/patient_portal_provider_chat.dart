@@ -34,22 +34,27 @@ extension PatientPortalChatMixin on PatientPortalProvider {
   }
 
   Future<void> _loadInitialChatThreads() async {
+    final scope = _patientScopeRevision;
     _errorMessage = null;
     _chatHistoryError = null;
     _chatHistoryErrorThreadId = null;
 
     try {
       final threads = await _repository.getGlobalChatThreads();
+      if (!_isCurrentScope(scope)) return;
       _chatThreads = threads;
       if (_chatThreads.isEmpty) {
         final created = await _repository.createGlobalChatThread();
+        if (!_isCurrentScope(scope)) return;
         _chatThreads = [created];
       }
 
       _activeChatThreadId ??= _chatThreads.first.id;
       await loadChatHistory(_activeChatThreadId!);
+      if (!_isCurrentScope(scope)) return;
       _notify();
     } catch (error) {
+      if (!_isCurrentScope(scope)) return;
       _errorMessage = error.toString();
       // No thread is addressable yet, so the failure is not thread-scoped.
       _chatHistoryError = error.toString();
@@ -59,13 +64,16 @@ extension PatientPortalChatMixin on PatientPortalProvider {
   }
 
   Future<void> createNewChatThread({String? title}) async {
+    final scope = _patientScopeRevision;
     try {
       final created = await _repository.createGlobalChatThread(title: title);
+      if (!_isCurrentScope(scope)) return;
       _chatThreads = [created, ..._chatThreads];
       _activeChatThreadId = created.id;
       _chatHistories[created.id] = const [];
       _notify();
     } catch (error) {
+      if (!_isCurrentScope(scope)) return;
       _errorMessage = error.toString();
       _notify();
     }
@@ -76,6 +84,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     required String title,
   }) async {
     final trimmedTitle = title.trim();
+    final scope = _patientScopeRevision;
     if (threadId.isEmpty || trimmedTitle.isEmpty) return;
 
     try {
@@ -83,6 +92,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
         threadId: threadId,
         title: trimmedTitle,
       );
+      if (!_isCurrentScope(scope)) return;
       _chatThreads = _chatThreads.map((thread) {
         if (thread.id != threadId) return thread;
         return ChatThreadSummary(
@@ -98,16 +108,19 @@ extension PatientPortalChatMixin on PatientPortalProvider {
       _errorMessage = null;
       _notify();
     } catch (error) {
+      if (!_isCurrentScope(scope)) return;
       _errorMessage = error.toString();
       _notify();
     }
   }
 
   Future<void> deleteChatThread(String threadId) async {
+    final scope = _patientScopeRevision;
     if (threadId.isEmpty) return;
 
     try {
       await _repository.deleteGlobalChatThread(threadId);
+      if (!_isCurrentScope(scope)) return;
       _chatHistories.remove(threadId);
       _chatThreads = _chatThreads
           .where((thread) => thread.id != threadId)
@@ -115,6 +128,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
 
       if (_chatThreads.isEmpty) {
         final created = await _repository.createGlobalChatThread();
+        if (!_isCurrentScope(scope)) return;
         _chatThreads = [created];
       }
 
@@ -124,9 +138,11 @@ extension PatientPortalChatMixin on PatientPortalProvider {
       }
 
       await loadChatHistory(_activeChatThreadId!);
+      if (!_isCurrentScope(scope)) return;
       _errorMessage = null;
       _notify();
     } catch (error) {
+      if (!_isCurrentScope(scope)) return;
       _errorMessage = error.toString();
       _notify();
     }
@@ -141,9 +157,11 @@ extension PatientPortalChatMixin on PatientPortalProvider {
 
   Future<void> loadChatHistory(String threadId) async {
     if (threadId.isEmpty) return;
+    final scope = _patientScopeRevision;
 
     _loadingChatHistoryThreadId = threadId;
-    if (_chatHistoryErrorThreadId == threadId || _chatHistoryErrorThreadId == null) {
+    if (_chatHistoryErrorThreadId == threadId ||
+        _chatHistoryErrorThreadId == null) {
       _chatHistoryError = null;
       _chatHistoryErrorThreadId = null;
     }
@@ -151,14 +169,16 @@ extension PatientPortalChatMixin on PatientPortalProvider {
 
     try {
       final history = await _repository.getGlobalChatHistory(threadId);
+      if (!_isCurrentScope(scope)) return;
       _chatHistories[threadId] = history;
       _errorMessage = null;
     } catch (error) {
+      if (!_isCurrentScope(scope)) return;
       _errorMessage = error.toString();
       _chatHistoryError = error.toString();
       _chatHistoryErrorThreadId = threadId;
     } finally {
-      if (_loadingChatHistoryThreadId == threadId) {
+      if (_isCurrentScope(scope) && _loadingChatHistoryThreadId == threadId) {
         _loadingChatHistoryThreadId = null;
       }
       _notify();
@@ -184,7 +204,8 @@ extension PatientPortalChatMixin on PatientPortalProvider {
   }) async {
     // Re-entrancy guard: one send at a time across every thread. A second send
     // would race the placeholder bookkeeping of the first.
-    if (_sendingThreadId != null) return;
+    if (_sendingThreadId != null || _creatingThreadForSend) return;
+    final scope = _patientScopeRevision;
 
     // English and Malayalam only: keyboard voice typing can write Malayalam
     // speech in Hindi letters.
@@ -193,7 +214,13 @@ extension PatientPortalChatMixin on PatientPortalProvider {
 
     var threadId = _activeChatThreadId;
     if ((threadId ?? '').isEmpty) {
-      await createNewChatThread();
+      _creatingThreadForSend = true;
+      try {
+        await createNewChatThread();
+      } finally {
+        if (_isCurrentScope(scope)) _creatingThreadForSend = false;
+      }
+      if (!_isCurrentScope(scope)) return;
       threadId = _activeChatThreadId;
       if ((threadId ?? '').isEmpty) {
         return;
@@ -211,11 +238,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     );
     // The placeholder is what the tab renders as a typing indicator, then as
     // growing text; it is replaced wholesale by the authoritative `done` reply.
-    final placeholder = ChatMessage(
-      role: 'ai',
-      content: '',
-      createdAt: nowIso,
-    );
+    final placeholder = ChatMessage(role: 'ai', content: '', createdAt: nowIso);
     _chatHistories[currentThreadId] = [...existing, userMessage, placeholder];
 
     final preview = trimmed.isNotEmpty
@@ -249,6 +272,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
         idempotencyKey: idempotencyKey,
         cancelToken: cancelToken,
       )) {
+        if (!_isCurrentScope(scope)) return;
         if (event.type == ChatStreamEventType.delta) {
           sawDelta = true;
           buffer.write(event.text);
@@ -278,6 +302,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
         }
       }
 
+      if (!_isCurrentScope(scope)) return;
       if (!completed) {
         if (cancelToken.isCancelled) {
           // Stop-generation: keep whatever arrived as the assistant turn.
@@ -296,6 +321,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
         }
       }
     } catch (error) {
+      if (!_isCurrentScope(scope)) return;
       if (cancelToken.isCancelled) {
         // Cancellation is not a failure: keep the partial text.
         _touchThread(currentThreadId, buffer.toString());
@@ -311,6 +337,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
             idempotencyKey: idempotencyKey,
           );
         } catch (fallbackError) {
+          if (!_isCurrentScope(scope)) return;
           _errorMessage = fallbackError.toString();
           _chatHistories[currentThreadId] = existing;
           rethrow;
@@ -327,8 +354,10 @@ extension PatientPortalChatMixin on PatientPortalProvider {
       if (identical(_replyCancelToken, cancelToken)) {
         _replyCancelToken = null;
       }
-      if (_sendingThreadId == currentThreadId) _sendingThreadId = null;
-      if (_streamingThreadId == currentThreadId) _streamingThreadId = null;
+      if (_isCurrentScope(scope)) {
+        if (_sendingThreadId == currentThreadId) _sendingThreadId = null;
+        if (_streamingThreadId == currentThreadId) _streamingThreadId = null;
+      }
       _notify();
     }
   }
@@ -340,6 +369,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
     required String? mode,
     required String idempotencyKey,
   }) async {
+    final scope = _patientScopeRevision;
     final reply = await _repository.sendGlobalChatMessage(
       threadId: threadId,
       message: message,
@@ -347,6 +377,7 @@ extension PatientPortalChatMixin on PatientPortalProvider {
       mode: mode,
       idempotencyKey: idempotencyKey,
     );
+    if (!_isCurrentScope(scope)) return;
     _replaceStreamingReply(threadId, reply);
     _touchThread(threadId, reply.content);
   }

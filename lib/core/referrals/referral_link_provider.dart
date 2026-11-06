@@ -51,6 +51,11 @@ class ReferralLinkProvider extends ChangeNotifier {
   String? _pendingCode;
   String? _pendingSource;
   bool _initialized = false;
+  bool _disposed = false;
+
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
 
   String? get pendingCode => _pendingCode;
   String? get pendingSource => _pendingSource;
@@ -61,6 +66,7 @@ class ReferralLinkProvider extends ChangeNotifier {
     if (_initialized) return;
 
     _preferences = await _preferencesReader();
+    if (_disposed) return;
     _pendingCode = _normalizeCode(_preferences?.getString(_pendingCodeKey));
     _pendingSource = _preferences?.getString(_pendingSourceKey);
 
@@ -76,6 +82,7 @@ class ReferralLinkProvider extends ChangeNotifier {
 
     try {
       final installReferrer = await _installReferrerReader();
+      if (_disposed) return;
       if (!hasPendingReferral && installReferrer != null) {
         final installCode = referralCodeFromInstallReferrer(installReferrer);
         if (installCode != null) {
@@ -88,6 +95,7 @@ class ReferralLinkProvider extends ChangeNotifier {
 
     try {
       final initialUri = await _initialLinkReader();
+      if (_disposed) return;
       if (initialUri != null) {
         await captureUri(initialUri, source: 'initial_app_link');
       }
@@ -96,10 +104,11 @@ class ReferralLinkProvider extends ChangeNotifier {
     }
 
     _initialized = true;
-    notifyListeners();
+    _notify();
   }
 
   Future<bool> captureUri(Uri uri, {required String source}) async {
+    if (_disposed) return false;
     final code = referralCodeFromUri(uri);
     if (code == null) return false;
     await _store(code, source: source);
@@ -164,7 +173,7 @@ class ReferralLinkProvider extends ChangeNotifier {
     _pendingSource = null;
     await _preferences?.remove(_pendingCodeKey);
     await _preferences?.remove(_pendingSourceKey);
-    notifyListeners();
+    _notify();
   }
 
   Future<void> _store(String code, {required String source}) async {
@@ -174,7 +183,7 @@ class ReferralLinkProvider extends ChangeNotifier {
     debugPrint('Stored referral code from $source');
     await _preferences?.setString(_pendingCodeKey, code);
     await _preferences?.setString(_pendingSourceKey, source);
-    notifyListeners();
+    _notify();
   }
 
   static String? _normalizeCode(String? rawCode) {
@@ -199,6 +208,7 @@ class ReferralLinkProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     unawaited(_linkSubscription?.cancel());
     super.dispose();
   }

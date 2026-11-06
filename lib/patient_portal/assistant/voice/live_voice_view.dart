@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/language_provider.dart';
+import '../widgets/ai_content_report_dialog.dart';
 import 'live_voice_controller.dart';
 import 'live_voice_state.dart';
 
@@ -135,6 +136,12 @@ class _LiveVoiceViewState extends State<LiveVoiceView> {
                 final state = widget.controller.state;
                 final showCaptions =
                     _showCaptions && state.phase != LiveVoicePhase.error;
+                final assistantEntries = state.transcript.where(
+                  (entry) => !entry.isPatient && entry.text.trim().isNotEmpty,
+                );
+                final latestResponse = assistantEntries.isNotEmpty
+                    ? assistantEntries.last.text
+                    : state.responseText;
                 return Column(
                   children: [
                     _TopBar(
@@ -226,6 +233,13 @@ class _LiveVoiceViewState extends State<LiveVoiceView> {
                         },
                       ),
                     ),
+                    if (!showCaptions && latestResponse.trim().isNotEmpty)
+                      AiContentReportButton(
+                        key: const ValueKey('live_voice_report_response'),
+                        content: latestResponse,
+                        source: 'voice',
+                        foregroundColor: _VoicePalette.textSecondary,
+                      ),
                     state.phase == LiveVoicePhase.error
                         ? _ErrorControls(
                             strings: strings,
@@ -587,13 +601,28 @@ class _CaptionLine extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
-        child: Text(
-          text,
-          style: _VoiceText.assistantCaption.copyWith(
-            color: entry.interrupted
-                ? _VoicePalette.textSecondary
-                : _VoicePalette.textPrimary,
-          ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                text,
+                style: _VoiceText.assistantCaption.copyWith(
+                  color: entry.interrupted
+                      ? _VoicePalette.textSecondary
+                      : _VoicePalette.textPrimary,
+                ),
+              ),
+            ),
+            if (entry.text.trim().isNotEmpty)
+              AiContentReportButton(
+                key: ValueKey('live_voice_report_${entry.id}'),
+                content: entry.text,
+                source: 'voice',
+                compact: true,
+                foregroundColor: _VoicePalette.textSecondary,
+              ),
+          ],
         ),
       ),
     );

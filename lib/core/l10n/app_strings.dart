@@ -105,6 +105,8 @@ abstract class LocalizedStrings {
   String get assistantLiveModeActive;
   String get assistantInputHint;
   String get assistantDisclaimer;
+  String get assistantMedicalNoticeTitle;
+  String get assistantReportResponse;
   String get assistantLive;
   String get assistantStop;
   String get assistantRecording;
@@ -488,7 +490,15 @@ class _EnStrings extends LocalizedStrings {
   String get assistantInputHint => 'Ask about your health';
   @override
   String get assistantDisclaimer =>
-      'AI can make mistakes. Consult a doctor before acting.';
+      'BHRC is not a medical device. Its AI guidance does not diagnose, treat, '
+      'cure, or prevent any medical condition. AI can make mistakes. Consult a '
+      'qualified healthcare professional for medical advice, diagnosis, or '
+      'treatment. Do not use AI chat for emergencies; seek emergency care.';
+  @override
+  String get assistantMedicalNoticeTitle => 'About health guidance';
+
+  @override
+  String get assistantReportResponse => 'Report AI response';
   @override
   String get assistantLive => 'Live';
   @override
@@ -1044,7 +1054,16 @@ class _MlStrings extends LocalizedStrings {
   String get assistantInputHint => 'ആരോഗ്യം ചോദിക്കൂ';
   @override
   String get assistantDisclaimer =>
-      'AI തെറ്റുകൾ ചെയ്യാം. നടപടി എടുക്കുന്നതിന് മുമ്പ് ഡോക്ടറെ സമീപിക്കുക.';
+      'BHRC ഒരു മെഡിക്കൽ ഉപകരണമല്ല. AI നൽകുന്ന വിവരങ്ങൾ രോഗനിർണയം, ചികിത്സ, '
+      'രോഗം ഭേദമാക്കൽ അല്ലെങ്കിൽ പ്രതിരോധം എന്നിവയ്ക്കുള്ളതല്ല. AI തെറ്റുകൾ '
+      'വരുത്താം. വൈദ്യോപദേശം, രോഗനിർണയം, ചികിത്സ എന്നിവയ്ക്കായി യോഗ്യതയുള്ള '
+      'ആരോഗ്യ വിദഗ്ധനെ സമീപിക്കുക. അടിയന്തര സാഹചര്യങ്ങളിൽ AI ചാറ്റ് '
+      'ഉപയോഗിക്കാതെ അടിയന്തര ചികിത്സ തേടുക.';
+  @override
+  String get assistantMedicalNoticeTitle => 'ആരോഗ്യ വിവരങ്ങളെക്കുറിച്ച്';
+
+  @override
+  String get assistantReportResponse => 'AI മറുപടി റിപ്പോർട്ട് ചെയ്യുക';
   @override
   String get assistantLive => 'ലൈവ്';
   @override

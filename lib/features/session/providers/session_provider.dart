@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/storage/auth_storage.dart';
 import '../../../core/utils/phone_utils.dart';
 import '../../../patient_portal/core/data/patient_repository.dart';
@@ -41,6 +42,18 @@ class SessionProvider extends ChangeNotifier {
   String? _devOtp;
   String? _otpStatusMessage;
   List<SavedPatientProfile> _familyProfiles = const [];
+  Future<void>? _signOutFuture;
+  bool _disposed = false;
+
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   SessionState get state => _state;
   PatientIdentity? get patient => _patient;
@@ -74,7 +87,7 @@ class SessionProvider extends ChangeNotifier {
 
     if ((_authToken ?? '').isEmpty) {
       _state = SessionState.signedOut;
-      notifyListeners();
+      _notify();
       return;
     }
 
@@ -83,7 +96,15 @@ class SessionProvider extends ChangeNotifier {
       await _saveFamilyProfile(token: _authToken!, patient: _patient!);
       _state = SessionState.signedIn;
     } catch (error) {
-      final recovered = await _recoverFromStoredProfiles();
+      final cached = _familyProfiles.where(
+        (profile) => profile.token == _authToken,
+      );
+      final useCached = _canUseCachedProfile(error) && cached.isNotEmpty;
+      if (useCached) {
+        _patient = cached.first.patient;
+        _state = SessionState.signedIn;
+      }
+      final recovered = useCached || await _recoverFromStoredProfiles();
       if (!recovered) {
         await _authStorage.clearAll();
         _authToken = null;
@@ -95,7 +116,7 @@ class SessionProvider extends ChangeNotifier {
       }
     }
 
-    notifyListeners();
+    _notify();
   }
 
   Future<void> sendOtp({required String phone, String? mrn}) async {
@@ -104,14 +125,14 @@ class SessionProvider extends ChangeNotifier {
     final normalizedMrn = (mrn ?? '').trim();
     if (normalizedPhone.isEmpty) {
       _errorMessage = 'Enter a valid mobile number.';
-      notifyListeners();
+      _notify();
       return;
     }
 
     _state = SessionState.sendingOtp;
     _errorMessage = null;
     _otpStatusMessage = null;
-    notifyListeners();
+    _notify();
 
     try {
       final result = await _patientRepository.sendOtp(
@@ -133,7 +154,7 @@ class SessionProvider extends ChangeNotifier {
           : SessionState.signedOut;
     }
 
-    notifyListeners();
+    _notify();
   }
 
   Future<void> signUp({
@@ -151,14 +172,14 @@ class SessionProvider extends ChangeNotifier {
         name.trim().isEmpty ||
         place.trim().isEmpty) {
       _errorMessage = 'Enter your name, mobile number, and location.';
-      notifyListeners();
+      _notify();
       return;
     }
 
     _state = SessionState.sendingOtp;
     _errorMessage = null;
     _otpStatusMessage = null;
-    notifyListeners();
+    _notify();
 
     try {
       final result = await _patientRepository.signUp(
@@ -182,21 +203,21 @@ class SessionProvider extends ChangeNotifier {
       _state = SessionState.signedOut;
     }
 
-    notifyListeners();
+    _notify();
   }
 
   Future<void> resendPendingOtp() async {
     final phone = _pendingPhone;
     if ((phone ?? '').isEmpty) {
       _errorMessage = 'Request an OTP first.';
-      notifyListeners();
+      _notify();
       return;
     }
 
     if (isPendingSignupOtp) {
       _state = SessionState.sendingOtp;
       _errorMessage = null;
-      notifyListeners();
+      _notify();
       try {
         final result = await _patientRepository.sendOtp(phone: phone!);
         _devOtp = result.devOtp;
@@ -206,7 +227,7 @@ class SessionProvider extends ChangeNotifier {
         _errorMessage = error.toString();
         _state = SessionState.signedOut;
       }
-      notifyListeners();
+      _notify();
       return;
     }
 
@@ -217,7 +238,7 @@ class SessionProvider extends ChangeNotifier {
     if (!isAuthenticated) return;
 
     _errorMessage = null;
-    notifyListeners();
+    _notify();
 
     try {
       await _patientRepository.sendVerification();
@@ -225,14 +246,14 @@ class SessionProvider extends ChangeNotifier {
       _errorMessage = error.toString();
     }
 
-    notifyListeners();
+    _notify();
   }
 
   Future<void> verifyEmailOtp(String otp) async {
     if (!isAuthenticated) return;
 
     _errorMessage = null;
-    notifyListeners();
+    _notify();
 
     try {
       await _patientRepository.verifyEmailOtp(otp);
@@ -241,20 +262,20 @@ class SessionProvider extends ChangeNotifier {
       _errorMessage = error.toString();
     }
 
-    notifyListeners();
+    _notify();
   }
 
   Future<void> login({required String phone, required String password}) async {
     final normalizedPhone = normalizePatientPhone(phone);
     if (normalizedPhone.isEmpty || password.isEmpty) {
       _errorMessage = 'Enter your phone number and password.';
-      notifyListeners();
+      _notify();
       return;
     }
 
     _state = SessionState.verifyingOtp;
     _errorMessage = null;
-    notifyListeners();
+    _notify();
 
     try {
       final session = await _patientRepository.loginPatient(
@@ -267,7 +288,7 @@ class SessionProvider extends ChangeNotifier {
       _state = SessionState.signedOut;
     }
 
-    notifyListeners();
+    _notify();
   }
 
   Future<void> register({
@@ -287,12 +308,12 @@ class SessionProvider extends ChangeNotifier {
         passwordConfirmation.isEmpty ||
         normalizedName.isEmpty) {
       _errorMessage = 'Enter your name, phone number, and password.';
-      notifyListeners();
+      _notify();
       return;
     }
     if (password != passwordConfirmation) {
       _errorMessage = 'Password confirmation does not match.';
-      notifyListeners();
+      _notify();
       return;
     }
 
@@ -302,7 +323,7 @@ class SessionProvider extends ChangeNotifier {
 
     _state = SessionState.sendingOtp;
     _errorMessage = null;
-    notifyListeners();
+    _notify();
 
     try {
       final session = await _patientRepository.registerPatient(
@@ -325,7 +346,7 @@ class SessionProvider extends ChangeNotifier {
       _state = SessionState.signedOut;
     }
 
-    notifyListeners();
+    _notify();
   }
 
   void cancelPendingOtp() {
@@ -335,7 +356,7 @@ class SessionProvider extends ChangeNotifier {
     _otpStatusMessage = null;
     _errorMessage = null;
     _clearPendingSignupDetails();
-    notifyListeners();
+    _notify();
   }
 
   void _clearPendingSignupDetails() {
@@ -347,13 +368,13 @@ class SessionProvider extends ChangeNotifier {
     final phone = _pendingPhone?.trim();
     if ((phone ?? '').isEmpty) {
       _errorMessage = 'Request an OTP first.';
-      notifyListeners();
+      _notify();
       return;
     }
 
     _state = SessionState.verifyingOtp;
     _errorMessage = null;
-    notifyListeners();
+    _notify();
 
     try {
       final wasSignup = isPendingSignupOtp;
@@ -367,9 +388,20 @@ class SessionProvider extends ChangeNotifier {
       _apiClient.updateAuthToken(session.token);
       _patient = session.patient;
       if (wasSignup && (pendingBloodGroup ?? '').isNotEmpty) {
-        _patient = await _patientRepository.updatePatientProfile(
-          _patient!.copyWith(bloodGroup: pendingBloodGroup),
-        );
+        try {
+          _patient = await _patientRepository.updatePatientProfile(
+            _patient!.copyWith(bloodGroup: pendingBloodGroup),
+          );
+        } catch (error) {
+          if (error is ApiException &&
+              (error.statusCode == 401 || error.statusCode == 403)) {
+            rethrow;
+          }
+          // The OTP already created a valid account. A profile outage must
+          // still finish sign-in and preserve the initial assessment offer.
+          _errorMessage =
+              'Your account is ready, but your blood group could not be saved. Update it in your profile.';
+        }
       }
       _shouldOfferInitialHealthAssessment =
           wasSignup && !_patient!.hasCompletedInitialHealthAssessment;
@@ -388,44 +420,49 @@ class SessionProvider extends ChangeNotifier {
       _state = isAuthenticated ? SessionState.signedIn : SessionState.signedOut;
     }
 
-    notifyListeners();
+    _notify();
   }
 
   void clearError() {
     if (_errorMessage == null) return;
     _errorMessage = null;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> refreshPatient() async {
     if ((_authToken ?? '').isEmpty) return;
+    final token = _authToken;
 
     try {
-      _patient = await _patientRepository.getCurrentPatient();
+      final patient = await _patientRepository.getCurrentPatient();
+      if (token != _authToken || _disposed) return;
+      _patient = patient;
+      await _saveFamilyProfile(token: token!, patient: patient);
       _errorMessage = null;
     } catch (error) {
+      if (token != _authToken || _disposed) return;
       _errorMessage = error.toString();
     }
 
-    notifyListeners();
+    _notify();
   }
 
   Future<void> acceptLegalConsent() async {
     if (!isAuthenticated) return;
 
     _errorMessage = null;
-    notifyListeners();
+    _notify();
 
     try {
       _patient = await _patientRepository.acceptLegalConsent();
       await _saveFamilyProfile(token: _authToken!, patient: _patient!);
     } catch (error) {
       _errorMessage = error.toString();
-      notifyListeners();
+      _notify();
       rethrow;
     }
 
-    notifyListeners();
+    _notify();
   }
 
   void updatePatient(PatientIdentity patient) {
@@ -437,7 +474,7 @@ class SessionProvider extends ChangeNotifier {
     if ((token ?? '').isNotEmpty) {
       unawaited(_saveFamilyProfile(token: token!, patient: patient));
     }
-    notifyListeners();
+    _notify();
   }
 
   Future<void> switchFamilyProfile(String token) async {
@@ -452,9 +489,11 @@ class SessionProvider extends ChangeNotifier {
       throw StateError('Selected family profile is unavailable.');
     }
 
+    final previousToken = _authToken;
+    final previousPatient = _patient;
     _errorMessage = null;
     _state = SessionState.bootstrapping;
-    notifyListeners();
+    _notify();
 
     try {
       _authToken = token;
@@ -467,17 +506,11 @@ class SessionProvider extends ChangeNotifier {
       _state = SessionState.signedIn;
     } catch (error) {
       _errorMessage = error.toString();
-      final fallbackToken = _familyProfiles
-          .where((profile) => profile.token != token)
-          .map((profile) => profile.token)
-          .cast<String?>()
-          .firstWhere((value) => (value ?? '').isNotEmpty, orElse: () => null);
-
-      if ((fallbackToken ?? '').isNotEmpty) {
-        _authToken = fallbackToken;
-        await _authStorage.writeToken(fallbackToken!);
-        _apiClient.updateAuthToken(fallbackToken);
-        _patient = await _patientRepository.getCurrentPatient();
+      if (previousToken != null && previousPatient != null) {
+        _authToken = previousToken;
+        await _authStorage.writeToken(previousToken);
+        _apiClient.updateAuthToken(previousToken);
+        _patient = previousPatient;
         _shouldOfferInitialHealthAssessment = false;
         _state = SessionState.signedIn;
       } else {
@@ -490,28 +523,34 @@ class SessionProvider extends ChangeNotifier {
       }
     }
 
-    notifyListeners();
+    _notify();
   }
 
   Future<void> switchLinkedFamilyMember(int linkId) async {
     _errorMessage = null;
     _state = SessionState.bootstrapping;
-    notifyListeners();
+    _notify();
 
     try {
       final session = await _patientRepository.switchToFamilyMember(linkId);
       await _applyAuthenticatedSession(session);
     } catch (error) {
       _errorMessage = error.toString();
-      _state = SessionState.signedIn;
-      notifyListeners();
+      _state = isAuthenticated ? SessionState.signedIn : SessionState.signedOut;
+      _notify();
       rethrow;
     }
 
-    notifyListeners();
+    _notify();
   }
 
-  Future<void> signOut() async {
+  Future<void> signOut() {
+    return _signOutFuture ??= _performSignOut().whenComplete(() {
+      _signOutFuture = null;
+    });
+  }
+
+  Future<void> _performSignOut() async {
     try {
       if ((_authToken ?? '').isNotEmpty) {
         await _patientRepository.logout();
@@ -531,7 +570,7 @@ class SessionProvider extends ChangeNotifier {
     _clearPendingSignupDetails();
     _shouldOfferInitialHealthAssessment = false;
     _state = SessionState.signedOut;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> deleteAccount() async {
@@ -548,7 +587,7 @@ class SessionProvider extends ChangeNotifier {
     _clearPendingSignupDetails();
     _shouldOfferInitialHealthAssessment = false;
     _state = SessionState.signedOut;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> _applyAuthenticatedSession(
@@ -582,20 +621,34 @@ class SessionProvider extends ChangeNotifier {
         .toList();
     await _authStorage.writeFamilyProfiles(_familyProfiles);
 
-    if (_familyProfiles.isEmpty) {
-      return false;
+    for (final profile in [..._familyProfiles]) {
+      _authToken = profile.token;
+      _apiClient.updateAuthToken(profile.token);
+      try {
+        _patient = await _patientRepository.getCurrentPatient();
+      } catch (error) {
+        if (_canUseCachedProfile(error)) {
+          _patient = profile.patient;
+        } else {
+          _familyProfiles = _familyProfiles
+              .where((item) => item.token != profile.token)
+              .toList();
+          await _authStorage.writeFamilyProfiles(_familyProfiles);
+          continue;
+        }
+      }
+      await _authStorage.writeToken(profile.token);
+      await _saveFamilyProfile(token: profile.token, patient: _patient!);
+      _state = SessionState.signedIn;
+      _errorMessage = null;
+      return true;
     }
-
-    final nextToken = _familyProfiles.first.token;
-    _authToken = nextToken;
-    await _authStorage.writeToken(nextToken);
-    _apiClient.updateAuthToken(nextToken);
-    _patient = await _patientRepository.getCurrentPatient();
-    await _saveFamilyProfile(token: nextToken, patient: _patient!);
-    _state = SessionState.signedIn;
-    _errorMessage = null;
-    return true;
+    return false;
   }
+
+  bool _canUseCachedProfile(Object error) =>
+      error is ApiException &&
+      (error.statusCode == null || error.statusCode! >= 500);
 
   Future<void> _saveFamilyProfile({
     required String token,

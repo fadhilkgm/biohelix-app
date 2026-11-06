@@ -187,7 +187,8 @@ extension PatientPortalLoadMixin on PatientPortalProvider {
   }
 
   bool _isCurrentLoad(int generation, int? patientId) {
-    return generation == _loadGeneration &&
+    return !_disposed &&
+        generation == _loadGeneration &&
         patientId == _loadedPatientId &&
         patientId == _sessionProvider.patient?.id &&
         _sessionProvider.isAuthenticated;

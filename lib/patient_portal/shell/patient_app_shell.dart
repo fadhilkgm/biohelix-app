@@ -4,7 +4,7 @@ import 'dart:math' as math;
 
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +18,7 @@ import '../assistant/voice/inworld_signaling_api.dart';
 import '../assistant/voice/live_voice_conversation.dart';
 import '../assistant/voice/live_voice_controller.dart';
 import '../assistant/voice/live_voice_state.dart';
+import '../assistant/widgets/ai_content_report_dialog.dart';
 import '../assistant/voice/live_voice_view.dart';
 
 import '../../core/config/app_config.dart';

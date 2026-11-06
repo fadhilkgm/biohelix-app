@@ -29,3 +29,9 @@ Files: `cms-before.json` is the prior CMS text; `privacy-policy-en.md` and `priv
 - The live public page has no Malayalam selector. Malayalam was verified in the CMS and API, not in the public website's rendered policy.
 - Reviewer login, Health Connect device reads, live steps-only sync, rewards and disconnect remain untested end to end. The local backend now accepts steps-only requests while retaining optional calorie/distance support; 18 fitness/rewards tests passed. That fix and its schema migration have not been deployed or verified against the live server.
 - No Play Console listing, App access instructions or Data safety declaration was edited. Policy publication does not establish Play submission readiness.
+
+## Follow-up on 8 October 2026
+
+The public HTTP response now contains the Health Connect policy text and does not contain the old literal **End-to-End Encryption** or **No Third-party Sharing** claims. This updates the earlier source observation; a rendered browser inspection was unavailable because Computer Use could not safely verify Chrome's URL. The legal-content API still supplies both policy languages. Evidence is in `build/release-21-public-policy-check.json` and `build/release-21-legal-api.json` (repository-root paths).
+
+Version `1.0.8+21` adds clearer health guidance notices and in-app AI content reporting. The user will deploy the corresponding backend separately. See `../PLAY_ACTIVITY_REWARDS_REVIEW.md` for the final artifact, verification and deployment/submission checks. Live reviewer login, fitness-data deletion/retention fulfilment, Health Connect device reads and Play Console acceptance remain unverified.

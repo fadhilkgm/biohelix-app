@@ -16,14 +16,12 @@ class AndroidFitnessService {
 
   final MethodChannel _channel;
 
-  bool get isSupportedPlatform =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
+  // Android activity access was removed following the Play policy review.
+  bool get isSupportedPlatform => isIOS;
 
   bool get isIOS => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
-  String get platformName => isIOS ? 'Apple Health' : 'Android Health Connect';
+  String get platformName => isIOS ? 'Apple Health' : 'Activity tracking';
 
   Future<FitnessPlatformStatus> status() async {
     if (!isSupportedPlatform) {
@@ -41,6 +39,7 @@ class AndroidFitnessService {
   }
 
   Future<bool> requestPermissions() async {
+    if (!isSupportedPlatform) return false;
     final response = await _channel.invokeMapMethod<dynamic, dynamic>(
       'requestPermissions',
     );
@@ -48,6 +47,11 @@ class AndroidFitnessService {
   }
 
   Future<AndroidFitnessReadResult> readActivity({int days = 7}) async {
+    if (!isSupportedPlatform) {
+      throw UnsupportedError(
+        'Activity access is unavailable on this platform.',
+      );
+    }
     final response = await _channel.invokeMapMethod<dynamic, dynamic>(
       'readActivity',
       {'days': days},
@@ -64,6 +68,7 @@ class AndroidFitnessService {
   }
 
   Future<void> openHealthConnect() async {
+    if (!isSupportedPlatform) return;
     await _channel.invokeMethod<void>('openHealthConnect');
   }
 }

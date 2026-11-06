@@ -134,6 +134,7 @@ void main() {
       find.text('Your fasting sugar is in the normal range.'),
       findsOneWidget,
     );
+    expect(find.byTooltip('Report AI response'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('live_voice_interrupt')));
     await tester.pump(const Duration(milliseconds: 300));
@@ -143,6 +144,44 @@ void main() {
       voice.sent.map((event) => event['type']),
       contains('response.cancel'),
     );
+
+    await tearDownView(tester);
+  });
+
+  testWidgets('shows typing dots until the patient\'s words are final', (
+    tester,
+  ) async {
+    await pumpView(tester);
+    voice.debugStartSimulatedSession();
+    voice.debugHandleEvent({
+      'type': 'input_audio_buffer.speech_started',
+      'item_id': 'item_1',
+    });
+    voice.debugHandleEvent({
+      'type': 'conversation.item.input_audio_transcription.delta',
+      'item_id': 'item_1',
+      'delta': 'ഹലോഹലോ',
+    });
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.byKey(const ValueKey('live_voice_patient_typing')),
+      findsOneWidget,
+    );
+    expect(find.text('ഹലോഹലോ'), findsNothing);
+
+    voice.debugHandleEvent({
+      'type': 'conversation.item.input_audio_transcription.completed',
+      'item_id': 'item_1',
+      'transcript': 'ഹലോ',
+    });
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.byKey(const ValueKey('live_voice_patient_typing')),
+      findsNothing,
+    );
+    expect(find.text('ഹലോ'), findsOneWidget);
 
     await tearDownView(tester);
   });
@@ -163,6 +202,38 @@ void main() {
 
     expect(find.text('Hello there'), findsNothing);
 
+    await tearDownView(tester);
+  });
+
+  testWidgets('keeps a report action available when AI captions are hidden', (
+    tester,
+  ) async {
+    await pumpView(tester);
+    voice.debugStartSimulatedSession();
+    // The patient speaks first, so the app requests the reply below.
+    voice.debugHandleEvent({
+      'type': 'conversation.item.input_audio_transcription.completed',
+      'item_id': 'item_1',
+      'transcript': 'Is my report fine?',
+    });
+    await tester.pump(const Duration(milliseconds: 50));
+    voice.debugHandleEvent({
+      'type': 'response.created',
+      'response': {'id': 'report_reply'},
+    });
+    voice.debugHandleEvent({
+      'type': 'response.output_audio_transcript.delta',
+      'response_id': 'report_reply',
+      'delta': 'Selected voice reply',
+    });
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byKey(const ValueKey('live_voice_captions_toggle')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.byKey(const ValueKey('live_voice_report_response')),
+      findsOneWidget,
+    );
+    expect(find.text('Selected voice reply'), findsNothing);
     await tearDownView(tester);
   });
 

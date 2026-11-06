@@ -24,6 +24,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
       throw StateError('Patient session is missing.');
     }
 
+    final scope = _patientScopeRevision;
     _isCreatingBooking = true;
     _errorMessage = null;
     _notify();
@@ -38,14 +39,17 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         sourceAssessmentToken: sourceAssessmentToken,
         idempotencyKey: idempotencyKey,
       );
-      await _refreshDoctorBookings();
+      if (_isCurrentScope(scope)) await _refreshDoctorBookings();
       return confirmation;
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isCreatingBooking = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isCreatingBooking = false;
+        _notify();
+      }
     }
   }
 
@@ -69,6 +73,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     String? sourceAssessmentToken,
     String? idempotencyKey,
   }) async {
+    final scope = _patientScopeRevision;
     _isCreatingLabOrder = true;
     _errorMessage = null;
     _notify();
@@ -94,31 +99,38 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         sourceAssessmentToken: sourceAssessmentToken,
         idempotencyKey: idempotencyKey,
       );
-      await _refreshLabOrders();
+      if (_isCurrentScope(scope)) await _refreshLabOrders();
       return confirmation;
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isCreatingLabOrder = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isCreatingLabOrder = false;
+        _notify();
+      }
     }
   }
 
   Future<void> cancelLabOrder(int orderId) async {
+    final scope = _patientScopeRevision;
     _isCreatingLabOrder = true;
     _errorMessage = null;
     _notify();
 
     try {
       await _repository.cancelLabOrder(orderId);
-      await _refreshLabOrders();
+      if (_isCurrentScope(scope)) await _refreshLabOrders();
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isCreatingLabOrder = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isCreatingLabOrder = false;
+        _notify();
+      }
     }
   }
 
@@ -139,6 +151,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     String urgency = 'routine',
     String? notes,
   }) async {
+    final scope = _patientScopeRevision;
     _isCreatingLabOrder = true;
     _errorMessage = null;
     _notify();
@@ -161,31 +174,38 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         urgency: urgency,
         notes: notes,
       );
-      await _refreshLabPackageOrders();
+      if (_isCurrentScope(scope)) await _refreshLabPackageOrders();
       return confirmation;
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isCreatingLabOrder = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isCreatingLabOrder = false;
+        _notify();
+      }
     }
   }
 
   Future<void> cancelLabPackageOrder(int orderId) async {
+    final scope = _patientScopeRevision;
     _isCreatingLabOrder = true;
     _errorMessage = null;
     _notify();
 
     try {
       await _repository.cancelLabPackageOrder(orderId);
-      await _refreshLabPackageOrders();
+      if (_isCurrentScope(scope)) await _refreshLabPackageOrders();
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isCreatingLabOrder = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isCreatingLabOrder = false;
+        _notify();
+      }
     }
   }
 
@@ -199,11 +219,9 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         doctorId: doctorId,
         date: date,
       );
-      if (slots.isNotEmpty) {
-        return doctor == null
-            ? slots
-            : _filterSlotsForDoctorDate(doctor, date, slots);
-      }
+      return doctor == null
+          ? slots
+          : _filterSlotsForDoctorDate(doctor, date, slots);
     } catch (_) {
       // The v1 API documents schedule templates on doctor listings, not slots.
     }
@@ -238,17 +256,15 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         doctorId: doctorId,
         date: date,
       );
-      if (availability.isNotEmpty) {
-        if (doctor == null) return availability;
-        final allowedSlots = _filterSlotsForDoctorDate(
-          doctor,
-          date,
-          availability.map((item) => item.slot).toList(),
-        ).toSet();
-        return availability
-            .where((item) => allowedSlots.contains(item.slot))
-            .toList();
-      }
+      if (doctor == null) return availability;
+      final allowedSlots = _filterSlotsForDoctorDate(
+        doctor,
+        date,
+        availability.map((item) => item.slot).toList(),
+      ).toSet();
+      return availability
+          .where((item) => allowedSlots.contains(item.slot))
+          .toList();
     } catch (_) {
       // Fall back to schedule templates when the availability API is offline.
     }
@@ -312,11 +328,27 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
   }
 
   int? _minutesFromTime(String value) {
-    final parts = value.split(':');
-    if (parts.length < 2) return null;
-    final hour = int.tryParse(parts[0]);
-    final minute = int.tryParse(parts[1]);
-    if (hour == null || minute == null) return null;
+    final match = RegExp(
+      r'^\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?',
+      caseSensitive: false,
+    ).firstMatch(value);
+    if (match == null) return null;
+    var hour = int.parse(match.group(1)!);
+    final minute = int.parse(match.group(2)!);
+    final period =
+        (match.group(3) ??
+                (value.contains('-')
+                    ? RegExp(
+                        r'(AM|PM)\s*$',
+                        caseSensitive: false,
+                      ).firstMatch(value)?.group(1)
+                    : null))
+            ?.toUpperCase();
+    if (minute > 59 || hour > 23) return null;
+    if (period != null) {
+      if (hour < 1 || hour > 12) return null;
+      hour = hour % 12 + (period == 'PM' ? 12 : 0);
+    }
     return hour * 60 + minute;
   }
 
@@ -329,36 +361,44 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
   }
 
   Future<void> cancelBooking(int bookingId) async {
+    final scope = _patientScopeRevision;
     _isCreatingBooking = true;
     _errorMessage = null;
     _notify();
 
     try {
       await _repository.cancelBooking(bookingId);
-      await _refreshDoctorBookings();
+      if (_isCurrentScope(scope)) await _refreshDoctorBookings();
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isCreatingBooking = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isCreatingBooking = false;
+        _notify();
+      }
     }
   }
 
   Future<void> checkInBooking(int bookingId) async {
+    final scope = _patientScopeRevision;
     _isCreatingBooking = true;
     _errorMessage = null;
     _notify();
 
     try {
       await _repository.checkInBooking(bookingId);
-      await _refreshDoctorBookings();
+      if (_isCurrentScope(scope)) await _refreshDoctorBookings();
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isCreatingBooking = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isCreatingBooking = false;
+        _notify();
+      }
     }
   }
 
@@ -367,6 +407,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     required String bookingDate,
     required String timeslot,
   }) async {
+    final scope = _patientScopeRevision;
     _isCreatingBooking = true;
     _errorMessage = null;
     _notify();
@@ -377,13 +418,16 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         bookingDate: bookingDate,
         timeslot: timeslot,
       );
-      await _refreshDoctorBookings();
+      if (_isCurrentScope(scope)) await _refreshDoctorBookings();
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isCreatingBooking = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isCreatingBooking = false;
+        _notify();
+      }
     }
   }
 
@@ -392,6 +436,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     required String date,
     String? slot,
   }) async {
+    final scope = _patientScopeRevision;
     _isCreatingLabOrder = true;
     _errorMessage = null;
     _notify();
@@ -402,13 +447,16 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         date: date,
         slot: slot,
       );
-      await _refreshLabOrders();
+      if (_isCurrentScope(scope)) await _refreshLabOrders();
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isCreatingLabOrder = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isCreatingLabOrder = false;
+        _notify();
+      }
     }
   }
 
@@ -417,6 +465,7 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
     required String date,
     String? slot,
   }) async {
+    final scope = _patientScopeRevision;
     _isCreatingLabOrder = true;
     _errorMessage = null;
     _notify();
@@ -427,13 +476,16 @@ extension PatientPortalBookingMixin on PatientPortalProvider {
         date: date,
         slot: slot,
       );
-      await _refreshLabPackageOrders();
+      if (_isCurrentScope(scope)) await _refreshLabPackageOrders();
     } catch (error) {
+      if (!_isCurrentScope(scope)) rethrow;
       _errorMessage = error.toString();
       rethrow;
     } finally {
-      _isCreatingLabOrder = false;
-      _notify();
+      if (_isCurrentScope(scope)) {
+        _isCreatingLabOrder = false;
+        _notify();
+      }
     }
   }
 }

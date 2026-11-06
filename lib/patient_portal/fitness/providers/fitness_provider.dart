@@ -48,6 +48,13 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
   String? _errorMessage;
   bool _isSyncing = false;
   bool _disposed = false;
+  int _generation = 0;
+
+  bool _isCurrentOperation(int generation, int? patientId) =>
+      !_disposed &&
+      generation == _generation &&
+      _sessionProvider.isAuthenticated &&
+      patientId == _sessionProvider.patient?.id;
 
   FitnessConnectionState get state => _state;
   FitnessPlatformStatus? get platformStatus => _platformStatus;
@@ -63,12 +70,27 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> initialize() async {
     final preferences = await SharedPreferences.getInstance();
+    if (_disposed) return;
+    if (!_service.isSupportedPlatform) {
+      await preferences.remove(_ownerPatientKey);
+      if (_disposed) return;
+      _deviceOwnerPatientId = null;
+      _summary = const FitnessActivitySummary();
+      _setState(FitnessConnectionState.unavailable);
+      return;
+    }
     _deviceOwnerPatientId = preferences.getInt(_ownerPatientKey);
     await _refreshForCurrentPatient(syncDevice: true);
   }
 
   Future<void> connect() async {
+    if (_isSyncing || _disposed) return;
+    if (!_service.isSupportedPlatform) {
+      _setState(FitnessConnectionState.unavailable);
+      return;
+    }
     final patientId = _sessionProvider.patient?.id;
+    final generation = _generation;
     if (patientId == null || !_sessionProvider.isAuthenticated) return;
     if (_deviceOwnerPatientId != null && _deviceOwnerPatientId != patientId) {
       _setState(FitnessConnectionState.blockedForDifferentPatient);
@@ -80,6 +102,7 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
     try {
       final status = await _service.status();
+      if (!_isCurrentOperation(generation, patientId)) return;
       _platformStatus = status;
       if (status.requiresUpdate) {
         _setState(FitnessConnectionState.updateRequired);
@@ -92,21 +115,27 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       final granted =
           status.permissionsGranted || await _service.requestPermissions();
+      if (!_isCurrentOperation(generation, patientId)) return;
       if (!granted) {
         _setState(FitnessConnectionState.disconnected);
         return;
       }
 
       final preferences = await SharedPreferences.getInstance();
+      if (!_isCurrentOperation(generation, patientId)) return;
       await preferences.setInt(_ownerPatientKey, patientId);
+      if (!_isCurrentOperation(generation, patientId)) return;
       _deviceOwnerPatientId = patientId;
       await _refreshAndSync();
     } catch (error) {
+      if (!_isCurrentOperation(generation, patientId)) return;
       _errorMessage = friendlyFitnessError(error);
       _setState(FitnessConnectionState.error);
     } finally {
-      _isSyncing = false;
-      if (!_disposed) notifyListeners();
+      if (_isCurrentOperation(generation, patientId)) {
+        _isSyncing = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -116,7 +145,13 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _refreshAndSync() async {
+    if (_disposed) return;
+    if (!_service.isSupportedPlatform) {
+      _setState(FitnessConnectionState.unavailable);
+      return;
+    }
     final patientId = _sessionProvider.patient?.id;
+    final generation = _generation;
     if (patientId == null || patientId != _deviceOwnerPatientId) {
       _setState(
         _deviceOwnerPatientId == null
@@ -131,6 +166,7 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!_disposed) notifyListeners();
     try {
       final status = await _service.status();
+      if (!_isCurrentOperation(generation, patientId)) return;
       _platformStatus = status;
       if (status.requiresUpdate) {
         _setState(FitnessConnectionState.updateRequired);
@@ -146,24 +182,32 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       final activity = await _service.readActivity(days: 7);
-      _summary = await _repository.syncFitnessActivity(
+      if (!_isCurrentOperation(generation, patientId)) return;
+      final summary = await _repository.syncFitnessActivity(
         days: activity.days,
         timezone: activity.timezone,
       );
+      if (!_isCurrentOperation(generation, patientId)) return;
+      _summary = summary;
       _setState(FitnessConnectionState.connected);
       await _onRewardsChanged?.call();
     } catch (error) {
+      if (!_isCurrentOperation(generation, patientId)) return;
       _errorMessage = friendlyFitnessError(error);
       _setState(FitnessConnectionState.error);
     } finally {
-      _isSyncing = false;
-      if (!_disposed) notifyListeners();
+      if (_isCurrentOperation(generation, patientId)) {
+        _isSyncing = false;
+        notifyListeners();
+      }
     }
   }
 
   Future<void> openHealthConnect() => _service.openHealthConnect();
 
   Future<void> disconnect() async {
+    _generation++;
+    _isSyncing = false;
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_ownerPatientKey);
     _deviceOwnerPatientId = null;
@@ -174,6 +218,7 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _refreshForCurrentPatient({required bool syncDevice}) async {
     final patientId = _sessionProvider.patient?.id;
+    final generation = _generation;
     if (!_service.isSupportedPlatform) {
       _setState(FitnessConnectionState.unavailable);
       return;
@@ -185,10 +230,13 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
-      _summary = await _repository.getFitnessActivity();
+      final summary = await _repository.getFitnessActivity();
+      if (!_isCurrentOperation(generation, patientId)) return;
+      _summary = summary;
     } catch (_) {
       // Device data can still load if the summary request is temporarily down.
     }
+    if (!_isCurrentOperation(generation, patientId)) return;
 
     if (_deviceOwnerPatientId == null) {
       _setState(FitnessConnectionState.disconnected);
@@ -204,9 +252,15 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _handleSessionChanged() {
-    final patientId = _sessionProvider.patient?.id;
+    final patientId = _sessionProvider.isAuthenticated
+        ? _sessionProvider.patient?.id
+        : null;
     if (_lastPatientId == patientId) return;
     _lastPatientId = patientId;
+    _generation++;
+    _summary = const FitnessActivitySummary();
+    _isSyncing = false;
+    _errorMessage = null;
     unawaited(_refreshForCurrentPatient(syncDevice: true));
   }
 
@@ -225,6 +279,7 @@ class FitnessProvider extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void dispose() {
     _disposed = true;
+    _generation++;
     WidgetsBinding.instance.removeObserver(this);
     _sessionProvider.removeListener(_handleSessionChanged);
     super.dispose();

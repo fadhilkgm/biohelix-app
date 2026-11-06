@@ -21,6 +21,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   late final LiveVoiceController _liveVoiceController;
   Timer? _voicePrewarmTimer;
   PatientPortalProvider? _portal;
+  late final SessionProvider _session;
+  int? _composerPatientId;
   int _lastMessageCount = 0;
   String? _lastScrolledThreadId;
   double _lastKeyboardInset = 0;
@@ -66,6 +68,8 @@ class _AssistantTabState extends State<_AssistantTab> {
   @override
   void initState() {
     super.initState();
+    _session = context.read<SessionProvider>();
+    _composerPatientId = _session.patient?.id;
     final apiClient = context.read<ApiClient>();
     // One signaling client for the tab: it owns the bootstrap cache, so a new
     // instance per turn would throw away every prewarm.
@@ -98,6 +102,7 @@ class _AssistantTabState extends State<_AssistantTab> {
       },
     );
     _liveVoiceController.addListener(_handleLiveVoiceControllerChanged);
+    _session.addListener(_handleAssistantPatientChanged);
     _messagesController.addListener(_handleMessagesScrolled);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -122,6 +127,29 @@ class _AssistantTabState extends State<_AssistantTab> {
         locale: language == AppLanguage.ml ? 'ml-IN' : 'en-IN',
       ),
     );
+  }
+
+  void _handleAssistantPatientChanged() {
+    final patientId = _session.patient?.id;
+    if (!mounted || patientId == _composerPatientId) return;
+    _composerPatientId = patientId;
+    _signalingApi.invalidateBootstrap();
+    _updateAssistantState(() {
+      _clearComposer();
+      _isLiveVoiceMode = false;
+      _isEndingLiveVoice = true;
+      _liveConversationId = null;
+      _liveConversationReady = null;
+    });
+    unawaited(_liveVoiceController.stop(reason: 'patient_changed'));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !_session.isAuthenticated ||
+          _session.patient?.id != patientId) {
+        return;
+      }
+      unawaited(context.read<PatientPortalProvider>().initializeChatThreads());
+    });
   }
 
   @override
@@ -230,6 +258,7 @@ class _AssistantTabState extends State<_AssistantTab> {
     _isLiveVoiceMode = false;
     _isEndingLiveVoice = false;
     _liveConversationReady = null;
+    _session.removeListener(_handleAssistantPatientChanged);
     _portal?.removeListener(_handlePortalChanged);
     _portal = null;
     _messagesController.removeListener(_handleMessagesScrolled);
@@ -346,6 +375,25 @@ class _AssistantTabState extends State<_AssistantTab> {
                         _updateAssistantState(_clearComposer);
                         await portal.createNewChatThread();
                       },
+                    ),
+                  ),
+                  TextButton.icon(
+                    key: const ValueKey('assistant_medical_notice'),
+                    icon: const Icon(Icons.info_outline_rounded, size: 18),
+                    label: Text(strings.assistantMedicalNoticeTitle),
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        scrollable: true,
+                        title: Text(strings.assistantMedicalNoticeTitle),
+                        content: Text(strings.assistantDisclaimer),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: Text(strings.close),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Expanded(
